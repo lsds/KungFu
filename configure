@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+
+cmake . \
+    -DEXECUTABLE_OUTPUT_PATH=$(pwd)/bin \
+    -DLIBRARY_OUTPUT_PATH=$(pwd)/lib
