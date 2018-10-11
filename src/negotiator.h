@@ -10,8 +10,8 @@ namespace tensorflow
 // taking mean, or delayed mean) with the peers, and finally returns a tensor
 // with exactly the same shape.
 REGISTER_OP("Negotiator")
-    .Input("to_zero: float32")
-    .Output("zeroed: float32")
+    .Input("input: float32")
+    .Output("output: float32")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
         return Status::OK();
