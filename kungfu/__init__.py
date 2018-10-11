@@ -7,18 +7,16 @@ __all__ = [
 ]
 
 
-def _load_op_lib(load_from_extension):
-    if load_from_extension:
-        name = 'kungfu_tensorflow_lib.cpython-36m-darwin.so'  # FIXME: auto determin the name
-        return tf.load_op_library(name)
-    else:
-        name = 'negotiator'
-        import platform
-        suffix = 'so' if platform.uname()[0] != 'Darwin' else 'dylib'
-        return tf.load_op_library('./lib/lib%s.%s' % (name, suffix))
+def _load_op_lib():
+    name = 'kungfu_tensorflow_ops'
+    import sysconfig
+    suffix = sysconfig.get_config_var('EXT_SUFFIX')
+    from tensorflow.python.platform import resource_loader  # FIXME: don't depend on TF
+    filename = resource_loader.get_path_to_datafile(name + suffix)
+    return tf.load_op_library(filename)
 
 
-_op_lib = _load_op_lib(False)
+_op_lib = _load_op_lib()
 
 negotiator = _op_lib.negotiator
 

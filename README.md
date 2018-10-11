@@ -4,10 +4,10 @@ The ultimate distributed training framework for TensorFlow
 
 ## Build
 
-Make sure you have tensorflow python and cmake installed.
+Make sure you have tensorflow python installed.
 
 ```bash
-./configure && make
+pip3 install --user -U .
 ```
 
 ## Run

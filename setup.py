@@ -5,7 +5,7 @@ from setuptools.command.build_ext import build_ext
 def kungfu_tensorflow_lib():
     import tensorflow as tf
     return Extension(
-        'kungfu_tensorflow_lib',
+        'kungfu.kungfu_tensorflow_ops',
         sources=[
             'src/negotiator.cpp',
         ],
