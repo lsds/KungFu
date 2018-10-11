@@ -2,5 +2,6 @@
 set -e
 
 cmake . \
+    -DCMAKE_BUILD_TYPE=Release \
     -DEXECUTABLE_OUTPUT_PATH=$(pwd)/bin \
     -DLIBRARY_OUTPUT_PATH=$(pwd)/lib
