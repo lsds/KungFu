@@ -1,5 +1,7 @@
+SET(PYTHON "python3")
+
 EXECUTE_PROCESS(COMMAND
-                python3
+                ${PYTHON}
                 -c
                 "import tensorflow as tf; print(tf.sysconfig.get_include())"
                 COMMAND
@@ -10,7 +12,7 @@ EXECUTE_PROCESS(COMMAND
                 TF_INCLUDE)
 
 EXECUTE_PROCESS(COMMAND
-                python3
+                ${PYTHON}
                 -c
                 "import tensorflow as tf; print(tf.sysconfig.get_lib())"
                 COMMAND
@@ -22,7 +24,7 @@ EXECUTE_PROCESS(COMMAND
 
 EXECUTE_PROCESS(
     COMMAND
-    python3
+    ${PYTHON}
     -c
     "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"
     COMMAND
