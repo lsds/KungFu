@@ -2,5 +2,6 @@
 set -e
 
 cmake . \
+    -DPYTHON=$(which python3) \
     -DCMAKE_BUILD_TYPE=Release \
     -DLIBRARY_OUTPUT_PATH=$(pwd)/lib
