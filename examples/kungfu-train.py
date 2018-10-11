@@ -9,8 +9,7 @@ import tensorflow as tf
 
 # FIXME: install kungfu and load it from standard location
 sys.path.append('.')
-
-from kungfu.negotiator import AsyncSGDOptimizer
+from kungfu import AsyncSGDOptimizer
 
 tf.logging.set_verbosity(tf.logging.ERROR)  # disable deprecation warning
 

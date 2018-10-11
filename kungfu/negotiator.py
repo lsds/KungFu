@@ -1,4 +1,3 @@
-import platform
 import tensorflow as tf
 
 
@@ -51,24 +50,3 @@ class NegotiableOptimizer(tf.train.Optimizer):
     def variables(self, *args, **kwargs):
         """Calls this same method on the underlying optimizer."""
         return self._optimizer.variables(*args, **kwargs)
-
-
-def _load_op_lib(name):
-    suffix = 'so' if platform.uname()[0] != 'Darwin' else 'dylib'
-    return tf.load_op_library('./lib/lib%s.%s' % (name, suffix))
-
-
-_op_lib = _load_op_lib('negotiator')
-
-negotiator = _op_lib.negotiator
-
-# TODO: tf.ops.NotDifferentiable('negotiator')
-
-
-class AsyncSGDOptimizer(NegotiableOptimizer):
-    """An optimizer that negotiates using the negotiator operator."""
-
-    def _negotiate_grad(self, grad):
-        """Negotiate grad with peers."""
-        with tf.variable_scope('NegotiatedGrad'):
-            return negotiator(grad)
