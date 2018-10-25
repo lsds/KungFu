@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+cmake . \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DPYTHON=$(which python3) \
+    -DLIBRARY_OUTPUT_PATH=$(pwd)/lib \
+    -DEXECUTABLE_OUTPUT_PATH=$(pwd)/bin
