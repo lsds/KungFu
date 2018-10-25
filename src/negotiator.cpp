@@ -2,7 +2,7 @@
 
 #include <tensorflow/core/framework/op_kernel.h>
 
-#include <cstdio>
+#include "communicator.h"
 
 namespace tensorflow
 {
@@ -14,24 +14,22 @@ class Negotiator : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
-        printf("%s::%s called\n", "Negotiator", __func__);
-
-        // Grab the input tensor
         const Tensor &input = context->input(0);
         const auto &shape = input.shape();
-        printf("%s :: %s\n", name().c_str(), shape.DebugString().c_str());
+        LOG(INFO) << name() << " :: " << shape.DebugString();
 
-        // Create an output tensor
         Tensor *output = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
 
-        auto input_flat = input.flat<float>();
+        // FIXME: support other data types
+        const auto input_flat = input.flat<float>();
         auto output_flat = output->flat<float>();
-        const int n = input_flat.size();
 
-        printf("TODO: actually Negotiate the gradients with peers\n");
-        for (int i = 0; i < n; i++) { output_flat(i) = input_flat(i); }
+        const int n = input_flat.size();
+        auto a = Agent::get_instance();
+        a->push(name(), input_flat.data(), n * sizeof(float));
+        a->pull(name(), output_flat.data(), n * sizeof(float));
     }
 };
 

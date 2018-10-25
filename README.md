@@ -7,11 +7,11 @@ The ultimate distributed training framework for TensorFlow
 Make sure you have tensorflow python installed.
 
 ```bash
-pip3 install --user -U .
+pip3 install -U .
 ```
 
 ## Run
 
 ```bash
-./examples/kungfu-train.py
+python3 examples/kungfu-train.py
 ```

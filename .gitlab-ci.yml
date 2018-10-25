@@ -1,0 +1,12 @@
+# https://docs.gitlab.com/ce/ci/yaml/README.html
+stages:
+- build
+
+job1:
+  stage: build
+  script:
+  - apt update
+  - apt install -y python3 python3-pip
+  - pip3 install tensorflow
+  - pip3 install --user -U .
+  - ./examples/kungfu-train.py

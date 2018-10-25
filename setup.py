@@ -7,6 +7,7 @@ def kungfu_tensorflow_lib():
     return Extension(
         'kungfu.kungfu_tensorflow_ops',
         sources=[
+            'src/communicator.cpp',
             'src/negotiator.cpp',
         ],
         include_dirs=[
@@ -19,8 +20,9 @@ def kungfu_tensorflow_lib():
             tf.sysconfig.get_lib(),
         ],
         extra_compile_args=[
-            '-std=c++11',
-        ],
+            '-std=c++14',
+            # '-pthread',
+        ] + tf.sysconfig.get_compile_flags(),
     )
 
 
