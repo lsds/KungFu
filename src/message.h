@@ -7,11 +7,6 @@
 #include <sstream>
 #include <string>
 
-#ifdef KUNGFU_USER_LIBNOP
-#include <nop/serializer.h>
-#include <nop/utility/stream_writer.h>
-#endif
-
 namespace kungfu
 {
 class TensorBuffer
@@ -34,24 +29,13 @@ struct PushRequest {
     std::string name;
     std::uint32_t size;
     const void *data;
-
-#ifdef KUNGFU_USER_LIBNOP
-    NOP_STRUCTURE(PushRequest, name, size);
-#endif
 };
 
 struct PullRequest {
 };
 
-#ifdef KUNGFU_USER_LIBNOP
-
 template <typename T, typename R> void sendTo(const T &msg, R &w)
 {
-    using Writer = nop::StreamWriter<R>;
-    nop::Serializer<Writer> serializer;
-    serializer.Write(msg);
+    // TODO: implement
 }
-#else
-template <typename T, typename R> void sendTo(const T &msg, R &w) {}
-#endif
 }  // namespace kungfu
