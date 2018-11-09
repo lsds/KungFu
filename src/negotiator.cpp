@@ -7,12 +7,14 @@
 namespace tensorflow
 {
 
-class Negotiator : public OpKernel
+class Negotiator : public AsyncOpKernel
 {
   public:
-    explicit Negotiator(OpKernelConstruction *context) : OpKernel(context) {}
+    explicit Negotiator(OpKernelConstruction *context) : AsyncOpKernel(context)
+    {
+    }
 
-    void Compute(OpKernelContext *context) override
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
         const auto &shape = input.shape();
@@ -30,6 +32,8 @@ class Negotiator : public OpKernel
         auto a = Agent::get_instance();
         a->push(name(), input_flat.data(), n * sizeof(float));
         a->pull(name(), output_flat.data(), n * sizeof(float));
+
+        done();  // TODO: call it async
     }
 };
 
