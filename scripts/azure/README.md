@@ -6,7 +6,7 @@ Collection of scripts for various operations.
 
 ```bash
 ./cloud/gpu-machine.sh # create a new GPU VM
-# you can select the machine type by editing the IMAGE variable
+# you can select the machine type by editing the SIZE variable
 
 ./cloud/gpu-machine.sh ssh # log into the VM
 
