@@ -94,7 +94,7 @@ def train(x, y_, train_step, acc, dataset):
 def parse_args():
     parser = argparse.ArgumentParser(description='kungfu-example')
     parser.add_argument(
-        '--use-async-sgd', type=bool, default=True, help='use async SGD')
+        '--use-async-sgd', type=bool, default=False, help='use async SGD')
 
     parser.add_argument(
         '--model-name',
