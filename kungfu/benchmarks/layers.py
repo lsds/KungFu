@@ -5,29 +5,8 @@ import tensorflow as tf
 param_size = 0
 
 
-def show_size(s):
-    Ki = 1024
-    Mi = Ki * Ki
-    Gi = Mi * Ki
-    if s > Gi:
-        return '%.2fGi' % (float(s) / Gi)
-    elif s > Mi:
-        return '%.2fMi' % (float(s) / Mi)
-    elif s > Ki:
-        return '%.2fKi' % (float(s) / Ki)
-    else:
-        return '%d' % s
-
-
 def _get_size(v):
-    n = 1
-    for d in v.shape:
-        n *= int(d)
-    if str(v.dtype) == "<dtype: 'float32_ref'>":
-        n *= 4
-    else:
-        print('unknown dtype: %s' % str(v.dtype))
-    return n
+    return v.shape.num_elements() * v.dtype.size
 
 
 def _new_variable(initial):

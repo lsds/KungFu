@@ -7,6 +7,7 @@ import sys
 
 import tensorflow as tf
 from kungfu.helpers.mnist import load_datasets
+from kungfu.helpers.utils import show_size
 
 all_model_names = ['mnist.slp', 'mnist.mlp']
 
@@ -104,10 +105,25 @@ def parse_args():
     return parser.parse_args()
 
 
+def show_info():
+    g = tf.get_default_graph()
+    tot_vars = 0
+    tot_dim = 0
+    tot_size = 0
+    for v in g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+        dim = v.shape.num_elements()
+        tot_vars += 1
+        tot_dim += dim
+        tot_size += dim * v.dtype.size
+    print('%d vars, total dim: %d, total size: %s' % (tot_vars, tot_dim,
+                                                      show_size(tot_size)))
+
+
 def main():
     args = parse_args()
     x, y_, train_step, acc = build_train_ops(args.model_name,
                                              args.use_async_sgd)
+    show_info()
     data_dir = os.path.join(os.getenv('HOME'), 'var/data/mnist')
     mnist = measure(
         lambda: load_datasets(data_dir, normalize=True, one_hot=True),
