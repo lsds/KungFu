@@ -1,8 +1,37 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-cmake . \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DPYTHON=$(which python3) \
-    -DLIBRARY_OUTPUT_PATH=$(pwd)/lib \
-    -DEXECUTABLE_OUTPUT_PATH=$(pwd)/bin
+MPI_PREFIX=$(pwd)/go-mpi
+
+CMAKE_FLAGS=
+
+add_cmake_flag() {
+    echo "usinig $1=$2"
+    CMAKE_FLAGS="$CMAKE_FLAGS -D$1=$2"
+}
+
+parse_args() {
+    for i in "$@"; do
+        case $i in
+        --with-mpi=*)
+            MPI_PREFIX="${i#*=}"
+            ;;
+        *)
+            echo "unknown argument $1"
+            exit
+            ;;
+        esac
+    done
+}
+
+add_cmake_flags() {
+    add_cmake_flag CMAKE_BUILD_TYPE Release
+    add_cmake_flag PYTHON $(which python3)
+    add_cmake_flag LIBRARY_OUTPUT_PATH $(pwd)/lib
+    add_cmake_flag CMAKE_RUNTIME_OUTPUT_DIRECTORY $(pwd)/bin
+    add_cmake_flag CMAKE_MODULE_PATH $(pwd)/cmake
+}
+
+parse_args $@
+add_cmake_flags
+cmake . $CMAKE_FLAGS

@@ -1,9 +1,9 @@
-# Mac
 .idea
 venv
 env
 kungfu.cbp
 __pycache__
+*.swp
 *_generated.h
 *.dylib
 *.log
@@ -29,3 +29,4 @@ src/tensorflow.cmake
 tensorflow-prefix
 tensorflow-repo-prefix
 Testing/
+/go-output

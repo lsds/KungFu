@@ -1,0 +1,3 @@
+// https://github.com/lgarithm/stdtensor/blob/master/include/experimental/type_encoder
+#pragma once
+#include <experimental/bits/type_encoder.hpp>

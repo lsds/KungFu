@@ -4,10 +4,10 @@ from setuptools.command.build_ext import build_ext
 
 def kungfu_tensorflow_lib():
     import tensorflow as tf
+    import os
     return Extension(
         'kungfu.kungfu_tensorflow_ops',
         sources=[
-            'src/communicator.cpp',
             'src/negotiator.cpp',
         ],
         include_dirs=[
@@ -33,7 +33,7 @@ setup(
     description='The ultimate distributed training framework for TensorFlow',
     url='https://github.com/luomai/kungfu',
     ext_modules=[
-        kungfu_tensorflow_lib(),
+        # kungfu_tensorflow_lib(),
     ],
     setup_requires=[],
     install_requires=[],

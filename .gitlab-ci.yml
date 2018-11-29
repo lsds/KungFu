@@ -1,12 +1,18 @@
 # https://docs.gitlab.com/ce/ci/yaml/README.html
+
+image: registry.gitlab.com/teavana/kungfu/builder:ubuntu18
+
 stages:
 - build
 
 job1:
   stage: build
+
+  before_script:
+  - ./scripts/download-mnist.sh
+
   script:
-  - apt update
-  - apt install -y python3 python3-pip
-  - pip3 install tensorflow
-  - pip3 install --user -U .
+  # - pip3 install --user -U .
+  - ./scripts/install.sh
   - ./examples/kungfu-train.py
+  - ./scripts/parallel-train.sh

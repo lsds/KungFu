@@ -1,0 +1,34 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+pool:
+  # https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=vsts&tabs=yaml#use-a-microsoft-hosted-agent
+  vmImage: 'ubuntu-16.04'
+
+steps:
+- script: ./scripts/download-mnist.sh
+  displayName: 'Download Test Data'
+
+# FIXME:
+#
+# 2018-11-26T10:00:47.0330889Z   File "/usr/bin/pip3", line 9, in <module>
+# 2018-11-26T10:00:47.0331224Z     from pip import main
+# 2018-11-26T10:00:47.0332152Z ImportError: cannot import name 'main'
+#
+#
+# - script: pip3 install -U pip
+#   displayName: 'Upgrade pip'
+
+
+- script: |
+    sudo apt install -y python3-setuptools
+    pip3 install tensorflow
+  displayName: 'Install Python tools'
+- script: ./scripts/install.sh
+  displayName: 'Install Kungfu'
+- script: ./examples/kungfu-train.py
+  displayName: 'Single Train'
+- script: ./scripts/parallel-train.sh
+  displayName: 'Parallel Train'

@@ -7,7 +7,8 @@ The ultimate distributed training framework for TensorFlow
 Make sure you have tensorflow python installed.
 
 ```bash
-pip3 install -U .
+./scripts/install.sh
+# pip3 install -U . # FIXME: make it work
 ```
 
 ## Run

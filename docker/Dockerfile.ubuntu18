@@ -1,0 +1,19 @@
+# registry.gitlab.com/teavana/kungfu/builder:ubuntu18
+FROM ubuntu:bionic AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+ARG SOURCES_LIST=sources.list.ustc
+ADD ${SOURCES_LIST} /etc/apt/sources.list
+
+RUN apt update && \
+    apt install -y curl wget git build-essential cmake python3 python3-pip
+
+ARG PY_MIRROR='-i https://pypi.tuna.tsinghua.edu.cn/simple'
+RUN pip3 install ${PY_MIRROR} tensorflow
+
+RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
+    tar -C /usr/local -xf go1.11.linux-amd64.tar.gz && \
+    rm go1.11.linux-amd64.tar.gz
+
+ENV PATH=${PATH}:/usr/local/go/bin

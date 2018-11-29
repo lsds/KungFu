@@ -1,38 +1,21 @@
 SET(PYTHON "python3")
 
-EXECUTE_PROCESS(COMMAND
-                ${PYTHON}
-                -c
-                "import tensorflow as tf; print(tf.sysconfig.get_include())"
-                COMMAND
-                tr
-                -d
-                '\n'
-                OUTPUT_VARIABLE
-                TF_INCLUDE)
+EXECUTE_PROCESS(
+    COMMAND ${PYTHON} -c
+            "import tensorflow as tf; print(tf.sysconfig.get_include())"
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE TF_INCLUDE)
 
-EXECUTE_PROCESS(COMMAND
-                ${PYTHON}
-                -c
-                "import tensorflow as tf; print(tf.sysconfig.get_lib())"
-                COMMAND
-                tr
-                -d
-                '\n'
-                OUTPUT_VARIABLE
-                TF_LIB)
+EXECUTE_PROCESS(COMMAND ${PYTHON} -c
+                        "import tensorflow as tf; print(tf.sysconfig.get_lib())"
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                OUTPUT_VARIABLE TF_LIB)
 
 EXECUTE_PROCESS(
-    COMMAND
-    ${PYTHON}
-    -c
-    "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"
-    COMMAND
-    tr
-    -d
-    '\n'
-    OUTPUT_VARIABLE
-    PY_EXT_SUFFIX)
+    COMMAND ${PYTHON} -c
+            "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE PY_EXT_SUFFIX)
 
 LINK_DIRECTORIES(${TF_LIB})
 
