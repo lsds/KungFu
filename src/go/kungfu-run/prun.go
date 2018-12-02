@@ -50,6 +50,7 @@ func main() {
 				fmt.Sprintf(`%s=%s`, `PATH`, os.Getenv(`PATH`)),
 				fmt.Sprintf(`%s=%s`, `HOME`, os.Getenv(`HOME`)),
 				fmt.Sprintf(`%s=%s`, rch.ClusterSpecEnvKey, specs[i]),
+				fmt.Sprintf(`%s=%d`, `CUDA_VISIBLE_DEVICES`, i),
 			}
 			c := basicColors[i%len(basicColors)]
 			log.Printf("%s %q", prog, args)
