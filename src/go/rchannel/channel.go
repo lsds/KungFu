@@ -17,8 +17,3 @@ func newChannel(name string, conn *Connection) *Channel {
 func (c *Channel) Send(m Message) error {
 	return c.conn.send(c.name, m)
 }
-
-// Recv receives a message from remove channel
-func (c *Channel) Recv(m *Message) error {
-	return c.conn.recv(c.name, m)
-}
