@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"runtime"
+	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	rch "github.com/luomai/kungfu/src/go/rchannel"
@@ -16,9 +17,13 @@ import (
 )
 
 var (
-	np      = flag.Int("np", runtime.NumCPU(), "number of tasks")
-	timeout = flag.Duration("timeout", 10*time.Second, "timeout")
+	np       = flag.Int("np", runtime.NumCPU(), "number of tasks")
+	m        = flag.Int("m", 4, "number of GPUs per host")
+	hostList = flag.String("hosts", "127.0.0.1", "comma separated list of hosts")
+	selfHost = flag.String("self", "127.0.0.1", "")
+	timeout  = flag.Duration("timeout", 10*time.Second, "timeout")
 )
+
 var (
 	basicColors = []xterm.Color{
 		xterm.Green,
@@ -31,45 +36,49 @@ var (
 
 func main() {
 	flag.Parse()
+	logArgs()
+	hosts := strings.Split(*hostList, ",")
+	specs := rch.GenCluster(*np, hosts, *m)
 	restArgs := flag.Args()
+	if len(restArgs) < 1 {
+		log.Print("missing program name")
+		os.Exit(1)
+	}
 	prog := restArgs[0]
 	args := restArgs[1:]
 
-	specs := rch.GenCluster(*np)
+	var ps []*Proc
+	for _, spec := range specs {
+		if spec.Self.NetAddr.Host != *selfHost {
+			continue
+		}
+		envs := []string{
+			// FIXME: passdown more envs
+			fmt.Sprintf(`%s=%s`, `PATH`, os.Getenv(`PATH`)),
+			fmt.Sprintf(`%s=%s`, `HOME`, os.Getenv(`HOME`)),
+			fmt.Sprintf(`%s=%s`, rch.ClusterSpecEnvKey, spec),
+			fmt.Sprintf(`%s=%d`, `CUDA_VISIBLE_DEVICES`, spec.Self.DeviceID),
+		}
+		log.Printf("%s %q", prog, args)
+		cmd := exec.Command(prog, args...)
+		cmd.Env = envs
+		ps = append(ps, &Proc{
+			name: fmt.Sprintf("%02d", spec.MyRank()),
+			cmd:  cmd,
+		})
+	}
 
 	ctx := context.Background()
-	var wg sync.WaitGroup
-	wg.Add(*np)
-	var fail int32
-	done := make(chan int, *np)
-
-	for i := 0; i < *np; i++ {
-		go func(i int) {
-			envs := []string{
-				// FIXME: passdown more envs
-				fmt.Sprintf(`%s=%s`, `PATH`, os.Getenv(`PATH`)),
-				fmt.Sprintf(`%s=%s`, `HOME`, os.Getenv(`HOME`)),
-				fmt.Sprintf(`%s=%s`, rch.ClusterSpecEnvKey, specs[i]),
-				fmt.Sprintf(`%s=%d`, `CUDA_VISIBLE_DEVICES`, i),
-			}
-			c := basicColors[i%len(basicColors)]
-			log.Printf("%s %q", prog, args)
-			prefix := fmt.Sprintf("%02d ", i)
-			ctx, cancel := context.WithTimeout(ctx, *timeout)
-			defer cancel()
-			if err := run(ctx, c.S(prefix), prog, args, envs); err != nil {
-				log.Printf("%s #%d exited with error: %v", xterm.Red.S("[E]"), i, err)
-				atomic.AddInt32(&fail, 1)
-			} else {
-				log.Printf("%s #%d finished successfully", xterm.Green.S("[I]"), i)
-			}
-			done <- i
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-	if fail != 0 {
-		log.Printf("%d node failed\n", fail)
+	ctx, cancel := context.WithTimeout(ctx, *timeout)
+	defer cancel()
+	if err := runAll(ctx, ps); err != nil {
+		log.Print(err)
 		os.Exit(1)
+	}
+}
+
+func logArgs() {
+	for i, a := range os.Args {
+		fmt.Printf("args[%d]=%s\n", i, a)
 	}
 }

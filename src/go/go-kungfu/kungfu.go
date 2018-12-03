@@ -64,20 +64,20 @@ func bcast(buffer []byte, count int, dtype C.MPI_Datatype, root int, name string
 	var wg sync.WaitGroup
 	myRank := cluster.MyRank()
 	if myRank == root {
-		for i, addr := range cluster.Peers {
+		for i, task := range cluster.Peers {
 			if i != root {
 				wg.Add(1)
 				func(addr rch.NetAddr) {
 					m := rch.NewMessage(buffer[:n])
 					router.Send(addr.WithName(name), *m)
 					wg.Done()
-				}(addr)
+				}(task.NetAddr)
 			}
 		}
 	} else {
 		var m rch.Message
-		addr := cluster.Peers[root]
-		router.Recv(addr.WithName(name), &m)
+		task := cluster.Peers[root]
+		router.Recv(task.NetAddr.WithName(name), &m)
 		if int(m.Length) != n {
 			panic("unexpected recv length")
 		}
@@ -100,7 +100,7 @@ func Go_Kungfu_Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_
 	if myRank == root {
 		var lock sync.Mutex
 		var wg sync.WaitGroup
-		for i, addr := range cluster.Peers {
+		for i, task := range cluster.Peers {
 			if i != root {
 				wg.Add(1)
 				func(addr rch.NetAddr) {
@@ -114,14 +114,14 @@ func Go_Kungfu_Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_
 					algo.AddBy(recvBuf[:n], buf, count, wire.MPI_Datatype(dtype), wire.MPI_Op(op))
 					lock.Unlock()
 					wg.Done()
-				}(addr)
+				}(task.NetAddr)
 			}
 		}
 		wg.Wait()
 	} else {
-		addr := cluster.Peers[root]
+		task := cluster.Peers[root]
 		m := rch.NewMessage(sendBuf[:n])
-		router.Send(addr.WithName(name), *m)
+		router.Send(task.NetAddr.WithName(name), *m)
 	}
 
 	return bcast(recvBuf, count, dtype, root, name)

@@ -125,11 +125,13 @@ delete_cluster() {
 }
 
 main() {
-
     if [ "$1" == "ssh" ]; then
         ssh ${ADMIN}@$(get_ip relay)
     elif [ "$1" == "down" ]; then
         measure delete_cluster
+    elif [ "$1" == "reload" ]; then
+        measure delete_cluster
+        measure create_cluster
     else
         # create_cluster took 270s
         measure create_cluster

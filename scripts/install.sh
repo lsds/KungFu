@@ -7,6 +7,7 @@ pip3 install --no-index --user -U .
 
 # TODO: static link in setup.py
 
+export PATH=$HOME/local/go/bin:$PATH
 ./configure && make
 
 USER_SITE_PKG=$(python3 -c "import sys; site_packages = [p for p in sys.path if 'site-packages' in p];print(site_packages[0]);")

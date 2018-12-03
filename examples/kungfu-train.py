@@ -9,7 +9,10 @@ import tensorflow as tf
 from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
 
-all_model_names = ['mnist.slp', 'mnist.mlp']
+all_model_names = [
+    'mnist.slp',
+    'mnist.mlp',
+]
 
 
 def measure(f, name=None):
@@ -50,14 +53,14 @@ def build_train_ops(model_name, use_async_sgd):
     return x, y_, train_step, acc
 
 
-def train(x, y_, train_step, acc, dataset):
+def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1):
+    # TODO: shard by task ID
     shards = 1
     shard_id = 0
 
     train_data_size = 60000
     batch_size = 5000
     log_period = 1
-    n_epochs = 1
 
     step_per_epoch = train_data_size // batch_size
     n_steps = step_per_epoch * n_epochs
@@ -96,7 +99,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='kungfu-example')
     parser.add_argument(
         '--use-async-sgd', type=bool, default=False, help='use async SGD')
-
+    parser.add_argument(
+        '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
         '--model-name',
         type=str,
@@ -128,7 +132,8 @@ def main():
     mnist = measure(
         lambda: load_datasets(data_dir, normalize=True, one_hot=True),
         'load data')
-    measure(lambda: train(x, y_, train_step, acc, mnist), 'train')
+    measure(lambda: train_mnist(x, y_, train_step, acc, mnist, args.n_epochs),
+            'train')
 
 
 measure(main, 'main')

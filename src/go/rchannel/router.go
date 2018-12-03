@@ -12,7 +12,7 @@ type Router struct {
 }
 
 func NewRouter(cluster *ClusterSpec) (*Router, error) {
-	port, err := strconv.Atoi(cluster.Self.Port)
+	port, err := strconv.Atoi(cluster.Self.NetAddr.Port)
 	if err != nil {
 		return nil, err
 	}

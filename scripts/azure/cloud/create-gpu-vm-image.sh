@@ -24,7 +24,7 @@ measure() {
     $@
     local end=$(date +%s)
     local duration=$((end - begin))
-    echo "$@ took ${duration}s"
+    echo "$@ took ${duration}s" | tee -a profile.log
 }
 
 create_vm() {
@@ -49,7 +49,7 @@ install_vm() {
     measure ssh ${ADMIN}@$ip ./gpu-machine/init.sh
     measure az vm restart -g ${GROUP} -n ${NAME} --debug
 
-    # TODO: wait until the VM can be ssh into
+    sleep 60 # TODO: wait until the VM can be ssh into
     measure ssh ${ADMIN}@$ip ./gpu-machine/test-tf-gpu.py
 }
 

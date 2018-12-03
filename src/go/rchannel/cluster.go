@@ -3,21 +3,27 @@ package rchannel
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"strconv"
 )
 
 const ClusterSpecEnvKey = `KF_CLUSTER_SPEC`
 
+type TaskSpec struct {
+	DeviceID int
+	NetAddr  NetAddr
+}
+
 type ClusterSpec struct {
-	Self  NetAddr
-	Peers []NetAddr
+	Self  TaskSpec
+	Peers []TaskSpec
 }
 
 func NewClusterSpecFromEnv() (*ClusterSpec, error) {
 	config := os.Getenv(ClusterSpecEnvKey)
 	if len(config) == 0 {
-		clusters := GenCluster(1)
+		clusters := GenCluster(1, []string{`127.0.0.1`}, 1)
 		return &clusters[0], nil
 	}
 	var cluster ClusterSpec
@@ -36,7 +42,7 @@ func (c ClusterSpec) String() string {
 }
 
 func (c ClusterSpec) MyPort() uint32 {
-	port, err := strconv.Atoi(c.Self.Port)
+	port, err := strconv.Atoi(c.Self.NetAddr.Port)
 	if err != nil {
 		return 0
 	}
@@ -52,19 +58,34 @@ func (c ClusterSpec) MyRank() int {
 	panic("Self is not in the cluster")
 }
 
-func GenCluster(n int) []ClusterSpec {
-	var peers []NetAddr
-	for i := 0; i < n; i++ {
-		peers = append(peers, NetAddr{
-			Host: `127.0.0.1`,
-			Port: strconv.Itoa(10001 + i),
-		})
+func GenCluster(n int, hosts []string, m int) []ClusterSpec {
+	if cap := m * len(hosts); cap < n {
+		log.Printf("can run %d tasks at most!", cap)
 	}
+
+	var tasks []TaskSpec
+
+	for _, host := range hosts {
+		for i := 0; i < m; i++ {
+			t := TaskSpec{
+				DeviceID: i,
+				NetAddr: NetAddr{
+					Host: host,
+					Port: strconv.Itoa(10001 + i),
+				},
+			}
+			tasks = append(tasks, t)
+			if len(tasks) >= n {
+				break
+			}
+		}
+	}
+
 	var specs []ClusterSpec
-	for i := 0; i < n; i++ {
+	for _, task := range tasks {
 		spec := ClusterSpec{
-			Self:  peers[i],
-			Peers: peers,
+			Self:  task,
+			Peers: tasks,
 		}
 		specs = append(specs, spec)
 	}
