@@ -34,7 +34,7 @@ prun() {
         -hosts $hosts \
         -self $self \
         -m 4 \
-        -timeout 60s \
+        -timeout 120s \
         python3 \
         ./examples/kungfu-train.py \
         --use-async-sgd=1 \

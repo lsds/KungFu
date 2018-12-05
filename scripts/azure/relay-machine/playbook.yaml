@@ -1,0 +1,30 @@
+- hosts: all
+  tasks:
+
+  - name: test
+    shell: pwd
+
+  - name: show name
+    shell: echo {{ inventory_hostname }}
+    # register: out
+
+  - name: show command
+    shell: echo {{ ansible_play_hosts | join(',') }}
+    register: result
+
+  - name: run benchmark
+    shell: ./kungfu/scripts/parallel-train.sh 8 {{ ansible_play_hosts | join(',') }} {{ inventory_hostname }}
+    ignore_errors: yes
+    register: result
+
+  - name: pack logs
+    shell: cd kungfu && tar -cf logs.tar *.log && bzip2 -f logs.tar
+
+  - name: download log
+    fetch:
+      src: ./kungfu/logs.tar.bz2
+      dest: ~/logs/
+
+  # - debug: var=out.stdout_lines
+  - debug: msg="{{ result.stdout }}"
+  - debug: msg="{{ result.stderr }}"

@@ -19,7 +19,17 @@ SUBNET=default-subnet
 ADMIN=kungfu
 SIZE=Standard_NV24 # 4 GPU
 
+N_NODES=2
+
 IMAGE=$(az image show -g ${IMAGE_GROUP} -n ${IMAGE_NAME} --query id | tr -d '"')
+
+node_names() {
+    for i in $(seq $1); do
+        printf "node-%02d\n" $i
+    done
+}
+
+ALL_NODES=$(node_names ${N_NODES})
 
 measure() {
     local begin=$(date +%s)
@@ -72,8 +82,9 @@ setup_network() {
 
 setup_nodes() {
     create_relay &
-    create_node node-01 &
-    create_node node-02 &
+    for node in ${ALL_NODES}; do
+        create_node ${node} &
+    done
     wait
 }
 
@@ -105,8 +116,9 @@ setup_keys() {
     scp ${ADMIN}@${RELAY_IP}:~/.ssh/authorized_keys .
 
     [ -f nodes.txt ] && rm nodes.txt
-    send_authorized_keys $RELAY_IP node-01 &
-    send_authorized_keys $RELAY_IP node-02 &
+    for node in ${ALL_NODES}; do
+        send_authorized_keys $RELAY_IP ${node} &
+    done
     wait
 
     scp nodes.txt $ADMIN@${RELAY_IP}:~/
@@ -114,6 +126,7 @@ setup_keys() {
 }
 
 create_cluster() {
+    # create_cluster takes about 270s
     measure setup_group
     measure setup_network
     measure setup_nodes
@@ -124,18 +137,23 @@ delete_cluster() {
     measure az group delete -n ${GROUP} --yes --debug
 }
 
+reload_cluster() {
+    measure delete_cluster
+    measure create_cluster
+}
+
 main() {
     if [ "$1" == "ssh" ]; then
         ssh ${ADMIN}@$(get_ip relay)
+    elif [ "$1" == "up" ]; then
+        measure create_cluster
     elif [ "$1" == "down" ]; then
         measure delete_cluster
     elif [ "$1" == "reload" ]; then
-        measure delete_cluster
-        measure create_cluster
+        measure reload_cluster
     else
-        # create_cluster took 270s
         measure create_cluster
     fi
 }
 
-main $@
+measure main $@

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/luomai/kungfu/src/go/algo"
+	"github.com/luomai/kungfu/src/go/metrics"
 	rch "github.com/luomai/kungfu/src/go/rchannel"
 	"github.com/luomai/kungfu/src/go/wire"
 )
@@ -48,7 +51,13 @@ func Go_Kungfu_Init() int {
 	if err != nil {
 		exitErr(err)
 	}
+	go metrics.ListenAndServe(cluster.Self.MonitoringPort)
 	go server.ListenAndServe()
+	go func() {
+		for range time.Tick(1 * time.Second) {
+			router.UpdateRate()
+		}
+	}()
 	return 0
 }
 
@@ -56,6 +65,14 @@ func Go_Kungfu_Init() int {
 func Go_Kungfu_Finalize() int {
 	server.Close()
 	// TODO: check error
+	filename := fmt.Sprintf("vars.%02d.json", cluster.MyRank())
+	f, err := os.Create(filename)
+	if err != nil {
+		return 1
+	}
+	defer f.Close()
+	metrics.RecordStop()
+	metrics.Export(f)
 	return 0
 }
 
@@ -90,7 +107,7 @@ func bcast(buffer []byte, count int, dtype C.MPI_Datatype, root int, name string
 
 //export Go_Kungfu_Negotiate
 func Go_Kungfu_Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string) int {
-	log.Printf("Go_Kungfu_Negotiate: %s, %d, %d", name, count, dtype)
+	// log.Printf("Go_Kungfu_Negotiate: %s, %d, %d", name, count, dtype)
 	root := 0
 	n := count * wire.MPI_Datatype(dtype).Size()
 
@@ -107,6 +124,7 @@ func Go_Kungfu_Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_
 					var m rch.Message
 					router.Recv(addr.WithName(name), &m)
 					if int(m.Length) != n {
+						// FIXME: don't panic
 						panic("unexpected recv length")
 					}
 					buf := m.Data

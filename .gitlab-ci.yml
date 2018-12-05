@@ -15,4 +15,4 @@ job1:
   # - pip3 install --user -U .
   - ./scripts/install.sh
   - ./examples/kungfu-train.py
-  - ./scripts/parallel-train.sh
+  - ./bin/kungfu-run -np 2 -timeout 10s python3 ./examples/kungfu-train.py --use-async-sgd=1 --n-epochs=1 --batch-size=5000 --model-name=mnist.slp

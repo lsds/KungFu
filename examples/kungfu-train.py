@@ -36,7 +36,7 @@ def build_train_ops(model_name, use_async_sgd):
         x, y = slp(28 * 28, 10)
     elif model_name == 'mnist.mlp':
         from kungfu.benchmarks.mnist import mlp
-        x, y = mlp(28 * 28, 10)
+        x, y = mlp(28 * 28, 10, hidden_layers=[4096] * 10)
     else:
         raise RuntimeError('invalid model name: %s' % model_name)
 
@@ -53,14 +53,13 @@ def build_train_ops(model_name, use_async_sgd):
     return x, y_, train_step, acc
 
 
-def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1):
+def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1, batch_size=5000):
     # TODO: shard by task ID
     shards = 1
     shard_id = 0
 
     train_data_size = 60000
-    batch_size = 5000
-    log_period = 1
+    log_period = 10
 
     step_per_epoch = train_data_size // batch_size
     n_steps = step_per_epoch * n_epochs
@@ -102,6 +101,8 @@ def parse_args():
     parser.add_argument(
         '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
+        '--batch-size', type=int, default=50, help='batch size')
+    parser.add_argument(
         '--model-name',
         type=str,
         default='mnist.slp',
@@ -123,8 +124,14 @@ def show_info():
                                                       show_size(tot_size)))
 
 
+def warmup():
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+
+
 def main():
     args = parse_args()
+    measure(warmup, 'warmup')
     x, y_, train_step, acc = build_train_ops(args.model_name,
                                              args.use_async_sgd)
     show_info()
@@ -132,8 +139,9 @@ def main():
     mnist = measure(
         lambda: load_datasets(data_dir, normalize=True, one_hot=True),
         'load data')
-    measure(lambda: train_mnist(x, y_, train_step, acc, mnist, args.n_epochs),
-            'train')
+    measure(
+        lambda: train_mnist(x, y_, train_step, acc, mnist, args.n_epochs, args.batch_size),
+        'train')
 
 
 measure(main, 'main')

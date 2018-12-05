@@ -1,38 +1,34 @@
 package rchannel
 
 import (
-	"log"
 	"net"
 	"sync"
 )
 
 // Connection encapsulates a TCP connection
 type Connection struct {
-	sendMu sync.Mutex
-	recvMu sync.Mutex
-
-	conn       net.Conn
-	recvBuffer chan *Message
+	sync.Mutex
+	conn net.Conn
 }
 
-func newConnection(netAddr string, h connectionHeader) (*Connection, error) {
+func newConnection(netAddr string, localPort uint32) (*Connection, error) {
 	conn, err := net.Dial("tcp", netAddr)
 	if err != nil {
 		return nil, err
 	}
+	h := connectionHeader{Port: localPort}
 	if err := h.WriteTo(conn); err != nil {
 		return nil, err
 	}
 	return &Connection{
-		conn:       conn,
-		recvBuffer: make(chan *Message, 10),
+		conn: conn,
 	}, nil
 }
 
 func (c *Connection) send(name string, m Message) error {
-	log.Printf("%s::%s(%s, %s)", "Connection", "send", name, m)
-	c.sendMu.Lock()
-	defer c.sendMu.Unlock()
+	// log.Printf("%s::%s(%s, %s)", "Connection", "send", name, m)
+	c.Lock()
+	defer c.Unlock()
 	bs := []byte(name)
 	mh := messageHeader{
 		NameLength: uint32(len(bs)),
@@ -42,12 +38,6 @@ func (c *Connection) send(name string, m Message) error {
 		return err
 	}
 	return m.WriteTo(c.conn)
-}
-
-func (c *Connection) recv(name string, m *Message) error {
-	c.recvMu.Lock()
-	defer c.recvMu.Unlock()
-	return nil
 }
 
 func (c *Connection) Close() error {

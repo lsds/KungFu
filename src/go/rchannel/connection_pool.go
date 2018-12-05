@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var errCantEstablishConnection = errors.New("Can't establish connection")
+var errCantEstablishConnection = errors.New("can't establish connection")
 
 type ConnectionPool struct {
 	sync.Mutex
@@ -29,7 +29,7 @@ func (p *ConnectionPool) get(netAddr string, localPort uint32) (*Connection, err
 	trials := 10
 	for i := 0; i <= trials; i++ {
 		if conn, ok := p.conns[netAddr]; !ok {
-			conn, err := newConnection(netAddr, connectionHeader{Port: localPort})
+			conn, err := newConnection(netAddr, localPort)
 			if err == nil {
 				p.conns[netAddr] = conn
 			}

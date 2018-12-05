@@ -11,8 +11,9 @@ import (
 const ClusterSpecEnvKey = `KF_CLUSTER_SPEC`
 
 type TaskSpec struct {
-	DeviceID int
-	NetAddr  NetAddr
+	DeviceID       int
+	NetAddr        NetAddr
+	MonitoringPort uint16
 }
 
 type ClusterSpec struct {
@@ -62,25 +63,7 @@ func GenCluster(n int, hosts []string, m int) []ClusterSpec {
 	if cap := m * len(hosts); cap < n {
 		log.Printf("can run %d tasks at most!", cap)
 	}
-
-	var tasks []TaskSpec
-
-	for _, host := range hosts {
-		for i := 0; i < m; i++ {
-			t := TaskSpec{
-				DeviceID: i,
-				NetAddr: NetAddr{
-					Host: host,
-					Port: strconv.Itoa(10001 + i),
-				},
-			}
-			tasks = append(tasks, t)
-			if len(tasks) >= n {
-				break
-			}
-		}
-	}
-
+	tasks := genCluster(n, hosts, m)
 	var specs []ClusterSpec
 	for _, task := range tasks {
 		spec := ClusterSpec{
@@ -90,4 +73,25 @@ func GenCluster(n int, hosts []string, m int) []ClusterSpec {
 		specs = append(specs, spec)
 	}
 	return specs
+}
+
+func genCluster(n int, hosts []string, m int) []TaskSpec {
+	var tasks []TaskSpec
+	for _, host := range hosts {
+		for i := 0; i < m; i++ {
+			t := TaskSpec{
+				DeviceID: i,
+				NetAddr: NetAddr{
+					Host: host,
+					Port: strconv.Itoa(10001 + i),
+				},
+				MonitoringPort: uint16(20001 + i),
+			}
+			tasks = append(tasks, t)
+			if len(tasks) >= n {
+				return tasks
+			}
+		}
+	}
+	return tasks
 }

@@ -1,10 +1,20 @@
 #!/bin/sh
 set -e
 
-if [ ! -f ~/.ssh/id_rsa ]; then
-    ssh-keygen -f .ssh/id_rsa -P ''
+if [ ! -f $HOME/.ssh/id_rsa ]; then
+    ssh-keygen -f $HOME/.ssh/id_rsa -P ''
 fi
 
-cat .ssh/id_rsa.pub >>.ssh/authorized_keys
+PUB_KEY=$(cat ~/.ssh/id_rsa.pub)
 
-echo 'StrictHostKeyChecking=no' >>.ssh/config
+if ! grep -q "${PUB_KEY}" $HOME/.ssh/authorized_keys; then
+    echo ${PUB_KEY} >>$HOME/.ssh/authorized_keys
+fi
+
+touch $HOME/.ssh/config
+if ! grep -q 'StrictHostKeyChecking=no' $HOME/.ssh/config; then
+    echo 'StrictHostKeyChecking=no' >>$HOME/.ssh/config
+fi
+
+sudo apt update
+sudo apt install -y ansible tree

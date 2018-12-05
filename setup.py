@@ -4,7 +4,6 @@ from setuptools.command.build_ext import build_ext
 
 def kungfu_tensorflow_lib():
     import tensorflow as tf
-    import os
     return Extension(
         'kungfu.kungfu_tensorflow_ops',
         sources=[
