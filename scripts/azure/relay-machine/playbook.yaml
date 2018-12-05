@@ -1,19 +1,26 @@
 - hosts: all
   tasks:
 
-  - name: test
+  - name: ping test
     shell: pwd
 
-  - name: show name
-    shell: echo {{ inventory_hostname }}
-    # register: out
-
-  - name: show command
-    shell: echo {{ ansible_play_hosts | join(',') }}
-    register: result
-
   - name: run benchmark
-    shell: ./kungfu/scripts/parallel-train.sh 8 {{ ansible_play_hosts | join(',') }} {{ inventory_hostname }}
+    # https://docs.ansible.com/ansible/latest/modules/shell_module.html
+    shell: |
+      ./bin/kungfu-run \
+        -np 8 \
+        -m 4 \
+        -timeout 120s \
+        -hosts {{ ansible_play_hosts | join(',') }} \
+        -self {{ inventory_hostname }} \
+        python3 \
+        ./examples/kungfu-train.py \
+        --use-async-sgd=1 \
+        --n-epochs=10 \
+        --batch-size=50 \
+        --model-name=mnist.mlp
+    args:
+      chdir: kungfu
     ignore_errors: yes
     register: result
 

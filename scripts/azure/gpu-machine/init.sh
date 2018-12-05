@@ -6,5 +6,5 @@ cd $(dirname $0)
 ./install-cudnn-7.sh
 ./install-tensorflow-gpu.sh
 
-sudo apt install -y build-essential cmake iperf
+sudo apt install -y build-essential cmake iperf nload htop
 ./install-golang1.11.sh

@@ -16,11 +16,7 @@ def _load_op_lib():
     return tf.load_op_library(filename)
 
 
-_op_lib = _load_op_lib()
-
-negotiator = _op_lib.negotiator
-
-# TODO: tf.ops.NotDifferentiable('negotiator')
+_op_lib = None
 
 
 class AsyncSGDOptimizer(NegotiableOptimizer):
@@ -29,4 +25,9 @@ class AsyncSGDOptimizer(NegotiableOptimizer):
     def _negotiate_grad(self, grad):
         """Negotiate grad with peers."""
         with tf.variable_scope('NegotiatedGrad'):
+            global _op_lib
+            if _op_lib is None:
+                _op_lib = _load_op_lib()
+            negotiator = _op_lib.negotiator
+            # TODO: tf.ops.NotDifferentiable('negotiator')
             return negotiator(grad)

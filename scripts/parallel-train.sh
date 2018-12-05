@@ -34,16 +34,17 @@ prun() {
         -hosts $hosts \
         -self $self \
         -m 4 \
-        -timeout 120s \
+        -timeout 20s \
         python3 \
         ./examples/kungfu-train.py \
         --use-async-sgd=1 \
-        --n-epochs 10 \
+        --n-epochs 1 \
+        --batch-size=500 \
         --model-name=$model_name
 }
 
 parse_args $@
 echo "running ..."
-prun $ip $np mnist.mlp
+prun $ip $np mnist.slp
 #  >prun.stdout.log 2>prun.stderr.log
 echo "done $0"

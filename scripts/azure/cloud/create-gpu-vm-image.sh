@@ -59,6 +59,8 @@ save_vm() {
     az vm generalize -g ${GROUP} -n ${NAME} --debug
 
     local VM_ID=$(az resource show -g ${GROUP} -n ${NAME} --resource-type Microsoft.Compute/virtualMachines --query 'id' --debug | tr -d '"')
+
+    measure az image delete -g ${OUTPUT_GROUP} -n ${OUTPUT_IMAGE} --debug
     measure az image create -g ${OUTPUT_GROUP} -n ${OUTPUT_IMAGE} --source ${VM_ID} -o table --debug
 }
 

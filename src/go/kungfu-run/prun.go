@@ -58,6 +58,7 @@ func main() {
 			fmt.Sprintf(`%s=%s`, `HOME`, os.Getenv(`HOME`)),
 			fmt.Sprintf(`%s=%s`, rch.ClusterSpecEnvKey, spec),
 			fmt.Sprintf(`%s=%d`, `CUDA_VISIBLE_DEVICES`, spec.Self.DeviceID),
+			fmt.Sprintf(`%s=%s`, `PYTHONUNBUFFERED`, `1`),
 		}
 		log.Printf("%s %q", prog, args)
 		cmd := exec.Command(prog, args...)
