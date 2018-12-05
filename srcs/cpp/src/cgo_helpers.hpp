@@ -5,7 +5,7 @@
 #include <go-kungfu.h>
 #include <mpi_types.hpp>
 
-inline GoSlice to_go_slice(const void *buffer, size_t count, int dtype)
+inline GoSlice toGoSlice(const void *buffer, size_t count, int dtype)
 {
     const size_t size = mpi::type_encoder::size(dtype) * count;
     return GoSlice{
@@ -15,7 +15,7 @@ inline GoSlice to_go_slice(const void *buffer, size_t count, int dtype)
     };
 }
 
-inline GoString to_go_string(const char *name)
+inline GoString toGoString(const char *name)
 {
     return GoString{
         .p = name,

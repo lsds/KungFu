@@ -35,9 +35,9 @@ func exitErr(err error) {
 	os.Exit(1)
 }
 
-//export Go_Kungfu_Init
-func Go_Kungfu_Init() int {
-	log.Print("Go_Kungfu_Init")
+//export GoKungfuInit
+func GoKungfuInit() int {
+	log.Print("GoKungfuInit")
 	var err error
 	cluster, err = rch.NewClusterSpecFromEnv()
 	if err != nil {
@@ -61,8 +61,8 @@ func Go_Kungfu_Init() int {
 	return 0
 }
 
-//export Go_Kungfu_Finalize
-func Go_Kungfu_Finalize() int {
+//export GoKungfuFinalize
+func GoKungfuFinalize() int {
 	server.Close()
 	// TODO: check error
 	filename := fmt.Sprintf("vars.%02d.json", cluster.MyRank())
@@ -105,9 +105,9 @@ func bcast(buffer []byte, count int, dtype C.MPI_Datatype, root int, name string
 	return 0
 }
 
-//export Go_Kungfu_Negotiate
-func Go_Kungfu_Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string) int {
-	// log.Printf("Go_Kungfu_Negotiate: %s, %d, %d", name, count, dtype)
+//export GoKungfuNegotiate
+func GoKungfuNegotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string) int {
+	// log.Printf("GoKungfuNegotiate: %s, %d, %d", name, count, dtype)
 	root := 0
 	n := count * wire.MPI_Datatype(dtype).Size()
 
