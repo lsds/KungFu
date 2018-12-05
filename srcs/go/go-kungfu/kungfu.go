@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luomai/kungfu/src/go/algo"
-	"github.com/luomai/kungfu/src/go/metrics"
-	rch "github.com/luomai/kungfu/src/go/rchannel"
-	"github.com/luomai/kungfu/src/go/wire"
+	"github.com/luomai/kungfu/srcs/go/algo"
+	"github.com/luomai/kungfu/srcs/go/metrics"
+	rch "github.com/luomai/kungfu/srcs/go/rchannel"
+	"github.com/luomai/kungfu/srcs/go/wire"
 )
 
 // #include <mpi.h>

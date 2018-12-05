@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	rch "github.com/luomai/kungfu/src/go/rchannel"
-	"github.com/luomai/kungfu/src/go/xterm"
+	rch "github.com/luomai/kungfu/srcs/go/rchannel"
+	"github.com/luomai/kungfu/srcs/go/xterm"
 )
 
 var (
