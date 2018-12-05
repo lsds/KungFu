@@ -3,7 +3,7 @@ set -e
 
 cd $(dirname $0)/..
 
-pip3 install --no-index --user -U .
+pip3 install --no-index --user -U ./src/python
 
 # TODO: static link in setup.py
 

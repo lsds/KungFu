@@ -2,6 +2,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 PROJECT(kungfu)
 
 SET(CMAKE_CXX_STANDARD 14)
+ADD_DEFINITIONS(-Wfatal-errors)
+ADD_DEFINITIONS(-Wall)
 ADD_COMPILE_OPTIONS(-D_GLIBCXX_USE_CXX11_ABI=0)
 ADD_COMPILE_OPTIONS(-fPIC)
 
@@ -31,7 +33,7 @@ SET(CGO_LDFLAGS "-L${CMAKE_SOURCE_DIR}/lib -lalgo -lmpi-types -lstdc++")
 ADD_CUSTOM_TARGET(go-output-dir ALL
                   COMMAND ${CMAKE_COMMAND} -E make_directory go-output)
 ADD_CUSTOM_TARGET(go-kungfu ALL
-                  WORKING_DIRECTORY "go-output"
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/go-output
                   COMMAND env #
                           CGO_CFLAGS=${CGO_CFLAGS}
                           CGO_LDFLAGS=${CGO_LDFLAGS}
@@ -54,7 +56,7 @@ ADD_TF_OP_LIB(kungfu_tensorflow_ops src/cpp/negotiator.cpp)
 TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu)
 
 ADD_CUSTOM_TARGET(kungfu-run ALL
-                  WORKING_DIRECTORY "."
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/go
                   COMMAND env #
                           GOBIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
                           go
