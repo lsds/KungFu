@@ -10,8 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/luomai/kungfu/src/go/iostream"
-	"github.com/luomai/kungfu/src/go/xterm"
+	"github.com/luomai/kungfu/srcs/go/iostream"
+	"github.com/luomai/kungfu/srcs/go/xterm"
 )
 
 var (

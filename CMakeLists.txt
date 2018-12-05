@@ -22,12 +22,12 @@ FUNCTION(TARGET_STATIC_LINK_LIBRARIES target)
 ENDFUNCTION()
 
 INCLUDE(cmake/tf-op.cmake)
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 
-ADD_LIBRARY(algo src/cpp/algo.cpp)
-ADD_LIBRARY(mpi-types src/cpp/mpi_types.cpp)
+ADD_LIBRARY(algo srcs/cpp/src/algo.cpp)
+ADD_LIBRARY(mpi-types srcs/cpp/src/mpi_types.cpp)
 
-SET(CGO_CFLAGS "-I${CMAKE_SOURCE_DIR}/include")
+SET(CGO_CFLAGS "-I${CMAKE_SOURCE_DIR}/srcs/cpp/include")
 SET(CGO_LDFLAGS "-L${CMAKE_SOURCE_DIR}/lib -lalgo -lmpi-types -lstdc++")
 
 ADD_CUSTOM_TARGET(go-output-dir ALL
@@ -41,10 +41,10 @@ ADD_CUSTOM_TARGET(go-kungfu ALL
                           build
                           -v
                           -buildmode=c-archive
-                          ${CMAKE_SOURCE_DIR}/src/go/go-kungfu)
+                          ${CMAKE_SOURCE_DIR}/srcs/go/go-kungfu)
 ADD_DEPENDENCIES(go-kungfu go-output-dir algo mpi-types)
 
-ADD_LIBRARY(kungfu SHARED src/cpp/kungfu.cpp)
+ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
 TARGET_INCLUDE_DIRECTORIES(kungfu PRIVATE ${CMAKE_SOURCE_DIR}/go-output)
 TARGET_LINK_LIBRARIES(kungfu
                       ${CMAKE_SOURCE_DIR}/go-output/go-kungfu.a
@@ -56,17 +56,17 @@ IF(APPLE)
 ENDIF()
 ADD_DEPENDENCIES(kungfu go-kungfu)
 
-ADD_TF_OP_LIB(kungfu_tensorflow_ops src/cpp/negotiator.cpp)
+ADD_TF_OP_LIB(kungfu_tensorflow_ops srcs/cpp/src/negotiator.cpp)
 TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu)
 
 ADD_CUSTOM_TARGET(kungfu-run ALL
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/go
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/srcs/go
                   COMMAND env #
                           GOBIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
                           go
                           install
                           -v
-                          ${CMAKE_SOURCE_DIR}/src/go/kungfu-run)
+                          ${CMAKE_SOURCE_DIR}/srcs/go/kungfu-run)
 
 ENABLE_TESTING()
 # TODO: add tests

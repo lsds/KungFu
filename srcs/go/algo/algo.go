@@ -5,7 +5,7 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/luomai/kungfu/src/go/wire"
+	"github.com/luomai/kungfu/srcs/go/wire"
 )
 
 // AddBy performs ys[i] += xs[i] for vectors ys and xs

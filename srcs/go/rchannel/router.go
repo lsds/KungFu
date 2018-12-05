@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/luomai/kungfu/src/go/metrics"
+	"github.com/luomai/kungfu/srcs/go/metrics"
 )
 
 type Router struct {
