@@ -41,7 +41,6 @@ class Negotiator : public AsyncOpKernel
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
-        const auto &shape = input.shape();
         Tensor *output = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));

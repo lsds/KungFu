@@ -50,6 +50,10 @@ TARGET_LINK_LIBRARIES(kungfu
                       ${CMAKE_SOURCE_DIR}/go-output/go-kungfu.a
                       algo
                       mpi-types)
+IF(APPLE)
+    TARGET_LINK_LIBRARIES(kungfu "-framework CoreFoundation")
+    TARGET_LINK_LIBRARIES(kungfu "-framework Security")
+ENDIF()
 ADD_DEPENDENCIES(kungfu go-kungfu)
 
 ADD_TF_OP_LIB(kungfu_tensorflow_ops src/cpp/negotiator.cpp)
