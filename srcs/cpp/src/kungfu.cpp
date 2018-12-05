@@ -1,7 +1,7 @@
 #include "cgo_helpers.hpp"
 #include <kungfu.h>
 
-int Kungfu_Init()
+int KungfuInit()
 {
     int err = GoKungfuInit();
     if (err) {
@@ -11,10 +11,10 @@ int Kungfu_Init()
     return 0;
 }
 
-int Kungfu_Finalize() { return GoKungfuFinalize(); }
+int KungfuFinalize() { return GoKungfuFinalize(); }
 
-int Kungfu_Negotiate(const void *sendbuf, void *recvbuf, int count,
-                     MPI_Datatype datatype, MPI_Op op, const char *name)
+int KungfuNegotiate(const void *sendbuf, void *recvbuf, int count,
+                    MPI_Datatype datatype, MPI_Op op, const char *name)
 {
     auto gs_send = toGoSlice(sendbuf, count, datatype);
     auto gs_recv = toGoSlice(recvbuf, count, datatype);

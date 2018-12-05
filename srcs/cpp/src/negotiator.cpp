@@ -10,9 +10,9 @@ class _kungfu_t
 {
 
   public:
-    _kungfu_t() { Kungfu_Init(); }
+    _kungfu_t() { KungfuInit(); }
 
-    ~_kungfu_t() { Kungfu_Finalize(); }
+    ~_kungfu_t() { KungfuFinalize(); }
 };
 
 static _kungfu_t _kungfu_world;
@@ -46,10 +46,10 @@ class Negotiator : public AsyncOpKernel
                        context->allocate_output(0, input.shape(), &output));
 
         // TODO use kungfu::partial_reduce
-        Kungfu_Negotiate(input.tensor_data().data(),
-                         (void *)(output->tensor_data().data()),
-                         input.NumElements(), to_mpi_type(input.dtype()),
-                         MPI_SUM, name().c_str());
+        KungfuNegotiate(input.tensor_data().data(),
+                        (void *)(output->tensor_data().data()),
+                        input.NumElements(), to_mpi_type(input.dtype()),
+                        MPI_SUM, name().c_str());
 
         done();  // TODO: call it async
     }
