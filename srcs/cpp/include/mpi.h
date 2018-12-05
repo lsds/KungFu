@@ -7,7 +7,6 @@ extern "C" {
 
 typedef int MPI_Datatype;
 typedef int MPI_Op;
-typedef struct gompi_communicator_t *MPI_Comm;
 
 extern MPI_Datatype MPI_INT;
 extern MPI_Datatype MPI_INT8_T;
