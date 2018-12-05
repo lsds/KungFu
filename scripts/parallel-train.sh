@@ -3,8 +3,6 @@ set -e
 
 cd $(dirname $0)/..
 
-./scripts/install.sh
-
 hosts=127.0.0.1
 ip=127.0.0.1
 np=2
