@@ -3,9 +3,10 @@ package rchannel
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"os"
 	"strconv"
+
+	"github.com/luomai/kungfu/srcs/go/log"
 )
 
 const ClusterSpecEnvKey = `KF_CLUSTER_SPEC`
@@ -61,7 +62,7 @@ func (c ClusterSpec) MyRank() int {
 
 func GenCluster(n int, hosts []string, m int) []ClusterSpec {
 	if cap := m * len(hosts); cap < n {
-		log.Printf("can run %d tasks at most!", cap)
+		log.Warnf("can run %d tasks at most!", cap)
 	}
 	tasks := genCluster(n, hosts, m)
 	var specs []ClusterSpec

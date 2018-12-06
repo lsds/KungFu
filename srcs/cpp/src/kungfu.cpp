@@ -1,5 +1,5 @@
 #include "cgo_helpers.hpp"
-#include <kungfu.h>
+#include <kungfu.hpp>
 
 int KungfuInit()
 {
@@ -13,12 +13,14 @@ int KungfuInit()
 
 int KungfuFinalize() { return GoKungfuFinalize(); }
 
-int KungfuNegotiate(const void *sendbuf, void *recvbuf, int count,
-                    MPI_Datatype datatype, MPI_Op op, const char *name)
+int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
+                         MPI_Datatype datatype, MPI_Op op, const char *name,
+                         DoneCallback done)
 {
     auto gs_send = toGoSlice(sendbuf, count, datatype);
     auto gs_recv = toGoSlice(recvbuf, count, datatype);
     auto go_name = toGoString(name);
-    return GoKungfuNegotiate(gs_send, gs_recv, GoInt(count), GoInt(datatype),
-                             GoInt(op), go_name);
+    return GoKungfuNegotiateAsync(gs_send, gs_recv, GoInt(count),
+                                  GoInt(datatype), GoInt(op), go_name,
+                                  new CallbackWrapper(done));
 }

@@ -4,7 +4,7 @@
 
 #include <tensorflow/core/framework/op_kernel.h>
 
-#include <kungfu.h>
+#include <kungfu.hpp>
 
 class _kungfu_t
 {
@@ -44,14 +44,10 @@ class Negotiator : public AsyncOpKernel
         Tensor *output = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
-
-        // TODO use kungfu::partial_reduce
-        KungfuNegotiate(input.tensor_data().data(),
-                        (void *)(output->tensor_data().data()),
-                        input.NumElements(), to_mpi_type(input.dtype()),
-                        MPI_SUM, name().c_str());
-
-        done();  // TODO: call it async
+        KungfuNegotiateAsync(input.tensor_data().data(),
+                             (void *)(output->tensor_data().data()),
+                             input.NumElements(), to_mpi_type(input.dtype()),
+                             MPI_SUM, name().c_str(), done);
     }
 };
 

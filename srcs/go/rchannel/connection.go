@@ -26,7 +26,7 @@ func newConnection(netAddr string, localPort uint32) (*Connection, error) {
 }
 
 func (c *Connection) send(name string, m Message) error {
-	// log.Printf("%s::%s(%s, %s)", "Connection", "send", name, m)
+	// log.Infof("%s::%s(%s, %s)", "Connection", "send", name, m)
 	c.Lock()
 	defer c.Unlock()
 	bs := []byte(name)

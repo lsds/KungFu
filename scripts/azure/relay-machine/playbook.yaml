@@ -4,6 +4,23 @@
   - name: ping test
     shell: pwd
 
+  - name: distributing package
+    unarchive:
+    args:
+      src: ~/kungfu.tar.bz2
+      dest: .
+
+  - name: mkdir data dir
+    shell: mkdir -p ~/var/data/mnist
+
+  - name: download test data
+    shell: ~/kungfu/scripts/download-mnist.sh
+    args:
+      chdir: ~/var/data/mnist
+
+  - name: install kungfu
+    shell: ~/kungfu/scripts/install.sh
+
   - name: run benchmark
     # https://docs.ansible.com/ansible/latest/modules/shell_module.html
     shell: |

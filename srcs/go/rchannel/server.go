@@ -1,9 +1,10 @@
 package rchannel
 
 import (
-	"log"
 	"net"
 	"strconv"
+
+	"github.com/luomai/kungfu/srcs/go/log"
 )
 
 // Server receives messages from remove endpoints
@@ -37,12 +38,12 @@ func (s *Server) ListenAndServe() {
 			if isNetClosingErr(err) {
 				break
 			}
-			log.Printf("Accept failed: %v", err)
+			log.Infof("Accept failed: %v", err)
 			continue
 		}
 		go func(conn net.Conn) {
 			if err := s.handle(conn); err != nil {
-				log.Printf("handle conn err: %v", err)
+				log.Warnf("handle conn err: %v", err)
 			}
 		}(conn)
 	}
@@ -68,7 +69,7 @@ func (s *Server) handle(conn net.Conn) error {
 		Host: h,
 		Port: strconv.Itoa(int(ch.Port)),
 	}
-	log.Printf("got new connection: %v (%s), port=%d, remote netAddr: %s", conn, conn.RemoteAddr(), ch.Port, remoteNetAddr)
+	log.Infof("got new connection from: %s", remoteNetAddr)
 	return s.router.stream(conn, remoteNetAddr)
 }
 

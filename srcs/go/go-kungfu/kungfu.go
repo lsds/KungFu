@@ -2,18 +2,19 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/luomai/kungfu/srcs/go/algo"
+	"github.com/luomai/kungfu/srcs/go/log"
 	"github.com/luomai/kungfu/srcs/go/metrics"
 	rch "github.com/luomai/kungfu/srcs/go/rchannel"
 	"github.com/luomai/kungfu/srcs/go/wire"
 )
 
 // #include <mpi.h>
+// #include <callback.h>
 import "C"
 
 func code(err error) int {
@@ -31,13 +32,13 @@ var (
 )
 
 func exitErr(err error) {
-	log.Printf("exit on error: %v", err)
+	log.Errorf("exit on error: %v", err)
 	os.Exit(1)
 }
 
 //export GoKungfuInit
 func GoKungfuInit() int {
-	log.Print("GoKungfuInit")
+	log.Infof("GoKungfuInit")
 	var err error
 	cluster, err = rch.NewClusterSpecFromEnv()
 	if err != nil {
@@ -107,7 +108,7 @@ func bcast(buffer []byte, count int, dtype C.MPI_Datatype, root int, name string
 
 //export GoKungfuNegotiate
 func GoKungfuNegotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string) int {
-	// log.Printf("GoKungfuNegotiate: %s, %d, %d", name, count, dtype)
+	// log.Infof("GoKungfuNegotiate: %s, %d, %d", name, count, dtype)
 	root := 0
 	n := count * wire.MPI_Datatype(dtype).Size()
 
@@ -141,6 +142,19 @@ func GoKungfuNegotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Da
 		m := rch.NewMessage(sendBuf[:n])
 		router.Send(task.NetAddr.WithName(name), *m)
 	}
-
 	return bcast(recvBuf, count, dtype, root, name)
+}
+
+//export GoKungfuNegotiateAsync
+func GoKungfuNegotiateAsync(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string, done *C.callback_t) int {
+	go func() {
+		GoKungfuNegotiate(sendBuf, recvBuf, count, dtype, op, name)
+		if done != nil {
+			C.invoke_callback(done)
+			C.delete_callback(done)
+		} else {
+			log.Warnf("done is nil!")
+		}
+	}()
+	return 0
 }

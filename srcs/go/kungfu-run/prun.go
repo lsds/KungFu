@@ -74,7 +74,9 @@ func main() {
 	defer cancel()
 	if err := runAll(ctx, ps); err != nil {
 		log.Print(err)
-		os.Exit(1)
+		if err != context.DeadlineExceeded {
+			os.Exit(1)
+		}
 	}
 }
 

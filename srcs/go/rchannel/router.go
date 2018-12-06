@@ -3,11 +3,11 @@ package rchannel
 import (
 	"expvar"
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"time"
 
+	"github.com/luomai/kungfu/srcs/go/log"
 	"github.com/luomai/kungfu/srcs/go/metrics"
 )
 
@@ -55,7 +55,7 @@ func (r *Router) getChannel(a Addr) (*Channel, error) {
 
 // Send sends Message to given Addr
 func (r *Router) Send(a Addr, m Message) error {
-	// log.Printf("%s::%s", "Router", "Send")
+	// log.Infof("%s::%s", "Router", "Send")
 	ch, err := r.getChannel(a)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (r *Router) Send(a Addr, m Message) error {
 
 // Recv recevies a message from given Addr
 func (r *Router) Recv(a Addr, m *Message) error {
-	// log.Printf("%s::%s(%s)", "Router", "Recv", a)
+	// log.Infof("%s::%s(%s)", "Router", "Recv", a)
 	// TODO: reduce memory copy
 	*m = *<-r.bufferPool.require(a)
 	r.totalMsgRecv.Add(1)
@@ -85,12 +85,12 @@ func (r *Router) stream(conn net.Conn, remoteNetAddr NetAddr) error {
 		if err := mh.ReadFrom(conn); err != nil {
 			return err
 		}
-		// log.Printf("got message header: %s", mh)
+		// log.Infof("got message header: %s", mh)
 		var m Message
 		if err := m.ReadFrom(conn); err != nil {
 			return err
 		}
-		// log.Printf("got message: %s :: %s", m, string(m.Data))
+		// log.Infof("got message: %s :: %s", m, string(m.Data))
 		a := remoteNetAddr.WithName(string(mh.Name))
 		r.bufferPool.require(a) <- &m
 	}
@@ -109,7 +109,7 @@ func (r *Router) UpdateRate() {
 	r.sendRate.Set(txRate)
 
 	const Mi = 1 << 20
-	log.Printf("rx_rate: %s, tx_rate: %s", showRate(rxRate), showRate(txRate))
+	log.Infof("rx_rate: %s, tx_rate: %s", showRate(rxRate), showRate(txRate))
 }
 
 func rate(n int64, d time.Duration) float64 {
