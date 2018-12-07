@@ -51,19 +51,12 @@ kf_size = args.cluster_size
 kf_local_rank = args.local_rank
 
 # Kungfu: pin GPU to be used to process local rank (one GPU per process)
-# TODO: there implies a static binding of learners and GPUs. However, in a fully elastic cluster,
+# TODO: here is a static binding of learners and GPUs. However, in a fully elastic cluster,
 # shall we use a dynamic learning task dispatching architecture?
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 config.gpu_options.visible_device_list = str(kf_local_rank)
 K.set_session(tf.Session(config=config))
-
-# If set > 0, will resume training from a given checkpoint.
-resume_from_epoch = 0
-for try_epoch in range(args.epochs, 0, -1):
-    if os.path.exists(args.checkpoint_format.format(epoch=try_epoch)):
-        resume_from_epoch = try_epoch
-        break
 
 # Training data iterator.
 train_gen = image.ImageDataGenerator(
