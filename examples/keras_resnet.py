@@ -84,7 +84,8 @@ for layer, layer_config in zip(model.layers, model_config['layers']):
 
 model = keras.models.Model.from_config(model_config)
 
-opt = keras.optimizers.SGD(lr=args.base_lr, momentum=args.momentum)
+# FIXME: kf_size needs to be logical data parallelism
+opt = keras.optimizers.SGD(lr=args.base_lr * kf_size, momentum=args.momentum)
 
 # Kungfu: add Distributed Optimizer.
 opt = kf.AsyncSGDOptimizer(opt)
@@ -96,7 +97,7 @@ model.compile(loss=keras.losses.categorical_crossentropy,
 # Train the model. The training will randomly sample 1 / N batches of training data.
 # TODO: ensure that all worker starts from the same initial weighst
 model.fit_generator(train_iter,
-                    steps_per_epoch=len(train_iter) // kf_size,
+                    steps_per_epoch=len(train_iter) // kf_size, # FIXME: kf_size needs to be logical data parallelism
                     epochs=args.epochs,
                     verbose=args.verbose,
                     workers=4)
