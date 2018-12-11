@@ -85,20 +85,19 @@ func logArgs() {
 }
 
 func updatedEnv(newValues map[string]string) []string {
-	var envs []string
+	envMap := make(map[string]string)
 	for _, kv := range os.Environ() {
-		envs = append(envs, replaceIfExists(kv, newValues))
+		parts := strings.Split(kv, "=")
+		if len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
+	}
+	for k, v := range newValues {
+		envMap[k] = v
+	}
+	var envs []string
+	for k, v := range envMap {
+		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 	return envs
-}
-
-func replaceIfExists(kv string, newValues map[string]string) string {
-	parts := strings.Split(kv, "=")
-	if len(parts) != 2 {
-		return kv
-	}
-	if newValue, ok := newValues[parts[0]]; ok {
-		return fmt.Sprintf("%s=%s", parts[0], newValue)
-	}
-	return kv
 }
