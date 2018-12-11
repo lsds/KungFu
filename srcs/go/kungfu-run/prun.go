@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -52,17 +53,14 @@ func main() {
 		if spec.Self.NetAddr.Host != *selfHost {
 			continue
 		}
-		envs := []string{
-			// FIXME: passdown more envs
-			fmt.Sprintf(`%s=%s`, `PATH`, os.Getenv(`PATH`)),
-			fmt.Sprintf(`%s=%s`, `HOME`, os.Getenv(`HOME`)),
-			fmt.Sprintf(`%s=%s`, rch.ClusterSpecEnvKey, spec),
-			fmt.Sprintf(`%s=%d`, `CUDA_VISIBLE_DEVICES`, spec.Self.DeviceID),
-			fmt.Sprintf(`%s=%s`, `PYTHONUNBUFFERED`, `1`),
+		newValues := map[string]string{
+			rch.ClusterSpecEnvKey:  spec.String(),
+			`CUDA_VISIBLE_DEVICES`: strconv.Itoa(spec.Self.DeviceID),
+			`PYTHONUNBUFFERED`:     `1`,
 		}
 		log.Printf("%s %q", prog, args)
 		cmd := exec.Command(prog, args...)
-		cmd.Env = envs
+		cmd.Env = updatedEnv(newValues)
 		ps = append(ps, &Proc{
 			name: fmt.Sprintf("%02d", spec.MyRank()),
 			cmd:  cmd,
@@ -84,4 +82,23 @@ func logArgs() {
 	for i, a := range os.Args {
 		fmt.Printf("args[%d]=%s\n", i, a)
 	}
+}
+
+func updatedEnv(newValues map[string]string) []string {
+	var envs []string
+	for _, kv := range os.Environ() {
+		envs = append(envs, replaceIfExists(kv, newValues))
+	}
+	return envs
+}
+
+func replaceIfExists(kv string, newValues map[string]string) string {
+	parts := strings.Split(kv, "=")
+	if len(parts) != 2 {
+		return kv
+	}
+	if newValue, ok := newValues[parts[0]]; ok {
+		return fmt.Sprintf("%s=%s", parts[0], newValue)
+	}
+	return kv
 }
