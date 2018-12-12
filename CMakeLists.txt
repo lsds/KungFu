@@ -45,7 +45,9 @@ ADD_DEPENDENCIES(kungfu libgo-kungfu)
 
 ADD_TF_OP_LIB(kungfu_tensorflow_ops srcs/cpp/src/negotiator.cpp)
 TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu)
-SET_TARGET_PROPERTIES(kungfu_tensorflow_ops PROPERTIES BUILD_RPATH "$ORIGIN")
+SET_TARGET_PROPERTIES(kungfu_tensorflow_ops PROPERTIES INSTALL_RPATH "$ORIGIN")
+SET_TARGET_PROPERTIES(kungfu_tensorflow_ops
+                      PROPERTIES BUILD_WITH_INSTALL_RPATH true)
 
 ADD_CUSTOM_TARGET(kungfu-run ALL
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/srcs/go
