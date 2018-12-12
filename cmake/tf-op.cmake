@@ -1,4 +1,4 @@
-SET(PYTHON "python3")
+SET(PYTHON "python3" CACHE STRING "python command to use")
 
 EXECUTE_PROCESS(
     COMMAND ${PYTHON} -c

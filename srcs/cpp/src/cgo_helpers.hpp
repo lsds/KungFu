@@ -2,7 +2,7 @@
 #include <cstring>
 #include <string>
 
-#include <go-kungfu.h>
+#include <libgo-kungfu.h>
 #include <mpi_types.hpp>
 
 inline GoSlice toGoSlice(const void *buffer, size_t count, int dtype)

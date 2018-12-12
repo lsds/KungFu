@@ -8,7 +8,10 @@ pool:
   vmImage: 'ubuntu-16.04'
 
 steps:
-- script: ./scripts/download-mnist.sh
+- script: |
+    DATA_DIR=$HOME/var/data \
+    DATA_MIRROR_PREFIX=https://kungfudata.blob.core.windows.net/data \
+    ./scripts/download-mnist.sh
   displayName: 'Download Test Data'
 
 # FIXME:
@@ -26,9 +29,17 @@ steps:
     sudo apt install -y python3-setuptools
     pip3 install tensorflow
   displayName: 'Install Python tools'
-- script: ./scripts/install.sh
+- script: |
+    pip3 install -vvv -U .
+    GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
   displayName: 'Install Kungfu'
 - script: ./examples/kungfu-train.py
   displayName: 'Single Train'
-- script: ./bin/kungfu-run -np 2 -timeout 10s python3 ./examples/kungfu-train.py --use-async-sgd=1 --n-epochs=1 --batch-size=5000 --model-name=mnist.slp
+- script: |
+    ./bin/kungfu-run -np 2 -timeout 10s python3 \
+      ./examples/kungfu-train.py \
+        --use-async-sgd=1 \
+        --n-epochs=1 \
+        --batch-size=5000 \
+        --model-name=mnist.slp
   displayName: 'Parallel Train'

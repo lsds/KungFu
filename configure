@@ -31,6 +31,7 @@ add_cmake_flags() {
     add_cmake_flag CMAKE_RUNTIME_OUTPUT_DIRECTORY $(pwd)/bin
     add_cmake_flag CMAKE_MODULE_PATH $(pwd)/cmake
     # add_cmake_flag CMAKE_VERBOSE_MAKEFILE 1
+    # add_cmake_flag CMAKE_EXPORT_COMPILE_COMMANDS 1
 }
 
 parse_args $@

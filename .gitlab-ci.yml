@@ -9,10 +9,20 @@ job1:
   stage: build
 
   before_script:
-  - ./scripts/download-mnist.sh
+  - |
+    DATA_DIR=$HOME/var/data \
+    DATA_MIRROR_PREFIX=https://kungfudata.blob.core.windows.net/data \
+    ./scripts/download-mnist.sh
 
   script:
-  # - pip3 install --user -U .
-  - ./scripts/install.sh
+  - |
+    pip3 install -U .
+    GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
   - ./examples/kungfu-train.py
-  - ./bin/kungfu-run -np 2 -timeout 10s python3 ./examples/kungfu-train.py --use-async-sgd=1 --n-epochs=1 --batch-size=5000 --model-name=mnist.slp
+  - |
+    ./bin/kungfu-run -np 2 -timeout 60s \
+      python3 ./examples/kungfu-train.py \
+        --use-async-sgd=1 \
+        --n-epochs=1 \
+        --batch-size=5000 \
+        --model-name=mnist.slp
