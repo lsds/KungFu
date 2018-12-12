@@ -16,7 +16,8 @@ job1:
 
   script:
   - |
-    pip3 install -U .
+    cmake --version
+    pip3 install -vvv -U .
     GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
   - ./examples/kungfu-train.py
   - |

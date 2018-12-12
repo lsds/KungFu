@@ -30,6 +30,7 @@ steps:
     pip3 install tensorflow
   displayName: 'Install Python tools'
 - script: |
+    cmake --version
     pip3 install -vvv -U .
     GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
   displayName: 'Install Kungfu'
