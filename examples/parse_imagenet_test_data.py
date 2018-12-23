@@ -202,7 +202,7 @@ def configure(pixels, batch, total, configurefiles=True):
     return batchpad, batchesperfile, batchfill
 
 
-def main(fies):
+def main(files):
     subset = "train"
     N = 1250
 
