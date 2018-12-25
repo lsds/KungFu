@@ -79,16 +79,16 @@ func (r *Router) Recv(a Addr, m *Message) error {
 	return nil
 }
 
-func (r *Router) stream(conn net.Conn, remoteNetAddr NetAddr) error {
-	for {
+func (r *Router) stream(conn net.Conn, remoteNetAddr NetAddr) (int, error) {
+	for i := 0; ; i++ {
 		var mh messageHeader
 		if err := mh.ReadFrom(conn); err != nil {
-			return err
+			return i, err
 		}
 		// log.Infof("got message header: %s", mh)
 		var m Message
 		if err := m.ReadFrom(conn); err != nil {
-			return err
+			return i, err
 		}
 		// log.Infof("got message: %s :: %s", m, string(m.Data))
 		a := remoteNetAddr.WithName(string(mh.Name))

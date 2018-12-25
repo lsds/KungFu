@@ -35,9 +35,13 @@ var (
 	lock    sync.Mutex
 )
 
-func main() {
+func init() {
+	log.SetPrefix("[kungfu-run] ")
 	flag.Parse()
 	logArgs()
+}
+
+func main() {
 	hosts := strings.Split(*hostList, ",")
 	specs := rch.GenCluster(*np, hosts, *m)
 	restArgs := flag.Args()
@@ -66,7 +70,10 @@ func main() {
 			cmd:  cmd,
 		})
 	}
-
+	if len(ps) <= 0 {
+		log.Print("No task to run on this node")
+		return
+	}
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
@@ -80,7 +87,7 @@ func main() {
 
 func logArgs() {
 	for i, a := range os.Args {
-		fmt.Printf("args[%d]=%s\n", i, a)
+		log.Printf("args[%d]=%s", i, a)
 	}
 }
 

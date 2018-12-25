@@ -41,18 +41,14 @@ func (h *messageHeader) ReadFrom(r io.Reader) error {
 		return err
 	}
 	h.Name = make([]byte, h.NameLength)
-	n, err := r.Read(h.Name)
-	if err != nil {
+	if err := readN(r, h.Name, int(h.NameLength)); err != nil {
 		return err
-	}
-	if n != int(h.NameLength) {
-		return errUnexpectedEnd
 	}
 	return nil
 }
 
-func (mh messageHeader) String() string {
-	return fmt.Sprintf("messageHeader{length=%d,name=%s}", mh.NameLength, string(mh.Name))
+func (h messageHeader) String() string {
+	return fmt.Sprintf("messageHeader{length=%d,name=%s}", h.NameLength, string(h.Name))
 }
 
 // Message is the data transferred via channel

@@ -1,6 +1,7 @@
 package rchannel
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 
@@ -70,7 +71,10 @@ func (s *Server) handle(conn net.Conn) error {
 		Port: strconv.Itoa(int(ch.Port)),
 	}
 	log.Infof("got new connection from: %s", remoteNetAddr)
-	return s.router.stream(conn, remoteNetAddr)
+	if n, err := s.router.stream(conn, remoteNetAddr); err != nil {
+		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
+	}
+	return nil
 }
 
 // check if error is internal/poll.ErrNetClosing
