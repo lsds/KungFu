@@ -1,30 +1,30 @@
 package wire
 
-// #include <mpi.h>
+// #include <kungfu.h>
 import "C"
 import "strconv"
 
-type MPI_Datatype C.MPI_Datatype
+type KungFu_Datatype C.KungFu_Datatype
 
 var (
-	MPI_INT    = MPI_Datatype(C.MPI_INT)
-	MPI_FLOAT  = MPI_Datatype(C.MPI_FLOAT)
-	MPI_DOUBLE = MPI_Datatype(C.MPI_DOUBLE)
+	KungFu_INT    = KungFu_Datatype(C.KungFu_INT)
+	KungFu_FLOAT  = KungFu_Datatype(C.KungFu_FLOAT)
+	KungFu_DOUBLE = KungFu_Datatype(C.KungFu_DOUBLE)
 )
 
-func (dtype MPI_Datatype) Size() int {
+func (dtype KungFu_Datatype) Size() int {
 	switch dtype {
-	case MPI_INT:
+	case KungFu_INT:
 		return 4
-	case MPI_FLOAT:
+	case KungFu_FLOAT:
 		return 4
 	default:
 		panic("unknown dtype: " + strconv.Itoa(int(dtype)))
 	}
 }
 
-type MPI_Op C.MPI_Op
+type KungFu_Op C.KungFu_Op
 
 var (
-	MPI_SUM MPI_Op = MPI_Op(C.MPI_SUM)
+	KungFu_SUM KungFu_Op = KungFu_Op(C.KungFu_SUM)
 )

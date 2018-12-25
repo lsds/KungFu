@@ -22,11 +22,11 @@ static _kungfu_t _kungfu_world;
 namespace tensorflow
 {
 
-int to_mpi_type(const DataType &dtype)
+int to_kungfu_type(const DataType &dtype)
 {
     switch (dtype) {
     case DT_FLOAT:
-        return MPI_FLOAT;
+        return KungFu_FLOAT;
     default:
         // TODO: add more types
         throw std::invalid_argument("unsupported dtype");
@@ -55,8 +55,8 @@ template <> struct NegotiatorImpl<CPUDevice> {
                     const tensorflow::DataType &dtype, const std::string &name,
                     DoneCallback done) const
     {
-        KungfuNegotiateAsync(input, output, n, to_mpi_type(dtype), MPI_SUM,
-                             name.c_str(), done);
+        KungfuNegotiateAsync(input, output, n, to_kungfu_type(dtype),
+                             KungFu_SUM, name.c_str(), done);
     }
 };
 
@@ -76,8 +76,8 @@ template <> struct NegotiatorImpl<GPUDevice> {
             LOG(FATAL) << "cudaMemcpy failed";
         }
         KungfuNegotiateAsync(
-            input_cpu->data(), output_cpu->data(), n, to_mpi_type(dtype),
-            MPI_SUM, name.c_str(),
+            input_cpu->data(), output_cpu->data(), n, to_kungfu_type(dtype),
+            KungFu_SUM, name.c_str(),
             [done, input_cpu, output_cpu, output, buffer_size] {
                 if (cudaMemcpy(output, output_cpu->data(), buffer_size,
                                cudaMemcpyHostToDevice) != cudaSuccess) {

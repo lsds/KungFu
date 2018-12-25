@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-MPI_PREFIX=$(pwd)/go-mpi
-
 CMAKE_FLAGS=
 
 add_cmake_flag() {
@@ -13,9 +11,6 @@ add_cmake_flag() {
 parse_args() {
     for i in "$@"; do
         case $i in
-        --with-mpi=*)
-            MPI_PREFIX="${i#*=}"
-            ;;
         *)
             echo "unknown argument $1"
             exit

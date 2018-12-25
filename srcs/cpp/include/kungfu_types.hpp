@@ -1,7 +1,7 @@
 #pragma once
 #include <experimental/type_encoder>
 
-namespace mpi
+namespace kungfu
 {
 namespace internal
 {
@@ -72,8 +72,8 @@ struct encoding {
 }  // namespace internal
 
 using type_encoder =
-    std::experimental::basic_type_encoder<mpi::internal::types::encoding>;
+    std::experimental::basic_type_encoder<kungfu::internal::types::encoding>;
 
 using op_encoder =
-    std::experimental::basic_type_encoder<mpi::internal::ops::encoding>;
-}  // namespace mpi
+    std::experimental::basic_type_encoder<kungfu::internal::ops::encoding>;
+}  // namespace kungfu

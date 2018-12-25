@@ -14,8 +14,8 @@ int KungfuInit()
 int KungfuFinalize() { return GoKungfuFinalize(); }
 
 int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
-                         MPI_Datatype datatype, MPI_Op op, const char *name,
-                         DoneCallback done)
+                         KungFu_Datatype datatype, KungFu_Op op,
+                         const char *name, DoneCallback done)
 {
     auto gs_send = toGoSlice(sendbuf, count, datatype);
     auto gs_recv = toGoSlice(recvbuf, count, datatype);

@@ -14,7 +14,7 @@ import (
 	"github.com/luomai/kungfu/srcs/go/wire"
 )
 
-// #include <mpi.h>
+// #include <kungfu.h>
 // #include <callback.h>
 import "C"
 
@@ -88,8 +88,8 @@ func GoKungfuFinalize() int {
 	return 0
 }
 
-func bcast(buffer []byte, count int, dtype C.MPI_Datatype, root int, name string) error {
-	n := count * wire.MPI_Datatype(dtype).Size()
+func bcast(buffer []byte, count int, dtype C.KungFu_Datatype, root int, name string) error {
+	n := count * wire.KungFu_Datatype(dtype).Size()
 	myRank := cluster.MyRank()
 	if myRank == root {
 		var wg sync.WaitGroup
@@ -117,8 +117,8 @@ func bcast(buffer []byte, count int, dtype C.MPI_Datatype, root int, name string
 	return nil
 }
 
-func reduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, root int, name string) error {
-	n := count * wire.MPI_Datatype(dtype).Size()
+func reduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, root int, name string) error {
+	n := count * wire.KungFu_Datatype(dtype).Size()
 	copy(recvBuf[:n], sendBuf[:n])
 	myRank := cluster.MyRank()
 	if myRank == root {
@@ -135,7 +135,7 @@ func reduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op 
 						panic("unexpected recv length")
 					}
 					lock.Lock()
-					algo.AddBy(recvBuf[:n], m.Data, count, wire.MPI_Datatype(dtype), wire.MPI_Op(op))
+					algo.AddBy(recvBuf[:n], m.Data, count, wire.KungFu_Datatype(dtype), wire.KungFu_Op(op))
 					lock.Unlock()
 					wg.Done()
 				}(task.NetAddr)
@@ -152,17 +152,17 @@ func reduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op 
 }
 
 // rootedAllReduceFunc is the signature of allReduce algorithms that has a central root node
-type rootedAllReduceFunc func(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, root int, name string) error
+type rootedAllReduceFunc func(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, root int, name string) error
 
-func simpleAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, root int, name string) error {
+func simpleAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, root int, name string) error {
 	if err := reduce(sendBuf, recvBuf, count, dtype, op, root, name); err != nil {
 		return err
 	}
 	return bcast(recvBuf, count, dtype, root, name)
 }
 
-func circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, root int, name string) error {
-	n := count * wire.MPI_Datatype(dtype).Size()
+func circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, root int, name string) error {
+	n := count * wire.KungFu_Datatype(dtype).Size()
 
 	sendTo := func(rank int) {
 		task := cluster.Peers[rank]
@@ -179,7 +179,7 @@ func circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Da
 			// FIXME: don't panic
 			panic("unexpected recv length")
 		}
-		algo.AddBy(recvBuf[:n], m.Data, count, wire.MPI_Datatype(dtype), wire.MPI_Op(op))
+		algo.AddBy(recvBuf[:n], m.Data, count, wire.KungFu_Datatype(dtype), wire.KungFu_Op(op))
 	}
 
 	recvAssign := func(rank int) {
@@ -237,10 +237,10 @@ func circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Da
 }
 
 // symmetricAllReduce parts the original data into k parts and apply an rooted allReduce stratrgy to each part
-func symmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string, allReduce rootedAllReduceFunc) error {
+func symmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name string, allReduce rootedAllReduceFunc) error {
 	k := len(cluster.Peers)
 	blockCount := ceilDiv(count, k)
-	blockSize := blockCount * wire.MPI_Datatype(dtype).Size()
+	blockSize := blockCount * wire.KungFu_Datatype(dtype).Size()
 
 	var wg sync.WaitGroup
 	var failed int32
@@ -264,11 +264,11 @@ func symmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_D
 	return nil
 }
 
-func fullSymmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string) error {
+func fullSymmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name string) error {
 	return symmetricAllReduce(sendBuf, recvBuf, count, dtype, op, name, simpleAllReduce)
 }
 
-func ringAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string) error {
+func ringAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name string) error {
 	k := len(cluster.Peers)
 	if k < 3 {
 		return fmt.Errorf("ringAllReduce requires k >= 3, but k=%d", k)
@@ -277,7 +277,7 @@ func ringAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Dataty
 }
 
 //export GoKungfuNegotiate
-func GoKungfuNegotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string) int {
+func GoKungfuNegotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name string) int {
 	k := len(cluster.Peers)
 	if useRingAllReduce {
 		if count >= k && k >= 3 {
@@ -296,7 +296,7 @@ func GoKungfuNegotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Da
 }
 
 //export GoKungfuNegotiateAsync
-func GoKungfuNegotiateAsync(sendBuf []byte, recvBuf []byte, count int, dtype C.MPI_Datatype, op C.MPI_Op, name string, done *C.callback_t) int {
+func GoKungfuNegotiateAsync(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name string, done *C.callback_t) int {
 	name = string([]byte(name)) // TODO: verify that name is cloned
 	go func() {
 		GoKungfuNegotiate(sendBuf, recvBuf, count, dtype, op, name)

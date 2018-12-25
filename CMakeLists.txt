@@ -21,11 +21,11 @@ LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
 ADD_LIBRARY(algo srcs/cpp/src/algo.cpp)
 ADD_LIBRARY(callback srcs/cpp/src/callback.cpp)
-ADD_LIBRARY(mpi-types srcs/cpp/src/mpi_types.cpp)
+ADD_LIBRARY(kungfu-types srcs/cpp/src/kungfu_types.cpp)
 
 SET(CGO_CFLAGS "-I${CMAKE_SOURCE_DIR}/srcs/cpp/include")
 SET(CGO_LDFLAGS
-    "-L${LIBRARY_OUTPUT_PATH} -lalgo -lmpi-types -lcallback -lstdc++")
+    "-L${LIBRARY_OUTPUT_PATH} -lalgo -lkungfu-types -lcallback -lstdc++")
 
 ADD_CUSTOM_TARGET(libgo-kungfu ALL
                   WORKING_DIRECTORY ${LIBRARY_OUTPUT_PATH}
@@ -37,11 +37,11 @@ ADD_CUSTOM_TARGET(libgo-kungfu ALL
                           -v
                           -buildmode=c-archive
                           ${CMAKE_SOURCE_DIR}/srcs/go/libgo-kungfu)
-ADD_DEPENDENCIES(libgo-kungfu algo mpi-types callback)
+ADD_DEPENDENCIES(libgo-kungfu algo kungfu-types callback)
 
 ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
 TARGET_INCLUDE_DIRECTORIES(kungfu PRIVATE ${LIBRARY_OUTPUT_PATH})
-TARGET_LINK_LIBRARIES(kungfu go-kungfu algo mpi-types callback)
+TARGET_LINK_LIBRARIES(kungfu go-kungfu algo kungfu-types callback)
 IF(APPLE)
     TARGET_LINK_LIBRARIES(kungfu "-framework CoreFoundation")
     TARGET_LINK_LIBRARIES(kungfu "-framework Security")
