@@ -60,6 +60,13 @@ func (c ClusterSpec) MyRank() int {
 	panic("Self is not in the cluster")
 }
 
+func (c ClusterSpec) PrevAndNext(i int) (int, int) {
+	k := len(c.Peers)
+	prev := (i - 1 + k) % k
+	next := (i + 1 + k) % k
+	return prev, next
+}
+
 func GenCluster(n int, hosts []string, m int) []ClusterSpec {
 	if cap := m * len(hosts); cap < n {
 		log.Warnf("can run %d tasks at most!", cap)
