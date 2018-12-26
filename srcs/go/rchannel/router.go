@@ -4,6 +4,7 @@ import (
 	"expvar"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"time"
 
@@ -55,6 +56,16 @@ func (r *Router) getChannel(a Addr) (*Channel, error) {
 
 // Send sends Message to given Addr
 func (r *Router) Send(a Addr, m Message) error {
+	if err := r.send(a, m); err != nil {
+		log.Errorf("Router::Send failed: %v", err)
+		// TODO: retry
+		os.Exit(1)
+		// return err
+	}
+	return nil
+}
+
+func (r *Router) send(a Addr, m Message) error {
 	// log.Infof("%s::%s", "Router", "Send")
 	ch, err := r.getChannel(a)
 	if err != nil {

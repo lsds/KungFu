@@ -33,6 +33,8 @@ var (
 
 	useFullSymmetricAllReduce = true
 	useRingAllReduce          = true
+
+	reportPeriod = 2 * time.Second
 )
 
 func exitErr(err error) {
@@ -65,7 +67,7 @@ func GoKungfuInit() int {
 	go metrics.ListenAndServe(cluster.Self.MonitoringPort)
 	go server.ListenAndServe()
 	go func() {
-		for range time.Tick(1 * time.Second) {
+		for range time.Tick(reportPeriod) {
 			router.UpdateRate()
 		}
 	}()
@@ -212,7 +214,7 @@ func circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu
 		}
 	case rootPrev:
 		{
-			// RSr
+			// RS|r
 			R()
 			S()
 			r()
@@ -239,23 +241,34 @@ func circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu
 // symmetricAllReduce parts the original data into k parts and apply an rooted allReduce stratrgy to each part
 func symmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name string, allReduce rootedAllReduceFunc) error {
 	k := len(cluster.Peers)
-	blockCount := ceilDiv(count, k)
-	blockSize := blockCount * wire.KungFu_Datatype(dtype).Size()
+	quo, rem := divide(count, k)
 
 	var wg sync.WaitGroup
 	var failed int32
+
+	var offset int
 	for i := 0; i < k; i++ {
+		blockCount := func() int {
+			if i < rem {
+				return quo + 1
+			}
+			return quo
+		}()
 		wg.Add(1)
-		go func(i int) {
-			offset := i * blockSize
-			currentBlockCount := minInt(blockCount, count-blockCount*i)
+		go func(i int, offset, blockCount int) {
+			x := offset * wire.KungFu_Datatype(dtype).Size()
+			y := (offset + blockCount) * wire.KungFu_Datatype(dtype).Size()
 			fullName := name + fmt.Sprintf(":part=%d", i) // TODO: use tag
-			if err := allReduce(sendBuf[offset:], recvBuf[offset:], currentBlockCount, dtype, op, i, fullName); err != nil {
+			if err := allReduce(sendBuf[x:y], recvBuf[x:y], blockCount, dtype, op, i, fullName); err != nil {
 				log.Warnf("part %d failed: %v", i, err)
 				atomic.AddInt32(&failed, 1)
 			}
 			wg.Done()
-		}(i)
+		}(i, offset, blockCount)
+		offset += blockCount
+	}
+	if offset != count {
+		panic("invalid partition")
 	}
 	wg.Wait()
 	if failed > 0 {

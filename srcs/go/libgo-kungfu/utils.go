@@ -1,11 +1,9 @@
 package main
 
-func ceilDiv(a, b int) int {
+func divide(a, b int) (int, int) {
 	q := a / b
-	if a%b != 0 {
-		q++
-	}
-	return q
+	r := a - b*q
+	return q, r
 }
 
 func minInt(a, b int) int {
