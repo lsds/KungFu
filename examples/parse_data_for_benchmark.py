@@ -155,7 +155,7 @@ def _preprocess(imagebuffer, bbox, subset):
     image = _train_image(imagebuffer, 224, 224, bbox)
     return image
 
-def get_labeled_images():
+def get_labeled_images(batch_size):
     prefix = ''
 
     file_url = 'https://kungfudata.blob.core.windows.net/data/imagenet/test-data'
@@ -187,7 +187,7 @@ def get_labeled_images():
     image = _preprocess(imagebuffer, bbox, subset)
     # print image
     images, labels = tf.train.batch([image, label],
-                                    batch_size=32,
+                                    batch_size=batch_size,
                                     num_threads=1,
                                     capacity=100)
     return images, labels

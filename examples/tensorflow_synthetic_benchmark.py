@@ -71,7 +71,7 @@ tf.logging.set_verbosity('INFO')
 #data, target = get_labeled_images()
 ##import pdb; pdb.set_trace()
 
-data, labels = get_labeled_images()
+data, labels = get_labeled_images(args.batch_size)
 
 #dataset_images, dataset_labels = dataset_iterator.get_next()
 
