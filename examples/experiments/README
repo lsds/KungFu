@@ -1,5 +1,0 @@
-Notes on experiments:
-
-Include the ideal throughput. Basically for each measurement multiply the
-performance for one GPU by the number of GPUs (machines) used for the current
-case.
