@@ -1,9 +1,9 @@
 #include "cgo_helpers.hpp"
 #include <kungfu.hpp>
 
-int KungfuInit()
+int KungfuInit(KungFu_AllReduceAlgo algo)
 {
-    int err = GoKungfuInit();
+    int err = GoKungfuInit(algo);
     if (err) {
         fprintf(stderr, "%s failed\n", __func__);
         return err;

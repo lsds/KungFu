@@ -5,7 +5,6 @@ SET(CMAKE_CXX_STANDARD 14)
 
 ADD_DEFINITIONS(-Wfatal-errors)
 ADD_DEFINITIONS(-Wall)
-ADD_COMPILE_OPTIONS(-D_GLIBCXX_USE_CXX11_ABI=0)
 ADD_COMPILE_OPTIONS(-fPIC)
 
 OPTION(KUNGFU_HAVE_GPU "Have GPU." OFF)
@@ -19,13 +18,13 @@ INCLUDE(cmake/tf-op.cmake)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
-ADD_LIBRARY(algo srcs/cpp/src/algo.cpp)
-ADD_LIBRARY(callback srcs/cpp/src/callback.cpp)
-ADD_LIBRARY(kungfu-types srcs/cpp/src/kungfu_types.cpp)
+ADD_LIBRARY(kungfu-base
+            srcs/cpp/src/kungfu_types.cpp
+            srcs/cpp/src/algo.cpp
+            srcs/cpp/src/callback.cpp)
 
 SET(CGO_CFLAGS "-I${CMAKE_SOURCE_DIR}/srcs/cpp/include")
-SET(CGO_LDFLAGS
-    "-L${LIBRARY_OUTPUT_PATH} -lalgo -lkungfu-types -lcallback -lstdc++")
+SET(CGO_LDFLAGS "-L${LIBRARY_OUTPUT_PATH} -lkungfu-base -lstdc++")
 
 ADD_CUSTOM_TARGET(libgo-kungfu ALL
                   WORKING_DIRECTORY ${LIBRARY_OUTPUT_PATH}
@@ -37,11 +36,11 @@ ADD_CUSTOM_TARGET(libgo-kungfu ALL
                           -v
                           -buildmode=c-archive
                           ${CMAKE_SOURCE_DIR}/srcs/go/libgo-kungfu)
-ADD_DEPENDENCIES(libgo-kungfu algo kungfu-types callback)
+ADD_DEPENDENCIES(libgo-kungfu kungfu-base)
 
 ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
 TARGET_INCLUDE_DIRECTORIES(kungfu PRIVATE ${LIBRARY_OUTPUT_PATH})
-TARGET_LINK_LIBRARIES(kungfu go-kungfu algo kungfu-types callback)
+TARGET_LINK_LIBRARIES(kungfu go-kungfu kungfu-base)
 IF(APPLE)
     TARGET_LINK_LIBRARIES(kungfu "-framework CoreFoundation")
     TARGET_LINK_LIBRARIES(kungfu "-framework Security")
@@ -63,5 +62,9 @@ ADD_CUSTOM_TARGET(kungfu-run ALL
                           -v
                           ${CMAKE_SOURCE_DIR}/srcs/go/kungfu-run)
 
-ENABLE_TESTING()
-# TODO: add tests
+OPTION(KUNGFU_BUILD_TESTS "Build tests." ON)
+
+IF(KUNGFU_BUILD_TESTS)
+    ENABLE_TESTING()
+    INCLUDE(cmake/tests.cmake)
+ENDIF()

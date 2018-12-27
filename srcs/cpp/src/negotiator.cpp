@@ -10,9 +10,33 @@
 
 class _kungfu_t
 {
+    static std::string safe_getenv(const char *name)
+    {
+        const char *ptr = std::getenv(name);
+        if (ptr) { return std::string(ptr); }
+        return "";
+    }
+
+    KungFu_AllReduceAlgo get_algo() const
+    {
+        const auto value = safe_getenv("KUNGFU_ALLREDUCE_ALGO");
+        const std::map<std::string, KungFu_AllReduceAlgo> mp({
+            {"SIMPLE", KungFu_SimpleAllReduce},
+            {"RING", KungFu_RingAllReduce},
+            {"CLIQUE", KungFu_FullSymmetricAllReduce},
+            {"TREE", KungFu_TreeAllReduce},
+        });
+        if (mp.count(value) > 0) { return mp.at(value); }
+        return KungFu_SimpleAllReduce;
+    }
 
   public:
-    _kungfu_t() { KungfuInit(); }
+    _kungfu_t()
+    {
+        const auto algo = get_algo();
+        LOG(INFO) << "using all reduce algo: " << algo;
+        KungfuInit(algo);
+    }
 
     ~_kungfu_t() { KungfuFinalize(); }
 };
@@ -22,23 +46,11 @@ static _kungfu_t _kungfu_world;
 namespace tensorflow
 {
 
-int to_kungfu_type(const DataType &dtype)
+KungFu_Datatype to_kungfu_type(const DataType &dtype)
 {
     switch (dtype) {
     case DT_FLOAT:
         return KungFu_FLOAT;
-    default:
-        // TODO: add more types
-        throw std::invalid_argument("unsupported dtype");
-    }
-}
-
-// TODO: use existing API
-int type_size(const DataType &dtype)
-{
-    switch (dtype) {
-    case DT_FLOAT:
-        return 4;
     default:
         // TODO: add more types
         throw std::invalid_argument("unsupported dtype");
@@ -52,23 +64,23 @@ template <typename Device> struct NegotiatorImpl;
 
 template <> struct NegotiatorImpl<CPUDevice> {
     void operator()(const void *input, void *output, int n,
-                    const tensorflow::DataType &dtype, const std::string &name,
+                    const KungFu_Datatype dtype, const std::string &name,
                     DoneCallback done) const
     {
-        KungfuNegotiateAsync(input, output, n, to_kungfu_type(dtype),
-                             KungFu_SUM, name.c_str(), done);
+        KungfuNegotiateAsync(input, output, n, dtype, KungFu_SUM, name.c_str(),
+                             done);
     }
 };
 
 #if KUNGFU_HAVE_GPU
 template <> struct NegotiatorImpl<GPUDevice> {
     void operator()(const void *input, void *output, int n,
-                    const tensorflow::DataType &dtype, const std::string &name,
+                    const KungFu_Datatype dtype, const std::string &name,
                     DoneCallback done) const
     {
-        const int buffer_size = type_size(dtype) * n;
+        const int buffer_size = kungfu_type_size(dtype) * n;
         // TODO: use memory pool
-        auto input_cpu = new std::vector<char>(buffer_size);
+        auto input_cpu  = new std::vector<char>(buffer_size);
         auto output_cpu = new std::vector<char>(buffer_size);
 
         if (cudaMemcpy(input_cpu->data(), input, buffer_size,
@@ -76,9 +88,8 @@ template <> struct NegotiatorImpl<GPUDevice> {
             LOG(FATAL) << "cudaMemcpy failed";
         }
         KungfuNegotiateAsync(
-            input_cpu->data(), output_cpu->data(), n, to_kungfu_type(dtype),
-            KungFu_SUM, name.c_str(),
-            [done, input_cpu, output_cpu, output, buffer_size] {
+            input_cpu->data(), output_cpu->data(), n, dtype, KungFu_SUM,
+            name.c_str(), [done, input_cpu, output_cpu, output, buffer_size] {
                 if (cudaMemcpy(output, output_cpu->data(), buffer_size,
                                cudaMemcpyHostToDevice) != cudaSuccess) {
                     LOG(FATAL) << "cudaMemcpy failed";
@@ -99,12 +110,12 @@ template <typename Device> class Negotiator : public AsyncOpKernel
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
-        Tensor *output = nullptr;
+        Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
         NegotiatorImpl<Device>()(
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
-            input.NumElements(), input.dtype(), name(), done);
+            input.NumElements(), to_kungfu_type(input.dtype()), name(), done);
     }
 };
 

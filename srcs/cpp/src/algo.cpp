@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <stdexcept>
 
 #include <algorithm>
 #include <functional>
@@ -7,6 +8,8 @@
 
 #include <algo.h>
 #include <kungfu_types.hpp>
+
+// TODO: use std::apply from c++17
 
 template <typename Args, typename Op>
 void _call_std_transform(const Args &args, const Op &op)
@@ -40,15 +43,29 @@ void std_transform_2_tpl(const void *input_1, const void *input_2, void *output,
     }
 }
 
+template <typename T, typename Args>
+void _call_std_transform_2_tpl(const Args &args)
+{
+    std_transform_2_tpl<T>(std::get<0>(args), std::get<1>(args),
+                           std::get<2>(args), std::get<3>(args),
+                           std::get<4>(args));
+}
+
 void std_transform_2(const void *input_1, const void *input_2, void *output,
                      int n, int dtype, int binary_op)
 {
+
+    const auto args = std::make_tuple(input_1, input_2, output, n, binary_op);
+
     switch (dtype) {
-    case kungfu::type_encoder::value<int>():
-        std_transform_2_tpl<int>(input_1, input_2, output, n, binary_op);
+    case kungfu::type_encoder::value<int32_t>():
+        _call_std_transform_2_tpl<int32_t>(args);
         return;
     case kungfu::type_encoder::value<float>():
-        std_transform_2_tpl<float>(input_1, input_2, output, n, binary_op);
+        _call_std_transform_2_tpl<float>(args);
+        return;
+    case kungfu::type_encoder::value<double>():
+        _call_std_transform_2_tpl<double>(args);
         return;
     default:
         throw std::invalid_argument("std_transform_2 doesn't support dtype: " +

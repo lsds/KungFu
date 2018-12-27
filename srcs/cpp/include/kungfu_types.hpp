@@ -1,5 +1,5 @@
 #pragma once
-#include <experimental/type_encoder>
+#include <cstdint>
 
 namespace kungfu
 {
@@ -11,7 +11,7 @@ template <typename R> struct data_type_t;
 
 using V = std::uint8_t;
 
-template <> struct data_type_t<int> {
+template <> struct data_type_t<int32_t> {
     static constexpr V value = 0;
 };
 
@@ -71,9 +71,7 @@ struct encoding {
 }  // namespace ops
 }  // namespace internal
 
-using type_encoder =
-    std::experimental::basic_type_encoder<kungfu::internal::types::encoding>;
+using type_encoder = kungfu::internal::types::encoding;
 
-using op_encoder =
-    std::experimental::basic_type_encoder<kungfu::internal::ops::encoding>;
+using op_encoder = kungfu::internal::ops::encoding;
 }  // namespace kungfu

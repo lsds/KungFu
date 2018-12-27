@@ -25,8 +25,8 @@ type Router struct {
 	recvRate       *expvar.Float
 }
 
-func NewRouter(cluster *ClusterSpec) (*Router, error) {
-	port, err := strconv.Atoi(cluster.Self.NetAddr.Port)
+func NewRouter(cluster *Cluster) (*Router, error) {
+	port, err := strconv.Atoi(cluster.spec.Self.NetAddr.Port)
 	if err != nil {
 		return nil, err
 	}

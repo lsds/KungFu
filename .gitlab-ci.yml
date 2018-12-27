@@ -3,10 +3,28 @@
 image: registry.gitlab.com/teavana/kungfu/builder:ubuntu18
 
 stages:
-- build
+- unit test
+- integration test
+- system test
 
 job1:
-  stage: build
+  stage: unit test
+
+  script:
+  - |
+    ./configure
+    make
+    make test
+    go test -v ./srcs/go/rchannel
+
+job2:
+  stage: integration test
+  script:
+  - |
+    ./scripts/run-integration-tests.sh
+
+job3:
+  stage: system test
 
   before_script:
   - |
@@ -19,7 +37,8 @@ job1:
     cmake --version
     pip3 install -vvv -U .
     GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
-  - ./examples/kungfu-train.py
+  - |
+    ./examples/kungfu-train.py
   - |
     ./bin/kungfu-run -np 2 -timeout 60s \
       python3 ./examples/kungfu-train.py \

@@ -18,11 +18,12 @@ import (
 )
 
 var (
-	np       = flag.Int("np", runtime.NumCPU(), "number of tasks")
-	m        = flag.Int("m", 4, "number of GPUs per host")
-	hostList = flag.String("hosts", "127.0.0.1", "comma separated list of hosts")
-	selfHost = flag.String("self", "127.0.0.1", "")
-	timeout  = flag.Duration("timeout", 10*time.Second, "timeout")
+	np         = flag.Int("np", runtime.NumCPU(), "number of tasks")
+	m          = flag.Int("m", 4, "number of GPUs per host")
+	hostList   = flag.String("hosts", "127.0.0.1", "comma separated list of hosts")
+	selfHost   = flag.String("self", "127.0.0.1", "")
+	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
+	verboseLog = flag.Bool("v", true, "show task log")
 )
 
 var (
@@ -39,11 +40,12 @@ func init() {
 	log.SetPrefix("[kungfu-run] ")
 	flag.Parse()
 	logArgs()
+	logKungfuEnv()
 }
 
 func main() {
 	hosts := strings.Split(*hostList, ",")
-	specs := rch.GenCluster(*np, hosts, *m)
+	specs := rch.GenClusterSpecs(*np, hosts, *m)
 	restArgs := flag.Args()
 	if len(restArgs) < 1 {
 		log.Print("missing program name")
@@ -53,7 +55,7 @@ func main() {
 	args := restArgs[1:]
 
 	var ps []*Proc
-	for _, spec := range specs {
+	for i, spec := range specs {
 		if spec.Self.NetAddr.Host != *selfHost {
 			continue
 		}
@@ -66,7 +68,7 @@ func main() {
 		cmd := exec.Command(prog, args...)
 		cmd.Env = updatedEnv(newValues)
 		ps = append(ps, &Proc{
-			name: fmt.Sprintf("%02d", spec.MyRank()),
+			name: fmt.Sprintf("%02d", i),
 			cmd:  cmd,
 		})
 	}
@@ -77,7 +79,7 @@ func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
-	if err := runAll(ctx, ps); err != nil {
+	if err := runAll(ctx, ps, *verboseLog); err != nil {
 		log.Print(err)
 		if err != context.DeadlineExceeded {
 			os.Exit(1)
@@ -88,6 +90,14 @@ func main() {
 func logArgs() {
 	for i, a := range os.Args {
 		log.Printf("args[%d]=%s", i, a)
+	}
+}
+
+func logKungfuEnv() {
+	for _, kv := range os.Environ() {
+		if strings.HasPrefix(kv, `KUNGFU_`) {
+			log.Printf("env: %s", kv)
+		}
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/luomai/kungfu/srcs/go/iostream"
 	"github.com/luomai/kungfu/srcs/go/xterm"
@@ -24,18 +25,23 @@ type Proc struct {
 }
 
 type Runner struct {
-	name  string
-	color xterm.Color
+	name       string
+	color      xterm.Color
+	verboseLog bool
 }
 
 func (r Runner) run(ctx context.Context, cmd *exec.Cmd) error {
 	if stdout, err := cmd.StdoutPipe(); err == nil {
-		go r.streamPipe("stdout", stdout)
+		if r.verboseLog {
+			go r.streamPipe("stdout", stdout)
+		}
 	} else {
 		return err
 	}
 	if stderr, err := cmd.StderrPipe(); err == nil {
-		go r.streamPipe("stderr", stderr)
+		if r.verboseLog {
+			go r.streamPipe("stderr", stderr)
+		}
 	} else {
 		return err
 	}
@@ -73,15 +79,17 @@ func (r Runner) streamPipe(name string, in io.Reader) error {
 	return iostream.Tee(in, w, f)
 }
 
-func runAll(ctx context.Context, ps []*Proc) error {
+func runAll(ctx context.Context, ps []*Proc, verboseLog bool) error {
+	t0 := time.Now()
 	var wg sync.WaitGroup
 	var fail int32
 	for i, proc := range ps {
 		wg.Add(1)
 		go func(i int, proc *Proc) {
 			r := &Runner{
-				name:  proc.name,
-				color: basicColors[i%len(basicColors)],
+				name:       proc.name,
+				color:      basicColors[i%len(basicColors)],
+				verboseLog: verboseLog,
 			}
 			if err := r.run(ctx, proc.cmd); err != nil {
 				log.Printf("%s $%s exited with error: %v", xterm.Red.S("[E]"), proc.name, err)
@@ -93,6 +101,8 @@ func runAll(ctx context.Context, ps []*Proc) error {
 		}(i, proc)
 	}
 	wg.Wait()
+	d := time.Since(t0)
+	log.Printf("all %d tasks finished, took %s", len(ps), d)
 	if fail != 0 {
 		return fmt.Errorf("%d tasks failed", fail)
 	}

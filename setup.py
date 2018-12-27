@@ -39,6 +39,7 @@ class CMakeBuild(build_ext):
                        os.path.join(install_prefix, 'kungfu')),
             cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
             cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
+            cmake_flag('KUNGFU_BUILD_TESTS', 0),
         ]
         if have_gpu():
             cmake_args.append(cmake_flag('KUNGFU_HAVE_GPU', 1))

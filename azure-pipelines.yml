@@ -29,13 +29,32 @@ steps:
     sudo apt install -y python3-setuptools
     pip3 install tensorflow
   displayName: 'Install Python tools'
+
+- script: |
+    ./configure
+    make
+    make test
+    git clean -fdx
+  displayName: 'Run C++ Tests'
+
+- script: |
+    go test -v ./srcs/go/rchannel
+  displayName: 'Run Golang Tests'
+
+- script: |
+    ./scripts/run-integration-tests.sh
+    git clean -fdx
+  displayName: 'Run Integration Test'
+
 - script: |
     cmake --version
     pip3 install -vvv -U .
     GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
   displayName: 'Install Kungfu'
+
 - script: ./examples/kungfu-train.py
   displayName: 'Single Train'
+
 - script: |
     ./bin/kungfu-run -np 2 -timeout 10s python3 \
       ./examples/kungfu-train.py \

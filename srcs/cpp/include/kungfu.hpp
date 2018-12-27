@@ -3,7 +3,7 @@
 
 #include <kungfu.h>
 
-extern int KungfuInit();
+extern int KungfuInit(KungFu_AllReduceAlgo algo);
 
 extern int KungfuFinalize();
 

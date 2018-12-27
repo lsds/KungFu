@@ -5,13 +5,14 @@
 #include <kungfu_types.hpp>
 #include <libgo-kungfu.h>
 
-inline GoSlice toGoSlice(const void *buffer, size_t count, int dtype)
+inline GoSlice toGoSlice(const void *buffer, size_t count,
+                         KungFu_Datatype dtype)
 {
-    const size_t size = kungfu::type_encoder::size(dtype) * count;
+    const size_t size = kungfu_type_size(dtype) * count;
     return GoSlice{
         .data = (void *)(buffer),
-        .len = GoInt(size),
-        .cap = GoInt(size),
+        .len  = GoInt(size),
+        .cap  = GoInt(size),
     };
 }
 
