@@ -13,7 +13,9 @@ import (
 )
 
 type Router struct {
+	localHost  string
 	localPort  uint32
+	localSock  string
 	bufferPool *BufferPool
 	connPool   *ConnectionPool
 
@@ -31,7 +33,9 @@ func NewRouter(cluster *Cluster) (*Router, error) {
 		return nil, err
 	}
 	return &Router{
+		localHost:  cluster.spec.Self.NetAddr.Host,
 		localPort:  uint32(port),
+		localSock:  cluster.spec.Self.SockFile,
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 
@@ -46,8 +50,7 @@ func NewRouter(cluster *Cluster) (*Router, error) {
 
 // getChannel returns the Channel of given Addr
 func (r *Router) getChannel(a Addr) (*Channel, error) {
-	netAddr := net.JoinHostPort(a.Host, a.Port)
-	conn, err := r.connPool.get(netAddr, r.localPort)
+	conn, err := r.connPool.get(a.NetAddr(), r.localHost, r.localPort)
 	if err != nil {
 		return nil, err
 	}

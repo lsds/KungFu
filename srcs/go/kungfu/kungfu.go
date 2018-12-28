@@ -11,9 +11,10 @@ import (
 )
 
 type Kungfu struct {
-	cluster *rch.Cluster
-	router  *rch.Router
-	server  *rch.Server
+	cluster     *rch.Cluster
+	router      *rch.Router
+	server      *rch.Server
+	localServer *rch.Server
 
 	algo         wire.KungFu_AllReduceAlgo
 	reportPeriod time.Duration
@@ -32,10 +33,15 @@ func New(algo wire.KungFu_AllReduceAlgo) (*Kungfu, error) {
 	if err != nil {
 		return nil, err
 	}
+	localServer, err := rch.NewLocalServer(router)
+	if err != nil {
+		return nil, err
+	}
 	return &Kungfu{
 		cluster:      cluster,
 		router:       router,
 		server:       server,
+		localServer:  localServer,
 		algo:         algo,
 		reportPeriod: 5 * time.Second,
 	}, nil
@@ -43,7 +49,8 @@ func New(algo wire.KungFu_AllReduceAlgo) (*Kungfu, error) {
 
 func (kf *Kungfu) Start() int {
 	go metrics.ListenAndServe(kf.cluster.MyMonitoringPort())
-	go kf.server.ListenAndServe()
+	go kf.server.Serve()
+	go kf.localServer.Serve()
 	go func() {
 		for range time.Tick(kf.reportPeriod) {
 			kf.router.UpdateRate()
@@ -54,6 +61,7 @@ func (kf *Kungfu) Start() int {
 
 func (kf *Kungfu) Close() int {
 	kf.server.Close() // TODO: check error
+	kf.localServer.Close()
 	filename := fmt.Sprintf("vars.%02d.json", kf.cluster.MyRank())
 	f, err := os.Create(filename)
 	if err != nil {

@@ -3,6 +3,7 @@ package rchannel
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 
 	"github.com/luomai/kungfu/srcs/go/log"
@@ -12,11 +13,8 @@ import (
 type Server struct {
 	listener net.Listener
 	router   *Router
+	unix     bool
 }
-
-const (
-	defaultPort = 10000 + 1
-)
 
 // NewServer creates a new Server
 func NewServer(router *Router) (*Server, error) {
@@ -31,8 +29,25 @@ func NewServer(router *Router) (*Server, error) {
 	}, nil
 }
 
-// ListenAndServe starts the server
-func (s *Server) ListenAndServe() {
+// NewLocalServer creates a new Server listening Unix socket
+func NewLocalServer(router *Router) (*Server, error) {
+	cleanSockFile := true
+	if cleanSockFile {
+		os.Remove(router.localSock)
+	}
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{router.localSock, "unix"})
+	if err != nil {
+		return nil, err
+	}
+	return &Server{
+		listener: listener,
+		router:   router,
+		unix:     true,
+	}, nil
+}
+
+// Serve starts the server
+func (s *Server) Serve() {
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
@@ -54,20 +69,27 @@ func (s *Server) ListenAndServe() {
 func (s *Server) Close() {
 	// TODO: to be graceful
 	s.listener.Close()
+	if s.unix {
+		os.Remove(s.router.localSock)
+	}
+}
+
+func (s *Server) getRemoveHost(conn net.Conn) string {
+	h, _, err := net.SplitHostPort(conn.RemoteAddr().String())
+	if err == nil {
+		return h
+	}
+	return s.router.localHost
 }
 
 func (s *Server) handle(conn net.Conn) error {
 	defer conn.Close()
-	h, _, err := net.SplitHostPort(conn.RemoteAddr().String())
-	if err != nil {
-		return err
-	}
 	var ch connectionHeader
 	if err := ch.ReadFrom(conn); err != nil {
 		return err
 	}
 	remoteNetAddr := NetAddr{
-		Host: h,
+		Host: s.getRemoveHost(conn),
 		Port: strconv.Itoa(int(ch.Port)),
 	}
 	log.Infof("got new connection from: %s", remoteNetAddr)

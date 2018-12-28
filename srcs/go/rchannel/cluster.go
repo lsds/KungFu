@@ -3,6 +3,7 @@ package rchannel
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -20,6 +21,8 @@ type TaskSpec struct {
 
 	GlobalRank int // FIXME: make it dynamic
 	HostID     int
+
+	SockFile string
 }
 
 type ClusterSpec struct {
@@ -149,16 +152,17 @@ func genTaskSpecs(k int, hosts []string, m int) ([]TaskSpec, *Graph, *Graph) {
 	var tasks []TaskSpec
 	for i, host := range hosts {
 		for j := 0; j < m; j++ {
+			port := strconv.Itoa(10001 + j)
 			task := TaskSpec{
 				HostID:   i,
 				DeviceID: j,
 				NetAddr: NetAddr{
 					Host: host,
-					Port: strconv.Itoa(10001 + j),
+					Port: port,
 				},
 				MonitoringPort: uint16(20001 + j),
-
-				GlobalRank: rankOf(i, j),
+				SockFile:       sockFileFor(port),
+				GlobalRank:     rankOf(i, j),
 			}
 			tasks = append(tasks, task)
 			addEdges(task)
@@ -169,4 +173,8 @@ func genTaskSpecs(k int, hosts []string, m int) ([]TaskSpec, *Graph, *Graph) {
 	}
 	log.Infof("only generated %d at best effort, instead of %d", len(tasks), k)
 	return tasks, g1, g2
+}
+
+func sockFileFor(port string) string {
+	return fmt.Sprintf(`/tmp/kungfu-run-%s.sock`, port)
 }

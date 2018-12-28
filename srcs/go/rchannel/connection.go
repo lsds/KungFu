@@ -11,8 +11,15 @@ type Connection struct {
 	conn net.Conn
 }
 
-func newConnection(netAddr string, localPort uint32) (*Connection, error) {
-	conn, err := net.Dial("tcp", netAddr)
+func newConnection(a NetAddr, localHost string, localPort uint32) (*Connection, error) {
+	conn, err := func() (net.Conn, error) {
+		if a.Host == localHost {
+			addr := net.UnixAddr{sockFileFor(a.Port), "unix"}
+			// log.Infof("dialing unix sock: %v", addr)
+			return net.DialUnix(addr.Net, nil, &addr)
+		}
+		return net.Dial("tcp", net.JoinHostPort(a.Host, a.Port))
+	}()
 	if err != nil {
 		return nil, err
 	}
