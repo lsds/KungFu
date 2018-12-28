@@ -24,9 +24,17 @@ func newGraph(n int) *Graph {
 	}
 }
 
-func (g *Graph) AddEdge(i, j int) {
+func (g *Graph) addOutEdge(i, j int) {
 	g.Nodes[i].Nexts = append(g.Nodes[i].Nexts, j)
-	g.Nodes[j].Prevs = append(g.Nodes[j].Prevs, i)
+}
+
+func (g *Graph) addInEdge(i, j int) {
+	g.Nodes[i].Prevs = append(g.Nodes[i].Prevs, j)
+}
+
+func (g *Graph) AddEdge(i, j int) {
+	g.addOutEdge(i, j)
+	g.addInEdge(j, i)
 }
 
 func (g *Graph) Prevs(i int) []int {

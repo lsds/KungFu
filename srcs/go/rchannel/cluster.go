@@ -5,14 +5,67 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
-
-	"github.com/luomai/kungfu/srcs/go/log"
+	"strings"
 )
 
 const ClusterSpecEnvKey = `KF_CLUSTER_SPEC`
 
 // FIXME: make members private, public is required by JSON encoding for now
+
+var errInvalidHostSpec = errors.New("Invalid HostSpec")
+
+type HostSpec struct {
+	Hostname   string
+	Slots      int
+	PublicAddr string
+}
+
+func DefaultHostSpec() HostSpec {
+	return HostSpec{
+		Hostname:   `127.0.0.1`,
+		Slots:      runtime.NumCPU(),
+		PublicAddr: `127.0.0.1`,
+	}
+}
+
+func (h HostSpec) String() string {
+	return fmt.Sprintf("%s:%d:%s", h.Hostname, h.Slots, h.PublicAddr)
+}
+
+func parseHostSpec(spec string) (*HostSpec, error) {
+	parts := strings.Split(spec, ":")
+	switch len(parts) {
+	case 1:
+		return &HostSpec{Hostname: parts[0], Slots: 1, PublicAddr: parts[0]}, nil
+	case 2:
+		slots, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, errInvalidHostSpec
+		}
+		return &HostSpec{Hostname: parts[0], Slots: slots, PublicAddr: parts[0]}, nil
+	case 3:
+		slots, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, errInvalidHostSpec
+		}
+		return &HostSpec{Hostname: parts[0], Slots: slots, PublicAddr: parts[2]}, nil
+	}
+	return nil, errInvalidHostSpec
+}
+
+func ParseHostSpec(h string) ([]HostSpec, error) {
+	var hostSpecs []HostSpec
+	for _, h := range strings.Split(h, ",") {
+		spec, err := parseHostSpec(h)
+		if err != nil {
+			return nil, err
+		}
+		hostSpecs = append(hostSpecs, *spec)
+	}
+	return hostSpecs, nil
+}
 
 type TaskSpec struct {
 	DeviceID       int // local rank
@@ -46,12 +99,19 @@ type Cluster struct {
 	spec ClusterSpec
 }
 
-func NewClusterFromEnv() (*Cluster, error) {
+func getConfig() string {
 	config := os.Getenv(ClusterSpecEnvKey)
-	if len(config) == 0 {
-		specs := GenClusterSpecs(1, []string{`127.0.0.1`}, 1)
-		return &Cluster{spec: specs[0]}, nil
+	if len(config) != 0 {
+		return config
 	}
+	if specs, err := GenClusterSpecs(1, []HostSpec{DefaultHostSpec()}); err == nil {
+		return specs[0].String()
+	}
+	return ""
+}
+
+func NewClusterFromEnv() (*Cluster, error) {
+	config := getConfig()
 	var spec ClusterSpec
 	if err := json.Unmarshal([]byte(config), &spec); err != nil {
 		return nil, errors.New(ClusterSpecEnvKey + " is invalid")
@@ -106,11 +166,19 @@ func (c Cluster) Neighbours(i int) ([]int, []int, []int, []int) {
 	return n1.Prevs, n1.Nexts, n2.Prevs, n2.Nexts
 }
 
-func GenClusterSpecs(k int, hosts []string, m int) []ClusterSpec {
-	if cap := m * len(hosts); cap < k {
-		log.Warnf("can run %d tasks at most!", cap)
+func totalCap(hostSpecs []HostSpec) int {
+	var cap int
+	for _, h := range hostSpecs {
+		cap += h.Slots
 	}
-	tasks, gIn, gOut := genTaskSpecs(k, hosts, m)
+	return cap
+}
+
+func GenClusterSpecs(k int, hostSpecs []HostSpec) ([]ClusterSpec, error) {
+	if cap := totalCap(hostSpecs); cap < k {
+		return nil, fmt.Errorf("can run %d tasks at most!", cap)
+	}
+	tasks, gIn, gOut := genTaskSpecs(k, hostSpecs)
 	var specs []ClusterSpec
 	for _, task := range tasks {
 		spec := ClusterSpec{
@@ -122,12 +190,21 @@ func GenClusterSpecs(k int, hosts []string, m int) []ClusterSpec {
 		}
 		specs = append(specs, spec)
 	}
-	return specs
+	return specs, nil
 }
 
-func genTaskSpecs(k int, hosts []string, m int) ([]TaskSpec, *Graph, *Graph) {
+func genTaskSpecs(k int, hostSpecs []HostSpec) ([]TaskSpec, *Graph, *Graph) {
+	var tasksBefore []int
+	{
+		before := 0
+		for _, h := range hostSpecs {
+			tasksBefore = append(tasksBefore, before)
+			before += h.Slots
+		}
+	}
+
 	rankOf := func(hostID, deviceID int) int {
-		return hostID*m + deviceID
+		return tasksBefore[hostID] + deviceID
 	}
 
 	g1 := newGraph(k)
@@ -150,14 +227,14 @@ func genTaskSpecs(k int, hosts []string, m int) ([]TaskSpec, *Graph, *Graph) {
 	}
 
 	var tasks []TaskSpec
-	for i, host := range hosts {
-		for j := 0; j < m; j++ {
+	for i, host := range hostSpecs {
+		for j := 0; j < host.Slots; j++ {
 			port := strconv.Itoa(10001 + j)
 			task := TaskSpec{
 				HostID:   i,
 				DeviceID: j,
 				NetAddr: NetAddr{
-					Host: host,
+					Host: host.Hostname,
 					Port: port,
 				},
 				MonitoringPort: uint16(20001 + j),
@@ -171,7 +248,6 @@ func genTaskSpecs(k int, hosts []string, m int) ([]TaskSpec, *Graph, *Graph) {
 			}
 		}
 	}
-	log.Infof("only generated %d at best effort, instead of %d", len(tasks), k)
 	return tasks, g1, g2
 }
 

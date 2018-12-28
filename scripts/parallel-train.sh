@@ -3,9 +3,9 @@ set -e
 
 cd $(dirname $0)/..
 
-hosts=127.0.0.1
-ip=127.0.0.1
 np=2
+hosts=127.0.0.1:$np
+ip=127.0.0.1
 
 parse_args() {
     if [ ! -z "$1" ]; then
@@ -26,12 +26,15 @@ prun() {
     local np=$2
     local model_name=$3
 
+    if [ $(uname -s) = "Darwin" ]; then
+        export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
+    fi
+
     echo "$self $np $model_name"
     ./bin/kungfu-run \
         -np $np \
-        -hosts $hosts \
+        -H $hosts \
         -self $self \
-        -m 4 \
         -timeout 20s \
         python3 \
         ./examples/kungfu-train.py \

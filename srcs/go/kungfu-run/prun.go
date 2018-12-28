@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -10,30 +11,17 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	rch "github.com/luomai/kungfu/srcs/go/rchannel"
-	"github.com/luomai/kungfu/srcs/go/xterm"
 )
 
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of tasks")
-	m          = flag.Int("m", 4, "number of GPUs per host")
-	hostList   = flag.String("hosts", "127.0.0.1", "comma separated list of hosts")
+	hostList   = flag.String("H", rch.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
 	selfHost   = flag.String("self", "127.0.0.1", "")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
-)
-
-var (
-	basicColors = []xterm.Color{
-		xterm.Green,
-		xterm.Yellow,
-	}
-
-	waiting []bool
-	lock    sync.Mutex
 )
 
 func init() {
@@ -44,12 +32,17 @@ func init() {
 }
 
 func main() {
-	hosts := strings.Split(*hostList, ",")
-	specs := rch.GenClusterSpecs(*np, hosts, *m)
+	hostSpecs, err := rch.ParseHostSpec(*hostList)
+	if err != nil {
+		exitErr(err)
+	}
+	specs, err := rch.GenClusterSpecs(*np, hostSpecs)
+	if err != nil {
+		exitErr(err)
+	}
 	restArgs := flag.Args()
 	if len(restArgs) < 1 {
-		log.Print("missing program name")
-		os.Exit(1)
+		exitErr(errors.New("missing program name"))
 	}
 	prog := restArgs[0]
 	args := restArgs[1:]
@@ -117,4 +110,9 @@ func updatedEnv(newValues map[string]string) []string {
 		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 	return envs
+}
+
+func exitErr(err error) {
+	log.Printf("exit on error: %v", err)
+	os.Exit(1)
 }
