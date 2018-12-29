@@ -52,8 +52,9 @@ func (i *Infrequently) Do(f func()) {
 	if c == p {
 		f()
 		d := atomic.AddInt64(&i.done, 1)
+		atomic.StoreInt64(&i.skippedSinceLastDone, 0)
 		if d >= p {
-			atomic.AddInt64(&i.period, d*3)
+			atomic.StoreInt64(&i.period, d*50)
 		}
 		return
 	}
