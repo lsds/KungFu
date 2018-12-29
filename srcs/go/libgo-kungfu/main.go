@@ -18,7 +18,8 @@ var kungfu *kf.Kungfu
 func GoKungfuInit(algo C.KungFu_AllReduceAlgo) int {
 	log.Infof("GoKungfuInit")
 	var err error
-	kungfu, err = kf.New(wire.KungFu_AllReduceAlgo(algo))
+	config := kf.Config{Algo: wire.KungFu_AllReduceAlgo(algo)}
+	kungfu, err = kf.New(config)
 	if err != nil {
 		exitErr(err)
 	}

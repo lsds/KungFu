@@ -1,5 +1,5 @@
-.DS_Store
 __pycache__
+.DS_Store
 .idea
 *_generated.h
 *.dylib
@@ -11,6 +11,7 @@ __pycache__
 *.pb
 *.so
 *.swp
+*.tar.bz2
 *.whl
 /3rdparty
 /bin
@@ -18,6 +19,7 @@ __pycache__
 /cmake-build
 /external
 /go-output
+/gopath
 /lib
 /logs
 cmake_install.cmake
@@ -25,6 +27,7 @@ CMakeCache.txt
 CMakeFiles/
 CTestTestfile.cmake
 env
+hosts.txt
 kungfu.cbp
 Makefile
 Makefile.auto

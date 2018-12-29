@@ -1,7 +1,7 @@
 INCLUDE(ExternalProject)
 
 SET(STDTRACER_GIT_URL https://github.com/lgarithm/stdtracer.git
-    CACHE STRING "URL for clone stdtensor")
+    CACHE STRING "URL for clone stdtracer")
 
 SET(PREFIX ${CMAKE_SOURCE_DIR}/3rdparty)
 

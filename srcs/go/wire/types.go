@@ -32,4 +32,29 @@ var (
 	KungFu_Ring   = KungFu_AllReduceAlgo(C.KungFu_RingAllReduce)
 	KungFu_Clique = KungFu_AllReduceAlgo(C.KungFu_FullSymmetricAllReduce)
 	KungFu_Tree   = KungFu_AllReduceAlgo(C.KungFu_TreeAllReduce)
+
+	algoNames = map[KungFu_AllReduceAlgo]string{
+		KungFu_Simple: `SIMPLE`,
+		KungFu_Ring:   `RING`,
+		KungFu_Clique: `CLIQUE`,
+		KungFu_Tree:   `TREE`,
+	}
 )
+
+func (a KungFu_AllReduceAlgo) String() string {
+	for k, v := range algoNames {
+		if a == k {
+			return v
+		}
+	}
+	return `TREE`
+}
+
+func ParseAlgo(s string) KungFu_AllReduceAlgo {
+	for k, v := range algoNames {
+		if s == v {
+			return k
+		}
+	}
+	return KungFu_Tree
+}

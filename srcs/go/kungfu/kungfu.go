@@ -15,12 +15,26 @@ type Kungfu struct {
 	router      *rch.Router
 	server      *rch.Server
 	localServer *rch.Server
-
-	algo         wire.KungFu_AllReduceAlgo
-	reportPeriod time.Duration
+	config      Config
 }
 
-func New(algo wire.KungFu_AllReduceAlgo) (*Kungfu, error) {
+type Config struct {
+	Algo         wire.KungFu_AllReduceAlgo
+	ReportPeriod time.Duration
+}
+
+func (c Config) complete() Config {
+	newConfig := Config{
+		Algo:         c.Algo,
+		ReportPeriod: c.ReportPeriod,
+	}
+	if newConfig.ReportPeriod == 0 {
+		newConfig.ReportPeriod = 10 * time.Second
+	}
+	return newConfig
+}
+
+func New(config Config) (*Kungfu, error) {
 	cluster, err := rch.NewClusterFromEnv()
 	if err != nil {
 		return nil, err
@@ -38,12 +52,11 @@ func New(algo wire.KungFu_AllReduceAlgo) (*Kungfu, error) {
 		return nil, err
 	}
 	return &Kungfu{
-		cluster:      cluster,
-		router:       router,
-		server:       server,
-		localServer:  localServer,
-		algo:         algo,
-		reportPeriod: 5 * time.Second,
+		cluster:     cluster,
+		router:      router,
+		server:      server,
+		localServer: localServer,
+		config:      config.complete(),
 	}, nil
 }
 
@@ -52,7 +65,7 @@ func (kf *Kungfu) Start() int {
 	go kf.server.Serve()
 	go kf.localServer.Serve()
 	go func() {
-		for range time.Tick(kf.reportPeriod) {
+		for range time.Tick(kf.config.ReportPeriod) {
 			kf.router.UpdateRate()
 		}
 	}()

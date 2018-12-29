@@ -24,7 +24,7 @@
   - name: run benchmark
     # https://docs.ansible.com/ansible/latest/modules/shell_module.html
     shell: |
-      ./bin/kungfu-run \
+      ./bin/kungfu-prun \
         -np 8 \
         -m 4 \
         -timeout 120s \

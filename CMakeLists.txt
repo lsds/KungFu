@@ -53,15 +53,6 @@ SET_TARGET_PROPERTIES(kungfu_tensorflow_ops PROPERTIES INSTALL_RPATH "$ORIGIN")
 SET_TARGET_PROPERTIES(kungfu_tensorflow_ops
                       PROPERTIES BUILD_WITH_INSTALL_RPATH true)
 
-ADD_CUSTOM_TARGET(kungfu-run ALL
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/srcs/go
-                  COMMAND env #
-                          GOBIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-                          go
-                          install
-                          -v
-                          ${CMAKE_SOURCE_DIR}/srcs/go/kungfu-run)
-
 OPTION(KUNGFU_BUILD_TESTS "Build tests." ON)
 
 IF(KUNGFU_BUILD_TESTS)

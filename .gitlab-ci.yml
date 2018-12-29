@@ -36,11 +36,14 @@ job3:
   - |
     cmake --version
     pip3 install -vvv -U .
-    GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
+    ./configure && make
+    ./scripts/go-install.sh
   - |
     ./examples/kungfu-train.py
   - |
-    ./bin/kungfu-run -np 2 -timeout 60s \
+    np=2
+    H=127.0.0.1:$np
+    ./bin/kungfu-prun -np $np -H $H -timeout 60s \
       python3 ./examples/kungfu-train.py \
         --use-async-sgd=1 \
         --n-epochs=1 \

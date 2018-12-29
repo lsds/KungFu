@@ -7,7 +7,7 @@ import (
 
 func (kf *Kungfu) Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, name string) int {
 	k := kf.cluster.Size()
-	switch kf.algo {
+	switch kf.config.Algo {
 	case wire.KungFu_Tree:
 		return code(kf.treeAllReduce(sendBuf, recvBuf, count, dtype, op, name))
 	case wire.KungFu_Clique:

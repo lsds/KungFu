@@ -4,31 +4,30 @@ set -x
 
 cd $(dirname $0)/..
 
+CMAKE_SOURCE_DIR=$(pwd)
+export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
+export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
+
 build() {
-    GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
     ./configure && make
+    ./scripts/go-install.sh
 }
 
 build
 
-clean_sock() {
-    for sock in $(find /tmp/ | grep kungfu-run); do
-        rm -v $sock
-    done
-}
-
-# clean_sock
 ./bin/fake-task
 
 QUIET=-v=false
 
 run_with_algo() {
     local ALGO=$1
+    local np=4
+    local H=127.0.0.1:$np
     echo "running test with algorithm $ALGO"
-    # clean_sock
-    KUNGFU_ALLREDUCE_ALGO=$ALGO \
-        ./bin/kungfu-run \
-        -np=4 \
+    ./bin/kungfu-prun \
+        -np=$np \
+        -algo=$ALGO \
+        -H $H \
         -timeout=5s \
         ${QUIET} \
         ./bin/fake-task

@@ -49,14 +49,15 @@ steps:
 - script: |
     cmake --version
     pip3 install -vvv -U .
-    GOBIN=$(pwd)/bin go install -v ./srcs/go/kungfu-run
+    ./configure && make
+    ./scripts/go-install.sh
   displayName: 'Install Kungfu'
 
 - script: ./examples/kungfu-train.py
   displayName: 'Single Train'
 
 - script: |
-    ./bin/kungfu-run -np 2 -timeout 10s python3 \
+    ./bin/kungfu-prun -np 2 -timeout 10s python3 \
       ./examples/kungfu-train.py \
         --use-async-sgd=1 \
         --n-epochs=1 \

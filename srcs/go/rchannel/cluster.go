@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const ClusterSpecEnvKey = `KF_CLUSTER_SPEC`
+const ClusterSpecEnvKey = `KUNGFU_CLUSTER_SPEC`
 
 // FIXME: make members private, public is required by JSON encoding for now
 
@@ -166,7 +166,7 @@ func (c Cluster) Neighbours(i int) ([]int, []int, []int, []int) {
 	return n1.Prevs, n1.Nexts, n2.Prevs, n2.Nexts
 }
 
-func totalCap(hostSpecs []HostSpec) int {
+func TotalCap(hostSpecs []HostSpec) int {
 	var cap int
 	for _, h := range hostSpecs {
 		cap += h.Slots
@@ -175,7 +175,7 @@ func totalCap(hostSpecs []HostSpec) int {
 }
 
 func GenClusterSpecs(k int, hostSpecs []HostSpec) ([]ClusterSpec, error) {
-	if cap := totalCap(hostSpecs); cap < k {
+	if cap := TotalCap(hostSpecs); cap < k {
 		return nil, fmt.Errorf("can run %d tasks at most!", cap)
 	}
 	tasks, gIn, gOut := genTaskSpecs(k, hostSpecs)
@@ -252,5 +252,5 @@ func genTaskSpecs(k int, hostSpecs []HostSpec) ([]TaskSpec, *Graph, *Graph) {
 }
 
 func sockFileFor(port string) string {
-	return fmt.Sprintf(`/tmp/kungfu-run-%s.sock`, port)
+	return fmt.Sprintf(`/tmp/kungfu-prun-%s.sock`, port)
 }
