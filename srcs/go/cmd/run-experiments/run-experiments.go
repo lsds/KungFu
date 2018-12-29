@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	rch "github.com/luomai/kungfu/srcs/go/rchannel"
@@ -19,7 +20,7 @@ import (
 var (
 	hostList   = flag.String("H", "", "comma separated list of <hostname>:<nslots>[,<public addr>]")
 	user       = flag.String("u", "", "user name for ssh")
-	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
+	timeout    = flag.Duration("timeout", 90*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 )
 
@@ -66,21 +67,68 @@ func (r Result) String() string {
 }
 
 func runAllExperiments(hosts []rch.HostSpec, prog string, args []string, timeout time.Duration) []Record {
-	var records []Record
+	pool := make(chan rch.HostSpec, len(hosts))
+	for _, h := range hosts {
+		pool <- h
+	}
+	var banker sync.Mutex
+	requireN := func(n int) []rch.HostSpec {
+		tk := time.NewTicker(1 * time.Second)
+		defer tk.Stop()
+		for {
+			got := func() []rch.HostSpec {
+				banker.Lock()
+				banker.Unlock()
+				if len(pool) >= n {
+					var hs []rch.HostSpec
+					for i := 0; i < n; i++ {
+						hs = append(hs, <-pool)
+					}
+					return hs
+				}
+				return nil
+			}()
+			if got != nil {
+				return got
+			}
+			<-tk.C
+		}
+	}
+	returnAll := func(hs []rch.HostSpec) {
+		for _, h := range hs {
+			pool <- h
+		}
+	}
 
+	var wg sync.WaitGroup
+	var records []Record
+	var lock sync.Mutex
 	run := func(algo wire.KungFu_AllReduceAlgo, partition []int) {
-		res, err := runExperiment(hosts, prog, args, algo, partition, timeout)
-		if err != nil {
-			log.Printf("experiment {%s %v} failed with: %v", algo, partition, err)
-			return
+		if len(hosts) < len(partition) {
+			return // total resource not sufficient
 		}
-		r := Record{
-			Algo:      algo,
-			Partition: partition,
-			Result:    *res,
-		}
-		fmt.Printf("%s\n", r)
-		records = append(records, r)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			hs := requireN(len(partition))
+			defer func() { returnAll(hs) }()
+			log.Printf("begin experiment {%s %v} on {%s}", algo, partition, humanizeHostSpecs(hs))
+			res, err := runExperiment(hs, prog, args, algo, partition, timeout)
+			if err != nil {
+				log.Printf("failed experiment {%s %v} with: %v", algo, partition, err)
+				return
+			}
+			r := Record{
+				Algo:      algo,
+				Partition: partition,
+				Result:    *res,
+			}
+			log.Printf("end experiment {%s %v} on {%s} with: %s", algo, partition, humanizeHostSpecs(hs), r)
+			lock.Lock()
+			records = append(records, r)
+			log.Printf("got results from %d experiments", len(records))
+			lock.Unlock()
+		}()
 	}
 
 	algos := []wire.KungFu_AllReduceAlgo{
@@ -89,7 +137,6 @@ func runAllExperiments(hosts []rch.HostSpec, prog string, args []string, timeout
 		wire.KungFu_Clique,
 		wire.KungFu_Tree,
 	}
-
 	for _, a := range algos {
 		run(a, []int{1})
 		run(a, []int{2})
@@ -103,6 +150,7 @@ func runAllExperiments(hosts []rch.HostSpec, prog string, args []string, timeout
 		// run([]int{1, 1, 1, 1})
 	}
 
+	wg.Wait()
 	return records
 }
 
@@ -167,6 +215,14 @@ func fmtHostSpecs(hosts []rch.HostSpec) string {
 		ss = append(ss, h.String())
 	}
 	return strings.Join(ss, ",")
+}
+
+func humanizeHostSpecs(hosts []rch.HostSpec) string {
+	var ss []string
+	for _, h := range hosts {
+		ss = append(ss, fmt.Sprintf("<ip=%s, slots=%d, pub_ip=%s>", h.Hostname, h.Slots, h.PublicAddr))
+	}
+	return strings.Join(ss, ", ")
 }
 
 func grep(pattern string, input []string) []string {
