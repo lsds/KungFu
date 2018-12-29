@@ -29,7 +29,7 @@ func (c Config) complete() Config {
 		ReportPeriod: c.ReportPeriod,
 	}
 	if newConfig.ReportPeriod == 0 {
-		newConfig.ReportPeriod = 10 * time.Second
+		newConfig.ReportPeriod = 30 * time.Second
 	}
 	return newConfig
 }
