@@ -1,6 +1,6 @@
 # kungfu
 
-The ultimate distributed training framework for TensorFlow
+KungFu distributed machine learning framework
 
 ## Build
 
