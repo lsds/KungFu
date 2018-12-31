@@ -29,10 +29,11 @@ func (kf *Kungfu) simpleAllReduce(sendBuf []byte, recvBuf []byte, count int, dty
 
 func (kf *Kungfu) circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, root int, name string) error {
 	n := count * dtype.Size()
+	copy(recvBuf[:n], sendBuf[:n])
 
 	sendTo := func(rank int) {
 		task := kf.cluster.GetPeer(rank)
-		m := rch.NewMessage(sendBuf[:n])
+		m := rch.NewMessage(recvBuf[:n])
 		kf.router.Send(task.NetAddr.WithName(name), *m)
 	}
 
@@ -104,10 +105,11 @@ func (kf *Kungfu) circularAllReduce(sendBuf []byte, recvBuf []byte, count int, d
 
 func (kf *Kungfu) treeAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, name string) error {
 	n := count * dtype.Size()
+	copy(recvBuf[:n], sendBuf[:n])
 
 	sendTo := func(rank int) {
 		task := kf.cluster.GetPeer(rank)
-		m := rch.NewMessage(sendBuf[:n])
+		m := rch.NewMessage(recvBuf[:n])
 		kf.router.Send(task.NetAddr.WithName(name), *m)
 	}
 

@@ -17,7 +17,7 @@ func (kf *Kungfu) Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype wir
 			return code(kf.fullSymmetricAllReduce(sendBuf, recvBuf, count, dtype, op, name))
 		}
 		infrequently.Do(func() {
-			log.Warnf("data size (%d) is smaller that cluster size, will not use fullSymmetricAllReduce", count, k)
+			log.Warnf("data size (%d) is smaller that cluster size %d, will not use fullSymmetricAllReduce", count, k)
 		})
 	case wire.KungFu_Ring:
 		if count >= k && k >= 3 {
