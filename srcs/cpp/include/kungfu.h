@@ -35,6 +35,18 @@ extern KungFu_AllReduceAlgo KungFu_FullSymmetricAllReduce;
 extern KungFu_AllReduceAlgo KungFu_TreeAllReduce;
 // extern KungFu_AllReduceAlgo KungFu_DynamicAllReduce;
 
+extern int KungfuInit(KungFu_AllReduceAlgo algo);
+
+extern int KungfuFinalize();
+
 #ifdef __cplusplus
 }
+
+#include <functional>
+typedef std::function<void()> DoneCallback;
+
+extern int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
+                                KungFu_Datatype datatype, KungFu_Op op,
+                                const char *name, DoneCallback done);
+
 #endif

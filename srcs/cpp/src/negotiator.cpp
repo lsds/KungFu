@@ -6,7 +6,7 @@
 #if KUNGFU_HAVE_GPU
 #include <cuda_runtime.h>
 #endif
-#include <kungfu.hpp>
+#include <kungfu.h>
 
 class _kungfu_t
 {

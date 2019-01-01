@@ -1,5 +1,5 @@
 #include "cgo_helpers.hpp"
-#include <kungfu.hpp>
+#include <kungfu.h>
 
 int KungfuInit(KungFu_AllReduceAlgo algo)
 {
