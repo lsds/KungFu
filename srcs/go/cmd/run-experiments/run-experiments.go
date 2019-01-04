@@ -1,18 +1,17 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"strings"
+	"os"
+	"path"
+	"sort"
 	"sync"
 	"time"
 
 	rch "github.com/luomai/kungfu/srcs/go/rchannel"
-	"github.com/luomai/kungfu/srcs/go/runner"
-	sch "github.com/luomai/kungfu/srcs/go/scheduler"
 	"github.com/luomai/kungfu/srcs/go/utils"
 	"github.com/luomai/kungfu/srcs/go/wire"
 )
@@ -22,6 +21,8 @@ var (
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 90*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
+	logDir     = flag.String("logdir", "logs", "root directory for logs")
+	reportFile = flag.String("r", "experiment-results.txt", "filename for report")
 )
 
 func main() {
@@ -37,36 +38,22 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Printf("using VMs: %#v", hostSpecs)
-	log.Printf("using host spec: %s", fmtHostSpecs(hostSpecs))
+	log.Printf("using %d VMs: %s", len(hostSpecs), humanizeHostSpecs(hostSpecs))
 
-	records := runAllExperiments(hostSpecs, prog, args, *timeout)
-	fmt.Printf("all results (%d records):\n", len(records))
-	for i, r := range records {
-		fmt.Printf("#%d %s\n", i, r)
+	logDirForThisRound := path.Join(*logDir, fmt.Sprintf("%d", time.Now().Unix()))
+	records, failed := runAllExperiments(logDirForThisRound, hostSpecs, prog, args, *timeout)
+
+	writeReport(records, failed, os.Stdout)
+	f, err := os.Create(*reportFile)
+	if err != nil {
+		log.Printf("failed to create report file: %v", err)
+		return
 	}
+	defer f.Close()
+	writeReport(records, failed, f)
 }
 
-type Record struct {
-	Partition []int
-	Algo      wire.KungFu_AllReduceAlgo
-	Result    Result
-}
-
-func (r Record) String() string {
-	return fmt.Sprintf("%s %v %s", r.Algo, r.Partition, r.Result)
-}
-
-type Result struct {
-	Mean float32
-	Conf float32
-}
-
-func (r Result) String() string {
-	return fmt.Sprintf("%f +-%f", r.Mean, r.Conf)
-}
-
-func runAllExperiments(hosts []rch.HostSpec, prog string, args []string, timeout time.Duration) []Record {
+func runAllExperiments(logDir string, hosts []rch.HostSpec, prog string, args []string, timeout time.Duration) ([]Record, int) {
 	pool := make(chan rch.HostSpec, len(hosts))
 	for _, h := range hosts {
 		pool <- h
@@ -103,22 +90,28 @@ func runAllExperiments(hosts []rch.HostSpec, prog string, args []string, timeout
 	var wg sync.WaitGroup
 	var records []Record
 	var lock sync.Mutex
+	var lastID int
 	run := func(algo wire.KungFu_AllReduceAlgo, partition []int) {
 		if len(hosts) < len(partition) {
 			return // total resource not sufficient
 		}
 		wg.Add(1)
-		go func() {
+		lastID++
+		go func(id int) {
 			defer wg.Done()
 			hs := requireN(len(partition))
 			defer func() { returnAll(hs) }()
 			log.Printf("begin experiment {%s %v} on {%s}", algo, partition, humanizeHostSpecs(hs))
-			res, err := runExperiment(hs, prog, args, algo, partition, timeout)
+			t0 := time.Now()
+			myLogDir := path.Join(logDir, fmt.Sprintf("%d", id))
+			res, err := runExperiment(myLogDir, hs, prog, args, algo, partition, timeout)
 			if err != nil {
 				log.Printf("failed experiment {%s %v} with: %v", algo, partition, err)
 				return
 			}
 			r := Record{
+				ID:        id,
+				Took:      time.Since(t0),
 				Algo:      algo,
 				Partition: partition,
 				Result:    *res,
@@ -126,9 +119,9 @@ func runAllExperiments(hosts []rch.HostSpec, prog string, args []string, timeout
 			log.Printf("end experiment {%s %v} on {%s} with: %s", algo, partition, humanizeHostSpecs(hs), r)
 			lock.Lock()
 			records = append(records, r)
-			log.Printf("got results from %d experiments", len(records))
+			log.Printf("experiment #%d finished, %d experiments finished so far", id, len(records))
 			lock.Unlock()
-		}()
+		}(lastID)
 	}
 
 	algos := []wire.KungFu_AllReduceAlgo{
@@ -151,90 +144,6 @@ func runAllExperiments(hosts []rch.HostSpec, prog string, args []string, timeout
 	}
 
 	wg.Wait()
-	return records
-}
-
-func runExperiment(hosts []rch.HostSpec, prog string, args []string, algo wire.KungFu_AllReduceAlgo, partition []int, timeout time.Duration) (*Result, error) {
-	hosts, err := reschedule(hosts, partition)
-	if err != nil {
-		return nil, err
-	}
-
-	jc := sch.JobConfig{
-		TaskCount: rch.TotalCap(hosts),
-		HostList:  fmtHostSpecs(hosts),
-		Prog:      prog,
-		Args:      args,
-	}
-	ps, err := jc.CreateProcs(algo)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	var res Result
-	d, err := utils.Measure(func() error {
-		results, err := runner.RemoteRunAll(ctx, *user, ps, *verboseLog)
-		for _, r := range results {
-			if info := grep(`Img/sec per /gpu:0`, r.Stdout); len(info) > 0 {
-				parseResult(info[0], &res)
-				break
-			}
-		}
-		return err
-	})
-	log.Printf("all %d tasks finished, took %s", len(ps), d)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func reschedule(hosts []rch.HostSpec, partition []int) ([]rch.HostSpec, error) {
-	if len(hosts) < len(partition) {
-		return nil, errors.New("hosts not enough")
-	}
-	var workers []rch.HostSpec
-	for i, p := range partition {
-		w := hosts[i]
-		if w.Slots < p {
-			return nil, errors.New("host slots not enough")
-		}
-		w.Slots = p
-		workers = append(workers, w)
-	}
-	return workers, nil
-}
-
-func fmtHostSpecs(hosts []rch.HostSpec) string {
-	var ss []string
-	for _, h := range hosts {
-		ss = append(ss, h.String())
-	}
-	return strings.Join(ss, ",")
-}
-
-func humanizeHostSpecs(hosts []rch.HostSpec) string {
-	var ss []string
-	for _, h := range hosts {
-		ss = append(ss, fmt.Sprintf("<ip=%s, slots=%d, pub_ip=%s>", h.Hostname, h.Slots, h.PublicAddr))
-	}
-	return strings.Join(ss, ", ")
-}
-
-func grep(pattern string, input []string) []string {
-	var lines []string
-	for _, line := range input {
-		if strings.Contains(line, pattern) {
-			lines = append(lines, line)
-		}
-	}
-	return lines
-}
-
-func parseResult(line string, r *Result) {
-	fmt.Sscanf(line, `Img/sec per /gpu:0: %f +-%f`, &r.Mean, &r.Conf)
+	sort.Slice(records, func(i, j int) bool { return records[i].ID < records[j].ID })
+	return records, lastID - len(records)
 }

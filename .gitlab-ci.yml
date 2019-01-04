@@ -36,7 +36,6 @@ job3:
   - |
     cmake --version
     pip3 install -vvv -U .
-    ./configure && make
     ./scripts/go-install.sh
   - |
     ./examples/kungfu-train.py

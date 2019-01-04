@@ -29,6 +29,7 @@ mkdir -p $(dirname $src_loc)
 [ -d $src_loc ] && rm $src_loc
 ln -v -s $ROOT $src_loc
 
+./configure && make
 env \
     GO111MODULE=off \
     GOBIN=$(pwd)/bin \

@@ -81,11 +81,10 @@ upload_kungfu() {
 
 install_remote() {
     ansible -i hosts.txt all $VERBOSE -u kungfu -m shell -a \
-        'PATH=$HOME/local/go/bin:$PATH pip3 install -v -U ./kungfu'
+        'PATH=$HOME/local/go/bin:$PATH pip3 install -U ./kungfu'
 }
 
 install_local() {
-    ./configure && make
     ./scripts/go-install.sh
 }
 
@@ -99,8 +98,9 @@ run_experiments() {
 
 prepare() {
     measure upload_kungfu
-    measure install_remote
-    measure install_local
+    measure install_remote &
+    measure install_local &
+    wait
 }
 
 main() {

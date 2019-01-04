@@ -49,7 +49,6 @@ steps:
 - script: |
     cmake --version
     pip3 install -vvv -U .
-    ./configure && make
     ./scripts/go-install.sh
   displayName: 'Install Kungfu'
 

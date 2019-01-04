@@ -9,7 +9,6 @@ export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
 export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
 
 build() {
-    ./configure && make
     ./scripts/go-install.sh
 }
 

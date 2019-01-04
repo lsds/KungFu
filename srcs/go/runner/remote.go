@@ -2,8 +2,11 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -13,8 +16,8 @@ import (
 	"github.com/luomai/kungfu/srcs/go/xterm"
 )
 
-func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bool) ([]*Result, error) {
-	results := make([]*Result, len(ps))
+func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bool) ([]*Outputs, error) {
+	outputs := make([]*Outputs, len(ps))
 	var wg sync.WaitGroup
 	var fail int32
 	for i, p := range ps {
@@ -29,13 +32,13 @@ func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bo
 			if err != nil {
 				log.Printf("%s #%s failed to new SSH Client with config: %v: %v", xterm.Red.S("[E]"), p.Name, config, err)
 				atomic.AddInt32(&fail, 1)
-				results[i] = &Result{}
+				outputs[i] = &Outputs{}
 				return
 			}
 			outWatcher := iostream.NewStreamWatcher(fmt.Sprintf("%s::stdout", p.Name), verboseLog)
 			errWatcher := iostream.NewStreamWatcher(fmt.Sprintf("%s::stderr", p.Name), verboseLog)
-			genResult := func() *Result {
-				return &Result{
+			getOutputs := func() *Outputs {
+				return &Outputs{
 					Stdout: outWatcher.Wait(),
 					Stderr: errWatcher.Wait(),
 				}
@@ -43,21 +46,40 @@ func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bo
 			if err := client.Watch(ctx, p.Script(), outWatcher.Watch, errWatcher.Watch); err != nil {
 				log.Printf("%s #%s exited with error: %v", xterm.Red.S("[E]"), p.Name, err)
 				atomic.AddInt32(&fail, 1)
-				results[i] = genResult()
+				outputs[i] = getOutputs()
 				return
 			}
-			results[i] = genResult()
+			outputs[i] = getOutputs()
 			log.Printf("%s #%s finished successfully", xterm.Green.S("[I]"), p.Name)
 		}(i, p)
 	}
 	wg.Wait()
 	if fail != 0 {
-		return results, fmt.Errorf("%d tasks failed", fail)
+		return outputs, fmt.Errorf("%d tasks failed", fail)
 	}
-	return results, nil
+	return outputs, nil
 }
 
-type Result struct {
+// Outputs stores stdout/stderr of a process
+type Outputs struct {
 	Stdout []string
 	Stderr []string
+}
+
+func (r *Outputs) SaveTo(prefix string) error {
+	var errs []error
+	if r.Stdout != nil {
+		if err := ioutil.WriteFile(prefix+".stdout.log", []byte(strings.Join(r.Stdout, "\n")), 0666); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if r.Stderr != nil {
+		if err := ioutil.WriteFile(prefix+".stderr.log", []byte(strings.Join(r.Stderr, "\n")), 0666); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return errors.New("failed to save some files")
+	}
+	return nil
 }
