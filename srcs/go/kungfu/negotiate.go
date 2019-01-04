@@ -7,6 +7,18 @@ import (
 	"github.com/luomai/kungfu/srcs/go/wire"
 )
 
+func (kf *Kungfu) Warmup() {
+	k := kf.cluster.Size()
+	count := k * 4
+	dtype := wire.KungFu_INT32
+	n := count * dtype.Size()
+	sendBuf := make([]byte, n)
+	recvBuf := make([]byte, n)
+	op := wire.KungFu_SUM
+	name := "kungfu::warmup" // TODO: use tag
+	kf.fullSymmetricAllReduce(sendBuf, recvBuf, count, dtype, op, name)
+}
+
 func (kf *Kungfu) Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, name string) int {
 	k := kf.cluster.Size()
 	switch kf.config.Algo {
@@ -26,7 +38,7 @@ func (kf *Kungfu) Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype wir
 	case wire.KungFu_Simple:
 		return code(kf.simpleAllReduce(sendBuf, recvBuf, count, dtype, op, kf.cluster.Root(), name))
 	}
-	infrequently.Do(func() { log.Warnf("fallback to simpleAllReduce") })
+	infrequently.Do(func() { log.Warnf("%s is not implemeted, fallback to simpleAllReduce", kf.config.Algo) })
 	return code(kf.simpleAllReduce(sendBuf, recvBuf, count, dtype, op, kf.cluster.Root(), name))
 }
 

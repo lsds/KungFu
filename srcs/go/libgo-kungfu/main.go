@@ -1,10 +1,9 @@
 package main
 
 import (
-	"os"
-
 	kf "github.com/luomai/kungfu/srcs/go/kungfu"
 	"github.com/luomai/kungfu/srcs/go/log"
+	"github.com/luomai/kungfu/srcs/go/utils"
 	"github.com/luomai/kungfu/srcs/go/wire"
 )
 
@@ -16,19 +15,17 @@ var kungfu *kf.Kungfu
 
 //export GoKungfuInit
 func GoKungfuInit(algo C.KungFu_AllReduceAlgo) int {
-	log.Infof("GoKungfuInit")
 	var err error
 	config := kf.Config{Algo: wire.KungFu_AllReduceAlgo(algo)}
 	kungfu, err = kf.New(config)
 	if err != nil {
-		exitErr(err)
+		utils.ExitErr(err)
 	}
 	return kungfu.Start()
 }
 
 //export GoKungfuFinalize
 func GoKungfuFinalize() int {
-	log.Infof("GoKungfuFinalize")
 	return kungfu.Close()
 }
 
@@ -53,8 +50,3 @@ func GoKungfuNegotiateAsync(sendBuf []byte, recvBuf []byte, count int, dtype C.K
 }
 
 func main() {}
-
-func exitErr(err error) {
-	log.Errorf("exit on error: %v", err)
-	os.Exit(1)
-}

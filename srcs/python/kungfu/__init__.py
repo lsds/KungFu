@@ -53,12 +53,15 @@ class AsyncSGDOptimizer(NegotiableOptimizer):
     def _negotiate_grad(self, grad):
         """Negotiate grad with peers."""
 
-        def result():
+        def build_op():
             with tf.variable_scope('NegotiatedGrad'):
                 return self._op_lib.negotiator(grad)
 
         if self._use_global_step:
             with tf.control_dependencies([self._modify_trained_steps]):
-                return result()
+                return build_op()
         else:
-            return result()
+            return build_op()
+
+    def _set_gradient_count(self, n):
+        return self._op_lib.set_gradient_count(tf.constant(n, tf.int32))

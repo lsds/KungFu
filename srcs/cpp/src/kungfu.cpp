@@ -56,7 +56,8 @@ static KungFu_AllReduceAlgo get_algo_from_env()
     return kungfu_parse_algo_name(name.c_str());
 }
 
-kungfu_world::kungfu_world() : _algo(get_algo_from_env()), _global_step(0)
+kungfu_world::kungfu_world()
+    : _algo(get_algo_from_env()), _global_step(0), _gradient_count(0)
 {
     KungfuInit(_algo);
 }

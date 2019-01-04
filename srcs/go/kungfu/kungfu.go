@@ -69,6 +69,7 @@ func (kf *Kungfu) Start() int {
 			kf.router.UpdateRate()
 		}
 	}()
+	kf.Warmup()
 	return 0
 }
 

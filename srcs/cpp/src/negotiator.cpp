@@ -94,4 +94,20 @@ class GlobalStepModifier : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("GlobalStepModifier").Device(DEVICE_CPU),
                         GlobalStepModifier);
 
+class SetGradientCount : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+  public:
+    void Compute(OpKernelContext *context) override
+    {
+        const Tensor &input = context->input(0);
+        int32_t *x = static_cast<int32_t *>((void *)input.tensor_data().data());
+        _kungfu_world.SetGradientCount(x[0]);
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("SetGradientCount").Device(DEVICE_CPU),
+                        SetGradientCount);
+
 }  // namespace tensorflow

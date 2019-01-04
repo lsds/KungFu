@@ -2,7 +2,6 @@ package rchannel
 
 import (
 	"expvar"
-	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/luomai/kungfu/srcs/go/log"
 	"github.com/luomai/kungfu/srcs/go/metrics"
+	"github.com/luomai/kungfu/srcs/go/utils"
 )
 
 type Router struct {
@@ -117,31 +117,11 @@ func (r *Router) UpdateRate() {
 	rx := r.totalBytesRecv.Value()
 	tx := r.totalBytesSent.Value()
 
-	rxRate := rate(rx, d)
-	txRate := rate(tx, d)
+	rxRate := utils.Rate(rx, d)
+	txRate := utils.Rate(tx, d)
 	r.recvRate.Set(rxRate)
 	r.sendRate.Set(txRate)
 
 	const Mi = 1 << 20
-	log.Infof("rx_rate: %s, tx_rate: %s", showRate(rxRate), showRate(txRate))
-}
-
-func rate(n int64, d time.Duration) float64 {
-	return float64(n) / (float64(d) / float64(time.Second))
-}
-
-func showRate(r float64) string {
-	const Ki = 1 << 10
-	const Mi = 1 << 20
-	const Gi = 1 << 30
-	switch {
-	case r > Gi:
-		return fmt.Sprintf("%.2f GiB/s", r/float64(Gi))
-	case r > Mi:
-		return fmt.Sprintf("%.2f MiB/s", r/float64(Mi))
-	case r > Ki:
-		return fmt.Sprintf("%.2f KiB/s", r/float64(Ki))
-	default:
-		return fmt.Sprintf("%.2f B/s", r)
-	}
+	log.Infof("rx_rate: %s, tx_rate: %s", utils.ShowRate(rxRate), utils.ShowRate(txRate))
 }

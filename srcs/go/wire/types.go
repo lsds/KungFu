@@ -6,10 +6,9 @@ import "C"
 type KungFu_Datatype C.KungFu_Datatype
 
 var (
-// uncommented if required
-// KungFu_INT32  = KungFu_Datatype(C.KungFu_INT32)
-// KungFu_FLOAT  = KungFu_Datatype(C.KungFu_FLOAT)
-// KungFu_DOUBLE = KungFu_Datatype(C.KungFu_DOUBLE)
+	KungFu_INT32  = KungFu_Datatype(C.KungFu_INT32)
+	KungFu_FLOAT  = KungFu_Datatype(C.KungFu_FLOAT)
+	KungFu_DOUBLE = KungFu_Datatype(C.KungFu_DOUBLE)
 )
 
 func (dtype KungFu_Datatype) Size() int {
@@ -19,13 +18,14 @@ func (dtype KungFu_Datatype) Size() int {
 type KungFu_Op C.KungFu_Op
 
 var (
-// uncommented if required
-// KungFu_SUM KungFu_Op = KungFu_Op(C.KungFu_SUM)
-// KungFu_MIN KungFu_Op = KungFu_Op(C.KungFu_MIN)
-// KungFu_MAX KungFu_Op = KungFu_Op(C.KungFu_MAX)
+	KungFu_SUM = KungFu_Op(C.KungFu_SUM)
+	KungFu_MIN = KungFu_Op(C.KungFu_MIN)
+	KungFu_MAX = KungFu_Op(C.KungFu_MAX)
 )
 
 type KungFu_AllReduceAlgo C.KungFu_AllReduceAlgo
+
+const KungFu_AllReduceAlgo_Key = `KUNGFU_ALLREDUCE_ALGO`
 
 var (
 	KungFu_Simple = KungFu_AllReduceAlgo(C.KungFu_SimpleAllReduce)
@@ -39,6 +39,8 @@ var (
 		KungFu_Clique: `CLIQUE`,
 		KungFu_Tree:   `TREE`,
 	}
+
+	defaultAlgo = KungFu_Tree
 )
 
 func (a KungFu_AllReduceAlgo) String() string {
@@ -47,7 +49,7 @@ func (a KungFu_AllReduceAlgo) String() string {
 			return v
 		}
 	}
-	return `TREE`
+	return algoNames[defaultAlgo]
 }
 
 func ParseAlgo(s string) KungFu_AllReduceAlgo {
@@ -56,5 +58,5 @@ func ParseAlgo(s string) KungFu_AllReduceAlgo {
 			return k
 		}
 	}
-	return KungFu_Tree
+	return defaultAlgo
 }
