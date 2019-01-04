@@ -7,40 +7,6 @@
 
 #include "testing.hpp"
 
-class _kungfu_t
-{
-    static std::string safe_getenv(const char *name)
-    {
-        const char *ptr = std::getenv(name);
-        if (ptr) { return std::string(ptr); }
-        return "";
-    }
-
-    KungFu_AllReduceAlgo get_algo() const
-    {
-        const auto value = safe_getenv("KUNGFU_ALLREDUCE_ALGO");
-        const std::map<std::string, KungFu_AllReduceAlgo> mp({
-            {"SIMPLE", KungFu_SimpleAllReduce},
-            {"RING", KungFu_RingAllReduce},
-            {"CLIQUE", KungFu_FullSymmetricAllReduce},
-            {"TREE", KungFu_TreeAllReduce},
-        });
-        if (mp.count(value) > 0) { return mp.at(value); }
-        return KungFu_SimpleAllReduce;
-    }
-
-  public:
-    _kungfu_t()
-    {
-        const auto algo = get_algo();
-        KungfuInit(algo);
-    }
-
-    ~_kungfu_t() { KungfuFinalize(); }
-};
-
-static _kungfu_t _kungfu_world;
-
 void test(int n, int m)
 {
     TRACE_SCOPE(__func__);
@@ -73,6 +39,7 @@ void test(int n, int m)
 int main(int argc, char *argv[])
 {
     TRACE_SCOPE(__func__);
+    kungfu_world _kungfu_world;
     const int n = 100;
     const int m = 100;
     test(n, m);

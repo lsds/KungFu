@@ -39,6 +39,8 @@ extern int KungfuInit(KungFu_AllReduceAlgo algo);
 
 extern int KungfuFinalize();
 
+extern KungFu_AllReduceAlgo kungfu_parse_algo_name(const char *name);
+
 #ifdef __cplusplus
 }
 
@@ -48,5 +50,32 @@ typedef std::function<void()> DoneCallback;
 extern int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
                                 KungFu_Datatype datatype, KungFu_Op op,
                                 const char *name, DoneCallback done);
+
+class kungfu_world
+{
+    KungFu_AllReduceAlgo _algo;
+    int32_t _global_step;
+
+  public:
+    kungfu_world();
+
+    ~kungfu_world();
+
+    int32_t AdvanceGlobalStep() { return ++_global_step; }
+
+    int NegotiateAsync(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                       DoneCallback done)
+    {
+        return KungfuNegotiateAsync(sendbuf, recvbuf, count, dtype, op, name,
+                                    done);
+    }
+
+#if KUNGFU_HAVE_GPU
+    int NegotiateGPUAsync(const void *sendbuf, void *recvbuf, int count,
+                          KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                          DoneCallback done);
+#endif
+};
 
 #endif

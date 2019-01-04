@@ -12,9 +12,10 @@ var std = New()
 
 type Logger struct {
 	sync.Mutex
-	w   io.Writer
-	buf []byte
-	t0  time.Time
+	w     io.Writer
+	buf   []byte
+	t0    time.Time
+	debug bool
 }
 
 func New() *Logger {
@@ -60,6 +61,12 @@ func (l *Logger) logf(level, format string, v ...interface{}) {
 	l.output(level, format, v...)
 }
 
+func (l *Logger) Debugf(format string, v ...interface{}) {
+	if l.debug {
+		l.logf("[D]", format, v...)
+	}
+}
+
 func (l *Logger) Infof(format string, v ...interface{}) {
 	l.logf("[I]", format, v...)
 }
@@ -73,6 +80,7 @@ func (l *Logger) Errorf(format string, v ...interface{}) {
 }
 
 var (
+	Debugf = std.Debugf
 	Infof  = std.Infof
 	Warnf  = std.Warnf
 	Errorf = std.Errorf

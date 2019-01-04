@@ -92,7 +92,7 @@ func (s *Server) handle(conn net.Conn) error {
 		Host: s.getRemoveHost(conn),
 		Port: strconv.Itoa(int(ch.Port)),
 	}
-	log.Infof("got new connection from: %s", remoteNetAddr)
+	log.Debugf("got new connection from: %s", remoteNetAddr)
 	if n, err := s.router.stream(conn, remoteNetAddr); err != nil {
 		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
 	}
