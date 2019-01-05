@@ -1,31 +1,44 @@
 #!/bin/sh
 
 set -e
+set -x
 
 cd $(dirname $0)/..
+SCRIPT_DIR=$(pwd)
+. ../utils/show_duration.sh
 
-DEBUG=--debug
+# DEBUG=--debug
 
-SUFFIX=test
+if [ -z "${PREFIX}" ]; then
+    PREFIX=$USER-test-cluster
+fi
 IMAGE_GROUP=KungFu
-IMAGE_NAME=cuda-9-cudnn-7
-GROUP=KungFu-${SUFFIX}
+GROUP=KungFu
 LOCATION=eastus
 
-VNET=default-vnet
-NSG=default-nsg
-SUBNET=default-subnet
+IMAGE_NAME=cuda-9-cudnn-7
+VNET=${PREFIX}-vnet
+NSG=${PREFIX}-nsg
+SUBNET=${PREFIX}-subnet
 
 ADMIN=kungfu
 SIZE=Standard_NV24 # 4 GPU
 
-N_NODES=2
+RELAY_NAME=${PREFIX}-relay
+RELAY_IMAGE_NAME=relay-ubunbu18
+# RELAY_IMAGE=Canonical:UbuntuServer:18.04-LTS:latest
+RELAY_SIZE=Standard_DS3_v2
+
+if [ -z "${N_NODES}" ]; then
+    N_NODES=2
+fi
 
 IMAGE=$(az image show -g ${IMAGE_GROUP} -n ${IMAGE_NAME} --query id | tr -d '"')
+RELAY_IMAGE=$(az image show -g ${IMAGE_GROUP} -n ${RELAY_IMAGE_NAME} --query id | tr -d '"')
 
 node_names() {
     for i in $(seq $1); do
-        printf "node-%02d\n" $i
+        printf "${PREFIX}-node-%02d\n" $i
     done
 }
 
@@ -33,10 +46,26 @@ ALL_NODES=$(node_names ${N_NODES})
 
 measure() {
     local begin=$(date +%s)
+    echo "begin $@ at $begin"
     $@
     local end=$(date +%s)
     local duration=$((end - begin))
-    echo "$@ took ${duration}s" | tee -a profile.log
+    local dur=$(show_duration $duration)
+    echo "$@ took ${dur}" | tee -a profile.log
+}
+
+delete_resource() {
+    local NAME=$1
+    local TYPE=$2
+    az resource delete -g ${GROUP} --resource-type ${TYPE} -n ${NAME}
+}
+
+delete_nic() {
+    delete_resource "$1" Microsoft.Network/networkInterfaces
+}
+
+delete_ip() {
+    delete_resource "$1" Microsoft.Network/publicIPAddresses
 }
 
 create_vm() {
@@ -56,20 +85,23 @@ create_vm() {
         -o table ${DEBUG}
 }
 
+delete_vm() {
+    local NAME=$1
+    az vm delete -g ${GROUP} -n ${NAME} --yes ${DEBUG}
+}
+
 create_node() {
     create_vm $1 $IMAGE $SIZE
 }
 
 create_relay() {
-    local NAME=relay
-    local IMAGE=Canonical:UbuntuServer:18.04-LTS:latest
-    local SIZE=Standard_DS3_v2
-    create_vm $NAME $IMAGE $SIZE
+    create_vm $RELAY_NAME $RELAY_IMAGE $RELAY_SIZE
 }
 
 setup_group() {
-    if [ $(az group exists -n ${GROUP}) == "false" ]; then
-        az group create -l ${LOCATION} -n ${GROUP} -o table ${DEBUG}
+    if [ $(az group exists -n ${GROUP}) = "false" ]; then
+        # az group create -l ${LOCATION} -n ${GROUP} -o table ${DEBUG}
+        exit 1
     fi
 }
 
@@ -108,10 +140,10 @@ send_authorized_keys() {
 }
 
 setup_keys() {
-    local RELAY_IP=$(get_ip relay)
+    local RELAY_IP=$(get_ip ${RELAY_NAME})
 
     scp -r relay-machine $ADMIN@${RELAY_IP}:~/
-    ssh $ADMIN@${RELAY_IP} ./relay-machine/init.sh
+    ssh $ADMIN@${RELAY_IP} ./relay-machine/user-init.sh
 
     scp ${ADMIN}@${RELAY_IP}:~/.ssh/authorized_keys .
 
@@ -133,8 +165,32 @@ create_cluster() {
     measure setup_keys
 }
 
+delete_net_for() {
+    local NAME=$1
+    delete_nic ${NAME}VMNic
+    delete_ip ${NAME}PublicIP
+
+}
+
 delete_cluster() {
-    measure az group delete -n ${GROUP} --yes --debug
+    delete_vm ${RELAY_NAME} &
+    for node in ${ALL_NODES}; do
+        delete_vm ${node} &
+    done
+    wait
+
+    delete_net_for ${RELAY_NAME} &
+    for node in ${ALL_NODES}; do
+        delete_net_for ${node} &
+    done
+    wait
+
+    delete_resource ${NSG} Microsoft.Network/networkSecurityGroups
+    delete_resource ${VNET} Microsoft.Network/virtualNetworks &
+    for disk in $(az resource list -g ${GROUP} --resource-type Microsoft.Compute/disks --query '[].id' -o table | grep ${PREFIX}); do
+        az resource delete --id $disk &
+    done
+    wait
 }
 
 reload_cluster() {
@@ -143,13 +199,13 @@ reload_cluster() {
 }
 
 main() {
-    if [ "$1" == "ssh" ]; then
+    if [ "$1" = "ssh" ]; then
         ssh ${ADMIN}@$(get_ip relay)
-    elif [ "$1" == "up" ]; then
+    elif [ "$1" = "up" ]; then
         measure create_cluster
-    elif [ "$1" == "down" ]; then
+    elif [ "$1" = "down" ]; then
         measure delete_cluster
-    elif [ "$1" == "reload" ]; then
+    elif [ "$1" = "reload" ]; then
         measure reload_cluster
     else
         measure create_cluster

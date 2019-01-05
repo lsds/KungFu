@@ -1,0 +1,11 @@
+add_bin_path_before() {
+    export PATH=$1/bin:$PATH
+}
+
+add_bin_path_after() {
+    export PATH=$PATH:$1/bin
+}
+
+export GOROOT=$HOME/local/go
+
+add_bin_path_before $GOROOT

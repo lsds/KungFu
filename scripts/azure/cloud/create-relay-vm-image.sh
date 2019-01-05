@@ -1,23 +1,24 @@
-# This script is used for building a GPU VM image.
+# This script is used for building a relay VM image.
 # You are more likely want to used the pre-build image rather than build a new one.
 
 set -e
+set -x
 
 cd $(dirname $0)/..
 
 GROUP=KungFu
 LOCATION=eastus
-NAME=gpu-template
+NAME=relay-template
 ADMIN=kungfu
 
-OUTPUT_IMAGE=cuda-9-cudnn-7
+OUTPUT_IMAGE=relay-ubunbu18
 OUTPUT_GROUP=KungFu
 
 # OS Image
-IMAGE=Canonical:UbuntuServer:16.04-LTS:latest
+IMAGE=Canonical:UbuntuServer:18.04-LTS:latest
 
 # Machine type
-SIZE=Standard_NV6 # 1 GPU
+SIZE=Standard_DS3_v2
 
 measure() {
     local begin=$(date +%s)
@@ -42,7 +43,6 @@ delete_ip() {
 }
 
 create_vm() {
-    # az group create -l ${LOCATION} -n ${GROUP} -o table --debug
     az vm create -g ${GROUP} -n ${NAME} --admin-user ${ADMIN} --image ${IMAGE} --size ${SIZE} -o table --debug
 }
 
@@ -64,16 +64,15 @@ get_ip() {
 }
 
 send_scripts() {
-    scp -r ./gpu-machine ${ADMIN}@$(get_ip):~/
+    scp -r ./relay-machine ${ADMIN}@$(get_ip):~/
 }
 
 install_vm() {
     local ip=$(get_ip)
-    measure ssh ${ADMIN}@$ip ./gpu-machine/init.sh
-    measure az vm restart -g ${GROUP} -n ${NAME} --debug
-
-    sleep 60 # TODO: wait until the VM can be ssh into
-    measure ssh ${ADMIN}@$ip ./gpu-machine/test-tf-gpu.py
+    measure ssh ${ADMIN}@$ip ./relay-machine/init.sh
+    # measure az vm restart -g ${GROUP} -n ${NAME} --debug
+    # sleep 60 # TODO: wait until the VM can be ssh into
+    # measure ssh ${ADMIN}@$ip pwd
 }
 
 save_vm() {
