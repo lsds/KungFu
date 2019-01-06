@@ -8,13 +8,7 @@ CMAKE_SOURCE_DIR=$(pwd)
 export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
 export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
 
-build() {
-    ./scripts/go-install.sh
-}
-
-build
-
-./bin/fake-task
+./scripts/go-install.sh
 
 QUIET=-v=false
 
@@ -23,7 +17,8 @@ run_with_algo() {
     local np=4
     local H=127.0.0.1:$np
     echo "running test with algorithm $ALGO"
-    ./bin/kungfu-prun \
+    KUNGFU_TEST_CLUSTER_SIZE=$np \
+        ./bin/kungfu-prun \
         -np=$np \
         -algo=$ALGO \
         -H $H \

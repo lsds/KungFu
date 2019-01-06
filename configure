@@ -1,22 +1,35 @@
 #!/bin/bash
 set -e
 
-CMAKE_FLAGS=
+BUILD_TESTS=1
+HAVE_GPU=0
 
-add_cmake_flag() {
-    echo "usinig $1=$2"
-    CMAKE_FLAGS="$CMAKE_FLAGS -D$1=$2"
-}
+if test $(ls /dev/ | grep nvidia | wc -l) -gt 0; then
+    HAVE_GPU=1
+fi
 
 parse_args() {
     for i in "$@"; do
         case $i in
+        --no-tests)
+            BUILD_TESTS=0
+            ;;
+        --no-gpu)
+            HAVE_GPU=0
+            ;;
         *)
             echo "unknown argument $1"
             exit
             ;;
         esac
     done
+}
+
+CMAKE_FLAGS=
+
+add_cmake_flag() {
+    echo "usinig $1=$2"
+    CMAKE_FLAGS="$CMAKE_FLAGS -D$1=$2"
 }
 
 add_cmake_flags() {
@@ -35,6 +48,8 @@ add_cmake_flags() {
     add_cmake_flag CMAKE_MODULE_PATH $(pwd)/cmake
     # add_cmake_flag CMAKE_VERBOSE_MAKEFILE 1
     # add_cmake_flag CMAKE_EXPORT_COMPILE_COMMANDS 1
+    add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
+    add_cmake_flag KUNGFU_HAVE_GPU ${HAVE_GPU}
 }
 
 parse_args $@

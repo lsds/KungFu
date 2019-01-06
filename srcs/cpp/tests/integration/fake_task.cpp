@@ -2,10 +2,36 @@
 #include <cstdint>
 #include <cstdlib>
 #include <map>
+#include <numeric>
 #include <string>
 #include <vector>
 
 #include "testing.hpp"
+
+void test_sum(int np)
+{
+    TRACE_SCOPE(__func__);
+    using T     = int32_t;
+    const int n = np * 4;
+    std::vector<T> x(n);
+    std::vector<T> y(n);
+    const auto dtype = kungfu::type_encoder::value<T>();
+
+    std::iota(x.begin(), x.end(), 1);
+
+    Waiter waiter;
+    KungfuNegotiateAsync(x.data(), y.data(), n, dtype, KungFu_SUM,
+                         "test-tensor", [&waiter] { waiter.done(); });
+    waiter.wait();
+
+    for (int i = 0; i < n; ++i) {
+        const int expected = (i + 1) * np;
+        if (y[i] != expected) {
+            printf("expected y[0]=%d, but got %d\n", expected, y[0]);
+            exit(1);
+        }
+    }
+}
 
 void test(int n, int m)
 {
@@ -19,29 +45,26 @@ void test(int n, int m)
     for (int i = 0; i < m; ++i) {
         TRACE_SCOPE("KungfuNegotiateAsync");
 
-        std::mutex mu;
-        std::condition_variable cv;
-        bool done = false;
+        Waiter waiter;
         KungfuNegotiateAsync(x.data(), y.data(), n, dtype, KungFu_SUM,
-                             name.c_str(), [&mu, &cv, &done] {
-                                 std::lock_guard<std::mutex> lk(mu);
-                                 done = true;
-                                 cv.notify_one();
-                             });
-        {
-            std::unique_lock<std::mutex> lk(mu);
-            cv.wait(lk, [&done] { return done; });
-        }
+                             name.c_str(), [&waiter] { waiter.done(); });
+        waiter.wait();
     }
-    printf("done\n");
 }
 
 int main(int argc, char *argv[])
 {
     TRACE_SCOPE(__func__);
     kungfu_world _kungfu_world;
-    const int n = 100;
-    const int m = 100;
-    test(n, m);
+
+    {
+        const int np = getTestClusterSize();
+        test_sum(np);
+    }
+    {
+        const int n = 100;
+        const int m = 100;
+        test(n, m);
+    }
     return 0;
 }

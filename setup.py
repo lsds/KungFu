@@ -37,9 +37,10 @@ class CMakeBuild(build_ext):
             # FIXME: use CMAKE_LIBRARY_OUTPUT_DIRECTORY
             cmake_flag('LIBRARY_OUTPUT_PATH',
                        os.path.join(install_prefix, 'kungfu')),
-            cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
-            cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
-            cmake_flag('KUNGFU_BUILD_TESTS', 0),
+
+            # uncomment to debug
+            # cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
+            # cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
         ]
         if have_gpu():
             cmake_args.append(cmake_flag('KUNGFU_HAVE_GPU', 1))

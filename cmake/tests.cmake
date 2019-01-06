@@ -20,10 +20,15 @@ LINK_DIRECTORIES(${PREFIX}/lib)
 
 SET(KUNGFU_TESTS_DIR ${CMAKE_SOURCE_DIR}/srcs/cpp/tests)
 
-FUNCTION(ADD_GTEST target)
+FUNCTION(ADD_UNIT_TEST target)
     ADD_EXECUTABLE(${target} ${ARGN} ${KUNGFU_TESTS_DIR}/unit/main.cpp)
-    TARGET_LINK_LIBRARIES(${target} gtest kungfu-base)
-    ADD_DEPENDENCIES(${target} libgtest-dev-repo kungfu-base)
+    TARGET_LINK_LIBRARIES(${target}
+                          gtest
+                          kungfu-base
+                          go-kungfu
+                          kungfu
+                          Threads::Threads)
+    ADD_DEPENDENCIES(${target} libgtest-dev-repo)
     TARGET_INCLUDE_DIRECTORIES(${target} PRIVATE ${PREFIX}/include)
     ADD_TEST(NAME ${target} COMMAND ${target})
 ENDFUNCTION()
@@ -35,7 +40,7 @@ FOREACH(t ${tests})
                    "-"
                    name
                    ${name})
-    ADD_GTEST(${name} ${t})
+    ADD_UNIT_TEST(${name} ${t})
 ENDFOREACH()
 
 FIND_PACKAGE(stdtracer REQUIRED)
@@ -51,12 +56,4 @@ FUNCTION(ADD_TEST_BIN target)
     TARGET_INCLUDE_DIRECTORIES(${target} PRIVATE ${PREFIX}/include)
 ENDFUNCTION()
 
-FILE(GLOB test_bins ${KUNGFU_TESTS_DIR}/integration/fake_*.cpp)
-FOREACH(t ${test_bins})
-    GET_FILENAME_COMPONENT(name ${t} NAME_WE)
-    STRING(REPLACE "_"
-                   "-"
-                   name
-                   ${name})
-    ADD_TEST_BIN(${name} ${t})
-ENDFOREACH()
+ADD_TEST_BIN(fake-task ${KUNGFU_TESTS_DIR}/integration/fake_task.cpp)
