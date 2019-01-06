@@ -2,10 +2,12 @@
 set -e
 
 cd $(dirname $0)/..
-git clean -fdx
 [ -d gopath ] && rm -fr gopath
 [ -d 3rdparty ] && rm -fr 3rdparty
-git gc
+if [ -d .git ]; then
+    git clean -fdx
+    git gc
+fi
 
 cd ..
 [ -f kungfu.tar ] && rm kungfu.tar

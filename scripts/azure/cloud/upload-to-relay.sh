@@ -3,6 +3,8 @@
 # upload repo to relay
 set -e
 
+SCRIPT_NAME=$(basename $0)
+
 if [ -z "${PREFIX}" ]; then
     PREFIX=$USER-test-cluster
 fi
@@ -12,12 +14,12 @@ ADMIN=kungfu
 RELAY_NAME=${PREFIX}-relay
 
 measure() {
-    echo "begin $@"
     local begin=$(date +%s)
+    echo "[begin] $SCRIPT_NAME::$@ at $begin"
     $@
     local end=$(date +%s)
     local duration=$((end - begin))
-    echo "$@ took ${duration}s"
+    echo "[done] $SCRIPT_NAME::$@ took ${duration}s"
 }
 
 get_ip() {
@@ -32,11 +34,16 @@ main() {
 
     [ -f kungfu.tar ] && rm kungfu.tar
     [ -f kungfu.tar.bz2 ] && rm kungfu.tar.bz2
-    tar -cf kungfu.tar kungfu
+    tar \
+        --exclude *.git \
+        --exclude 3rdparty \
+        --exclude gopath \
+        -cf kungfu.tar kungfu
     bzip2 kungfu.tar
     du -hs kungfu.tar.bz2
 
     measure scp ${VERBOSE} kungfu.tar.bz2 $ADMIN@$RELAY_IP:~/
+    # measure scp ${VERBOSE} -r kungfu/scripts/azure/relay-machine $ADMIN@$RELAY_IP:~/
     measure ssh ${VERBOSE} $ADMIN@$RELAY_IP sh -c '"rm -fr kungfu && tar -xf kungfu.tar.bz2"'
 }
 

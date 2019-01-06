@@ -2,6 +2,7 @@ package rchannel
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -93,7 +94,7 @@ func (s *Server) handle(conn net.Conn) error {
 		Port: strconv.Itoa(int(ch.Port)),
 	}
 	log.Debugf("got new connection from: %s", remoteNetAddr)
-	if n, err := s.router.stream(conn, remoteNetAddr); err != nil {
+	if n, err := s.router.stream(conn, remoteNetAddr); err != nil && err != io.EOF {
 		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
 	}
 	return nil

@@ -3,6 +3,7 @@ set -e
 
 export PATH=$HOME/local/go/bin:$PATH # TODO: make it default in relay-machine
 
+SCRIPT_NAME=$(basename $0)
 # cd $(dirname $0)/..
 cd $HOME/kungfu
 
@@ -38,13 +39,13 @@ show_duration() {
 }
 
 measure() {
-    echo "begin $@"
     local begin=$(date +%s)
+    echo "[begin] $SCRIPT_NAME::$@ at $begin" $@
     $@
     local end=$(date +%s)
     local duration=$((end - begin))
     local dur=$(show_duration $duration)
-    echo "$@ took ${dur}" | tee -a time.log
+    echo "[done] $SCRIPT_NAME::$@ took ${dur}" | tee -a time.log
 }
 
 get_host_specs() {

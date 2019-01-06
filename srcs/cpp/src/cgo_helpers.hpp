@@ -15,11 +15,3 @@ inline GoSlice toGoSlice(const void *buffer, size_t count,
         .cap  = GoInt(size),
     };
 }
-
-inline GoString toGoString(const char *name)
-{
-    return GoString{
-        .p = name,
-        .n = (ptrdiff_t)(strlen(name)),
-    };
-}

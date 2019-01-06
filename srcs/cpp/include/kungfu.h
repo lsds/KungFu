@@ -48,7 +48,7 @@ extern KungFu_AllReduceAlgo kungfu_parse_algo_name(const char *name);
 typedef std::function<void()> DoneCallback;
 
 extern int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
-                                KungFu_Datatype datatype, KungFu_Op op,
+                                KungFu_Datatype dtype, KungFu_Op op,
                                 const char *name, DoneCallback done);
 
 class kungfu_world

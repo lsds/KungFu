@@ -3,8 +3,8 @@
 set -e
 set -x
 
+SCRIPT_NAME=$(basename $0)
 cd $(dirname $0)/..
-SCRIPT_DIR=$(pwd)
 . ../utils/show_duration.sh
 
 # DEBUG=--debug
@@ -30,7 +30,7 @@ RELAY_IMAGE_NAME=relay-ubunbu18
 RELAY_SIZE=Standard_DS3_v2
 
 if [ -z "${N_NODES}" ]; then
-    N_NODES=2
+    N_NODES=1
 fi
 
 IMAGE=$(az image show -g ${IMAGE_GROUP} -n ${IMAGE_NAME} --query id | tr -d '"')
@@ -46,12 +46,12 @@ ALL_NODES=$(node_names ${N_NODES})
 
 measure() {
     local begin=$(date +%s)
-    echo "begin $@ at $begin"
+    echo "[begin] $SCRIPT_NAME::$@ at $begin"
     $@
     local end=$(date +%s)
     local duration=$((end - begin))
     local dur=$(show_duration $duration)
-    echo "$@ took ${dur}" | tee -a profile.log
+    echo "[done] $SCRIPT_NAME::$@ took ${dur}" | tee -a profile.log
 }
 
 delete_resource() {

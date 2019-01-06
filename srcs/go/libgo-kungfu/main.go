@@ -30,22 +30,21 @@ func GoKungfuFinalize() int {
 }
 
 //export GoKungfuNegotiate
-func GoKungfuNegotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name string) int {
-	return kungfu.Negotiate(sendBuf, recvBuf, count, wire.KungFu_Datatype(dtype), wire.KungFu_Op(op), name)
+func GoKungfuNegotiate(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char) int {
+	return kungfu.Negotiate(sendBuf, recvBuf, count, wire.KungFu_Datatype(dtype), wire.KungFu_Op(op), C.GoString(name))
 }
 
 //export GoKungfuNegotiateAsync
-func GoKungfuNegotiateAsync(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name string, done *C.callback_t) int {
-	name = string([]byte(name)) // TODO: verify that name is cloned
-	go func() {
-		GoKungfuNegotiate(sendBuf, recvBuf, count, dtype, op, name)
+func GoKungfuNegotiateAsync(sendBuf []byte, recvBuf []byte, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
+	go func(name string) {
+		kungfu.Negotiate(sendBuf, recvBuf, count, wire.KungFu_Datatype(dtype), wire.KungFu_Op(op), name)
 		if done != nil {
 			C.invoke_callback(done)
 			C.delete_callback(done)
 		} else {
 			log.Warnf("done is nil!")
 		}
-	}()
+	}(C.GoString(name))
 	return 0
 }
 

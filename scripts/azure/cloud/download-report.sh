@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+SCRIPT_NAME=$(basename $0)
+
 if [ -z "${PREFIX}" ]; then
     PREFIX=$USER-test-cluster
 fi
@@ -10,12 +12,12 @@ ADMIN=kungfu
 RELAY_NAME=${PREFIX}-relay
 
 measure() {
-    echo "begin $@"
     local begin=$(date +%s)
+    echo "[begin] $SCRIPT_NAME::$@ at $begin"
     $@
     local end=$(date +%s)
     local duration=$((end - begin))
-    echo "$@ took ${duration}s"
+    echo "[done] $SCRIPT_NAME::$@ took ${duration}s"
 }
 
 get_ip() {

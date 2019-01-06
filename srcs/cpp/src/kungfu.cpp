@@ -17,14 +17,13 @@ int KungfuInit(KungFu_AllReduceAlgo algo)
 int KungfuFinalize() { return GoKungfuFinalize(); }
 
 int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
-                         KungFu_Datatype datatype, KungFu_Op op,
-                         const char *name, DoneCallback done)
+                         KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                         DoneCallback done)
 {
-    auto gs_send = toGoSlice(sendbuf, count, datatype);
-    auto gs_recv = toGoSlice(recvbuf, count, datatype);
-    auto go_name = toGoString(name);
-    return GoKungfuNegotiateAsync(gs_send, gs_recv, GoInt(count),
-                                  GoInt(datatype), GoInt(op), go_name,
+    auto gs_send = toGoSlice(sendbuf, count, dtype);
+    auto gs_recv = toGoSlice(recvbuf, count, dtype);
+    return GoKungfuNegotiateAsync(gs_send, gs_recv, GoInt(count), GoInt(dtype),
+                                  GoInt(op), (char *)name,
                                   new CallbackWrapper(done));
 }
 

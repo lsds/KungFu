@@ -20,7 +20,7 @@ int kungfu_world::NegotiateGPUAsync(const void *sendbuf, void *recvbuf,
         throw std::runtime_error("cudaMemcpy failed");
     }
     return NegotiateAsync(
-        input_cpu->data(), output_cpu->data(), count, dtype, KungFu_SUM, name,
+        input_cpu->data(), output_cpu->data(), count, dtype, op, name,
         [done, input_cpu, output_cpu, recvbuf, buffer_size] {
             if (cudaMemcpy(recvbuf, output_cpu->data(), buffer_size,
                            cudaMemcpyHostToDevice) != cudaSuccess) {
