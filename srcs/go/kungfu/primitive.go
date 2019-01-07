@@ -3,12 +3,11 @@ package kungfu
 import (
 	"sync"
 
-	"github.com/luomai/kungfu/srcs/go/algo"
-	rch "github.com/luomai/kungfu/srcs/go/rchannel"
-	"github.com/luomai/kungfu/srcs/go/wire"
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
-func (kf *Kungfu) bcast(buffer []byte, count int, dtype wire.KungFu_Datatype, root int, name string) error {
+func (kf *Kungfu) bcast(buffer []byte, count int, dtype kb.KungFu_Datatype, root int, name string) error {
 	n := count * dtype.Size()
 	myRank := kf.cluster.MyRank()
 	if myRank == root {
@@ -37,7 +36,7 @@ func (kf *Kungfu) bcast(buffer []byte, count int, dtype wire.KungFu_Datatype, ro
 	return nil
 }
 
-func (kf *Kungfu) reduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, root int, name string) error {
+func (kf *Kungfu) reduce(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, root int, name string) error {
 	n := count * dtype.Size()
 	copy(recvBuf[:n], sendBuf[:n])
 	myRank := kf.cluster.MyRank()
@@ -55,7 +54,7 @@ func (kf *Kungfu) reduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.K
 						panic("unexpected recv length")
 					}
 					lock.Lock()
-					algo.AddBy(recvBuf[:n], m.Data, count, dtype, op)
+					kb.Transform(recvBuf[:n], m.Data, count, dtype, op)
 					lock.Unlock()
 					wg.Done()
 				}(task.NetAddr)

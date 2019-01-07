@@ -10,10 +10,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/luomai/kungfu/srcs/go/iostream"
-	sch "github.com/luomai/kungfu/srcs/go/scheduler"
-	"github.com/luomai/kungfu/srcs/go/ssh"
-	"github.com/luomai/kungfu/srcs/go/xterm"
+	"github.com/lsds/KungFu/srcs/go/iostream"
+	sch "github.com/lsds/KungFu/srcs/go/scheduler"
+	"github.com/lsds/KungFu/srcs/go/ssh"
+	"github.com/lsds/KungFu/srcs/go/xterm"
 )
 
 func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bool) ([]*Outputs, error) {

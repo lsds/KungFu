@@ -3,39 +3,39 @@ package kungfu
 import (
 	"sync/atomic"
 
-	"github.com/luomai/kungfu/srcs/go/log"
-	"github.com/luomai/kungfu/srcs/go/wire"
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	"github.com/lsds/KungFu/srcs/go/log"
 )
 
 func (kf *Kungfu) Warmup() {
 	k := kf.cluster.Size()
 	count := k * 4
-	dtype := wire.KungFu_INT32
+	dtype := kb.KungFu_INT32
 	n := count * dtype.Size()
 	sendBuf := make([]byte, n)
 	recvBuf := make([]byte, n)
-	op := wire.KungFu_SUM
+	op := kb.KungFu_SUM
 	name := "kungfu::warmup" // TODO: use tag
 	kf.fullSymmetricAllReduce(sendBuf, recvBuf, count, dtype, op, name)
 }
 
-func (kf *Kungfu) Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, name string) int {
+func (kf *Kungfu) Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string) int {
 	k := kf.cluster.Size()
 	switch kf.config.Algo {
-	case wire.KungFu_Tree:
+	case kb.KungFu_Tree:
 		return code(kf.treeAllReduce(sendBuf, recvBuf, count, dtype, op, name))
-	case wire.KungFu_Clique:
+	case kb.KungFu_Clique:
 		if count >= k {
 			return code(kf.fullSymmetricAllReduce(sendBuf, recvBuf, count, dtype, op, name))
 		}
 		infrequently.Do(func() {
 			log.Warnf("data size (%d) is smaller that cluster size %d, will not use fullSymmetricAllReduce", count, k)
 		})
-	case wire.KungFu_Ring:
+	case kb.KungFu_Ring:
 		if count >= k && k >= 3 {
 			return code(kf.ringAllReduce(sendBuf, recvBuf, count, dtype, op, name))
 		}
-	case wire.KungFu_Simple:
+	case kb.KungFu_Simple:
 		return code(kf.simpleAllReduce(sendBuf, recvBuf, count, dtype, op, kf.cluster.Root(), name))
 	}
 	infrequently.Do(func() { log.Warnf("%s is not implemeted, fallback to simpleAllReduce", kf.config.Algo) })

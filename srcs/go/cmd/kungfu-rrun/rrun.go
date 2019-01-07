@@ -8,11 +8,11 @@ import (
 	"runtime"
 	"time"
 
-	rch "github.com/luomai/kungfu/srcs/go/rchannel"
-	"github.com/luomai/kungfu/srcs/go/runner"
-	sch "github.com/luomai/kungfu/srcs/go/scheduler"
-	"github.com/luomai/kungfu/srcs/go/utils"
-	"github.com/luomai/kungfu/srcs/go/wire"
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/runner"
+	sch "github.com/lsds/KungFu/srcs/go/scheduler"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 var (
@@ -42,7 +42,7 @@ func main() {
 		Prog:      restArgs[0],
 		Args:      restArgs[1:],
 	}
-	ps, err := jc.CreateProcs(wire.ParseAlgo(*algo))
+	ps, err := jc.CreateProcs(kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}

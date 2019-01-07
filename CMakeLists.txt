@@ -20,15 +20,13 @@ INCLUDE(cmake/tf-op.cmake)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
-ADD_LIBRARY(kungfu-base
-            srcs/cpp/src/kungfu_types.cpp
-            srcs/cpp/src/algo.cpp
-            srcs/cpp/src/callback.cpp)
+ADD_LIBRARY(kungfu-base srcs/cpp/src/kungfu_types.cpp
+            srcs/cpp/src/kungfu_base.cpp)
 
 SET(CGO_CFLAGS "-I${CMAKE_SOURCE_DIR}/srcs/cpp/include")
 SET(CGO_LDFLAGS "-L${LIBRARY_OUTPUT_PATH} -lkungfu-base -lstdc++")
 
-ADD_CUSTOM_TARGET(libgo-kungfu ALL
+ADD_CUSTOM_TARGET(libkungfu-comm ALL
                   WORKING_DIRECTORY ${LIBRARY_OUTPUT_PATH}
                   COMMAND env #
                           CGO_CFLAGS=${CGO_CFLAGS}
@@ -37,20 +35,20 @@ ADD_CUSTOM_TARGET(libgo-kungfu ALL
                           build
                           -v
                           -buildmode=c-archive
-                          ${CMAKE_SOURCE_DIR}/srcs/go/libgo-kungfu)
-ADD_DEPENDENCIES(libgo-kungfu kungfu-base)
+                          ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
+ADD_DEPENDENCIES(libkungfu-comm kungfu-base)
 
 ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
 IF(KUNGFU_HAVE_GPU)
     TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/kungfu_gpu.cpp)
 ENDIF()
 TARGET_INCLUDE_DIRECTORIES(kungfu PRIVATE ${LIBRARY_OUTPUT_PATH})
-TARGET_LINK_LIBRARIES(kungfu go-kungfu kungfu-base)
+TARGET_LINK_LIBRARIES(kungfu kungfu-comm kungfu-base)
 IF(APPLE)
     TARGET_LINK_LIBRARIES(kungfu "-framework CoreFoundation")
     TARGET_LINK_LIBRARIES(kungfu "-framework Security")
 ENDIF()
-ADD_DEPENDENCIES(kungfu libgo-kungfu)
+ADD_DEPENDENCIES(kungfu libkungfu-comm)
 
 ADD_TF_OP_LIB(kungfu_tensorflow_ops srcs/cpp/src/negotiator.cpp)
 TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu)

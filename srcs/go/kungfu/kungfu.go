@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/luomai/kungfu/srcs/go/metrics"
-	rch "github.com/luomai/kungfu/srcs/go/rchannel"
-	"github.com/luomai/kungfu/srcs/go/wire"
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	"github.com/lsds/KungFu/srcs/go/metrics"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
 type Kungfu struct {
@@ -19,7 +19,7 @@ type Kungfu struct {
 }
 
 type Config struct {
-	Algo         wire.KungFu_AllReduceAlgo
+	Algo         kb.KungFu_AllReduceAlgo
 	ReportPeriod time.Duration
 }
 

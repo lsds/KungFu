@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/luomai/kungfu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/log"
 )
 
 // Server receives messages from remove endpoints

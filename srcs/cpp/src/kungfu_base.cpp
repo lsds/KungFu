@@ -6,8 +6,12 @@
 #include <string>
 #include <tuple>
 
-#include <algo.h>
+#include <kungfu_base.h>
 #include <kungfu_types.hpp>
+
+void invoke_callback(callback_t *f) { (*f)(); }
+
+void delete_callback(callback_t *f) { delete f; }
 
 // TODO: use std::apply from c++17
 

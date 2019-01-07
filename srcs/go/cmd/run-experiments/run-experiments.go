@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	rch "github.com/luomai/kungfu/srcs/go/rchannel"
-	"github.com/luomai/kungfu/srcs/go/utils"
-	"github.com/luomai/kungfu/srcs/go/wire"
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 var (
@@ -91,7 +91,7 @@ func runAllExperiments(logDir string, hosts []rch.HostSpec, prog string, args []
 	var records []Record
 	var lock sync.Mutex
 	var lastID int
-	run := func(algo wire.KungFu_AllReduceAlgo, partition []int) {
+	run := func(algo kb.KungFu_AllReduceAlgo, partition []int) {
 		if len(hosts) < len(partition) {
 			return // total resource not sufficient
 		}
@@ -124,11 +124,11 @@ func runAllExperiments(logDir string, hosts []rch.HostSpec, prog string, args []
 		}(lastID)
 	}
 
-	algos := []wire.KungFu_AllReduceAlgo{
-		wire.KungFu_Simple,
-		wire.KungFu_Ring,
-		wire.KungFu_Clique,
-		wire.KungFu_Tree,
+	algos := []kb.KungFu_AllReduceAlgo{
+		kb.KungFu_Simple,
+		kb.KungFu_Ring,
+		kb.KungFu_Clique,
+		kb.KungFu_Tree,
 	}
 	for _, a := range algos {
 		run(a, []int{1})

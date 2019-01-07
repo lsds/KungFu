@@ -1,8 +1,7 @@
-#include <map>
 #include <string>
 
-#include "cgo_helpers.hpp"
 #include <kungfu.h>
+#include <libkungfu-comm.h>
 
 int KungfuInit(KungFu_AllReduceAlgo algo)
 {
@@ -20,26 +19,14 @@ int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
                          KungFu_Datatype dtype, KungFu_Op op, const char *name,
                          DoneCallback done)
 {
-    auto gs_send = toGoSlice(sendbuf, count, dtype);
-    auto gs_recv = toGoSlice(recvbuf, count, dtype);
-    return GoKungfuNegotiateAsync(gs_send, gs_recv, GoInt(count), GoInt(dtype),
-                                  GoInt(op), (char *)name,
+    return GoKungfuNegotiateAsync((void *)sendbuf, recvbuf, GoInt(count),
+                                  GoInt(dtype), GoInt(op), (char *)name,
                                   new CallbackWrapper(done));
 }
 
-static const std::map<std::string, KungFu_AllReduceAlgo> _kungfu_algo_names({
-    {"SIMPLE", KungFu_SimpleAllReduce},
-    {"RING", KungFu_RingAllReduce},
-    {"CLIQUE", KungFu_FullSymmetricAllReduce},
-    {"TREE", KungFu_TreeAllReduce},
-});
-
-KungFu_AllReduceAlgo kungfu_parse_algo_name(const char *name)
+KungFu_AllReduceAlgo KungfuParseAlgoName(const char *name)
 {
-    if (_kungfu_algo_names.count(name) > 0) {
-        return _kungfu_algo_names.at(name);
-    }
-    return KungFu_TreeAllReduce;
+    return GoKungfuParseAlgoName((char *)name);
 }
 
 static std::string safe_getenv(const char *name)
@@ -52,7 +39,7 @@ static std::string safe_getenv(const char *name)
 static KungFu_AllReduceAlgo get_algo_from_env()
 {
     const auto name = safe_getenv("KUNGFU_ALLREDUCE_ALGO");
-    return kungfu_parse_algo_name(name.c_str());
+    return KungfuParseAlgoName(name.c_str());
 }
 
 kungfu_world::kungfu_world()

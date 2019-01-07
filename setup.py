@@ -67,7 +67,7 @@ setup(
     package_dir={'': package_dir},
     packages=find_packages(package_dir),
     description='The ultimate distributed training framework for TensorFlow',
-    url='https://github.com/luomai/kungfu',
+    url='https://github.com/lsds/KungFu',
     ext_modules=[
         CMakeExtension('.'),
     ],

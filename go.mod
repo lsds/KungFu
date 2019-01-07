@@ -1,1 +1,1 @@
-module github.com/luomai/kungfu
+module github.com/lsds/KungFu

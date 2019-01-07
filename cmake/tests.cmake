@@ -1,7 +1,7 @@
 OPTION(KUNGFU_BUILD_GTEST "Build gtest from source." OFF)
 
 FUNCTION(LINK_KUNGFU_LIBS target)
-    TARGET_LINK_LIBRARIES(${target} kungfu-base go-kungfu kungfu)
+    TARGET_LINK_LIBRARIES(${target} kungfu-base kungfu-comm kungfu)
 ENDFUNCTION()
 
 FUNCTION(USE_INSTALLED_GTEST target)

@@ -5,8 +5,8 @@
 
 #include <gtest/gtest.h>
 
-#include <algo.h>
 #include <kungfu.h>
+#include <kungfu_base.h>
 #include <kungfu_types.hpp>
 
 class Waiter

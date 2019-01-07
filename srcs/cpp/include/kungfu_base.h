@@ -3,6 +3,9 @@
 extern "C" {
 #endif
 
+extern void std_transform_2(const void *input_1, const void *input_2,
+                            void *output, int n, int dtype, int binary_op);
+
 typedef struct CallbackWrapper callback_t;
 
 extern void invoke_callback(callback_t *);

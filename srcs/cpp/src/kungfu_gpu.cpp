@@ -3,7 +3,6 @@
 
 #include <cuda_runtime.h>
 
-#include "cgo_helpers.hpp"
 #include <kungfu.h>
 
 int kungfu_world::NegotiateGPUAsync(const void *sendbuf, void *recvbuf,

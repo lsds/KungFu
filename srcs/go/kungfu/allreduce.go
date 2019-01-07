@@ -5,10 +5,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/luomai/kungfu/srcs/go/algo"
-	"github.com/luomai/kungfu/srcs/go/log"
-	rch "github.com/luomai/kungfu/srcs/go/rchannel"
-	"github.com/luomai/kungfu/srcs/go/wire"
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	"github.com/lsds/KungFu/srcs/go/log"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
 func divide(a, b int) (int, int) {
@@ -18,16 +17,16 @@ func divide(a, b int) (int, int) {
 }
 
 // rootedAllReduceFunc is the signature of allReduce algorithms that has a central root node
-type rootedAllReduceFunc func(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, root int, name string) error
+type rootedAllReduceFunc func(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, root int, name string) error
 
-func (kf *Kungfu) simpleAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, root int, name string) error {
+func (kf *Kungfu) simpleAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, root int, name string) error {
 	if err := kf.reduce(sendBuf, recvBuf, count, dtype, op, root, name); err != nil {
 		return err
 	}
 	return kf.bcast(recvBuf, count, dtype, root, name)
 }
 
-func (kf *Kungfu) circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, root int, name string) error {
+func (kf *Kungfu) circularAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, root int, name string) error {
 	n := count * dtype.Size()
 	copy(recvBuf[:n], sendBuf[:n])
 
@@ -46,7 +45,7 @@ func (kf *Kungfu) circularAllReduce(sendBuf []byte, recvBuf []byte, count int, d
 			// FIXME: don't panic
 			panic("unexpected recv length")
 		}
-		algo.AddBy(recvBuf[:n], m.Data, count, dtype, op)
+		kb.Transform(recvBuf[:n], m.Data, count, dtype, op)
 	}
 
 	recvAssign := func(rank int) {
@@ -103,7 +102,7 @@ func (kf *Kungfu) circularAllReduce(sendBuf []byte, recvBuf []byte, count int, d
 	return nil
 }
 
-func (kf *Kungfu) treeAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, name string) error {
+func (kf *Kungfu) treeAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string) error {
 	n := count * dtype.Size()
 	copy(recvBuf[:n], sendBuf[:n])
 
@@ -120,7 +119,7 @@ func (kf *Kungfu) treeAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype
 		var m rch.Message
 		kf.router.Recv(addr.WithName(name), &m)
 		lock.Lock()
-		algo.AddBy(recvBuf[:n], m.Data, count, dtype, op)
+		kb.Transform(recvBuf[:n], m.Data, count, dtype, op)
 		lock.Unlock()
 	}
 
@@ -155,7 +154,7 @@ func (kf *Kungfu) treeAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype
 }
 
 // symmetricAllReduce parts the original data into k parts and apply an rooted allReduce stratrgy to each part
-func (kf *Kungfu) symmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, name string, allReduce rootedAllReduceFunc) error {
+func (kf *Kungfu) symmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string, allReduce rootedAllReduceFunc) error {
 	k := kf.cluster.Size()
 	quo, rem := divide(count, k)
 
@@ -193,11 +192,11 @@ func (kf *Kungfu) symmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, 
 	return nil
 }
 
-func (kf *Kungfu) fullSymmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, name string) error {
+func (kf *Kungfu) fullSymmetricAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string) error {
 	return kf.symmetricAllReduce(sendBuf, recvBuf, count, dtype, op, name, kf.simpleAllReduce)
 }
 
-func (kf *Kungfu) ringAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype wire.KungFu_Datatype, op wire.KungFu_Op, name string) error {
+func (kf *Kungfu) ringAllReduce(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string) error {
 	k := kf.cluster.Size()
 	if k < 3 {
 		return fmt.Errorf("ringAllReduce requires k >= 3, but k=%d", k)

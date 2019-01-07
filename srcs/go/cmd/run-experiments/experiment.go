@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	rch "github.com/luomai/kungfu/srcs/go/rchannel"
-	"github.com/luomai/kungfu/srcs/go/runner"
-	sch "github.com/luomai/kungfu/srcs/go/scheduler"
-	"github.com/luomai/kungfu/srcs/go/utils"
-	"github.com/luomai/kungfu/srcs/go/wire"
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/runner"
+	sch "github.com/lsds/KungFu/srcs/go/scheduler"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 func writeReport(records []Record, failed int, f io.Writer) {
@@ -29,7 +29,7 @@ type Record struct {
 	ID        int
 	Took      time.Duration
 	Partition []int
-	Algo      wire.KungFu_AllReduceAlgo
+	Algo      kb.KungFu_AllReduceAlgo
 	Result    Result
 }
 
@@ -76,7 +76,7 @@ func grep(pattern string, input []string) []string {
 	return lines
 }
 
-func runExperiment(logDir string, hosts []rch.HostSpec, prog string, args []string, algo wire.KungFu_AllReduceAlgo, partition []int, timeout time.Duration) (*Result, error) {
+func runExperiment(logDir string, hosts []rch.HostSpec, prog string, args []string, algo kb.KungFu_AllReduceAlgo, partition []int, timeout time.Duration) (*Result, error) {
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
 		return nil, err
 	}

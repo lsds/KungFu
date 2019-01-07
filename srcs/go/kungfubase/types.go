@@ -1,4 +1,4 @@
-package wire
+package kungfubase
 
 // #include <kungfu.h>
 import "C"
