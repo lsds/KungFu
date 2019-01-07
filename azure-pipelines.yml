@@ -24,6 +24,13 @@ steps:
 # - script: pip3 install -U pip
 #   displayName: 'Upgrade pip'
 
+# FIXME: install with apt-get
+- script: |
+    git clone https://github.com/google/googletest.git
+    cd googletest
+    cmake . -DCMAKE_CXX_FLAGS=-std=c++11 -Dgtest_disable_pthreads=1
+    sudo make install
+  displayName: 'Install gtest'
 
 - script: |
     sudo apt install -y python3-setuptools
@@ -49,7 +56,7 @@ steps:
 - script: |
     cmake --version
     pip3 install -vvv -U .
-    ./scripts/go-install.sh
+    ./scripts/go-install.sh --no-tests
   displayName: 'Install Kungfu'
 
 - script: ./examples/kungfu-train.py

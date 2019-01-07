@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-BUILD_TESTS=1
+BUILD_GTEST=0 # download and build gtest from source
+BUILD_TESTS=1 # build unit tests
 HAVE_GPU=0
 
 if test $(ls /dev/ | grep nvidia | wc -l) -gt 0; then
@@ -11,6 +12,9 @@ fi
 parse_args() {
     for i in "$@"; do
         case $i in
+        --build-gtest)
+            BUILD_GTEST=1
+            ;;
         --no-tests)
             BUILD_TESTS=0
             ;;
@@ -48,6 +52,8 @@ add_cmake_flags() {
     add_cmake_flag CMAKE_MODULE_PATH $(pwd)/cmake
     # add_cmake_flag CMAKE_VERBOSE_MAKEFILE 1
     # add_cmake_flag CMAKE_EXPORT_COMPILE_COMMANDS 1
+
+    add_cmake_flag KUNGFU_BUILD_GTEST ${BUILD_GTEST}
     add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
     add_cmake_flag KUNGFU_HAVE_GPU ${HAVE_GPU}
 }

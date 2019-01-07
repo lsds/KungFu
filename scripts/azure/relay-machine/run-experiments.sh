@@ -89,8 +89,7 @@ install_remote() {
 }
 
 install_local() {
-    ./configure && make
-    ./scripts/go-install.sh
+    ./scripts/go-install.sh --no-tests
 }
 
 run_experiments() {
