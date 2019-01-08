@@ -19,3 +19,9 @@ your own machine learning framework.
 ## Project Structure
 
 All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
+
+### Components
+
+* kungfu-base: a C library that will be used by Golang via CGO internally
+* kungfu-comm: a C library implemented in Golang
+* kungfu: the public C/C++ library based on kungfu-comm
