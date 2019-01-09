@@ -9,6 +9,7 @@ ADD_COMPILE_OPTIONS(-fPIC)
 
 OPTION(KUNGFU_HAVE_GPU "Have GPU." OFF)
 OPTION(KUNGFU_BUILD_TESTS "Build tests." OFF)
+OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
 
 IF(KUNGFU_HAVE_GPU)
     ADD_DEFINITIONS(-DKUNGFU_HAVE_GPU=1)
@@ -16,7 +17,6 @@ ENDIF()
 
 FIND_PACKAGE(Threads REQUIRED)
 
-INCLUDE(cmake/tf-op.cmake)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
@@ -41,6 +41,7 @@ ADD_DEPENDENCIES(libkungfu-comm kungfu-base)
 ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
 IF(KUNGFU_HAVE_GPU)
     TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/kungfu_gpu.cpp)
+    TARGET_LINK_LIBRARIES(kungfu cudart)
 ENDIF()
 TARGET_INCLUDE_DIRECTORIES(kungfu PRIVATE ${LIBRARY_OUTPUT_PATH})
 TARGET_LINK_LIBRARIES(kungfu kungfu-comm kungfu-base)
@@ -50,11 +51,15 @@ IF(APPLE)
 ENDIF()
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 
-ADD_TF_OP_LIB(kungfu_tensorflow_ops srcs/cpp/src/negotiator.cpp)
-TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu)
-SET_TARGET_PROPERTIES(kungfu_tensorflow_ops PROPERTIES INSTALL_RPATH "$ORIGIN")
-SET_TARGET_PROPERTIES(kungfu_tensorflow_ops
-                      PROPERTIES BUILD_WITH_INSTALL_RPATH true)
+IF(KUNGFU_BUILD_TF_OPS)
+    INCLUDE(cmake/tf-op.cmake)
+    ADD_TF_OP_LIB(kungfu_tensorflow_ops srcs/cpp/src/negotiator.cpp)
+    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu)
+    SET_TARGET_PROPERTIES(kungfu_tensorflow_ops
+                          PROPERTIES INSTALL_RPATH "$ORIGIN")
+    SET_TARGET_PROPERTIES(kungfu_tensorflow_ops
+                          PROPERTIES BUILD_WITH_INSTALL_RPATH true)
+ENDIF()
 
 IF(KUNGFU_BUILD_TESTS)
     ENABLE_TESTING()

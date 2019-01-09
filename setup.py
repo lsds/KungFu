@@ -37,6 +37,7 @@ class CMakeBuild(build_ext):
             # FIXME: use CMAKE_LIBRARY_OUTPUT_DIRECTORY
             cmake_flag('LIBRARY_OUTPUT_PATH',
                        os.path.join(install_prefix, 'kungfu')),
+            cmake_flag('KUNGFU_BUILD_TF_OPS', 1),
 
             # uncomment to debug
             # cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
