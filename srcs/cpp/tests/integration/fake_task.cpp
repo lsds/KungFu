@@ -17,19 +17,25 @@ void test_sum(int np)
     std::vector<T> y(n);
     const auto dtype = kungfu::type_encoder::value<T>();
 
-    std::iota(x.begin(), x.end(), 1);
+    std::iota(x.begin(), x.end(), 0);
 
     Waiter waiter;
     KungfuNegotiateAsync(x.data(), y.data(), n, dtype, KungFu_SUM,
                          "test-tensor", [&waiter] { waiter.done(); });
     waiter.wait();
 
+    int failed = 0;
     for (int i = 0; i < n; ++i) {
-        const int expected = (i + 1) * np;
+        const int expected = i * np;
         if (y[i] != expected) {
-            printf("expected y[0]=%d, but got %d\n", expected, y[0]);
-            exit(1);
+            printf("expected y[%d]=%d, but got %d\n", i, expected, y[i]);
+            ++failed;
         }
+    }
+    if (failed) {
+        printf("reduce %d elements among %d agents, %d elements failed\n", n,
+               np, failed);
+        exit(1);
     }
 }
 

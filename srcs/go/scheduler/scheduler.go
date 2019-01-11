@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 type JobConfig struct {
@@ -16,11 +16,11 @@ type JobConfig struct {
 }
 
 func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
-	hostSpecs, err := rch.ParseHostSpec(jc.HostList)
+	hostSpecs, err := plan.ParseHostSpec(jc.HostList)
 	if err != nil {
 		return nil, err
 	}
-	specs, err := rch.GenClusterSpecs(jc.TaskCount, hostSpecs)
+	cs, err := plan.GenClusterSpec(jc.TaskCount, hostSpecs)
 	if err != nil {
 		return nil, err
 	}
@@ -29,15 +29,14 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 		pubAddr[h.Hostname] = h.PublicAddr
 	}
 	var ps []Proc
-	for _, spec := range specs {
-		self := spec.Self
+	for i, self := range cs.Peers {
 		name := fmt.Sprintf("%02s/%02d/%02d", self.NetAddr.Host, self.DeviceID, self.GlobalRank)
 		ps = append(ps, Proc{
 			Name: name,
 			Prog: jc.Prog,
 			Args: jc.Args,
 			Envs: map[string]string{
-				rch.ClusterSpecEnvKey:       spec.String(),
+				plan.ProcSpecEnvKey:         cs.ToProcSpec(i).String(),
 				`CUDA_VISIBLE_DEVICES`:      strconv.Itoa(self.DeviceID),
 				`PYTHONUNBUFFERED`:          `1`,
 				kb.KungFu_AllReduceAlgo_Key: algo.String(),

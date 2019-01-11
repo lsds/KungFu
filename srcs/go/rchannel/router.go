@@ -9,6 +9,7 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/metrics"
+	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -27,15 +28,15 @@ type Router struct {
 	recvRate       *expvar.Float
 }
 
-func NewRouter(cluster *Cluster) (*Router, error) {
-	port, err := strconv.Atoi(cluster.spec.Self.NetAddr.Port)
+func NewRouter(self plan.TaskSpec) (*Router, error) {
+	port, err := strconv.Atoi(self.NetAddr.Port)
 	if err != nil {
 		return nil, err
 	}
 	return &Router{
-		localHost:  cluster.spec.Self.NetAddr.Host,
+		localHost:  self.NetAddr.Host,
 		localPort:  uint32(port),
-		localSock:  cluster.spec.Self.SockFile,
+		localSock:  self.SockFile,
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 
@@ -49,7 +50,7 @@ func NewRouter(cluster *Cluster) (*Router, error) {
 }
 
 // getChannel returns the Channel of given Addr
-func (r *Router) getChannel(a Addr) (*Channel, error) {
+func (r *Router) getChannel(a plan.Addr) (*Channel, error) {
 	conn, err := r.connPool.get(a.NetAddr(), r.localHost, r.localPort)
 	if err != nil {
 		return nil, err
@@ -58,7 +59,7 @@ func (r *Router) getChannel(a Addr) (*Channel, error) {
 }
 
 // Send sends Message to given Addr
-func (r *Router) Send(a Addr, m Message) error {
+func (r *Router) Send(a plan.Addr, m Message) error {
 	if err := r.send(a, m); err != nil {
 		log.Errorf("Router::Send failed: %v", err)
 		// TODO: retry
@@ -68,7 +69,7 @@ func (r *Router) Send(a Addr, m Message) error {
 	return nil
 }
 
-func (r *Router) send(a Addr, m Message) error {
+func (r *Router) send(a plan.Addr, m Message) error {
 	// log.Infof("%s::%s", "Router", "Send")
 	ch, err := r.getChannel(a)
 	if err != nil {
@@ -83,7 +84,7 @@ func (r *Router) send(a Addr, m Message) error {
 }
 
 // Recv recevies a message from given Addr
-func (r *Router) Recv(a Addr, m *Message) error {
+func (r *Router) Recv(a plan.Addr, m *Message) error {
 	// log.Infof("%s::%s(%s)", "Router", "Recv", a)
 	// TODO: reduce memory copy
 	*m = *<-r.bufferPool.require(a)
@@ -93,7 +94,7 @@ func (r *Router) Recv(a Addr, m *Message) error {
 	return nil
 }
 
-func (r *Router) stream(conn net.Conn, remoteNetAddr NetAddr) (int, error) {
+func (r *Router) stream(conn net.Conn, remoteNetAddr plan.NetAddr) (int, error) {
 	for i := 0; ; i++ {
 		var mh messageHeader
 		if err := mh.ReadFrom(conn); err != nil {

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/runner"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -17,7 +17,7 @@ import (
 
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of tasks")
-	hostList   = flag.String("H", rch.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
+	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")

@@ -9,3 +9,4 @@ export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
 
 # go test -v ./srcs/go/...
 go test -v ./srcs/go/rchannel
+go test -v ./srcs/go/plan

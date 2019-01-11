@@ -12,7 +12,7 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -34,7 +34,7 @@ func main() {
 	prog := restArgs[0]
 	args := restArgs[1:]
 
-	hostSpecs, err := rch.ParseHostSpec(*hostList)
+	hostSpecs, err := plan.ParseHostSpec(*hostList)
 	if err != nil {
 		utils.ExitErr(err)
 	}
@@ -53,21 +53,21 @@ func main() {
 	writeReport(records, failed, f)
 }
 
-func runAllExperiments(logDir string, hosts []rch.HostSpec, prog string, args []string, timeout time.Duration) ([]Record, int) {
-	pool := make(chan rch.HostSpec, len(hosts))
+func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args []string, timeout time.Duration) ([]Record, int) {
+	pool := make(chan plan.HostSpec, len(hosts))
 	for _, h := range hosts {
 		pool <- h
 	}
 	var banker sync.Mutex
-	requireN := func(n int) []rch.HostSpec {
+	requireN := func(n int) []plan.HostSpec {
 		tk := time.NewTicker(1 * time.Second)
 		defer tk.Stop()
 		for {
-			got := func() []rch.HostSpec {
+			got := func() []plan.HostSpec {
 				banker.Lock()
 				banker.Unlock()
 				if len(pool) >= n {
-					var hs []rch.HostSpec
+					var hs []plan.HostSpec
 					for i := 0; i < n; i++ {
 						hs = append(hs, <-pool)
 					}
@@ -81,7 +81,7 @@ func runAllExperiments(logDir string, hosts []rch.HostSpec, prog string, args []
 			<-tk.C
 		}
 	}
-	returnAll := func(hs []rch.HostSpec) {
+	returnAll := func(hs []plan.HostSpec) {
 		for _, h := range hs {
 			pool <- h
 		}

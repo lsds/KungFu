@@ -3,6 +3,8 @@ package rchannel
 import (
 	"net"
 	"sync"
+
+	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 // Connection encapsulates a TCP connection
@@ -11,10 +13,10 @@ type Connection struct {
 	conn net.Conn
 }
 
-func newConnection(a NetAddr, localHost string, localPort uint32) (*Connection, error) {
+func newConnection(a plan.NetAddr, localHost string, localPort uint32) (*Connection, error) {
 	conn, err := func() (net.Conn, error) {
 		if a.Host == localHost {
-			addr := net.UnixAddr{sockFileFor(a.Port), "unix"}
+			addr := net.UnixAddr{plan.SockFileFor(a.Port), "unix"}
 			// log.Infof("dialing unix sock: %v", addr)
 			return net.DialUnix(addr.Net, nil, &addr)
 		}

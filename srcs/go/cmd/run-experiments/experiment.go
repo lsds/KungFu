@@ -12,7 +12,7 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/runner"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -50,7 +50,7 @@ func parseResult(line string, r *Result) {
 	fmt.Sscanf(line, `Img/sec per /gpu:0: %f +-%f`, &r.Mean, &r.Conf)
 }
 
-func fmtHostSpecs(hosts []rch.HostSpec) string {
+func fmtHostSpecs(hosts []plan.HostSpec) string {
 	var ss []string
 	for _, h := range hosts {
 		ss = append(ss, h.String())
@@ -58,7 +58,7 @@ func fmtHostSpecs(hosts []rch.HostSpec) string {
 	return strings.Join(ss, ",")
 }
 
-func humanizeHostSpecs(hosts []rch.HostSpec) string {
+func humanizeHostSpecs(hosts []plan.HostSpec) string {
 	var ss []string
 	for _, h := range hosts {
 		ss = append(ss, fmt.Sprintf("<ip=%s, slots=%d, pub_ip=%s>", h.Hostname, h.Slots, h.PublicAddr))
@@ -76,7 +76,7 @@ func grep(pattern string, input []string) []string {
 	return lines
 }
 
-func runExperiment(logDir string, hosts []rch.HostSpec, prog string, args []string, algo kb.KungFu_AllReduceAlgo, partition []int, timeout time.Duration) (*Result, error) {
+func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []string, algo kb.KungFu_AllReduceAlgo, partition []int, timeout time.Duration) (*Result, error) {
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func runExperiment(logDir string, hosts []rch.HostSpec, prog string, args []stri
 	}
 
 	jc := sch.JobConfig{
-		TaskCount: rch.TotalCap(hosts),
+		TaskCount: plan.TotalCap(hosts),
 		HostList:  fmtHostSpecs(hosts),
 		Prog:      prog,
 		Args:      args,
@@ -130,11 +130,11 @@ func runExperiment(logDir string, hosts []rch.HostSpec, prog string, args []stri
 	return &res, nil
 }
 
-func reschedule(hosts []rch.HostSpec, partition []int) ([]rch.HostSpec, error) {
+func reschedule(hosts []plan.HostSpec, partition []int) ([]plan.HostSpec, error) {
 	if len(hosts) < len(partition) {
 		return nil, errors.New("hosts not enough")
 	}
-	var workers []rch.HostSpec
+	var workers []plan.HostSpec
 	for i, p := range partition {
 		w := hosts[i]
 		if w.Slots < p {

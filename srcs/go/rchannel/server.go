@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 // Server receives messages from remove endpoints
@@ -89,7 +90,7 @@ func (s *Server) handle(conn net.Conn) error {
 	if err := ch.ReadFrom(conn); err != nil {
 		return err
 	}
-	remoteNetAddr := NetAddr{
+	remoteNetAddr := plan.NetAddr{
 		Host: s.getRemoveHost(conn),
 		Port: strconv.Itoa(int(ch.Port)),
 	}

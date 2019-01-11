@@ -1,8 +1,7 @@
-package rchannel
+package plan
 
 import (
 	"fmt"
-	"testing"
 )
 
 func fakeHosts(n int) []HostSpec {
@@ -17,15 +16,4 @@ func fakeHosts(n int) []HostSpec {
 		hosts = append(hosts, host)
 	}
 	return hosts
-}
-
-func Test_graph(t *testing.T) {
-	n := 4
-	hosts := fakeHosts(n)
-
-	k := n * 4
-	_, g1, g2 := genTaskSpecs(k, hosts)
-	g1.Debug()
-	g2.Debug()
-	// TODO: add tests
 }

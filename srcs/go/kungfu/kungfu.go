@@ -7,16 +7,9 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/metrics"
+	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
-
-type Kungfu struct {
-	cluster     *rch.Cluster
-	router      *rch.Router
-	server      *rch.Server
-	localServer *rch.Server
-	config      Config
-}
 
 type Config struct {
 	Algo         kb.KungFu_AllReduceAlgo
@@ -34,12 +27,23 @@ func (c Config) complete() Config {
 	return newConfig
 }
 
+type Kungfu struct {
+	initProcSpec *plan.ProcSpec
+	initSession  *session
+	router       *rch.Router
+	server       *rch.Server
+	localServer  *rch.Server
+	config       Config
+}
+
 func New(config Config) (*Kungfu, error) {
-	cluster, err := rch.NewClusterFromEnv()
+	config = config.complete()
+	ps, err := plan.NewProcSpecFromEnv()
 	if err != nil {
 		return nil, err
 	}
-	router, err := rch.NewRouter(cluster)
+	session := newSession(config, ps)
+	router, err := rch.NewRouter(ps.Self())
 	if err != nil {
 		return nil, err
 	}
@@ -52,16 +56,17 @@ func New(config Config) (*Kungfu, error) {
 		return nil, err
 	}
 	return &Kungfu{
-		cluster:     cluster,
-		router:      router,
-		server:      server,
-		localServer: localServer,
-		config:      config.complete(),
+		initProcSpec: ps,
+		initSession:  session,
+		router:       router,
+		server:       server,
+		localServer:  localServer,
+		config:       config,
 	}, nil
 }
 
 func (kf *Kungfu) Start() int {
-	go metrics.ListenAndServe(kf.cluster.MyMonitoringPort())
+	go metrics.ListenAndServe(kf.currentCluster().MyMonitoringPort())
 	go kf.server.Serve()
 	go kf.localServer.Serve()
 	go func() {
@@ -76,7 +81,7 @@ func (kf *Kungfu) Start() int {
 func (kf *Kungfu) Close() int {
 	kf.server.Close() // TODO: check error
 	kf.localServer.Close()
-	filename := fmt.Sprintf("vars.%02d.json", kf.cluster.MyRank())
+	filename := fmt.Sprintf("vars.%02d.json", kf.currentCluster().MyRank())
 	f, err := os.Create(filename)
 	if err != nil {
 		return 1
@@ -85,4 +90,9 @@ func (kf *Kungfu) Close() int {
 	metrics.RecordStop()
 	metrics.Export(f)
 	return 0
+}
+
+func (kf *Kungfu) currentCluster() *plan.ProcSpec {
+	// TODO: get cluster by version
+	return kf.initProcSpec
 }

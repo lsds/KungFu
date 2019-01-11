@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 var errCantEstablishConnection = errors.New("can't establish connection")
@@ -25,7 +27,7 @@ func newConnectionPool() *ConnectionPool {
 	}
 }
 
-func (p *ConnectionPool) get(a NetAddr, localHost string, localPort uint32) (*Connection, error) {
+func (p *ConnectionPool) get(a plan.NetAddr, localHost string, localPort uint32) (*Connection, error) {
 	p.Lock()
 	defer p.Unlock()
 	tk := time.NewTicker(p.connRetryPeriod)
