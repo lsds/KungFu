@@ -1,9 +1,14 @@
 #!/bin/bash
 set -e
 
+cd $(dirname $0)
+. ./scripts/utils/measure.sh
+
 BUILD_GTEST=0 # download and build gtest from source
 BUILD_TESTS=1 # build unit tests
 HAVE_GPU=0
+BUILD_TENSORFLOW_OPS=0
+VERBOSE=0
 
 if test $(ls /dev/ | grep nvidia | wc -l) -gt 0; then
     HAVE_GPU=1
@@ -12,6 +17,9 @@ fi
 parse_args() {
     for i in "$@"; do
         case $i in
+        --build-tensorflow-ops)
+            BUILD_TENSORFLOW_OPS=1
+            ;;
         --build-gtest)
             BUILD_GTEST=1
             ;;
@@ -20,6 +28,9 @@ parse_args() {
             ;;
         --no-gpu)
             HAVE_GPU=0
+            ;;
+        --verbose)
+            VERBOSE=1
             ;;
         *)
             echo "unknown argument $1"
@@ -50,14 +61,27 @@ add_cmake_flags() {
     add_cmake_flag LIBRARY_OUTPUT_PATH $(pwd)/lib
     add_cmake_flag CMAKE_RUNTIME_OUTPUT_DIRECTORY $(pwd)/bin
     add_cmake_flag CMAKE_MODULE_PATH $(pwd)/cmake
-    # add_cmake_flag CMAKE_VERBOSE_MAKEFILE 1
-    # add_cmake_flag CMAKE_EXPORT_COMPILE_COMMANDS 1
+
+    add_cmake_flag CMAKE_VERBOSE_MAKEFILE ${VERBOSE}
+    add_cmake_flag CMAKE_EXPORT_COMPILE_COMMANDS ${VERBOSE}
 
     add_cmake_flag KUNGFU_BUILD_GTEST ${BUILD_GTEST}
     add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
     add_cmake_flag KUNGFU_HAVE_GPU ${HAVE_GPU}
+    add_cmake_flag KUNGFU_BUILD_TF_OPS ${BUILD_TENSORFLOW_OPS}
 }
 
-parse_args $@
-add_cmake_flags
-cmake . $CMAKE_FLAGS
+cleanup_cmake_cache() {
+    if [ -f CMakeCache.txt ]; then
+        rm CMakeCache.txt
+    fi
+}
+
+main() {
+    parse_args $@
+    add_cmake_flags
+    cleanup_cmake_cache
+    cmake . $CMAKE_FLAGS
+}
+
+measure main $@

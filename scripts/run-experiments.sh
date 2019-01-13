@@ -5,19 +5,9 @@ cd $(dirname $0)
 SCRIPT_NAME=$(basename $0)
 SCRIPT_DIR=$(pwd)
 
-. ./utils/show_duration.sh
+. ./utils/measure.sh
 
 cd ../..
-
-measure() {
-    local begin=$(date +%s)
-    echo "[begin] $SCRIPT_NAME::$@ at $begin"
-    $@
-    local end=$(date +%s)
-    local duration=$((end - begin))
-    local dur=$(show_duration $duration)
-    echo "[done] $SCRIPT_NAME::$@ took ${dur}" | tee -a $SCRIPT_DIR/profile.log
-}
 
 main() {
     measure $SCRIPT_DIR/azure/cloud/upload-to-relay.sh

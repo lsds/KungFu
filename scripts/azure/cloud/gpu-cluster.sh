@@ -3,9 +3,8 @@
 set -e
 set -x
 
-SCRIPT_NAME=$(basename $0)
 cd $(dirname $0)/..
-. ../utils/show_duration.sh
+. ../utils/measure.sh
 
 # DEBUG=--debug
 
@@ -43,16 +42,6 @@ node_names() {
 }
 
 ALL_NODES=$(node_names ${N_NODES})
-
-measure() {
-    local begin=$(date +%s)
-    echo "[begin] $SCRIPT_NAME::$@ at $begin"
-    $@
-    local end=$(date +%s)
-    local duration=$((end - begin))
-    local dur=$(show_duration $duration)
-    echo "[done] $SCRIPT_NAME::$@ took ${dur}" | tee -a profile.log
-}
 
 delete_resource() {
     local NAME=$1

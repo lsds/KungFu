@@ -2,9 +2,8 @@
 
 set -e
 
-SCRIPT_NAME=$(basename $0)
 cd $(dirname $0)/..
-. ../utils/show_duration.sh
+. ../utils/measure.sh
 
 if [ -z "${PREFIX}" ]; then
     PREFIX=$USER-test-cluster
@@ -13,16 +12,6 @@ fi
 GROUP=KungFu
 ADMIN=kungfu
 RELAY_NAME=${PREFIX}-relay
-
-measure() {
-    local begin=$(date +%s)
-    echo "[begin] $SCRIPT_NAME::$@ at $begin"
-    $@
-    local end=$(date +%s)
-    local duration=$((end - begin))
-    local dur=$(show_duration $duration)
-    echo "[done] $SCRIPT_NAME::$@ took ${dur}s"
-}
 
 get_ip() {
     local NAME=$1

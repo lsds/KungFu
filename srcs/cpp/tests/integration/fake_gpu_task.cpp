@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <map>
+#include <numeric>
 #include <string>
 #include <vector>
 
