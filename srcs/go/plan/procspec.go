@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-)
 
-const ProcSpecEnvKey = `KUNGFU_PROC_SPEC`
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+)
 
 // FIXME: make members private, public is required by JSON encoding for now
 
@@ -17,81 +17,79 @@ type ProcSpec struct {
 	SelfRank int
 }
 
-func (ps ProcSpec) String() string {
-	bs, err := json.Marshal(ps)
-	if err != nil {
-		return ""
-	}
-	return string(bs)
-}
-
-func (pc ProcSpec) Self() TaskSpec {
-	return pc.Peers[pc.SelfRank]
-}
-
-func getConfig() string {
-	config := os.Getenv(ProcSpecEnvKey)
-	if len(config) != 0 {
-		return config
-	}
-	if cs, err := GenClusterSpec(1, []HostSpec{DefaultHostSpec()}); err == nil {
-		return cs.ToProcSpec(0).String()
-	}
-	return ""
+func (ps ProcSpec) Self() PeerSpec {
+	return ps.Peers[ps.SelfRank]
 }
 
 func NewProcSpecFromEnv() (*ProcSpec, error) {
-	config := getConfig()
-	var pc ProcSpec
-	if err := json.Unmarshal([]byte(config), &pc); err != nil {
-		return nil, errors.New(ProcSpecEnvKey + " is invalid")
+	clusterSpecConfig := os.Getenv(kb.ClusterSpecEnvKey)
+	selfRankConfig := os.Getenv(kb.SelfRankEnvKey)
+	if len(clusterSpecConfig) == 0 && len(selfRankConfig) == 0 {
+		cs, err := GenClusterSpec(1, []HostSpec{DefaultHostSpec()})
+		if err != nil {
+			return nil, err
+		}
+		ps := cs.ToProcSpec(0)
+		return &ps, nil
 	}
-	return &pc, nil
+
+	var cs ClusterSpec
+	if err := json.Unmarshal([]byte(clusterSpecConfig), &cs); err != nil {
+		return nil, errors.New(kb.ClusterSpecEnvKey + " is invalid")
+	}
+	selfRank, err := strconv.Atoi(selfRankConfig)
+	if err != nil {
+		return nil, errors.New(kb.SelfRankEnvKey + " is invalid")
+	}
+	if selfRank < 0 || len(cs.Peers) <= selfRank {
+		return nil, errors.New(kb.SelfRankEnvKey + " is invalid")
+	}
+	ps := cs.ToProcSpec(selfRank)
+	return &ps, nil
 }
 
-func (pc ProcSpec) Size() int {
-	return len(pc.Peers)
+func (ps ProcSpec) Size() int {
+	return len(ps.Peers)
 }
 
-func (pc ProcSpec) GetPeer(rank int) TaskSpec {
-	return pc.Peers[rank]
+func (ps ProcSpec) GetPeer(rank int) PeerSpec {
+	return ps.Peers[rank]
 }
 
-func (pc ProcSpec) AllPeers() []TaskSpec {
-	return pc.Peers
+func (ps ProcSpec) AllPeers() []PeerSpec {
+	return ps.Peers
 }
 
-func (pc ProcSpec) MyPort() uint32 {
-	port, err := strconv.Atoi(pc.Self().NetAddr.Port)
+func (ps ProcSpec) MyPort() uint32 {
+	port, err := strconv.Atoi(ps.Self().NetAddr.Port)
 	if err != nil {
 		return 0
 	}
 	return uint32(port)
 }
 
-func (pc ProcSpec) MyMonitoringPort() uint16 {
-	return pc.Self().MonitoringPort
+func (ps ProcSpec) MyMonitoringPort() uint16 {
+	return ps.Self().MonitoringPort
 }
 
-func (pc ProcSpec) MyRank() int {
-	return pc.SelfRank
+func (ps ProcSpec) MyRank() int {
+	return ps.SelfRank
 }
 
 func GenClusterSpec(k int, hostSpecs []HostSpec) (*ClusterSpec, error) {
 	if cap := TotalCap(hostSpecs); cap < k {
-		return nil, fmt.Errorf("can run %d tasks at most!", cap)
+		return nil, fmt.Errorf("can run %d peers at most!", cap)
 	}
-	tasks := genTaskSpecs(k, hostSpecs)
-	return &ClusterSpec{Peers: tasks}, nil
+	return &ClusterSpec{Peers: genPeerSpecs(k, hostSpecs)}, nil
 }
 
-func genTaskSpecs(k int, hostSpecs []HostSpec) []TaskSpec {
+func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
 	var idx int
-	var tasks []TaskSpec
+	var peers []PeerSpec
 	for _, host := range hostSpecs {
 		for j := 0; j < host.Slots; j++ {
 			port := strconv.Itoa(10001 + j)
-			task := TaskSpec{
+			peer := PeerSpec{
 				DeviceID: j,
 				NetAddr: NetAddr{
 					Host: host.Hostname,
@@ -102,13 +100,13 @@ func genTaskSpecs(k int, hostSpecs []HostSpec) []TaskSpec {
 				GlobalRank:     idx,
 			}
 			idx++
-			tasks = append(tasks, task)
-			if len(tasks) >= k {
-				return tasks
+			peers = append(peers, peer)
+			if len(peers) >= k {
+				return peers
 			}
 		}
 	}
-	return tasks
+	return peers
 }
 
 func SockFileFor(port string) string {

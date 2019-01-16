@@ -104,7 +104,7 @@ func LocalRunAll(ctx context.Context, ps []sch.Proc, verboseLog bool) error {
 	}
 	wg.Wait()
 	if fail != 0 {
-		return fmt.Errorf("%d tasks failed", fail)
+		return fmt.Errorf("%d peers failed", fail)
 	}
 	return nil
 }

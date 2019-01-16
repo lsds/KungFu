@@ -25,3 +25,15 @@ All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 * kungfu-base: a C library that will be used by Golang via CGO internally
 * kungfu-comm: a C library implemented in Golang
 * kungfu: the public C/C++ library based on kungfu-comm
+
+### Concepts
+
+* PeerSpec: PeerSpec is the metadata that describes a single worker, it tells the runner how to start the worker and also tells all peers how to find each other.
+
+* ClusterSpec: ClusterSpec is the list of **PeerSpec** from all peers in the cluster. It is a common constant shared among all peers in the cluster.
+
+* ProcSpec: ProcSpec is the the pair of (**ClusterSpec**, **SelfRank**).
+
+* HostSpec: HostSpec is the metadata that describes a host machine.
+
+* Graph: A directed graph, which may contain self loops. The vertices are numbered from 0 to n - 1.

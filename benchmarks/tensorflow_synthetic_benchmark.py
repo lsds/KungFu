@@ -12,7 +12,7 @@ import numpy as np
 import timeit
 
 import tensorflow as tf
-from kungfu import AsyncSGDOptimizer
+import kungfu as kf
 from tensorflow.keras import applications
 
 # Benchmark settings
@@ -70,8 +70,8 @@ model = getattr(applications, args.model)(weights=None)
 
 opt = tf.train.GradientDescentOptimizer(0.01)
 
-# Kungfu: wrap optimizer with AsyncSGDOptimizer.
-opt = AsyncSGDOptimizer(opt)
+# Kungfu: wrap optimizer with kf.SyncSGDOptimizer.
+opt = kf.SyncSGDOptimizer(opt)
 
 init = tf.global_variables_initializer()
 

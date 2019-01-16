@@ -10,7 +10,7 @@ TEST(kungfu_test, test_type_size)
 TEST(kungfu_test, test_life_cycle)
 {
     {
-        int code = KungfuInit(KungFu_SimpleAllReduce);
+        int code = KungfuInit(KungFu_StarAllReduce);
         ASSERT_EQ(code, 0);
     }
     {

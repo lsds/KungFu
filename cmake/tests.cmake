@@ -74,8 +74,8 @@ FUNCTION(ADD_TEST_BIN target)
     USE_STDTRACER(${target})
 ENDFUNCTION()
 
-ADD_TEST_BIN(fake-task ${KUNGFU_TESTS_DIR}/integration/fake_task.cpp)
+ADD_TEST_BIN(fake-agent ${KUNGFU_TESTS_DIR}/integration/fake_agent.cpp)
 IF(KUNGFU_HAVE_GPU)
-    ADD_TEST_BIN(fake-gpu-task
-                 ${KUNGFU_TESTS_DIR}/integration/fake_gpu_task.cpp)
+    ADD_TEST_BIN(fake-gpu-agent
+                 ${KUNGFU_TESTS_DIR}/integration/fake_gpu_agent.cpp)
 ENDIF()

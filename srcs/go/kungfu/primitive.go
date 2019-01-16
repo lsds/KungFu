@@ -15,27 +15,25 @@ func (kf *Kungfu) runGraph(sendBuf []byte, recvBuf []byte, count int, dtype kb.K
 	n := count * dtype.Size()
 
 	sendTo := func(rank int) {
-		task := kf.currentCluster().GetPeer(rank)
+		peer := kf.currentCluster().GetPeer(rank)
 		m := rch.NewMessage(recvBuf[:n])
-		kf.router.Send(task.NetAddr.WithName(name), *m)
+		kf.router.Send(peer.NetAddr.WithName(name), *m)
 	}
 
 	var lock sync.Mutex
 	recvAdd := func(rank int) {
-		task := kf.currentCluster().GetPeer(rank)
-		addr := task.NetAddr
+		peer := kf.currentCluster().GetPeer(rank)
 		var m rch.Message
-		kf.router.Recv(addr.WithName(name), &m)
+		kf.router.Recv(peer.NetAddr.WithName(name), &m)
 		lock.Lock()
 		kb.Transform(recvBuf[:n], m.Data, count, dtype, op)
 		lock.Unlock()
 	}
 
 	recvAssign := func(rank int) {
-		task := kf.currentCluster().GetPeer(rank)
-		addr := task.NetAddr
+		peer := kf.currentCluster().GetPeer(rank)
 		var m rch.Message
-		kf.router.Recv(addr.WithName(name), &m)
+		kf.router.Recv(peer.NetAddr.WithName(name), &m)
 		copy(recvBuf[:n], m.Data)
 	}
 

@@ -30,9 +30,9 @@ extern const KungFu_Op KungFu_SUM;
 
 typedef int KungFu_AllReduceAlgo;
 
-extern const KungFu_AllReduceAlgo KungFu_SimpleAllReduce;
+extern const KungFu_AllReduceAlgo KungFu_StarAllReduce;
 extern const KungFu_AllReduceAlgo KungFu_RingAllReduce;
-extern const KungFu_AllReduceAlgo KungFu_FullSymmetricAllReduce;
+extern const KungFu_AllReduceAlgo KungFu_CliqueAllReduce;
 extern const KungFu_AllReduceAlgo KungFu_TreeAllReduce;
 // extern KungFu_AllReduceAlgo KungFu_DynamicAllReduce;
 
@@ -40,7 +40,7 @@ extern int KungfuInit(KungFu_AllReduceAlgo algo);
 
 extern int KungfuFinalize();
 
-extern KungFu_AllReduceAlgo KungfuParseAlgoName(const char *name);
+extern KungFu_AllReduceAlgo KungfuGetAlgoFromEnv();
 
 #ifdef __cplusplus
 }

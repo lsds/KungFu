@@ -3,7 +3,7 @@
 #include <tensorflow/core/framework/op_kernel.h>
 
 #include <kungfu.h>
-#include <negotiator.h>
+#include <kungfu_tensorflow_ops.h>
 
 static kungfu_world _kungfu_world;
 

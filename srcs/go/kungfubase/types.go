@@ -3,6 +3,12 @@ package kungfubase
 // #include <kungfu.h>
 import "C"
 
+const (
+	ClusterSpecEnvKey   = `KUNGFU_CLUSTER_SPEC`
+	SelfRankEnvKey      = `KUNGFU_SELF_RANK`
+	AllReduceAlgoEnvKey = `KUNGFU_ALLREDUCE_ALGO`
+)
+
 type KungFu_Datatype C.KungFu_Datatype
 
 var (
@@ -25,16 +31,14 @@ var (
 
 type KungFu_AllReduceAlgo C.KungFu_AllReduceAlgo
 
-const KungFu_AllReduceAlgo_Key = `KUNGFU_ALLREDUCE_ALGO`
-
 var (
-	KungFu_Simple = KungFu_AllReduceAlgo(C.KungFu_SimpleAllReduce)
+	KungFu_Star   = KungFu_AllReduceAlgo(C.KungFu_StarAllReduce)
 	KungFu_Ring   = KungFu_AllReduceAlgo(C.KungFu_RingAllReduce)
-	KungFu_Clique = KungFu_AllReduceAlgo(C.KungFu_FullSymmetricAllReduce)
+	KungFu_Clique = KungFu_AllReduceAlgo(C.KungFu_CliqueAllReduce)
 	KungFu_Tree   = KungFu_AllReduceAlgo(C.KungFu_TreeAllReduce)
 
 	algoNames = map[KungFu_AllReduceAlgo]string{
-		KungFu_Simple: `SIMPLE`,
+		KungFu_Star:   `STAR`,
 		KungFu_Ring:   `RING`,
 		KungFu_Clique: `CLIQUE`,
 		KungFu_Tree:   `TREE`,

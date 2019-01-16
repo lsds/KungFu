@@ -3,7 +3,7 @@ package plan
 import "encoding/json"
 
 type ClusterSpec struct {
-	Peers []TaskSpec
+	Peers []PeerSpec
 }
 
 func (cs ClusterSpec) String() string {

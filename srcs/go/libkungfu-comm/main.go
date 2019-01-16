@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"reflect"
 	"unsafe"
 
@@ -65,9 +66,10 @@ func GoKungfuNegotiateAsync(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.
 	return 0
 }
 
-//export GoKungfuParseAlgoName
-func GoKungfuParseAlgoName(name *C.char) C.KungFu_AllReduceAlgo {
-	return C.KungFu_AllReduceAlgo(kb.ParseAlgo(C.GoString(name)))
+//export GoKungfuGetAlgoFromEnv
+func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
+	name := os.Getenv(kb.AllReduceAlgoEnvKey)
+	return C.KungFu_AllReduceAlgo(kb.ParseAlgo(name))
 }
 
 func main() {}

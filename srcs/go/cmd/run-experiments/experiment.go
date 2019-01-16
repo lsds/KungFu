@@ -94,7 +94,7 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 	}
 
 	jc := sch.JobConfig{
-		TaskCount: plan.TotalCap(hosts),
+		PeerCount: plan.TotalCap(hosts),
 		HostList:  fmtHostSpecs(hosts),
 		Prog:      prog,
 		Args:      args,
@@ -112,7 +112,7 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 	d, err := utils.Measure(func() error {
 		outputs, err := runner.RemoteRunAll(ctx, *user, ps, *verboseLog)
 		for i, o := range outputs {
-			o.SaveTo(path.Join(logDir, fmt.Sprintf("task-%02d", i)))
+			o.SaveTo(path.Join(logDir, fmt.Sprintf("peer-%02d", i)))
 		}
 		for _, o := range outputs {
 			if info := grep(`Img/sec per /gpu:0`, o.Stdout); len(info) > 0 {
@@ -122,7 +122,7 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 		}
 		return err
 	})
-	log.Printf("all %d tasks finished, took %s", len(ps), d)
+	log.Printf("all %d peers finished, took %s", len(ps), d)
 	if err != nil {
 		return nil, err
 	}

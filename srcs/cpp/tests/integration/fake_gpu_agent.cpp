@@ -89,7 +89,7 @@ template <typename T> void test(kungfu_world &kf, int n, int m)
                                    cudaMemcpyDeviceToHost);
         CUDA_CHECK() << cudaFree(px) << cudaFree(py);
 
-        // TODO: test multi-tasks
+        // TODO: test multi-peers
         if (differs(x, y)) {
             fprintf(stderr, "FAILED\n");
             exit(1);

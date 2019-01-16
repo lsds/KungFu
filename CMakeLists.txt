@@ -53,7 +53,7 @@ ADD_DEPENDENCIES(kungfu libkungfu-comm)
 
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(cmake/tf-op.cmake)
-    ADD_TF_OP_LIB(kungfu_tensorflow_ops srcs/cpp/src/negotiator.cpp)
+    ADD_TF_OP_LIB(kungfu_tensorflow_ops srcs/cpp/src/kungfu_tensorflow_ops.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu)
     SET_TARGET_PROPERTIES(kungfu_tensorflow_ops
                           PROPERTIES INSTALL_RPATH "$ORIGIN")

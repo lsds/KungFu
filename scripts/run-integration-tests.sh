@@ -24,10 +24,10 @@ run_with_algo() {
         -H $H \
         -timeout=5s \
         ${QUIET} \
-        ./bin/fake-task
+        ./bin/fake-agent
 }
 
-all_algos="SIMPLE RING CLIQUE TREE"
+all_algos="STAR RING CLIQUE TREE"
 for algo in $all_algos; do
     run_with_algo $algo
 done

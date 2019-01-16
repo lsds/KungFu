@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	np         = flag.Int("np", runtime.NumCPU(), "number of tasks")
+	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
 	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
@@ -37,7 +37,7 @@ func main() {
 		utils.ExitErr(errors.New("missing program name"))
 	}
 	jc := sch.JobConfig{
-		TaskCount: *np,
+		PeerCount: *np,
 		HostList:  *hostList,
 		Prog:      restArgs[0],
 		Args:      restArgs[1:],
@@ -54,7 +54,7 @@ func main() {
 		_, err := runner.RemoteRunAll(ctx, *user, ps, *verboseLog)
 		return err
 	})
-	log.Printf("all %d tasks finished, took %s", len(ps), d)
+	log.Printf("all %d peers finished, took %s", len(ps), d)
 	if err != nil && err != context.DeadlineExceeded {
 		utils.ExitErr(err)
 	}

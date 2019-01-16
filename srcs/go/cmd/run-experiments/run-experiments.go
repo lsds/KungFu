@@ -125,7 +125,7 @@ func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args [
 	}
 
 	algos := []kb.KungFu_AllReduceAlgo{
-		kb.KungFu_Simple,
+		kb.KungFu_Star,
 		kb.KungFu_Ring,
 		kb.KungFu_Clique,
 		kb.KungFu_Tree,

@@ -14,27 +14,26 @@ type session struct {
 	partitions []partition
 }
 
-func newSession(c Config, ps *plan.ProcSpec) *session {
-	k := ps.Size()
-	partitions := func() []partition {
-		switch c.Algo {
-		case kb.KungFu_Tree:
-			return treeGraphs(ps.Peers)
-		case kb.KungFu_Clique:
-			return cliqueGraphs(k)
-		case kb.KungFu_Ring:
-			return ringGraphs(k)
-		case kb.KungFu_Simple:
-			return simplePartitions(k)
-		default:
-			log.Warnf("%s is not implemeted, fallback to simpleAllReduce", c.Algo)
-			return simplePartitions(k)
-		}
-	}()
-	return &session{partitions: partitions}
+type partitionStrategy func([]plan.PeerSpec) []partition
+
+var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
+	kb.KungFu_Star:   createStarPartitions,
+	kb.KungFu_Clique: createCliquePartitions,
+	kb.KungFu_Ring:   createRingPartitions,
+	kb.KungFu_Tree:   createTreePartitions,
 }
 
-func simplePartitions(k int) []partition {
+func newSession(c Config, ps *plan.ProcSpec) *session {
+	f := partitionStrategies[c.Algo]
+	if f == nil {
+		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
+		f = createStarPartitions
+	}
+	return &session{partitions: f(ps.Peers)}
+}
+
+func createStarPartitions(peers []plan.PeerSpec) []partition {
+	k := len(peers)
 	bcastGraph := plan.GenStarBcastGraph(k, 0)
 	gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
 	return []partition{
@@ -44,8 +43,8 @@ func simplePartitions(k int) []partition {
 	}
 }
 
-func treeGraphs(tasks []plan.TaskSpec) []partition {
-	bcastGraph := plan.GenDefaultBcastGraph(tasks)
+func createTreePartitions(peers []plan.PeerSpec) []partition {
+	bcastGraph := plan.GenDefaultBcastGraph(peers)
 	gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
 	return []partition{
 		{
@@ -54,30 +53,26 @@ func treeGraphs(tasks []plan.TaskSpec) []partition {
 	}
 }
 
-func cliqueGraphs(k int) []partition {
+func createCliquePartitions(peers []plan.PeerSpec) []partition {
+	k := len(peers)
 	var ps []partition
 	for r := 0; r < k; r++ {
 		bcastGraph := plan.GenStarBcastGraph(k, r)
 		gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
 		ps = append(ps, partition{
-			Graphs: []*plan.Graph{
-				gatherGraph,
-				bcastGraph,
-			},
+			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
 		})
 	}
 	return ps
 }
 
-func ringGraphs(k int) []partition {
+func createRingPartitions(peers []plan.PeerSpec) []partition {
+	k := len(peers)
 	var ps []partition
 	for r := 0; r < k; r++ {
 		gatherGraph, bcastGraph := plan.GenCircularGraphPair(k, r)
 		ps = append(ps, partition{
-			Graphs: []*plan.Graph{
-				gatherGraph,
-				bcastGraph,
-			},
+			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
 		})
 	}
 	return ps

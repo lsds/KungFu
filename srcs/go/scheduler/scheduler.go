@@ -9,7 +9,7 @@ import (
 )
 
 type JobConfig struct {
-	TaskCount int
+	PeerCount int
 	HostList  string
 	Prog      string
 	Args      []string
@@ -20,7 +20,7 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 	if err != nil {
 		return nil, err
 	}
-	cs, err := plan.GenClusterSpec(jc.TaskCount, hostSpecs)
+	cs, err := plan.GenClusterSpec(jc.PeerCount, hostSpecs)
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +36,11 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 			Prog: jc.Prog,
 			Args: jc.Args,
 			Envs: map[string]string{
-				plan.ProcSpecEnvKey:         cs.ToProcSpec(i).String(),
-				`CUDA_VISIBLE_DEVICES`:      strconv.Itoa(self.DeviceID),
-				`PYTHONUNBUFFERED`:          `1`,
-				kb.KungFu_AllReduceAlgo_Key: algo.String(),
+				kb.ClusterSpecEnvKey:   cs.String(),
+				kb.SelfRankEnvKey:      strconv.Itoa(i),
+				kb.AllReduceAlgoEnvKey: algo.String(),
+				`CUDA_VISIBLE_DEVICES`: strconv.Itoa(self.DeviceID),
+				`PYTHONUNBUFFERED`:     `1`,
 			},
 			Host:    self.NetAddr.Host,
 			PubAddr: pubAddr[self.NetAddr.Host],

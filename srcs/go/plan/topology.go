@@ -2,10 +2,10 @@ package plan
 
 import "sort"
 
-func GenDefaultBcastGraph(tasks []TaskSpec) *Graph {
-	g := NewGraph(len(tasks))
+func GenDefaultBcastGraph(peers []PeerSpec) *Graph {
+	g := NewGraph(len(peers))
 	hostMasters := make(map[string]int)
-	for _, t := range tasks {
+	for _, t := range peers {
 		if master, ok := hostMasters[t.NetAddr.Host]; !ok {
 			hostMasters[t.NetAddr.Host] = t.GlobalRank
 		} else {

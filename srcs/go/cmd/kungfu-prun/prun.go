@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	np         = flag.Int("np", runtime.NumCPU(), "number of tasks")
+	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
 	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
 	selfHost   = flag.String("self", "", "")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
@@ -53,7 +53,7 @@ func main() {
 	log.Printf("will parallel run multiple %s with %q", prog, args)
 
 	jc := sch.JobConfig{
-		TaskCount: *np,
+		PeerCount: *np,
 		HostList:  *hostList,
 		Prog:      prog,
 		Args:      args,
@@ -73,7 +73,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
 	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, *verboseLog) })
-	log.Printf("all %d/%d local tasks finished, took %s", len(myPs), len(ps), d)
+	log.Printf("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
 	if err != nil && err != context.DeadlineExceeded {
 		utils.ExitErr(err)
 	}

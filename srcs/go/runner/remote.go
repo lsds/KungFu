@@ -55,7 +55,7 @@ func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bo
 	}
 	wg.Wait()
 	if fail != 0 {
-		return outputs, fmt.Errorf("%d tasks failed", fail)
+		return outputs, fmt.Errorf("%d peers failed", fail)
 	}
 	return outputs, nil
 }

@@ -14,7 +14,7 @@ func (kf *Kungfu) Warmup() {
 	recvBuf := make([]byte, n)
 	op := kb.KungFu_SUM
 	name := "kungfu::warmup" // TODO: use tag
-	kf.runPartitions(sendBuf, recvBuf, count, dtype, op, name, plan.EvenPartition, cliqueGraphs(k))
+	kf.runPartitions(sendBuf, recvBuf, count, dtype, op, name, plan.EvenPartition, createCliquePartitions(kf.currentCluster().Peers))
 }
 
 func (kf *Kungfu) Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string) int {

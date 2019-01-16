@@ -11,11 +11,13 @@ job1:
   stage: unit test
 
   script:
-  - |
+  - | # C++ test
     ./configure
     make
     make test
-    go test -v ./srcs/go/rchannel
+
+  - | # Go test
+    ./scripts/go-test.sh
 
 job2:
   stage: integration test

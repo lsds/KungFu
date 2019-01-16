@@ -45,8 +45,8 @@ def build_train_ops(model_name, use_async_sgd):
         -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
     optmizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_async_sgd:
-        from kungfu import AsyncSGDOptimizer
-        optmizer = AsyncSGDOptimizer(optmizer)
+        import kungfu as kf
+        optmizer = kf.SyncSGDOptimizer(optmizer)
     train_step = optmizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))

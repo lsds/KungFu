@@ -69,6 +69,9 @@ func (g *Graph) Debug() {
 	fmt.Print("graph {\n")
 	for i, n := range g.Nodes {
 		fmt.Printf("\t%d;\n", n.Rank)
+		if g.IsSelfLoop(i) {
+			fmt.Printf("\t%d -> %d\n", i, i)
+		}
 		for _, j := range n.Nexts {
 			fmt.Printf("\t%d -> %d;\n", i, j)
 		}

@@ -12,34 +12,48 @@ import tensorflow as tf
 import kungfu as kf
 import os
 
-parser = argparse.ArgumentParser(description='Keras ImageNet Example',
-                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--train-dir', default=os.path.expanduser('~/imagenet/train'),
-                    help='path to training data')
-parser.add_argument('--val-dir', default=os.path.expanduser('~/imagenet/validation'),
-                    help='path to validation data')
-parser.add_argument('--log-dir', default='./logs',
-                    help='tensorboard log directory')
-parser.add_argument('--checkpoint-format', default='./checkpoint-{epoch}.h5',
-                    help='checkpoint file format')
-parser.add_argument('--fp16-allreduce', action='store_true', default=False,
-                    help='use fp16 compression during allreduce')
+parser = argparse.ArgumentParser(
+    description='Keras ImageNet Example',
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument(
+    '--train-dir',
+    default=os.path.expanduser('~/imagenet/train'),
+    help='path to training data')
+parser.add_argument(
+    '--val-dir',
+    default=os.path.expanduser('~/imagenet/validation'),
+    help='path to validation data')
+parser.add_argument(
+    '--log-dir', default='./logs', help='tensorboard log directory')
+parser.add_argument(
+    '--checkpoint-format',
+    default='./checkpoint-{epoch}.h5',
+    help='checkpoint file format')
+parser.add_argument(
+    '--fp16-allreduce',
+    action='store_true',
+    default=False,
+    help='use fp16 compression during allreduce')
 
 # Default settings from https://arxiv.org/abs/1706.02677.
-parser.add_argument('--batch-size', type=int, default=32,
-                    help='input batch size for training')
-parser.add_argument('--val-batch-size', type=int, default=32,
-                    help='input batch size for validation')
-parser.add_argument('--epochs', type=int, default=90,
-                    help='number of epochs to train')
-parser.add_argument('--base-lr', type=float, default=0.0125,
-                    help='learning rate for a single GPU')
-parser.add_argument('--warmup-epochs', type=float, default=5,
-                    help='number of warmup epochs')
-parser.add_argument('--momentum', type=float, default=0.9,
-                    help='SGD momentum')
-parser.add_argument('--wd', type=float, default=0.00005,
-                    help='weight decay')
+parser.add_argument(
+    '--batch-size', type=int, default=32, help='input batch size for training')
+parser.add_argument(
+    '--val-batch-size',
+    type=int,
+    default=32,
+    help='input batch size for validation')
+parser.add_argument(
+    '--epochs', type=int, default=90, help='number of epochs to train')
+parser.add_argument(
+    '--base-lr',
+    type=float,
+    default=0.0125,
+    help='learning rate for a single GPU')
+parser.add_argument(
+    '--warmup-epochs', type=float, default=5, help='number of warmup epochs')
+parser.add_argument('--momentum', type=float, default=0.9, help='SGD momentum')
+parser.add_argument('--wd', type=float, default=0.00005, help='weight decay')
 parser.add_argument('--verbose', type=bool, default=False, help='print log')
 parser.add_argument('--cluster-size', type=int, default=1, help='cluster size')
 parser.add_argument('--local-rank', type=int, default=1, help='local rank')
@@ -60,11 +74,13 @@ K.set_session(tf.Session(config=config))
 
 # Training data iterator.
 train_gen = image.ImageDataGenerator(
-    width_shift_range=0.33, height_shift_range=0.33, zoom_range=0.5, horizontal_flip=True,
+    width_shift_range=0.33,
+    height_shift_range=0.33,
+    zoom_range=0.5,
+    horizontal_flip=True,
     preprocessing_function=keras.applications.resnet50.preprocess_input)
-train_iter = train_gen.flow_from_directory(args.train_dir,
-                                           batch_size=args.batch_size,
-                                           target_size=(224, 224))
+train_iter = train_gen.flow_from_directory(
+    args.train_dir, batch_size=args.batch_size, target_size=(224, 224))
 
 # Set up standard ResNet-50 model.
 model = keras.applications.resnet50.ResNet50(weights=None)
@@ -88,16 +104,19 @@ model = keras.models.Model.from_config(model_config)
 opt = keras.optimizers.SGD(lr=args.base_lr * kf_size, momentum=args.momentum)
 
 # Kungfu: add Distributed Optimizer.
-opt = kf.AsyncSGDOptimizer(opt)
+opt = kf.SyncSGDOptimizer(opt)
 
-model.compile(loss=keras.losses.categorical_crossentropy,
-                optimizer=opt,
-                metrics=['accuracy', 'top_k_categorical_accuracy'])
+model.compile(
+    loss=keras.losses.categorical_crossentropy,
+    optimizer=opt,
+    metrics=['accuracy', 'top_k_categorical_accuracy'])
 
 # Train the model. The training will randomly sample 1 / N batches of training data.
 # TODO: ensure that all worker starts from the same initial weighst
-model.fit_generator(train_iter,
-                    steps_per_epoch=len(train_iter) // kf_size, # FIXME: kf_size needs to be logical data parallelism
-                    epochs=args.epochs,
-                    verbose=args.verbose,
-                    workers=4)
+model.fit_generator(
+    train_iter,
+    steps_per_epoch=len(train_iter) //
+    kf_size,  # FIXME: kf_size needs to be logical data parallelism
+    epochs=args.epochs,
+    verbose=args.verbose,
+    workers=4)

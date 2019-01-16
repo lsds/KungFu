@@ -28,7 +28,7 @@ type Router struct {
 	recvRate       *expvar.Float
 }
 
-func NewRouter(self plan.TaskSpec) (*Router, error) {
+func NewRouter(self plan.PeerSpec) (*Router, error) {
 	port, err := strconv.Atoi(self.NetAddr.Port)
 	if err != nil {
 		return nil, err

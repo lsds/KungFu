@@ -7,10 +7,12 @@ func Test_graph(t *testing.T) {
 	hosts := fakeHosts(n)
 
 	k := n * 4
-	tasks := genTaskSpecs(k, hosts)
-	g1 := genDefaultGatherGraph(tasks)
-	g2 := g1.Reverse()
-	g1.Debug()
-	g2.Debug()
+	peers := genPeerSpecs(k, hosts)
+
+	bcastGraph := GenDefaultBcastGraph(peers)
+	gatherGraph := GenDefaultGatherGraph(bcastGraph)
+
+	gatherGraph.Debug()
+	bcastGraph.Debug()
 	// TODO: add tests
 }

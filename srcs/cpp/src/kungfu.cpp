@@ -1,5 +1,3 @@
-#include <string>
-
 #include <kungfu.h>
 #include <libkungfu-comm.h>
 
@@ -24,26 +22,10 @@ int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
                                   new CallbackWrapper(done));
 }
 
-KungFu_AllReduceAlgo KungfuParseAlgoName(const char *name)
-{
-    return GoKungfuParseAlgoName((char *)name);
-}
-
-static std::string safe_getenv(const char *name)
-{
-    const char *ptr = std::getenv(name);
-    if (ptr) { return std::string(ptr); }
-    return "";
-}
-
-static KungFu_AllReduceAlgo get_algo_from_env()
-{
-    const auto name = safe_getenv("KUNGFU_ALLREDUCE_ALGO");
-    return KungfuParseAlgoName(name.c_str());
-}
+KungFu_AllReduceAlgo KungfuGetAlgoFromEnv() { return GoKungfuGetAlgoFromEnv(); }
 
 kungfu_world::kungfu_world()
-    : _algo(get_algo_from_env()), _global_step(0), _gradient_count(0)
+    : _algo(KungfuGetAlgoFromEnv()), _global_step(0), _gradient_count(0)
 {
     KungfuInit(_algo);
 }
