@@ -32,7 +32,8 @@ class Negotiator : public AsyncOpKernel
                        context->allocate_output(0, input.shape(), &output));
         _kungfu_world.NegotiateAsync(
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
-            input.NumElements(), to_kungfu_type(input.dtype()), name(), done);
+            input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
+            name().c_str(), done);
     }
 };
 
