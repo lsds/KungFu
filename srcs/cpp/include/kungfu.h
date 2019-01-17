@@ -74,12 +74,6 @@ class kungfu_world
         return KungfuNegotiateAsync(sendbuf, recvbuf, count, dtype, op, name,
                                     done);
     }
-
-#if KUNGFU_HAVE_GPU
-    int NegotiateGPUAsync(const void *sendbuf, void *recvbuf, int count,
-                          KungFu_Datatype dtype, KungFu_Op op, const char *name,
-                          DoneCallback done);
-#endif
 };
 
 #endif

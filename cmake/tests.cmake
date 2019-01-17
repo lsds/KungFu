@@ -75,7 +75,3 @@ FUNCTION(ADD_TEST_BIN target)
 ENDFUNCTION()
 
 ADD_TEST_BIN(fake-agent ${KUNGFU_TESTS_DIR}/integration/fake_agent.cpp)
-IF(KUNGFU_HAVE_GPU)
-    ADD_TEST_BIN(fake-gpu-agent
-                 ${KUNGFU_TESTS_DIR}/integration/fake_gpu_agent.cpp)
-ENDIF()

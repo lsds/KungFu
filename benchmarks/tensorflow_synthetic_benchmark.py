@@ -48,9 +48,12 @@ parser.add_argument(
     action='store_true',
     default=False,
     help='disables CUDA training')
+parser.add_argument(
+    '--no-kungfu', action='store_true', default=False, help='disables kungfu')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
+args.kungfu = not args.no_kungfu
 
 # Horovod: pin GPU to be used to process local rank (one GPU per process)
 config = tf.ConfigProto()
@@ -71,7 +74,8 @@ model = getattr(applications, args.model)(weights=None)
 opt = tf.train.GradientDescentOptimizer(0.01)
 
 # Kungfu: wrap optimizer with kf.SyncSGDOptimizer.
-opt = kf.SyncSGDOptimizer(opt)
+if args.kungfu:
+    opt = kf.SyncSGDOptimizer(opt)
 
 init = tf.global_variables_initializer()
 
