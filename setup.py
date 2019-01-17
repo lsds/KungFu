@@ -5,13 +5,6 @@ from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
 
-def have_gpu():
-    from tensorflow.python.client import device_lib
-    local_device_protos = device_lib.list_local_devices()
-    gpus = [x.name for x in local_device_protos if x.device_type == 'GPU']
-    return len(gpus) > 0
-
-
 class CMakeExtension(Extension):
     def __init__(self, sourcedir):
         Extension.__init__(self, '', sources=[])
@@ -43,8 +36,6 @@ class CMakeBuild(build_ext):
             # cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
             # cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
         ]
-        if have_gpu():
-            cmake_args.append(cmake_flag('KUNGFU_HAVE_GPU', 1))
 
         subprocess.check_call(
             ['cmake', ext.sourcedir] + cmake_args,
