@@ -61,6 +61,31 @@ class KungFuOptimizer(tf.train.Optimizer):
             if grad is not None:
                 grads_and_vars_to_negotiate.append((grad, var))
 
+        # - create p partitions of each of grads_and_vars
+        # - bucket gradients such that the size in bytes in  each bucket
+        # is approximately equal
+
+        # https://www.techiedelight.com/k-partition-problem-print-all-subsets/
+        # https://www8.cs.umu.se/kurser/TDBA77/VT06/algorithms/BOOK/BOOK2/NODE45.HTM
+        def partitionGradients(grads_and_vars, p):
+            pass
+
+        pAkoPartitions = tf.Variable(10, tf.int32)
+        buckets = partitionGradients(grads_and_vars, p) # Make a tf op
+
+        def build_ako_op():
+            negotiated_grad_and_vars = []
+            for i in range(len(buckets)):
+               grads_and_vars_ako = buckets[i]
+               for grad, var in grads_and_vars_ako:
+                   # given the index of the gradient, pass it to the operator
+                   negotiated_grad_and_vars.append((self._negotiate_grad(
+                                                       grad,
+                                                       tf.Variable(i, tf.int32),
+                                                       pAkoPartitions),
+                                                    var))
+            return negotiated_grad_and_vars
+
         def build_op():
             negotiated_grad_and_vars = []
             for grad, var in grads_and_vars_to_negotiate:

@@ -73,6 +73,49 @@ REGISTER_KERNEL_BUILDER(Name("Negotiator").Device(DEVICE_GPU),
                         Negotiator<GPUDevice>);
 #endif
 
+
+// Ako implementation
+template <typename Device> class AkoNegotiator : public AsyncOpKernel
+{
+    using AsyncOpKernel::AsyncOpKernel;
+
+  public:
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        // Check arg count: gradient tensors group, number partitions, current
+        // partition index
+        DCHECK_EQ(3, context->num_inputs());
+
+        const Tensor &input                  = context->input(0);
+        const Tensor &currentPartitionIndex  = context->input(1);
+        const Tensor &pAkoPartitions         = context->input(2);
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, input.shape(), &output));
+
+        // only do the negotiation if the global step mod p is 1
+        // this is within a similar tf operator
+
+        // one where I group by tensor size => level out group sizes
+        // one other strategy
+        int numberPartitions = pAkoPartitions.tensor_data().data();
+        int partitionIndex   = currentPartitionIndex.tensor_data().data();
+        if(_kungfu_world._global_step % numberPartitions == partitionIndex) {
+          NegotiatorImpl<Device>()(
+              input.tensor_data().data(), (void *)(output->tensor_data().data()),
+              input.NumElements(), to_kungfu_type(input.dtype()), name(), done);
+        }
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("AkoNegotiator").Device(DEVICE_CPU),
+                        Negotiator<CPUDevice>);
+
+#if KUNGFU_HAVE_GPU
+REGISTER_KERNEL_BUILDER(Name("AkoNegotiator").Device(DEVICE_GPU),
+                        Negotiator<GPUDevice>);
+#endif
+
 class GlobalStepModifier : public OpKernel
 {
     using OpKernel::OpKernel;
