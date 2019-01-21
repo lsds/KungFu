@@ -60,7 +60,7 @@ class GlobalStepModifier : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("GlobalStepModifier").Device(DEVICE_CPU),
                         GlobalStepModifier);
 
-class SetGradientCount : public OpKernel
+class SetNumGradients : public OpKernel
 {
     using OpKernel::OpKernel;
 
@@ -69,11 +69,11 @@ class SetGradientCount : public OpKernel
     {
         const Tensor &input = context->input(0);
         int32_t *x = static_cast<int32_t *>((void *)input.tensor_data().data());
-        _kungfu_world.SetGradientCount(x[0]);
+        _kungfu_world.SetNumGradients(x[0]);
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("SetGradientCount").Device(DEVICE_CPU),
-                        SetGradientCount);
+REGISTER_KERNEL_BUILDER(Name("SetNumGradients").Device(DEVICE_CPU),
+                        SetNumGradients);
 
 }  // namespace tensorflow

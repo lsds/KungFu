@@ -25,7 +25,7 @@ int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
 KungFu_AllReduceAlgo KungfuGetAlgoFromEnv() { return GoKungfuGetAlgoFromEnv(); }
 
 kungfu_world::kungfu_world()
-    : _algo(KungfuGetAlgoFromEnv()), _global_step(0), _gradient_count(0)
+    : _algo(KungfuGetAlgoFromEnv()), _global_step(0), _n_grads(0)
 {
     KungfuInit(_algo);
 }
