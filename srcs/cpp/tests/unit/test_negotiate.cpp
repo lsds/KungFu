@@ -13,8 +13,8 @@ TEST(kungfu_negotiate_test, test_global_step)
 
     kungfu_world kf;
     Waiter waiter;
-    kf.NegotiateAsync(x.data(), y.data(), count, dtype, KungFu_SUM, "test",
-                      [&waiter] { waiter.done(); });
+    kf.Negotiate(x.data(), y.data(), count, dtype, KungFu_SUM, "test",
+                 [&waiter] { waiter.done(); });
     waiter.wait();
 
     for (int i = 0; i < count; ++i) { ASSERT_EQ(y[i], i + 1); }

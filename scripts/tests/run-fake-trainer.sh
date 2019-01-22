@@ -4,7 +4,7 @@ set -e
 cd $(dirname $0)
 SCRIPT_DIR=$(pwd)
 SCRIPT_NAME=$(dirname $0)
-cd ..
+cd ../..
 . ./scripts/utils/measure.sh
 
 reinstall() {
@@ -15,30 +15,25 @@ reinstall() {
     ./scripts/go-install.sh
 }
 
-run_fake_cluster() {
+run_fake_trainer() {
+    # local ALGO=
     local np=$1
-    local ALGO=$2
     local H=127.0.0.1:$np
-    local QUIET=-v=false
-    echo "running test with algorithm $ALGO"
     KUNGFU_TEST_CLUSTER_SIZE=$np \
         ./bin/kungfu-prun \
         -np=$np \
         -algo="${ALGO}" \
         -H $H \
-        -timeout=5s \
+        -timeout=120s \
         ${QUIET} \
-        ./bin/fake-agent
+        ./bin/fake-trainer
 }
 
-test_all() {
-    all_algos="STAR RING CLIQUE TREE"
+run_fake_trainer_all() {
     for np in $(seq 4); do
-        for algo in $all_algos; do
-            run_fake_cluster $np $algo
-        done
+        measure run_fake_trainer $np
     done
 }
 
 measure reinstall
-measure test_all
+measure run_fake_trainer_all

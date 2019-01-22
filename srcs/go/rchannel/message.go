@@ -57,14 +57,6 @@ type Message struct {
 	Data   []byte
 }
 
-// NewMessage creates a Message with give payload
-func NewMessage(bs []byte) *Message {
-	return &Message{
-		Length: uint32(len(bs)),
-		Data:   bs,
-	}
-}
-
 func (m Message) WriteTo(w io.Writer) error {
 	if err := binary.Write(w, endian, m.Length); err != nil {
 		return err

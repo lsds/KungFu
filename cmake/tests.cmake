@@ -75,3 +75,4 @@ FUNCTION(ADD_TEST_BIN target)
 ENDFUNCTION()
 
 ADD_TEST_BIN(fake-agent ${KUNGFU_TESTS_DIR}/integration/fake_agent.cpp)
+ADD_TEST_BIN(fake-trainer ${KUNGFU_TESTS_DIR}/integration/fake_trainer.cpp)

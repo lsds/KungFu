@@ -7,7 +7,6 @@ import (
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -34,35 +33,23 @@ func GoKungfuFinalize() int {
 }
 
 //export GoKungfuNegotiate
-func GoKungfuNegotiate(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char) int {
-	return kungfu.Negotiate(
-		toSlice(sendBuf, count, dtype),
-		toSlice(recvBuf, count, dtype),
-		count,
-		kb.KungFu_Datatype(dtype),
-		kb.KungFu_Op(op),
-		C.GoString(name),
-	)
-}
-
-//export GoKungfuNegotiateAsync
-func GoKungfuNegotiateAsync(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
-	go func(name string) {
-		kungfu.Negotiate(
-			toSlice(sendBuf, count, dtype),
-			toSlice(recvBuf, count, dtype),
-			count,
-			kb.KungFu_Datatype(dtype),
-			kb.KungFu_Op(op),
-			name,
-		)
-		if done != nil {
-			C.invoke_callback(done)
-			C.delete_callback(done)
-		} else {
-			log.Warnf("done is nil!")
-		}
-	}(C.GoString(name))
+func GoKungfuNegotiate(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
+	w := kf.Workspace{
+		SendBuf: toSlice(sendBuf, count, dtype),
+		RecvBuf: toSlice(recvBuf, count, dtype),
+		Count:   count,
+		Dtype:   kb.KungFu_Datatype(dtype),
+		OP:      kb.KungFu_Op(op),
+		Name:    C.GoString(name),
+	}
+	if done == nil {
+		return kungfu.Negotiate(w)
+	}
+	go func() {
+		kungfu.Negotiate(w)
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
 	return 0
 }
 

@@ -58,8 +58,12 @@ func (r *Router) getChannel(a plan.Addr) (*Channel, error) {
 	return newChannel(a.Name, conn), nil
 }
 
-// Send sends Message to given Addr
-func (r *Router) Send(a plan.Addr, m Message) error {
+// Send sends data in buf to given Addr
+func (r *Router) Send(a plan.Addr, buf []byte) error {
+	m := Message{
+		Length: uint32(len(buf)),
+		Data:   buf,
+	}
 	if err := r.send(a, m); err != nil {
 		log.Errorf("Router::Send failed: %v", err)
 		// TODO: retry
@@ -84,14 +88,14 @@ func (r *Router) send(a plan.Addr, m Message) error {
 }
 
 // Recv recevies a message from given Addr
-func (r *Router) Recv(a plan.Addr, m *Message) error {
+func (r *Router) Recv(a plan.Addr) Message {
 	// log.Infof("%s::%s(%s)", "Router", "Recv", a)
 	// TODO: reduce memory copy
-	*m = *<-r.bufferPool.require(a)
+	m := *<-r.bufferPool.require(a)
 	r.totalMsgRecv.Add(1)
 	r.totalBytesRecv.Add(int64(m.Length))
 	// TODO: add timeout
-	return nil
+	return m
 }
 
 func (r *Router) stream(conn net.Conn, remoteNetAddr plan.NetAddr) (int, error) {

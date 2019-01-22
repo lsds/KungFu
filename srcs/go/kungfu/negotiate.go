@@ -6,19 +6,24 @@ import (
 )
 
 func (kf *Kungfu) Warmup() {
-	k := kf.currentCluster().Size()
+	cluster := kf.currentCluster()
+	k := cluster.Size()
 	count := k * 4
 	dtype := kb.KungFu_INT32
 	n := count * dtype.Size()
-	sendBuf := make([]byte, n)
-	recvBuf := make([]byte, n)
-	op := kb.KungFu_SUM
-	name := "kungfu::warmup" // TODO: use tag
-	kf.runPartitions(sendBuf, recvBuf, count, dtype, op, name, plan.EvenPartition, createCliquePartitions(kf.currentCluster().Peers))
+	w := Workspace{
+		SendBuf: make([]byte, n),
+		RecvBuf: make([]byte, n),
+		Count:   count,
+		Dtype:   dtype,
+		OP:      kb.KungFu_SUM,
+		Name:    "kungfu::warmup", // TODO: use tag
+	}
+	kf.runStrategies(w, plan.EvenPartition, createCliqueStrategies(cluster.Peers))
 }
 
-func (kf *Kungfu) Negotiate(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string) int {
-	return code(kf.runPartitions(sendBuf, recvBuf, count, dtype, op, name, plan.EvenPartition, kf.initSession.partitions))
+func (kf *Kungfu) Negotiate(w Workspace) int {
+	return code(kf.runStrategies(w, plan.EvenPartition, kf.initSession.strategies))
 }
 
 func code(err error) int {
