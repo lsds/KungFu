@@ -6,6 +6,7 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/metrics"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
@@ -43,10 +44,7 @@ func New(config Config) (*Kungfu, error) {
 		return nil, err
 	}
 	session := newSession(config, ps)
-	router, err := rch.NewRouter(ps.Self())
-	if err != nil {
-		return nil, err
-	}
+	router := rch.NewRouter(ps.Self())
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
@@ -74,7 +72,9 @@ func (kf *Kungfu) Start() int {
 			kf.router.UpdateRate()
 		}
 	}()
-	kf.Warmup()
+	if kc.RunWarmup {
+		return kf.Warmup()
+	}
 	return 0
 }
 

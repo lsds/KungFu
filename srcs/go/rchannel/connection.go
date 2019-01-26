@@ -1,41 +1,58 @@
 package rchannel
 
 import (
+	"io"
 	"net"
 	"sync"
 
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/shmpool"
 )
 
-// Connection encapsulates a TCP connection
-type Connection struct {
-	sync.Mutex
-	conn net.Conn
+// Connection is a simplex logical connection from one peer to another
+type Connection interface {
+	io.Closer
+	Send(name string, m Message) error
 }
 
-func newConnection(a plan.NetAddr, localHost string, localPort uint32) (*Connection, error) {
+func newConnection(remote, local plan.NetAddr) (Connection, error) {
 	conn, err := func() (net.Conn, error) {
-		if a.Host == localHost {
-			addr := net.UnixAddr{plan.SockFileFor(a.Port), "unix"}
-			// log.Infof("dialing unix sock: %v", addr)
+		if remote.Host == local.Host {
+			addr := net.UnixAddr{remote.SockFile(), "unix"}
 			return net.DialUnix(addr.Net, nil, &addr)
 		}
-		return net.Dial("tcp", net.JoinHostPort(a.Host, a.Port))
+		return net.Dial("tcp", remote.String())
 	}()
 	if err != nil {
 		return nil, err
 	}
-	h := connectionHeader{Port: localPort}
+	h := connectionHeader{Port: local.Port}
 	if err := h.WriteTo(conn); err != nil {
 		return nil, err
 	}
-	return &Connection{
-		conn: conn,
-	}, nil
+	tc := tcpConnection{conn: conn}
+	if kc.UseShm && remote.Host == local.Host {
+		pool, err := shmpool.New(plan.ShmNameFor(local, remote))
+		if err != nil {
+			return nil, err
+		}
+		sc := &shmConnection{
+			tcpConnection: tc,
+			pool:          pool,
+		}
+		go sc.handleAck()
+		return sc, nil
+	}
+	return &tc, nil
 }
 
-func (c *Connection) send(name string, m Message) error {
-	// log.Infof("%s::%s(%s, %s)", "Connection", "send", name, m)
+type tcpConnection struct {
+	sync.Mutex
+	conn net.Conn
+}
+
+func (c *tcpConnection) Send(name string, m Message) error {
 	c.Lock()
 	defer c.Unlock()
 	bs := []byte(name)
@@ -49,6 +66,43 @@ func (c *Connection) send(name string, m Message) error {
 	return m.WriteTo(c.conn)
 }
 
-func (c *Connection) Close() error {
+func (c *tcpConnection) Close() error {
 	return c.conn.Close()
+}
+
+type shmConnection struct {
+	tcpConnection
+	pool *shmpool.Pool
+}
+
+func (c *shmConnection) handleAck() error {
+	for {
+		var mt messageTail
+		if err := mt.ReadFrom(c.conn); err != nil {
+			return err
+		}
+		b := shmpool.Block{Offset: int(mt.Offset), Size: int(mt.Length)}
+		c.pool.Put(b)
+	}
+}
+
+func (c *shmConnection) Send(name string, m Message) error {
+	c.Lock()
+	defer c.Unlock()
+	bs := []byte(name)
+	mh := messageHeader{
+		NameLength: uint32(len(bs)),
+		Name:       bs,
+		BodyInShm:  1,
+	}
+	if err := mh.WriteTo(c.conn); err != nil {
+		return err
+	}
+	b := c.pool.Get(int(m.Length))
+	c.pool.Write(b, m.Data)
+	mt := messageTail{
+		Offset: uint32(b.Offset),
+		Length: m.Length,
+	}
+	return mt.WriteTo(c.conn)
 }

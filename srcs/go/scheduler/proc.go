@@ -8,12 +8,25 @@ import (
 	"strings"
 )
 
+type Envs map[string]string
+
+func merge(e, f Envs) Envs {
+	g := make(Envs)
+	for k, v := range e {
+		g[k] = v
+	}
+	for k, v := range f {
+		g[k] = v
+	}
+	return g
+}
+
 // Proc represents a process
 type Proc struct {
 	Name    string
 	Prog    string
 	Args    []string
-	Envs    map[string]string
+	Envs    Envs
 	Host    string
 	PubAddr string
 }
@@ -38,8 +51,8 @@ func (p Proc) Script() string {
 	return buf.String()
 }
 
-func updatedEnv(newValues map[string]string) []string {
-	envMap := make(map[string]string)
+func updatedEnv(newValues Envs) []string {
+	envMap := make(Envs)
 	for _, kv := range os.Environ() {
 		parts := strings.Split(kv, "=")
 		if len(parts) == 2 {

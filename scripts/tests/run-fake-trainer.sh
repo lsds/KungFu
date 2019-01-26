@@ -36,4 +36,6 @@ run_fake_trainer_all() {
 }
 
 measure reinstall
+
+export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
 measure run_fake_trainer_all

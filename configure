@@ -40,7 +40,7 @@ add_cmake_flag() {
 }
 
 add_cmake_flags() {
-    if [ ! -z ${GTEST_GIT_URL} ]; then
+    if [ ${BUILD_GTEST} = 1 ] && [ ! -z ${GTEST_GIT_URL} ]; then
         add_cmake_flag GTEST_GIT_URL ${GTEST_GIT_URL}
     fi
 
@@ -48,8 +48,11 @@ add_cmake_flags() {
         add_cmake_flag STDTRACER_GIT_URL ${STDTRACER_GIT_URL}
     fi
 
+    if [ ${BUILD_TENSORFLOW_OPS} = 1 ]; then
+        add_cmake_flag PYTHON $(which python3)
+    fi
+
     add_cmake_flag CMAKE_BUILD_TYPE Release
-    add_cmake_flag PYTHON $(which python3)
     add_cmake_flag LIBRARY_OUTPUT_PATH $(pwd)/lib
     add_cmake_flag CMAKE_RUNTIME_OUTPUT_DIRECTORY $(pwd)/bin
     add_cmake_flag CMAKE_MODULE_PATH $(pwd)/cmake

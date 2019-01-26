@@ -40,6 +40,8 @@ TARGET_LINK_LIBRARIES(kungfu kungfu-comm kungfu-base)
 IF(APPLE)
     TARGET_LINK_LIBRARIES(kungfu "-framework CoreFoundation")
     TARGET_LINK_LIBRARIES(kungfu "-framework Security")
+ELSE()
+    TARGET_LINK_LIBRARIES(kungfu rt)
 ENDIF()
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 

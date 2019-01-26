@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -99,7 +100,7 @@ func (kf *Kungfu) runGraph(w Workspace, g *plan.Graph) error {
 }
 
 func (kf *Kungfu) runGraphs(w Workspace, graphs ...*plan.Graph) error {
-	if len(graphs) == 2 { // FIXME: Assuming it is always a pair of allreduce graphs
+	if kc.InplaceAllReduce && len(graphs) == 2 { // FIXME: Assuming it is always a pair of allreduce graphs
 		return kf.runAllReduceGraphPair(w, graphs[0], graphs[1])
 	}
 	for _, g := range graphs {

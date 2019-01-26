@@ -4,7 +4,7 @@ set -e
 cd $(dirname $0)
 SCRIPT_DIR=$(pwd)
 SCRIPT_NAME=$(dirname $0)
-cd ..
+cd ../..
 . ./scripts/utils/measure.sh
 
 reinstall() {

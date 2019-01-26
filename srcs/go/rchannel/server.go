@@ -20,7 +20,7 @@ type Server struct {
 
 // NewServer creates a new Server
 func NewServer(router *Router) (*Server, error) {
-	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(int(router.localPort)))
+	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(int(router.localAddr.Port)))
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -33,11 +33,12 @@ func NewServer(router *Router) (*Server, error) {
 
 // NewLocalServer creates a new Server listening Unix socket
 func NewLocalServer(router *Router) (*Server, error) {
+	sockFile := router.localAddr.SockFile()
 	cleanSockFile := true
 	if cleanSockFile {
-		os.Remove(router.localSock)
+		os.Remove(sockFile)
 	}
-	listener, err := net.ListenUnix("unix", &net.UnixAddr{router.localSock, "unix"})
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{sockFile, "unix"})
 	if err != nil {
 		return nil, err
 	}
@@ -72,16 +73,16 @@ func (s *Server) Close() {
 	// TODO: to be graceful
 	s.listener.Close()
 	if s.unix {
-		os.Remove(s.router.localSock)
+		os.Remove(s.router.localAddr.SockFile())
 	}
 }
 
-func (s *Server) getRemoveHost(conn net.Conn) string {
+func (s *Server) getRemoteHost(conn net.Conn) string {
 	h, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err == nil {
 		return h
 	}
-	return s.router.localHost
+	return s.router.localAddr.Host
 }
 
 func (s *Server) handle(conn net.Conn) error {
@@ -91,8 +92,8 @@ func (s *Server) handle(conn net.Conn) error {
 		return err
 	}
 	remoteNetAddr := plan.NetAddr{
-		Host: s.getRemoveHost(conn),
-		Port: strconv.Itoa(int(ch.Port)),
+		Host: s.getRemoteHost(conn),
+		Port: ch.Port,
 	}
 	log.Debugf("got new connection from: %s", remoteNetAddr)
 	if n, err := s.router.stream(conn, remoteNetAddr); err != nil && err != io.EOF {
