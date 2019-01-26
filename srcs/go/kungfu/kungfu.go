@@ -29,12 +29,12 @@ func (c Config) complete() Config {
 }
 
 type Kungfu struct {
-	initProcSpec *plan.ProcSpec
-	initSession  *session
-	router       *rch.Router
-	server       *rch.Server
-	localServer  *rch.Server
-	config       Config
+	self           plan.PeerSpec
+	currentSession *session
+	router         *rch.Router
+	server         *rch.Server
+	localServer    *rch.Server
+	config         Config
 }
 
 func New(config Config) (*Kungfu, error) {
@@ -43,8 +43,9 @@ func New(config Config) (*Kungfu, error) {
 	if err != nil {
 		return nil, err
 	}
-	session := newSession(config, ps)
-	router := rch.NewRouter(ps.Self())
+	self := ps.Self()
+	router := rch.NewRouter(self)
+	session := newSession(config, ps, router)
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
@@ -54,17 +55,16 @@ func New(config Config) (*Kungfu, error) {
 		return nil, err
 	}
 	return &Kungfu{
-		initProcSpec: ps,
-		initSession:  session,
-		router:       router,
-		server:       server,
-		localServer:  localServer,
-		config:       config,
+		self:           self,
+		currentSession: session,
+		server:         server,
+		localServer:    localServer,
+		config:         config,
 	}, nil
 }
 
 func (kf *Kungfu) Start() int {
-	go metrics.ListenAndServe(kf.currentCluster().MyMonitoringPort())
+	go metrics.ListenAndServe(kf.self.MonitoringPort)
 	go kf.server.Serve()
 	go kf.localServer.Serve()
 	go func() {
@@ -73,26 +73,30 @@ func (kf *Kungfu) Start() int {
 		}
 	}()
 	if kc.RunWarmup {
-		return kf.Warmup()
+		return kf.currentSession.Warmup()
 	}
 	return 0
 }
 
-func (kf *Kungfu) Close() int {
-	kf.server.Close() // TODO: check error
-	kf.localServer.Close()
-	filename := fmt.Sprintf("vars.%02d.json", kf.currentCluster().MyRank())
+func exportLogs(self plan.PeerSpec) error {
+	filename := fmt.Sprintf("peer-%s.%d.json", self.NetAddr.Host, self.NetAddr.Port)
 	f, err := os.Create(filename)
 	if err != nil {
-		return 1
+		return err
 	}
 	defer f.Close()
 	metrics.RecordStop()
 	metrics.Export(f)
+	return nil
+}
+
+func (kf *Kungfu) Close() int {
+	defer exportLogs(kf.self)
+	kf.server.Close() // TODO: check error
+	kf.localServer.Close()
 	return 0
 }
 
-func (kf *Kungfu) currentCluster() *plan.ProcSpec {
-	// TODO: get cluster by version
-	return kf.initProcSpec
+func (kf *Kungfu) CurrentSession() *session {
+	return kf.currentSession
 }

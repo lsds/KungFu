@@ -42,11 +42,12 @@ func GoKungfuNegotiate(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 		OP:      kb.KungFu_Op(op),
 		Name:    C.GoString(name),
 	}
+	sess := kungfu.CurrentSession()
 	if done == nil {
-		return kungfu.Negotiate(w)
+		return sess.Negotiate(w)
 	}
 	go func() {
-		kungfu.Negotiate(w)
+		sess.Negotiate(w)
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()

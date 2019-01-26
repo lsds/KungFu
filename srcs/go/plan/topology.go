@@ -5,11 +5,11 @@ import "sort"
 func GenDefaultBcastGraph(peers []PeerSpec) *Graph {
 	g := NewGraph(len(peers))
 	hostMasters := make(map[string]int)
-	for _, t := range peers {
-		if master, ok := hostMasters[t.NetAddr.Host]; !ok {
-			hostMasters[t.NetAddr.Host] = t.GlobalRank
+	for rank, p := range peers {
+		if master, ok := hostMasters[p.NetAddr.Host]; !ok {
+			hostMasters[p.NetAddr.Host] = rank
 		} else {
-			g.AddEdge(master, t.GlobalRank)
+			g.AddEdge(master, rank)
 		}
 	}
 	var masters []int

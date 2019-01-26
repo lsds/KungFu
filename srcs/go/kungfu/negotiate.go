@@ -5,9 +5,8 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-func (kf *Kungfu) Warmup() int {
-	cluster := kf.currentCluster()
-	k := cluster.Size()
+func (sess *session) Warmup() int {
+	k := sess.cluster.Size()
 	count := k * 4
 	dtype := kb.KungFu_INT32
 	n := count * dtype.Size()
@@ -19,11 +18,11 @@ func (kf *Kungfu) Warmup() int {
 		OP:      kb.KungFu_SUM,
 		Name:    "kungfu::warmup", // TODO: use tag
 	}
-	return code(kf.runStrategies(w, plan.EvenPartition, createCliqueStrategies(cluster.Peers)))
+	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
 }
 
-func (kf *Kungfu) Negotiate(w Workspace) int {
-	return code(kf.runStrategies(w, plan.EvenPartition, kf.initSession.strategies))
+func (sess *session) Negotiate(w Workspace) int {
+	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
 
 func code(err error) int {

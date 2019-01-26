@@ -60,10 +60,6 @@ func (ps ProcSpec) AllPeers() []PeerSpec {
 	return ps.Peers
 }
 
-func (ps ProcSpec) MyMonitoringPort() uint16 {
-	return ps.Self().MonitoringPort
-}
-
 func (ps ProcSpec) MyRank() int {
 	return ps.SelfRank
 }
@@ -76,7 +72,6 @@ func GenClusterSpec(k int, hostSpecs []HostSpec) (*ClusterSpec, error) {
 }
 
 func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
-	var idx int
 	var peers []PeerSpec
 	for _, host := range hostSpecs {
 		for j := 0; j < host.Slots; j++ {
@@ -87,9 +82,7 @@ func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
 					Port: uint16(10001 + j),
 				},
 				MonitoringPort: uint16(20001 + j),
-				GlobalRank:     idx,
 			}
-			idx++
 			peers = append(peers, peer)
 			if len(peers) >= k {
 				return peers
