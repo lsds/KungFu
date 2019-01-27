@@ -59,20 +59,16 @@ class AkoNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
 
-        // only do the negotiation if the global step mod p is 1
-        // this is within a similar tf operator
-
-        // one where I group by tensor size => level out group sizes
-        // one other strategy
         auto currentPartitionIndexTensor = currentPartitionIndex.vec<int>();
         auto numberPartitionsTensor = pAkoPartitions.vec<int>();
-
-        //int numberPartitions = atoi(pAkoPartitions.tensor_data().data());
-        //int partitionIndex   = atoi(currentPartitionIndex.tensor_data().data());
 
         int numberPartitions = numberPartitionsTensor(0);
         int partitionIndex   = currentPartitionIndexTensor(0);
 
+        // This should be the total number of nodes, not the global step
+        // if p > NumberOfNodes: a node receives multiple partitions
+        // if p == NumberOfNodes: all nodes receive exactly one partition
+        // if p < NumberOfNodes: some nodes do not receive the partition at all
         if(_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {
           _kungfu_world.Negotiate(
               input.tensor_data().data(), (void *)(output->tensor_data().data()),
