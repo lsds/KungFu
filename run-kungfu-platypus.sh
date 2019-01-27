@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-cd $HOME/kungfu
+cd $HOME/kungfu-main
 
 build(){
 	git clean -fdx
@@ -9,7 +9,7 @@ build(){
 	./scripts/go-install.sh --no-tests
 }
 
-#build
+build
 
 #python3 benchmarks/tensorflow_synthetic_benchmark.py
 

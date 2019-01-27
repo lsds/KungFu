@@ -41,7 +41,7 @@ REGISTER_KERNEL_BUILDER(Name("Negotiator").Device(DEVICE_CPU), Negotiator);
 
 
 // Ako implementation
-template <typename Device> class AkoNegotiator : public AsyncOpKernel
+class AkoNegotiator : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
 
@@ -64,22 +64,30 @@ template <typename Device> class AkoNegotiator : public AsyncOpKernel
 
         // one where I group by tensor size => level out group sizes
         // one other strategy
-        int numberPartitions = pAkoPartitions.tensor_data().data();
-        int partitionIndex   = currentPartitionIndex.tensor_data().data();
-        if(_kungfu_world._global_step % numberPartitions == partitionIndex) {
-          NegotiatorImpl<Device>()(
+        auto currentPartitionIndexTensor = currentPartitionIndex.vec<int>();
+        auto numberPartitionsTensor = pAkoPartitions.vec<int>();
+
+        //int numberPartitions = atoi(pAkoPartitions.tensor_data().data());
+        //int partitionIndex   = atoi(currentPartitionIndex.tensor_data().data());
+
+        int numberPartitions = numberPartitionsTensor(0);
+        int partitionIndex   = currentPartitionIndexTensor(0);
+
+        if(_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {
+          _kungfu_world.Negotiate(
               input.tensor_data().data(), (void *)(output->tensor_data().data()),
-              input.NumElements(), to_kungfu_type(input.dtype()), name(), done);
+              input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
+              name().c_str(), done);
         }
     }
 };
 
 REGISTER_KERNEL_BUILDER(Name("AkoNegotiator").Device(DEVICE_CPU),
-                        Negotiator<CPUDevice>);
+                        AkoNegotiator);
 
 #if KUNGFU_HAVE_GPU
 REGISTER_KERNEL_BUILDER(Name("AkoNegotiator").Device(DEVICE_GPU),
-                        Negotiator<GPUDevice>);
+                        AkoNegotiator);
 #endif
 
 class GlobalStepModifier : public OpKernel

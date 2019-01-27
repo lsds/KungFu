@@ -46,7 +46,7 @@ class KungFuOptimizer(tf.train.Optimizer):
 
         self._enable_set_num_gradients = True
 
-    def _negotiate_grad(self, grad):
+    def _negotiate_grads_by_strategy(self, grads_and_vars):
         raise RuntimeError('Not implemented')
         # The subclass should implement this with its own negotiation strategy
 
@@ -61,37 +61,9 @@ class KungFuOptimizer(tf.train.Optimizer):
             if grad is not None:
                 grads_and_vars_to_negotiate.append((grad, var))
 
-        # - create p partitions of each of grads_and_vars
-        # - bucket gradients such that the size in bytes in  each bucket
-        # is approximately equal
-
-        # https://www.techiedelight.com/k-partition-problem-print-all-subsets/
-        # https://www8.cs.umu.se/kurser/TDBA77/VT06/algorithms/BOOK/BOOK2/NODE45.HTM
-        def partitionGradients(grads_and_vars, p):
-            pass
-
-        pAkoPartitions = tf.Variable(10, tf.int32)
-        buckets = partitionGradients(grads_and_vars, p) # Make a tf op
-
-        def build_ako_op():
-            negotiated_grad_and_vars = []
-            for i in range(len(buckets)):
-               grads_and_vars_ako = buckets[i]
-               for grad, var in grads_and_vars_ako:
-                   # given the index of the gradient, pass it to the operator
-                   negotiated_grad_and_vars.append((self._negotiate_grad(
-                                                       grad,
-                                                       tf.Variable(i, tf.int32),
-                                                       pAkoPartitions),
-                                                    var))
-            return negotiated_grad_and_vars
-
         def build_op():
-            negotiated_grad_and_vars = []
-            for grad, var in grads_and_vars_to_negotiate:
-                negotiated_grad_and_vars.append((self._negotiate_grad(grad),
-                                                 var))
-            return negotiated_grad_and_vars
+            # returns negotiated (gradient, variable) pairs
+            return self._negotiate_grads_by_strategy(grads_and_vars_to_negotiate)
 
         if self._enable_set_num_gradients:
             n_grads = len(grads_and_vars_to_negotiate)
@@ -126,6 +98,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
                  optimizer,
                  name=None,
                  use_locking=False,
+                 strategy='plain', # or ako
                  device_dense='',
                  device_sparse='',
                  use_global_step=True):
@@ -133,6 +106,10 @@ class SyncSGDOptimizer(KungFuOptimizer):
                                                device_dense, device_sparse)
 
         self._op_lib = lazy_load_op_lib()
+        self.strategy = strategy
+
+        if self.strategy == 'ako':
+            self.akoPartitions = tf.constant([1], dtype=tf.int32)
 
         self._use_global_step = use_global_step
         if self._use_global_step:
@@ -141,12 +118,41 @@ class SyncSGDOptimizer(KungFuOptimizer):
                 self._trained_steps,
                 self._op_lib.global_step_modifier(self._trained_steps))
 
-    def _negotiate_grad(self, grad):
-        """Negotiate grad with peers."""
+    # - create p partitions of each of grads_and_vars
+    # - bucket gradients such that the size in bytes in  each bucket
+    # is approximately equal
+
+    # https://www.techiedelight.com/k-partition-problem-print-all-subsets/
+    # https://www8.cs.umu.se/kurser/TDBA77/VT06/algorithms/BOOK/BOOK2/NODE45.HTM
+    def partitionGradients(grads_and_vars, p):
+        return grads_and_vars
+
+    def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
+        """Negotiate grad with peers, following flexible strategy."""
 
         def build_op():
             with tf.variable_scope('NegotiatedGrad'):
-                return self._op_lib.negotiator(grad)
+                if self.strategy == 'plain':
+                    negotiated_grad_and_vars = []
+                    for grad, var in grads_and_vars_to_negotiate:
+                       negotiated_grad_and_vars.append((self._op_lib.negotiator(grad),
+                                                        var))
+                    return negotiated_grad_and_vars
+                elif self.strategy == 'ako':
+                    #buckets = partitionGradients(grads_and_vars_to_negotiate, self.akoPartitions)
+                    buckets = [grads_and_vars_to_negotiate]
+                    negotiated_grad_and_vars = []
+                    for i in range(len(buckets)):
+                       grads_and_vars_ako = buckets[i]
+                       for grad, var in grads_and_vars_ako:
+                            negotiated_grad_and_vars.append((self._op_lib.ako_negotiator(
+                                                            grad,
+                                                            tf.constant([i], dtype=tf.int32),
+                                                            self.akoPartitions),
+                                                            var))
+                    return negotiated_grad_and_vars
+                else:
+                    raise RuntimeError('Strategy not implemented')
 
         if self._use_global_step:
             with tf.control_dependencies([self._modify_trained_steps]):

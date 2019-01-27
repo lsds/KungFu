@@ -75,7 +75,7 @@ opt = tf.train.GradientDescentOptimizer(0.01)
 
 # Kungfu: wrap optimizer with kf.SyncSGDOptimizer.
 if args.kungfu:
-    opt = kf.SyncSGDOptimizer(opt)
+    opt = kf.SyncSGDOptimizer(opt, strategy='ako')
 
 init = tf.global_variables_initializer()
 
