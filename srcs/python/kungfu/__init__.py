@@ -1,5 +1,8 @@
 import os
+import sys
 import sysconfig
+
+from functools import reduce
 
 import tensorflow as tf
 
@@ -109,7 +112,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
         self.strategy = strategy
 
         if self.strategy == 'ako':
-            self.akoPartitions = tf.constant([1], dtype=tf.int32)
+            self.akoPartitions = 10
 
         self._use_global_step = use_global_step
         if self._use_global_step:
@@ -118,14 +121,61 @@ class SyncSGDOptimizer(KungFuOptimizer):
                 self._trained_steps,
                 self._op_lib.global_step_modifier(self._trained_steps))
 
-    # - create p partitions of each of grads_and_vars
-    # - bucket gradients such that the size in bytes in  each bucket
-    # is approximately equal
-
-    # https://www.techiedelight.com/k-partition-problem-print-all-subsets/
     # https://www8.cs.umu.se/kurser/TDBA77/VT06/algorithms/BOOK/BOOK2/NODE45.HTM
-    def partitionGradients(grads_and_vars, p):
-        return grads_and_vars
+    def __reconstruct_partition(self, grads_and_vars, k, D):
+        result = []
+        n = len(D)
+        k =  k - 2
+        while k >= 0:
+            inner = []
+            for i in range(D[n - 1][k] + 1, n + 1):
+                inner.append(grads_and_vars[i])
+            result.append(inner)
+            n = D[n - 1][k]
+            k -= 1
+
+        inner = []
+        for i in range(n + 1):
+            inner.append(grads_and_vars[i])
+        result.append(inner)
+        reversed(result)
+        return result
+
+    def __partition_positions(self, grads_and_vars, k):
+            n = len(grads_and_vars)
+            # M[n][k] array of size n divided into k
+            M = [[0 for i in range(k)] for j in range(n)]
+            # D[n - 1][k - 1] separators
+            D = [[0 for i in range(k - 1)] for j in range(n - 1)]
+
+            M[0][0] = reduce(lambda d1, d2: d1 * d2, grads_and_vars[0][0].get_shape().as_list(), 1)
+            # prefix sums
+            for i in range(1, n):
+                M[i][0] = M[i - 1][0] + reduce(lambda d1, d2: d1 * d2, grads_and_vars[i][0].get_shape().as_list(), 1)
+
+            # init boundary condition
+            for i in range(1, k):
+                M[0][i] = reduce(lambda d1, d2: d1 * d2, grads_and_vars[0][0].get_shape().as_list(), 1)
+
+            for i in range(1, n):
+                for j in range(1, k):
+                    current_min = -1
+                    min_separator_pos = sys.maxsize
+                    for pos in range(i):
+                        s =  max(M[pos][j - 1], M[i][0] - M[pos][0])
+                        if current_min < 0 or s < current_min:
+                            current_min = s
+                            min_separator_pos = pos
+                    M[i][j] = current_min
+                    D[i - 1][j - 1] = min_separator_pos
+            return D
+
+    # create k partitions of each of grads_and_vars
+    # bucket gradients such that the size in bytes in  each bucket
+    # is approximately equal
+    def partition_gradients(self, grads_and_vars, k):
+        D = self.__partition_positions(grads_and_vars, k)
+        return self.__reconstruct_partition(grads_and_vars, k, D)
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Negotiate grad with peers, following flexible strategy."""
@@ -139,17 +189,17 @@ class SyncSGDOptimizer(KungFuOptimizer):
                                                         var))
                     return negotiated_grad_and_vars
                 elif self.strategy == 'ako':
-                    #buckets = partitionGradients(grads_and_vars_to_negotiate, self.akoPartitions)
-                    buckets = [grads_and_vars_to_negotiate]
+                    buckets = self.partition_gradients(grads_and_vars_to_negotiate, self.akoPartitions)
+                    print('Buckets size = ' +  str(len(buckets)))
                     negotiated_grad_and_vars = []
                     for i in range(len(buckets)):
                        grads_and_vars_ako = buckets[i]
                        for grad, var in grads_and_vars_ako:
-                            negotiated_grad_and_vars.append((self._op_lib.ako_negotiator(
-                                                            grad,
-                                                            tf.constant([i], dtype=tf.int32),
-                                                            self.akoPartitions),
-                                                            var))
+                            negotiated_grad_var = (self._op_lib.ako_negotiator(grad,
+                                                  tf.constant([i], dtype=tf.int32),
+                                                  tf.constant([self.akoPartitions],
+                                                  dtype=tf.int32)), var)
+                            negotiated_grad_and_vars.append(negotiated_grad_var)
                     return negotiated_grad_and_vars
                 else:
                     raise RuntimeError('Strategy not implemented')
