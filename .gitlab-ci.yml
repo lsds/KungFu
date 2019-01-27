@@ -17,13 +17,13 @@ job1:
     make test
 
   - | # Go test
-    ./scripts/go-test.sh
+    ./scripts/tests/go-test.sh
 
 job2:
   stage: integration test
   script:
   - |
-    ./scripts/run-integration-tests.sh
+    ./scripts/tests/run-integration-tests.sh
 
 job3:
   stage: system test

@@ -20,8 +20,8 @@ void test_sum(int np)
     std::iota(x.begin(), x.end(), 0);
 
     Waiter waiter;
-    KungfuNegotiateAsync(x.data(), y.data(), n, dtype, KungFu_SUM,
-                         "test-tensor", [&waiter] { waiter.done(); });
+    KungfuNegotiate(x.data(), y.data(), n, dtype, KungFu_SUM, "test-tensor",
+                    [&waiter] { waiter.done(); });
     waiter.wait();
 
     int failed = 0;
@@ -52,8 +52,8 @@ void test(int n, int m)
         TRACE_SCOPE("KungfuNegotiateAsync");
 
         Waiter waiter;
-        KungfuNegotiateAsync(x.data(), y.data(), n, dtype, KungFu_SUM,
-                             name.c_str(), [&waiter] { waiter.done(); });
+        KungfuNegotiate(x.data(), y.data(), n, dtype, KungFu_SUM, name.c_str(),
+                        [&waiter] { waiter.done(); });
         waiter.wait();
     }
 }

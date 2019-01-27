@@ -60,14 +60,6 @@ func (ps ProcSpec) AllPeers() []PeerSpec {
 	return ps.Peers
 }
 
-func (ps ProcSpec) MyPort() uint32 {
-	port, err := strconv.Atoi(ps.Self().NetAddr.Port)
-	if err != nil {
-		return 0
-	}
-	return uint32(port)
-}
-
 func (ps ProcSpec) MyMonitoringPort() uint16 {
 	return ps.Self().MonitoringPort
 }
@@ -88,15 +80,13 @@ func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
 	var peers []PeerSpec
 	for _, host := range hostSpecs {
 		for j := 0; j < host.Slots; j++ {
-			port := strconv.Itoa(10001 + j)
 			peer := PeerSpec{
 				DeviceID: j,
 				NetAddr: NetAddr{
 					Host: host.Hostname,
-					Port: port,
+					Port: uint16(10001 + j),
 				},
 				MonitoringPort: uint16(20001 + j),
-				SockFile:       SockFileFor(port),
 				GlobalRank:     idx,
 			}
 			idx++
@@ -107,8 +97,4 @@ func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
 		}
 	}
 	return peers
-}
-
-func SockFileFor(port string) string {
-	return fmt.Sprintf(`/tmp/kungfu-prun-%s.sock`, port)
 }

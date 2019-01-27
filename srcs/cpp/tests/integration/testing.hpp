@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <condition_variable>
 #include <cstdlib>
 #include <mutex>
@@ -43,3 +44,16 @@ int getTestClusterSize()
 {
     return std::stoi(safe_getenv("KUNGFU_TEST_CLUSTER_SIZE"));
 }
+
+int getSelfRank() { return std::stoi(safe_getenv("KUNGFU_SELF_RANK")); }
+
+namespace testing
+{
+using clock_t    = std::chrono::high_resolution_clock;
+using duration_t = std::chrono::duration<double>;
+using instant_t  = std::chrono::time_point<clock_t>;
+
+instant_t now() { return clock_t::now(); }
+
+duration_t since(const instant_t &t0) { return now() - t0; }
+}  // namespace testing

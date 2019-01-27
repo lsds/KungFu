@@ -5,5 +5,4 @@ type PeerSpec struct {
 	NetAddr        NetAddr
 	MonitoringPort uint16
 	GlobalRank     int
-	SockFile       string
 }

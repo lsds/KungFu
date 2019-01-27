@@ -1,5 +1,3 @@
-#include <thread>
-
 #include <tensorflow/core/framework/op_kernel.h>
 
 #include <kungfu.h>
@@ -21,34 +19,7 @@ KungFu_Datatype to_kungfu_type(const DataType &dtype)
     }
 }
 
-using CPUDevice = Eigen::ThreadPoolDevice;
-using GPUDevice = Eigen::GpuDevice;
-
-template <typename Device> struct NegotiatorImpl;
-
-template <> struct NegotiatorImpl<CPUDevice> {
-    void operator()(const void *input, void *output, int n,
-                    const KungFu_Datatype dtype, const std::string &name,
-                    DoneCallback done) const
-    {
-        _kungfu_world.NegotiateAsync(input, output, n, dtype, KungFu_SUM,
-                                     name.c_str(), done);
-    }
-};
-
-#if KUNGFU_HAVE_GPU
-template <> struct NegotiatorImpl<GPUDevice> {
-    void operator()(const void *input, void *output, int n,
-                    const KungFu_Datatype dtype, const std::string &name,
-                    DoneCallback done) const
-    {
-        _kungfu_world.NegotiateGPUAsync(input, output, n, dtype, KungFu_SUM,
-                                        name.c_str(), done);
-    }
-};
-#endif
-
-template <typename Device> class Negotiator : public AsyncOpKernel
+class Negotiator : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
 
@@ -59,19 +30,14 @@ template <typename Device> class Negotiator : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
-        NegotiatorImpl<Device>()(
+        _kungfu_world.Negotiate(
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
-            input.NumElements(), to_kungfu_type(input.dtype()), name(), done);
+            input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
+            name().c_str(), done);
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("Negotiator").Device(DEVICE_CPU),
-                        Negotiator<CPUDevice>);
-
-#if KUNGFU_HAVE_GPU
-REGISTER_KERNEL_BUILDER(Name("Negotiator").Device(DEVICE_GPU),
-                        Negotiator<GPUDevice>);
-#endif
+REGISTER_KERNEL_BUILDER(Name("Negotiator").Device(DEVICE_CPU), Negotiator);
 
 
 // Ako implementation
@@ -137,7 +103,7 @@ class GlobalStepModifier : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("GlobalStepModifier").Device(DEVICE_CPU),
                         GlobalStepModifier);
 
-class SetGradientCount : public OpKernel
+class SetNumGradients : public OpKernel
 {
     using OpKernel::OpKernel;
 
@@ -146,11 +112,11 @@ class SetGradientCount : public OpKernel
     {
         const Tensor &input = context->input(0);
         int32_t *x = static_cast<int32_t *>((void *)input.tensor_data().data());
-        _kungfu_world.SetGradientCount(x[0]);
+        _kungfu_world.SetNumGradients(x[0]);
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("SetGradientCount").Device(DEVICE_CPU),
-                        SetGradientCount);
+REGISTER_KERNEL_BUILDER(Name("SetNumGradients").Device(DEVICE_CPU),
+                        SetNumGradients);
 
 }  // namespace tensorflow

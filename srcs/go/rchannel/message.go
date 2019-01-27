@@ -12,7 +12,7 @@ var endian = binary.LittleEndian
 var errUnexpectedEnd = errors.New("Unexpected End")
 
 type connectionHeader struct {
-	Port uint32
+	Port uint16
 }
 
 func (h connectionHeader) WriteTo(w io.Writer) error {
@@ -26,14 +26,20 @@ func (h *connectionHeader) ReadFrom(r io.Reader) error {
 type messageHeader struct {
 	NameLength uint32
 	Name       []byte
+	BodyInShm  uint32
 }
 
 func (h messageHeader) WriteTo(w io.Writer) error {
 	if err := binary.Write(w, endian, h.NameLength); err != nil {
 		return err
 	}
-	_, err := w.Write(h.Name)
-	return err
+	if _, err := w.Write(h.Name); err != nil {
+		return err
+	}
+	if err := binary.Write(w, endian, h.BodyInShm); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *messageHeader) ReadFrom(r io.Reader) error {
@@ -44,6 +50,9 @@ func (h *messageHeader) ReadFrom(r io.Reader) error {
 	if err := readN(r, h.Name, int(h.NameLength)); err != nil {
 		return err
 	}
+	if err := binary.Read(r, endian, &h.BodyInShm); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -51,18 +60,36 @@ func (h messageHeader) String() string {
 	return fmt.Sprintf("messageHeader{length=%d,name=%s}", h.NameLength, string(h.Name))
 }
 
+// messageTail will be sent when messageHeader.BodyInShm != 0.
+type messageTail struct {
+	Offset uint32
+	Length uint32
+}
+
+func (m messageTail) WriteTo(w io.Writer) error {
+	if err := binary.Write(w, endian, m.Offset); err != nil {
+		return err
+	}
+	if err := binary.Write(w, endian, m.Length); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *messageTail) ReadFrom(r io.Reader) error {
+	if err := binary.Read(r, endian, &m.Offset); err != nil {
+		return err
+	}
+	if err := binary.Read(r, endian, &m.Length); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Message is the data transferred via channel
 type Message struct {
 	Length uint32
 	Data   []byte
-}
-
-// NewMessage creates a Message with give payload
-func NewMessage(bs []byte) *Message {
-	return &Message{
-		Length: uint32(len(bs)),
-		Data:   bs,
-	}
 }
 
 func (m Message) WriteTo(w io.Writer) error {

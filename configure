@@ -6,13 +6,8 @@ cd $(dirname $0)
 
 BUILD_GTEST=0 # download and build gtest from source
 BUILD_TESTS=1 # build unit tests
-HAVE_GPU=0
 BUILD_TENSORFLOW_OPS=0
 VERBOSE=0
-
-if test $(ls /dev/ | grep nvidia | wc -l) -gt 0; then
-    HAVE_GPU=1
-fi
 
 parse_args() {
     for i in "$@"; do
@@ -25,9 +20,6 @@ parse_args() {
             ;;
         --no-tests)
             BUILD_TESTS=0
-            ;;
-        --no-gpu)
-            HAVE_GPU=0
             ;;
         --verbose)
             VERBOSE=1
@@ -48,7 +40,7 @@ add_cmake_flag() {
 }
 
 add_cmake_flags() {
-    if [ ! -z ${GTEST_GIT_URL} ]; then
+    if [ ${BUILD_GTEST} = 1 ] && [ ! -z ${GTEST_GIT_URL} ]; then
         add_cmake_flag GTEST_GIT_URL ${GTEST_GIT_URL}
     fi
 
@@ -56,8 +48,11 @@ add_cmake_flags() {
         add_cmake_flag STDTRACER_GIT_URL ${STDTRACER_GIT_URL}
     fi
 
+    if [ ${BUILD_TENSORFLOW_OPS} = 1 ]; then
+        add_cmake_flag PYTHON $(which python3)
+    fi
+
     add_cmake_flag CMAKE_BUILD_TYPE Release
-    add_cmake_flag PYTHON $(which python3)
     add_cmake_flag LIBRARY_OUTPUT_PATH $(pwd)/lib
     add_cmake_flag CMAKE_RUNTIME_OUTPUT_DIRECTORY $(pwd)/bin
     add_cmake_flag CMAKE_MODULE_PATH $(pwd)/cmake
@@ -67,7 +62,6 @@ add_cmake_flags() {
 
     add_cmake_flag KUNGFU_BUILD_GTEST ${BUILD_GTEST}
     add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
-    add_cmake_flag KUNGFU_HAVE_GPU ${HAVE_GPU}
     add_cmake_flag KUNGFU_BUILD_TF_OPS ${BUILD_TENSORFLOW_OPS}
 }
 

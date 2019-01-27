@@ -6,60 +6,92 @@ import (
 	"sync/atomic"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
-func (kf *Kungfu) runGraph(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string, g *plan.Graph) error {
-	n := count * dtype.Size()
+// Workspace contains the data that a Kungfu operation will be performed on.
+type Workspace struct {
+	SendBuf []byte
+	RecvBuf []byte // TODO: if nil, will use SendBuf as in-place result
+	Count   int
+	Dtype   kb.KungFu_Datatype
+	OP      kb.KungFu_Op
+	Name    string
+}
 
-	sendTo := func(rank int) {
-		peer := kf.currentCluster().GetPeer(rank)
-		m := rch.NewMessage(recvBuf[:n])
-		kf.router.Send(peer.NetAddr.WithName(name), *m)
+// 0 <= begin < end <= count - 1
+func (w Workspace) slice(begin, end int) Workspace {
+	i := begin * w.Dtype.Size()
+	j := end * w.Dtype.Size()
+	var recvBuf []byte
+	if w.RecvBuf != nil {
+		recvBuf = w.RecvBuf[i:j]
+	}
+	return Workspace{
+		SendBuf: w.SendBuf[i:j],
+		RecvBuf: recvBuf,
+		Count:   end - begin,
+		Dtype:   w.Dtype,
+		OP:      w.OP,
+		Name:    fmt.Sprintf("part::%s[%d:%d]", w.Name, begin, end),
+	}
+}
+
+// partitionFunc is the signature of function that parts the interval
+type partitionFunc func(r plan.Interval, k int) []plan.Interval
+
+func (w Workspace) split(p partitionFunc, k int) []Workspace {
+	var ws []Workspace
+	for _, r := range p(plan.Interval{Begin: 0, End: w.Count}, k) {
+		ws = append(ws, w.slice(r.Begin, r.End))
+	}
+	return ws
+}
+
+func (kf *Kungfu) runGraph(w Workspace, g *plan.Graph) error {
+	sendTo := func(peer plan.PeerSpec) {
+		kf.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf)
 	}
 
 	var lock sync.Mutex
-	recvAdd := func(rank int) {
-		peer := kf.currentCluster().GetPeer(rank)
-		var m rch.Message
-		kf.router.Recv(peer.NetAddr.WithName(name), &m)
+	recvAdd := func(peer plan.PeerSpec) {
+		m := kf.router.Recv(peer.NetAddr.WithName(w.Name))
 		lock.Lock()
-		kb.Transform(recvBuf[:n], m.Data, count, dtype, op)
+		kb.Transform(w.RecvBuf, m.Data, w.Count, w.Dtype, w.OP)
 		lock.Unlock()
 	}
 
-	recvAssign := func(rank int) {
-		peer := kf.currentCluster().GetPeer(rank)
-		var m rch.Message
-		kf.router.Recv(peer.NetAddr.WithName(name), &m)
-		copy(recvBuf[:n], m.Data)
+	recvAssign := func(peer plan.PeerSpec) {
+		m := kf.router.Recv(peer.NetAddr.WithName(w.Name))
+		copy(w.RecvBuf, m.Data)
 	}
 
-	prun := func(ranks []int, op func(int)) {
+	cluster := kf.currentCluster()
+	prun := func(ranks []int, op func(plan.PeerSpec)) {
 		var wg sync.WaitGroup
 		for _, rank := range ranks {
 			wg.Add(1)
 			go func(rank int) {
-				op(rank)
+				op(cluster.GetPeer(rank))
 				wg.Done()
 			}(rank)
 		}
 		wg.Wait()
 	}
 
-	myRank := kf.currentCluster().MyRank()
+	myRank := cluster.MyRank()
 	if g.IsSelfLoop(myRank) {
-		copy(recvBuf[:n], sendBuf[:n])
+		copy(w.RecvBuf, w.SendBuf)
 		prun(g.Prevs(myRank), recvAdd)
 	} else {
 		prevs := g.Prevs(myRank)
 		if len(prevs) > 1 {
 			log.Errorf("more than once recvAssign detected at node %d", myRank)
 		}
-		for _, prev := range prevs {
-			recvAssign(prev)
+		for _, rank := range prevs {
+			recvAssign(cluster.GetPeer(rank))
 		}
 	}
 	prun(g.Nexts(myRank), sendTo)
@@ -67,37 +99,33 @@ func (kf *Kungfu) runGraph(sendBuf []byte, recvBuf []byte, count int, dtype kb.K
 	return nil
 }
 
-func (kf *Kungfu) runGraphs(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string, graphs ...*plan.Graph) error {
+func (kf *Kungfu) runGraphs(w Workspace, graphs ...*plan.Graph) error {
+	if kc.InplaceAllReduce && len(graphs) == 2 { // FIXME: Assuming it is always a pair of allreduce graphs
+		return kf.runAllReduceGraphPair(w, graphs[0], graphs[1])
+	}
 	for _, g := range graphs {
 		// TODO: handhel error
-		kf.runGraph(sendBuf, recvBuf, count, dtype, op, name, g)
+		kf.runGraph(w, g)
 	}
 	return nil
 }
 
-// partitionFunc is the signature of function that parts the interval
-type partitionFunc func(r plan.Interval, k int) []plan.Interval
-
-func (kf *Kungfu) runPartitions(sendBuf []byte, recvBuf []byte, count int, dtype kb.KungFu_Datatype, op kb.KungFu_Op, name string, split partitionFunc, partitions []partition) error {
-	ranges := split(plan.Interval{Begin: 0, End: count}, len(partitions))
+func (kf *Kungfu) runStrategies(w Workspace, p partitionFunc, strategies []strategy) error {
 	var wg sync.WaitGroup
 	var failed int32
-	for i, p := range partitions {
+	for i, w := range w.split(p, len(strategies)) {
 		wg.Add(1)
-		go func(i int, r plan.Interval, p partition) {
-			x := r.Begin * dtype.Size()
-			y := r.End * dtype.Size()
-			fullName := fmt.Sprintf("part::%s[%d:%d]", name, r.Begin, r.End) // TODO: use tag
-			if err := kf.runGraphs(sendBuf[x:y], recvBuf[x:y], r.Len(), dtype, op, fullName, p.Graphs...); err != nil {
+		go func(i int, w Workspace, s strategy) {
+			if err := kf.runGraphs(w, s.Graphs...); err != nil {
 				log.Warnf("partition %d failed: %v", i, err)
 				atomic.AddInt32(&failed, 1)
 			}
 			wg.Done()
-		}(i, ranges[i], p)
+		}(i, w, strategies[i])
 	}
 	wg.Wait()
 	if failed > 0 {
-		return fmt.Errorf("%d partitions amoung %d failed", failed, len(partitions))
+		return fmt.Errorf("%d strategies amoung %d failed", failed, len(strategies))
 	}
 	return nil
 }

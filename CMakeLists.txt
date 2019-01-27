@@ -7,13 +7,8 @@ ADD_DEFINITIONS(-Wfatal-errors)
 ADD_DEFINITIONS(-Wall)
 ADD_COMPILE_OPTIONS(-fPIC)
 
-OPTION(KUNGFU_HAVE_GPU "Have GPU." OFF)
 OPTION(KUNGFU_BUILD_TESTS "Build tests." OFF)
 OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
-
-IF(KUNGFU_HAVE_GPU)
-    ADD_DEFINITIONS(-DKUNGFU_HAVE_GPU=1)
-ENDIF()
 
 FIND_PACKAGE(Threads REQUIRED)
 
@@ -39,15 +34,14 @@ ADD_CUSTOM_TARGET(libkungfu-comm ALL
 ADD_DEPENDENCIES(libkungfu-comm kungfu-base)
 
 ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
-IF(KUNGFU_HAVE_GPU)
-    TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/kungfu_gpu.cpp)
-    TARGET_LINK_LIBRARIES(kungfu cudart)
-ENDIF()
+
 TARGET_INCLUDE_DIRECTORIES(kungfu PRIVATE ${LIBRARY_OUTPUT_PATH})
 TARGET_LINK_LIBRARIES(kungfu kungfu-comm kungfu-base)
 IF(APPLE)
     TARGET_LINK_LIBRARIES(kungfu "-framework CoreFoundation")
     TARGET_LINK_LIBRARIES(kungfu "-framework Security")
+ELSE()
+    TARGET_LINK_LIBRARIES(kungfu rt)
 ENDIF()
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 

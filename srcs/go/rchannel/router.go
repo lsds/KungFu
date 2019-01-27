@@ -4,19 +4,18 @@ import (
 	"expvar"
 	"net"
 	"os"
-	"strconv"
 	"time"
 
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/metrics"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/shm"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type Router struct {
-	localHost  string
-	localPort  uint32
-	localSock  string
+	localAddr  plan.NetAddr
 	bufferPool *BufferPool
 	connPool   *ConnectionPool
 
@@ -28,15 +27,9 @@ type Router struct {
 	recvRate       *expvar.Float
 }
 
-func NewRouter(self plan.PeerSpec) (*Router, error) {
-	port, err := strconv.Atoi(self.NetAddr.Port)
-	if err != nil {
-		return nil, err
-	}
+func NewRouter(self plan.PeerSpec) *Router {
 	return &Router{
-		localHost:  self.NetAddr.Host,
-		localPort:  uint32(port),
-		localSock:  self.SockFile,
+		localAddr:  self.NetAddr,
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 
@@ -46,20 +39,24 @@ func NewRouter(self plan.PeerSpec) (*Router, error) {
 		totalBytesRecv: expvar.NewInt("total_bytes_recv"),
 		sendRate:       expvar.NewFloat("send_bytes_per_sec"),
 		recvRate:       expvar.NewFloat("recv_bytes_per_sec"),
-	}, nil
+	}
 }
 
 // getChannel returns the Channel of given Addr
 func (r *Router) getChannel(a plan.Addr) (*Channel, error) {
-	conn, err := r.connPool.get(a.NetAddr(), r.localHost, r.localPort)
+	conn, err := r.connPool.get(a.NetAddr(), r.localAddr)
 	if err != nil {
 		return nil, err
 	}
 	return newChannel(a.Name, conn), nil
 }
 
-// Send sends Message to given Addr
-func (r *Router) Send(a plan.Addr, m Message) error {
+// Send sends data in buf to given Addr
+func (r *Router) Send(a plan.Addr, buf []byte) error {
+	m := Message{
+		Length: uint32(len(buf)),
+		Data:   buf,
+	}
 	if err := r.send(a, m); err != nil {
 		log.Errorf("Router::Send failed: %v", err)
 		// TODO: retry
@@ -84,30 +81,57 @@ func (r *Router) send(a plan.Addr, m Message) error {
 }
 
 // Recv recevies a message from given Addr
-func (r *Router) Recv(a plan.Addr, m *Message) error {
+func (r *Router) Recv(a plan.Addr) Message {
 	// log.Infof("%s::%s(%s)", "Router", "Recv", a)
 	// TODO: reduce memory copy
-	*m = *<-r.bufferPool.require(a)
+	m := *<-r.bufferPool.require(a)
 	r.totalMsgRecv.Add(1)
 	r.totalBytesRecv.Add(int64(m.Length))
 	// TODO: add timeout
-	return nil
+	return m
 }
 
-func (r *Router) stream(conn net.Conn, remoteNetAddr plan.NetAddr) (int, error) {
-	for i := 0; ; i++ {
-		var mh messageHeader
-		if err := mh.ReadFrom(conn); err != nil {
-			return i, err
+func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error) {
+	var mh messageHeader
+	if err := mh.ReadFrom(conn); err != nil {
+		return "", nil, err
+	}
+	var m Message
+	if mh.BodyInShm != 0 {
+		var mt messageTail
+		if err := mt.ReadFrom(conn); err != nil {
+			return "", nil, err
 		}
-		// log.Infof("got message header: %s", mh)
-		var m Message
+		m.Length = mt.Length
+		m.Data = make([]byte, m.Length)
+		shm.Seek(int(mt.Offset))
+		shm.Read(m.Data, int(m.Length))
+		mt.WriteTo(conn)
+	} else {
 		if err := m.ReadFrom(conn); err != nil {
+			return "", nil, err
+		}
+	}
+	return string(mh.Name), &m, nil
+}
+
+var newShm = shm.New
+
+func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
+	var shm shm.Shm
+	if kc.UseShm && remote.Host == r.localAddr.Host {
+		var err error
+		if shm, err = newShm(plan.ShmNameFor(remote, r.localAddr)); err != nil {
+			return 0, err
+		}
+		defer shm.Close()
+	}
+	for i := 0; ; i++ {
+		name, m, err := r.acceptOne(conn, shm)
+		if err != nil {
 			return i, err
 		}
-		// log.Infof("got message: %s :: %s", m, string(m.Data))
-		a := remoteNetAddr.WithName(string(mh.Name))
-		r.bufferPool.require(a) <- &m
+		r.bufferPool.require(remote.WithName(name)) <- m
 	}
 }
 

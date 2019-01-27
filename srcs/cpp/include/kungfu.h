@@ -48,15 +48,19 @@ extern KungFu_AllReduceAlgo KungfuGetAlgoFromEnv();
 #include <functional>
 typedef std::function<void()> DoneCallback;
 
-extern int KungfuNegotiateAsync(const void *sendbuf, void *recvbuf, int count,
-                                KungFu_Datatype dtype, KungFu_Op op,
-                                const char *name, DoneCallback done);
+extern int KungfuNegotiate(const void *sendbuf, void *recvbuf, int count,
+                           KungFu_Datatype dtype, KungFu_Op op,
+                           const char *name);
+
+extern int KungfuNegotiate(const void *sendbuf, void *recvbuf, int count,
+                           KungFu_Datatype dtype, KungFu_Op op,
+                           const char *name, DoneCallback done);
 
 class kungfu_world
 {
     KungFu_AllReduceAlgo _algo;
     int32_t _global_step;
-    int32_t _gradient_count;
+    int32_t _n_grads;
 
   public:
     kungfu_world();
@@ -65,21 +69,14 @@ class kungfu_world
 
     int32_t AdvanceGlobalStep() { return ++_global_step; }
 
-    void SetGradientCount(int32_t gc) { _gradient_count = gc; }
+    void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
 
-    int NegotiateAsync(const void *sendbuf, void *recvbuf, int count,
-                       KungFu_Datatype dtype, KungFu_Op op, const char *name,
-                       DoneCallback done)
+    int Negotiate(const void *sendbuf, void *recvbuf, int count,
+                  KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                  DoneCallback done)
     {
-        return KungfuNegotiateAsync(sendbuf, recvbuf, count, dtype, op, name,
-                                    done);
+        return KungfuNegotiate(sendbuf, recvbuf, count, dtype, op, name, done);
     }
-
-#if KUNGFU_HAVE_GPU
-    int NegotiateGPUAsync(const void *sendbuf, void *recvbuf, int count,
-                          KungFu_Datatype dtype, KungFu_Op op, const char *name,
-                          DoneCallback done);
-#endif
 };
 
 #endif

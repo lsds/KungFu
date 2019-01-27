@@ -36,6 +36,6 @@ REGISTER_OP("GlobalStepModifier")
         return Status::OK();
     });
 
-REGISTER_OP("SetGradientCount").Input("input: int32");
+REGISTER_OP("SetNumGradients").Input("input: int32");
 
 }  // namespace tensorflow

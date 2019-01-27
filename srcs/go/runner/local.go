@@ -19,7 +19,9 @@ import (
 var (
 	basicColors = []xterm.Color{
 		xterm.Green,
+		xterm.Blue,
 		xterm.Yellow,
+		xterm.LightBlue,
 	}
 
 	warn = xterm.Red

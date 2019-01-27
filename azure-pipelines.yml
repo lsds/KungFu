@@ -45,11 +45,11 @@ steps:
   displayName: 'Run C++ Tests'
 
 - script: |
-    ./scripts/go-test.sh
+    ./scripts/tests/go-test.sh
   displayName: 'Run Golang Tests'
 
 - script: |
-    ./scripts/run-integration-tests.sh
+    ./scripts/tests/run-integration-tests.sh
     git clean -fdx
   displayName: 'Run Integration Test'
 

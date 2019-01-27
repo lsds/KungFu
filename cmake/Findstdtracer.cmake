@@ -12,6 +12,12 @@ EXTERNALPROJECT_ADD(stdtracer-repo
                     v0.1.0
                     PREFIX
                     ${PREFIX}
+                    CONFIGURE_COMMAND
+                    ""
+                    BUILD_COMMAND
+                    ""
+                    INSTALL_COMMAND
+                    ""
                     CMAKE_ARGS
                     -DCMAKE_INSTALL_PREFIX=${PREFIX}
                     -DBUILD_TESTS=0
@@ -19,5 +25,6 @@ EXTERNALPROJECT_ADD(stdtracer-repo
 
 FUNCTION(USE_STDTRACER target)
     ADD_DEPENDENCIES(${target} stdtracer-repo)
-    TARGET_INCLUDE_DIRECTORIES(${target} PRIVATE ${PREFIX}/include)
+    TARGET_INCLUDE_DIRECTORIES(${target}
+                               PRIVATE ${PREFIX}/src/stdtracer-repo/include)
 ENDFUNCTION()
