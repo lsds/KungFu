@@ -95,7 +95,7 @@ class KungFuOptimizer(tf.train.Optimizer):
 
 
 class SyncSGDOptimizer(KungFuOptimizer):
-    """An optimizer that negotiates using the negotiator operator."""
+    """An optimizer that negotiates using the AllReduce operator."""
 
     def __init__(self,
                  optimizer,
@@ -121,7 +121,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
         def build_op():
             with tf.variable_scope('NegotiatedGrad'):
-                return self._op_lib.negotiator(grad)
+                return self._op_lib.allreduce(grad)
 
         if self._use_global_step:
             with tf.control_dependencies([self._modify_trained_steps]):
