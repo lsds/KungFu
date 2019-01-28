@@ -137,8 +137,7 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.model_name,
-                                             args.use_async_sgd)
+    x, y_, train_step, acc = build_train_ops(args.model_name, args.use_kungfu)
     show_info()
     mnist = measure(
         lambda: load_datasets(args.data_dir, normalize=True, one_hot=True),
