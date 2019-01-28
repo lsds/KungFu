@@ -95,7 +95,7 @@ def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1, batch_size=5000):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='kungfu-example')
+    parser = argparse.ArgumentParser(description='KungFu mnist example.')
     parser.add_argument(
         '--use-async-sgd', type=bool, default=False, help='use async SGD')
     parser.add_argument(
@@ -107,6 +107,11 @@ def parse_args():
         type=str,
         default='mnist.slp',
         help='model name, %s' % (' | '.join(all_model_names)))
+    parser.add_argument(
+        '--data-dir',
+        type=str,
+        default=os.path.join(os.getenv('HOME'), 'var/data/mnist'),
+        help='Path to the MNIST dataset directory.')
     return parser.parse_args()
 
 
@@ -135,9 +140,8 @@ def main():
     x, y_, train_step, acc = build_train_ops(args.model_name,
                                              args.use_async_sgd)
     show_info()
-    data_dir = os.path.join(os.getenv('HOME'), 'var/data/mnist')
     mnist = measure(
-        lambda: load_datasets(data_dir, normalize=True, one_hot=True),
+        lambda: load_datasets(args.data_dir, normalize=True, one_hot=True),
         'load data')
     measure(
         lambda: train_mnist(x, y_, train_step, acc, mnist, args.n_epochs, args.batch_size),

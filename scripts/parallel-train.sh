@@ -37,7 +37,7 @@ prun() {
         -self $self \
         -timeout 20s \
         python3 \
-        ./examples/kungfu-train.py \
+        ./examples/mnist_mlp.py \
         --use-async-sgd=1 \
         --n-epochs 1 \
         --batch-size=500 \
