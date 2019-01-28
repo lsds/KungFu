@@ -6,10 +6,10 @@
 
 namespace tensorflow
 {
-// A Negotiator takes a single tensor (the computed gradient), and negotiate (by
-// taking mean, or delayed mean) with the peers, and finally returns a tensor
+// The AllReduce operator takes a single tensor (e.g. the computed gradient), and reduce (by
+// taking sum) with the peers, and finally returns a tensor
 // with exactly the same shape.
-REGISTER_OP("Negotiator")
+REGISTER_OP("AllReduce")
     .Input("input: float32")
     .Output("output: float32")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {

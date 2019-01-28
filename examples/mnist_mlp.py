@@ -28,7 +28,7 @@ def measure(f, name=None):
     return result
 
 
-def build_train_ops(model_name, use_async_sgd):
+def build_train_ops(model_name, use_kungfu):
     learning_rate = 0.1
 
     if model_name == 'mnist.slp':
@@ -44,7 +44,7 @@ def build_train_ops(model_name, use_async_sgd):
     loss = tf.reduce_mean(
         -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
     optmizer = tf.train.GradientDescentOptimizer(learning_rate)
-    if use_async_sgd:
+    if use_kungfu:
         import kungfu as kf
         optmizer = kf.SyncSGDOptimizer(optmizer)
     train_step = optmizer.minimize(loss, name='train_step')
@@ -97,7 +97,7 @@ def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1, batch_size=5000):
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
     parser.add_argument(
-        '--use-async-sgd', type=bool, default=False, help='use async SGD')
+        '--use-kungfu', type=bool, default=True, help='use kungfu optimizer')
     parser.add_argument(
         '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
@@ -137,8 +137,7 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.model_name,
-                                             args.use_async_sgd)
+    x, y_, train_step, acc = build_train_ops(args.model_name, args.use_kungfu)
     show_info()
     mnist = measure(
         lambda: load_datasets(args.data_dir, normalize=True, one_hot=True),

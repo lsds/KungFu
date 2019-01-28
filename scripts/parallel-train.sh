@@ -38,7 +38,7 @@ prun() {
         -timeout 20s \
         python3 \
         ./examples/mnist_mlp.py \
-        --use-async-sgd=1 \
+        --use-kungfu=1 \
         --n-epochs 1 \
         --batch-size=500 \
         --model-name=$model_name
