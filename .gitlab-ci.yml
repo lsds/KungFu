@@ -46,7 +46,7 @@ job3:
     H=127.0.0.1:$np
     ./bin/kungfu-prun -np $np -H $H -timeout 60s \
       python3 ./examples/mnist_mlp.py \
-        --use-async-sgd=1 \
+        --use-kungfu=1 \
         --n-epochs=1 \
         --batch-size=5000 \
         --model-name=mnist.slp
