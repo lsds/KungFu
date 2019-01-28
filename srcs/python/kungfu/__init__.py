@@ -121,7 +121,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
         def build_op():
             with tf.variable_scope('NegotiatedGrad'):
-                return self._op_lib.allreduce(grad)
+                return self._op_lib.all_reduce(grad)
 
         if self._use_global_step:
             with tf.control_dependencies([self._modify_trained_steps]):
