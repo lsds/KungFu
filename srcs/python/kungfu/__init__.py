@@ -112,11 +112,14 @@ class SyncSGDOptimizer(KungFuOptimizer):
         self.strategy = strategy
 
         if self.strategy == 'ako':
+            self.accum_map = dict()
+            self.staleness = 3
             self.akoPartitions = 10
 
         self._use_global_step = use_global_step
         if self._use_global_step:
             self._trained_steps = tf.Variable(tf.zeros([], tf.int32))
+            print('aaaa')
             self._modify_trained_steps = tf.assign(
                 self._trained_steps,
                 self._op_lib.global_step_modifier(self._trained_steps))
@@ -181,6 +184,19 @@ class SyncSGDOptimizer(KungFuOptimizer):
         D = self.__partition_positions(sizes, k)
         return self.__reconstruct_partition(grads_and_vars, k, D)
 
+    # Map is a dict from variable to queue of gradients
+    def accumulate(self, grad, var, map, staleness):
+        if staleness == 0:
+           return
+        if var not in map:
+            map[var] = [grad]
+        else:
+            queue_gradiens = map[var]
+            queue_gradiens.append(grad)
+            if len(queue_gradiens) > staleness:
+                # Restore invariant
+                queue_gradiens.pop(0)
+
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Negotiate grad with peers, following flexible strategy."""
 
@@ -198,7 +214,9 @@ class SyncSGDOptimizer(KungFuOptimizer):
                     for i in range(len(buckets)):
                        grads_and_vars_ako = buckets[i]
                        for grad, var in grads_and_vars_ako:
-                            negotiated_grad_var = (self._op_lib.ako_negotiator(grad,
+                            self.accumulate(grad, var, self.accum_map, self.staleness)
+                            grad_accum = tf.add_n(self.accum_map[var])
+                            negotiated_grad_var = (self._op_lib.ako_negotiator(grad_accum,
                                                   tf.constant([i], dtype=tf.int32),
                                                   tf.constant([self.akoPartitions],
                                                   dtype=tf.int32)), var)
@@ -207,7 +225,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
                 else:
                     raise RuntimeError('Strategy not implemented')
 
-        if self._use_global_step:
+        if self._use_global_step:#
             with tf.control_dependencies([self._modify_trained_steps]):
                 return build_op()
         else:
