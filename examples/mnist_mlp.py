@@ -28,7 +28,7 @@ def measure(f, name=None):
     return result
 
 
-def build_train_ops(model_name, use_async_sgd):
+def build_train_ops(model_name, use_kungfu):
     learning_rate = 0.1
 
     if model_name == 'mnist.slp':
@@ -44,7 +44,7 @@ def build_train_ops(model_name, use_async_sgd):
     loss = tf.reduce_mean(
         -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
     optmizer = tf.train.GradientDescentOptimizer(learning_rate)
-    if use_async_sgd:
+    if use_kungfu:
         import kungfu as kf
         optmizer = kf.SyncSGDOptimizer(optmizer)
     train_step = optmizer.minimize(loss, name='train_step')
