@@ -7,7 +7,7 @@
 namespace tensorflow
 {
 // The AllReduce operator takes a single tensor (e.g. the computed gradient), and reduce (by
-// taking mean, or min, max) with the peers, and finally returns a tensor
+// taking sum) with the peers, and finally returns a tensor
 // with exactly the same shape.
 REGISTER_OP("AllReduce")
     .Input("input: float32")
