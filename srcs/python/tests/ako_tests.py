@@ -3,20 +3,21 @@ import unittest
 import os
 import argparse
 
+import itertools as it
 from functools import reduce
 
-import tensorflow as tf
 import kungfu as kf
+import tensorflow as tf
 
 def make_list_of_size(n):
-    return [0 for i in range(n)]
+    return list(it.repeat(0, n))
 
-def tensor_size(g):
-    return g.shape.num_elements() * g.dtype.size
+def tensor_size(t):
+    return t.shape.num_elements() * t.dtype.size
 
 def build_size_frequency_map(buckets):
     buckets_sizes = [list(map(lambda gv: tensor_size(gv[0]), bucket)) for bucket  in buckets]
-    reduced_buckets = [reduce(lambda d1, d2: d1 + d2, bucket, 0) for bucket in buckets_sizes]
+    reduced_buckets = [sum(b) for b in buckets_sizes]
     frequency = dict()
     for size in reduced_buckets:
         if size not in frequency:
