@@ -32,19 +32,19 @@ main() {
     local RELAY_IP=$(get_ip ${RELAY_NAME})
     echo "using RELAY_IP=$RELAY_IP"
 
-    [ -f kungfu.tar ] && rm kungfu.tar
-    [ -f kungfu.tar.bz2 ] && rm kungfu.tar.bz2
+    [ -f KungFu.tar ] && rm KungFu.tar
+    [ -f KungFu.tar.bz2 ] && rm KungFu.tar.bz2
     tar \
         --exclude *.git \
         --exclude 3rdparty \
         --exclude gopath \
-        -cf kungfu.tar kungfu
-    bzip2 kungfu.tar
-    du -hs kungfu.tar.bz2
+        -cf KungFu.tar KungFu
+    bzip2 KungFu.tar
+    du -hs KungFu.tar.bz2
 
-    measure scp ${VERBOSE} kungfu.tar.bz2 $ADMIN@$RELAY_IP:~/
+    measure scp ${VERBOSE} KungFu.tar.bz2 $ADMIN@$RELAY_IP:~/
     # measure scp ${VERBOSE} -r kungfu/scripts/azure/relay-machine $ADMIN@$RELAY_IP:~/
-    measure ssh ${VERBOSE} $ADMIN@$RELAY_IP sh -c '"rm -fr kungfu && tar -xf kungfu.tar.bz2"'
+    measure ssh ${VERBOSE} $ADMIN@$RELAY_IP sh -c '"rm -fr KungFu && tar -xf KungFu.tar.bz2"'
 }
 
 measure main

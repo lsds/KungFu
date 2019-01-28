@@ -10,8 +10,8 @@ if [ -d .git ]; then
 fi
 
 cd ..
-[ -f kungfu.tar ] && rm kungfu.tar
-[ -f kungfu.tar.bz2 ] && rm kungfu.tar.bz2
-tar --exclude *.git -cf kungfu.tar kungfu
-bzip2 kungfu.tar
-du -hs kungfu.tar.bz2
+[ -f KungFu.tar ] && rm KungFu.tar
+[ -f KungFu.tar.bz2 ] && rm KungFu.tar.bz2
+tar --exclude *.git -cf KungFu.tar KungFu
+bzip2 KungFu.tar
+du -hs KungFu.tar.bz2

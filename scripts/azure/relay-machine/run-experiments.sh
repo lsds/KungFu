@@ -76,16 +76,16 @@ RUNNER=kungfu
 
 upload_kungfu() {
     ./scripts/pack.sh
-    cp ../kungfu.tar.bz2 .
+    cp ../KungFu.tar.bz2 .
 
     gen_hosts
-    ansible -i hosts.txt all $VERBOSE -u ${RUNNER} -m file -a 'dest=kungfu state=absent'
-    ansible -i hosts.txt all $VERBOSE -u ${RUNNER} -m unarchive -a 'src=kungfu.tar.bz2 dest=~'
+    ansible -i hosts.txt all $VERBOSE -u ${RUNNER} -m file -a 'dest=KungFu state=absent'
+    ansible -i hosts.txt all $VERBOSE -u ${RUNNER} -m unarchive -a 'src=KungFu.tar.bz2 dest=~'
 }
 
 install_remote() {
     ansible -i hosts.txt all $VERBOSE -u kungfu -m shell -a \
-        'PATH=$HOME/local/go/bin:$PATH pip3 install --no-index -U ./kungfu'
+        'PATH=$HOME/local/go/bin:$PATH pip3 install --no-index -U ./KungFu'
 }
 
 install_local() {
@@ -97,7 +97,7 @@ run_experiments() {
         env \
         TF_CPP_MIN_LOG_LEVEL=1 \
         python3 \
-        ./kungfu/benchmarks/tensorflow_synthetic_benchmark.py
+        ./KungFu/experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
 }
 
 prepare() {
