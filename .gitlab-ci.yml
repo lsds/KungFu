@@ -1,6 +1,6 @@
 # https://docs.gitlab.com/ce/ci/yaml/README.html
 
-image: registry.gitlab.com/teavana/kungfu/builder:ubuntu18
+image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
 stages:
 - unit test
