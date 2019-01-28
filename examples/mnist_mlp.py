@@ -95,7 +95,7 @@ def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1, batch_size=5000):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='kungfu-example')
+    parser = argparse.ArgumentParser(description='KungFu mnist example.')
     parser.add_argument(
         '--use-async-sgd', type=bool, default=False, help='use async SGD')
     parser.add_argument(
