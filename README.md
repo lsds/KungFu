@@ -16,7 +16,7 @@ pip3 install --no-index -U .
 
 ## Example
 
-Download MNIST dataset ([script](scripts/azure/gpu-machine/download-mnist.sh)) and run the following training script.
+Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script.
 
 ```bash
 python3 examples/mnist_mlp.py
