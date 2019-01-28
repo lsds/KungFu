@@ -5,7 +5,7 @@ set -e
 
 cd $(dirname $0)
 
-TAG=registry.gitlab.com/lgarithm/kungfu-image/builder:ubuntu18
+TAG=registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
 SOURCES_LIST=sources.list.aliyun
 PY_MIRROR='-i https://pypi.tuna.tsinghua.edu.cn/simple'
