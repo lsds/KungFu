@@ -1,0 +1,17 @@
+Model: ResNet50
+Batch size: 32
+Number of GPUs: 8
+Running warmup...
+Running benchmark...
+Iter #0: 44.5 img/sec per GPU
+Iter #1: 45.2 img/sec per GPU
+Iter #2: 44.2 img/sec per GPU
+Iter #3: 44.7 img/sec per GPU
+Iter #4: 44.8 img/sec per GPU
+Iter #5: 45.0 img/sec per GPU
+Iter #6: 44.9 img/sec per GPU
+Iter #7: 44.7 img/sec per GPU
+Iter #8: 44.7 img/sec per GPU
+Iter #9: 44.6 img/sec per GPU
+Img/sec per GPU: 44.7 +-0.5
+Total img/sec on 8 GPU(s): 357.8 +-4.2
