@@ -138,24 +138,24 @@ class SyncSGDOptimizer(KungFuOptimizer):
         for i in range(n + 1):
             inner.append(grads_and_vars[i])
         result.append(inner)
-        reversed(result)
+        result.reverse()
         return result
 
-    def __partition_positions(self, grads_and_vars, k):
-            n = len(grads_and_vars)
+    def __partition_positions(self, grads_sizes, k):
+            n = len(grads_sizes)
             # M[n][k] array of size n divided into k
             M = [[0 for i in range(k)] for j in range(n)]
             # D[n - 1][k - 1] separators
             D = [[0 for i in range(k - 1)] for j in range(n - 1)]
 
-            M[0][0] = reduce(lambda d1, d2: d1 * d2, grads_and_vars[0][0].get_shape().as_list(), 1)
+            M[0][0] = grads_sizes[0]
             # prefix sums
             for i in range(1, n):
-                M[i][0] = M[i - 1][0] + reduce(lambda d1, d2: d1 * d2, grads_and_vars[i][0].get_shape().as_list(), 1)
+                M[i][0] = M[i - 1][0] + grads_sizes[i]
 
             # init boundary condition
             for i in range(1, k):
-                M[0][i] = reduce(lambda d1, d2: d1 * d2, grads_and_vars[0][0].get_shape().as_list(), 1)
+                M[0][i] = grads_sizes[0]
 
             for i in range(1, n):
                 for j in range(1, k):
@@ -170,11 +170,15 @@ class SyncSGDOptimizer(KungFuOptimizer):
                     D[i - 1][j - 1] = min_separator_pos
             return D
 
+    def __get_size(self, v):
+        return v.shape.num_elements() * v.dtype.size
+
     # create k partitions of each of grads_and_vars
-    # bucket gradients such that the size in bytes in  each bucket
+    # bucket gradients such that the size in bytes in each bucket
     # is approximately equal
     def partition_gradients(self, grads_and_vars, k):
-        D = self.__partition_positions(grads_and_vars, k)
+        sizes = [self.__get_size(g) for g, _v in grads_and_vars]
+        D = self.__partition_positions(sizes, k)
         return self.__reconstruct_partition(grads_and_vars, k, D)
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
@@ -190,7 +194,6 @@ class SyncSGDOptimizer(KungFuOptimizer):
                     return negotiated_grad_and_vars
                 elif self.strategy == 'ako':
                     buckets = self.partition_gradients(grads_and_vars_to_negotiate, self.akoPartitions)
-                    print('Buckets size = ' +  str(len(buckets)))
                     negotiated_grad_and_vars = []
                     for i in range(len(buckets)):
                        grads_and_vars_ako = buckets[i]

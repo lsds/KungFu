@@ -11,12 +11,11 @@ import kungfu as kf
 def make_list_of_size(n):
     return [0 for i in range(n)]
 
-def tensor_size(t):
-    return reduce(lambda d1, d2: d1 * d2, t.get_shape().as_list(), 1)
+def tensor_size(g):
+    return g.shape.num_elements() * g.dtype.size
 
 def build_size_frequency_map(buckets):
     buckets_sizes = [list(map(lambda gv: tensor_size(gv[0]), bucket)) for bucket  in buckets]
-    print(buckets_sizes)
     reduced_buckets = [reduce(lambda d1, d2: d1 + d2, bucket, 0) for bucket in buckets_sizes]
     frequency = dict()
     for size in reduced_buckets:
