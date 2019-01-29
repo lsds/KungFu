@@ -3,6 +3,7 @@ package kungfu
 import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/profile"
 )
 
 func (sess *session) Warmup() int {
@@ -22,6 +23,7 @@ func (sess *session) Warmup() int {
 }
 
 func (sess *session) Negotiate(w Workspace) int {
+	defer profile.Default.Profile("Kungfu::Negotiate").Done()
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
 

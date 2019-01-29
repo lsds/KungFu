@@ -100,3 +100,7 @@ func (kf *Kungfu) Close() int {
 func (kf *Kungfu) CurrentSession() *session {
 	return kf.currentSession
 }
+
+func (kf *Kungfu) DebugCurrentCluster() *plan.ProcSpec {
+	return kf.currentSession.cluster
+}

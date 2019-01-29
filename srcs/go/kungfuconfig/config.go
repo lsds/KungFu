@@ -21,7 +21,7 @@ var ConfigEnvKeys = []string{
 
 var (
 	RunWarmup        = false
-	UseShm           = false
+	UseShm           = true
 	InplaceAllReduce = true
 	LogConfigVars    = false
 )

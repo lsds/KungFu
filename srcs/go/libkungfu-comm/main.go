@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"unsafe"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	"github.com/lsds/KungFu/srcs/go/profile"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -15,6 +17,18 @@ import (
 import "C"
 
 var kungfu *kf.Kungfu
+
+func deinit() {
+	profile.Default.WriteSummary(os.Stdout)
+	cluster := kungfu.DebugCurrentCluster()
+	filename := fmt.Sprintf("peer-%02d-of-%02d.events.log", cluster.MyRank(), cluster.Size())
+	f, err := os.Create(filename)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	profile.Default.WriteEvents(f)
+}
 
 //export GoKungfuInit
 func GoKungfuInit(algo C.KungFu_AllReduceAlgo) int {
@@ -29,6 +43,7 @@ func GoKungfuInit(algo C.KungFu_AllReduceAlgo) int {
 
 //export GoKungfuFinalize
 func GoKungfuFinalize() int {
+	defer deinit()
 	return kungfu.Close()
 }
 
