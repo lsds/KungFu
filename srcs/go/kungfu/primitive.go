@@ -50,38 +50,37 @@ func (w Workspace) split(p partitionFunc, k int) []Workspace {
 	return ws
 }
 
-func (kf *Kungfu) runGraph(w Workspace, g *plan.Graph) error {
+func (sess *session) runGraph(w Workspace, g *plan.Graph) error {
 	sendTo := func(peer plan.PeerSpec) {
-		kf.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf)
+		sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf)
 	}
 
 	var lock sync.Mutex
 	recvAdd := func(peer plan.PeerSpec) {
-		m := kf.router.Recv(peer.NetAddr.WithName(w.Name))
+		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
 		lock.Lock()
 		kb.Transform(w.RecvBuf, m.Data, w.Count, w.Dtype, w.OP)
 		lock.Unlock()
 	}
 
 	recvAssign := func(peer plan.PeerSpec) {
-		m := kf.router.Recv(peer.NetAddr.WithName(w.Name))
+		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
 		copy(w.RecvBuf, m.Data)
 	}
 
-	cluster := kf.currentCluster()
 	prun := func(ranks []int, op func(plan.PeerSpec)) {
 		var wg sync.WaitGroup
 		for _, rank := range ranks {
 			wg.Add(1)
 			go func(rank int) {
-				op(cluster.GetPeer(rank))
+				op(sess.cluster.GetPeer(rank))
 				wg.Done()
 			}(rank)
 		}
 		wg.Wait()
 	}
 
-	myRank := cluster.MyRank()
+	myRank := sess.cluster.MyRank()
 	if g.IsSelfLoop(myRank) {
 		copy(w.RecvBuf, w.SendBuf)
 		prun(g.Prevs(myRank), recvAdd)
@@ -91,7 +90,7 @@ func (kf *Kungfu) runGraph(w Workspace, g *plan.Graph) error {
 			log.Errorf("more than once recvAssign detected at node %d", myRank)
 		}
 		for _, rank := range prevs {
-			recvAssign(cluster.GetPeer(rank))
+			recvAssign(sess.cluster.GetPeer(rank))
 		}
 	}
 	prun(g.Nexts(myRank), sendTo)
@@ -99,24 +98,24 @@ func (kf *Kungfu) runGraph(w Workspace, g *plan.Graph) error {
 	return nil
 }
 
-func (kf *Kungfu) runGraphs(w Workspace, graphs ...*plan.Graph) error {
+func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	if kc.InplaceAllReduce && len(graphs) == 2 { // FIXME: Assuming it is always a pair of allreduce graphs
-		return kf.runAllReduceGraphPair(w, graphs[0], graphs[1])
+		return sess.runAllReduceGraphPair(w, graphs[0], graphs[1])
 	}
 	for _, g := range graphs {
 		// TODO: handhel error
-		kf.runGraph(w, g)
+		sess.runGraph(w, g)
 	}
 	return nil
 }
 
-func (kf *Kungfu) runStrategies(w Workspace, p partitionFunc, strategies []strategy) error {
+func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []strategy) error {
 	var wg sync.WaitGroup
 	var failed int32
 	for i, w := range w.split(p, len(strategies)) {
 		wg.Add(1)
 		go func(i int, w Workspace, s strategy) {
-			if err := kf.runGraphs(w, s.Graphs...); err != nil {
+			if err := sess.runGraphs(w, s.Graphs...); err != nil {
 				log.Warnf("partition %d failed: %v", i, err)
 				atomic.AddInt32(&failed, 1)
 			}

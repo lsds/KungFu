@@ -4,6 +4,7 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
 // A strategy is a sequence of dataflow graph
@@ -11,8 +12,11 @@ type strategy struct {
 	Graphs []*plan.Graph
 }
 
+// session contains the immutable topology and strategies for a given period of logical duration
 type session struct {
 	strategies []strategy
+	cluster    *plan.ProcSpec
+	router     *rch.Router
 }
 
 type partitionStrategy func([]plan.PeerSpec) []strategy
@@ -24,13 +28,17 @@ var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
 	kb.KungFu_Tree:   createTreeStrategies,
 }
 
-func newSession(c Config, ps *plan.ProcSpec) *session {
+func newSession(c Config, ps *plan.ProcSpec, router *rch.Router) *session {
 	f := partitionStrategies[c.Algo]
 	if f == nil {
 		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
 		f = createStarStrategies
 	}
-	return &session{strategies: f(ps.Peers)}
+	return &session{
+		strategies: f(ps.Peers),
+		cluster:    ps,
+		router:     router,
+	}
 }
 
 func createStarStrategies(peers []plan.PeerSpec) []strategy {

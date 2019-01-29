@@ -1,6 +1,6 @@
 # https://docs.gitlab.com/ce/ci/yaml/README.html
 
-image: registry.gitlab.com/teavana/kungfu/builder:ubuntu18
+image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
 stages:
 - unit test
@@ -40,13 +40,13 @@ job3:
     pip3 install -vvv -U .
     ./scripts/go-install.sh
   - |
-    ./examples/kungfu-train.py
+    ./examples/mnist_mlp.py
   - |
     np=2
     H=127.0.0.1:$np
     ./bin/kungfu-prun -np $np -H $H -timeout 60s \
-      python3 ./examples/kungfu-train.py \
-        --use-async-sgd=1 \
+      python3 ./examples/mnist_mlp.py \
+        --use-kungfu=1 \
         --n-epochs=1 \
         --batch-size=5000 \
         --model-name=mnist.slp

@@ -8,25 +8,24 @@ import (
 )
 
 // runAllReduceGraphPair is a specialization of runGraphs
-func (kf *Kungfu) runAllReduceGraphPair(w Workspace, gather, bcast *plan.Graph) error {
-	cluster := kf.currentCluster()
-	if cluster.Size() == 1 {
+func (sess *session) runAllReduceGraphPair(w Workspace, gather, bcast *plan.Graph) error {
+	if sess.cluster.Size() == 1 {
 		copy(w.RecvBuf, w.SendBuf)
 		return nil
 	}
 
 	sendOriginTo := func(peer plan.PeerSpec) {
-		kf.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf)
+		sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf)
 	}
 
 	sendResultTo := func(peer plan.PeerSpec) {
-		kf.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf)
+		sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf)
 	}
 
 	var lock sync.Mutex
 	var gathered int
 	recvOnto := func(peer plan.PeerSpec) {
-		m := kf.router.Recv(peer.NetAddr.WithName(w.Name))
+		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
 		lock.Lock()
 		defer lock.Unlock()
 		if gathered == 0 {
@@ -38,7 +37,7 @@ func (kf *Kungfu) runAllReduceGraphPair(w Workspace, gather, bcast *plan.Graph) 
 	}
 
 	recvInto := func(peer plan.PeerSpec) {
-		m := kf.router.Recv(peer.NetAddr.WithName(w.Name))
+		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
 		copy(w.RecvBuf, m.Data)
 	}
 
@@ -47,14 +46,14 @@ func (kf *Kungfu) runAllReduceGraphPair(w Workspace, gather, bcast *plan.Graph) 
 		for _, rank := range ranks {
 			wg.Add(1)
 			go func(rank int) {
-				op(cluster.GetPeer(rank))
+				op(sess.cluster.GetPeer(rank))
 				wg.Done()
 			}(rank)
 		}
 		wg.Wait()
 	}
 
-	myRank := cluster.MyRank()
+	myRank := sess.cluster.MyRank()
 
 	// stage1 :: Gather
 	prun(gather.Prevs(myRank), recvOnto)

@@ -59,13 +59,13 @@ steps:
     ./scripts/go-install.sh --no-tests
   displayName: 'Install Kungfu'
 
-- script: ./examples/kungfu-train.py
+- script: ./examples/mnist_mlp.py
   displayName: 'Single Train'
 
 - script: |
     ./bin/kungfu-prun -np 2 -timeout 10s python3 \
-      ./examples/kungfu-train.py \
-        --use-async-sgd=1 \
+      ./examples/mnist_mlp.py \
+        --use-kungfu=1 \
         --n-epochs=1 \
         --batch-size=5000 \
         --model-name=mnist.slp

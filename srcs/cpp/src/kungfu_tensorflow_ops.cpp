@@ -20,7 +20,7 @@ KungFu_Datatype to_kungfu_type(const DataType &dtype)
     }
 }
 
-class Negotiator : public AsyncOpKernel
+class AllReduce : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
 
@@ -38,7 +38,7 @@ class Negotiator : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("Negotiator").Device(DEVICE_CPU), Negotiator);
+REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
 
 
 // Ako implementation

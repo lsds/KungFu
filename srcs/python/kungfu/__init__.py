@@ -95,7 +95,7 @@ class KungFuOptimizer(tf.train.Optimizer):
 
 
 class SyncSGDOptimizer(KungFuOptimizer):
-    """An optimizer that negotiates using the negotiator operator."""
+    """An optimizer that negotiates using the AllReduce operator."""
 
     def __init__(self,
                  optimizer,
