@@ -1,6 +1,7 @@
 #include <tensorflow/core/framework/op_kernel.h>
 
 #include <kungfu.h>
+#include <kungfu_base.h>
 #include <kungfu_tensorflow_ops.h>
 
 static kungfu_world _kungfu_world;
@@ -77,7 +78,10 @@ class AkoNegotiator : public AsyncOpKernel
               input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
               name().c_str(), done);
         } else {
-          std::cout << "Skipping this one" << std::endl;
+          CallbackWrapper doneFunction(done);
+          doneFunction();
+          std::cout << "Skipping this one " << _kungfu_world.GetGlobalStep() <<
+                                                "  "  <<   partitionIndex << std::endl;
         }
     }
 };
