@@ -40,7 +40,6 @@ class AllReduce : public AsyncOpKernel
 
 REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
 
-
 // Ako implementation
 class AkoNegotiator : public AsyncOpKernel
 {
@@ -53,28 +52,30 @@ class AkoNegotiator : public AsyncOpKernel
         // partition index
         DCHECK_EQ(3, context->num_inputs());
 
-        const Tensor &input                  = context->input(0);
-        const Tensor &currentPartitionIndex  = context->input(1);
-        const Tensor &pAkoPartitions         = context->input(2);
-        Tensor *output      = nullptr;
+        const Tensor &input                 = context->input(0);
+        const Tensor &currentPartitionIndex = context->input(1);
+        const Tensor &pAkoPartitions        = context->input(2);
+        Tensor *output                      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
 
         auto currentPartitionIndexTensor = currentPartitionIndex.vec<int>();
-        auto numberPartitionsTensor = pAkoPartitions.vec<int>();
+        auto numberPartitionsTensor      = pAkoPartitions.vec<int>();
 
         int numberPartitions = numberPartitionsTensor(0);
         int partitionIndex   = currentPartitionIndexTensor(0);
 
-        if(_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {
-          std::cout << partitionIndex << std::endl;
-          _kungfu_world.Negotiate(
-              input.tensor_data().data(), (void *)(output->tensor_data().data()),
-              input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-              name().c_str(), done);
+        if (_kungfu_world.GetGlobalStep() % numberPartitions ==
+            partitionIndex) {
+            std::cout << partitionIndex << std::endl;
+            _kungfu_world.AllReduce(input.tensor_data().data(),
+                                    (void *)(output->tensor_data().data()),
+                                    input.NumElements(),
+                                    to_kungfu_type(input.dtype()), KungFu_SUM,
+                                    name().c_str(), done);
         } else {
-          CallbackWrapper doneFunction(done);
-          doneFunction();
+            CallbackWrapper doneFunction(done);
+            doneFunction();
         }
     }
 };
