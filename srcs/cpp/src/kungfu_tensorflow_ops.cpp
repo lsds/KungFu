@@ -74,19 +74,13 @@ class AkoNegotiator : public AsyncOpKernel
                                     to_kungfu_type(input.dtype()), KungFu_SUM,
                                     name().c_str(), done);
         } else {
-            CallbackWrapper doneFunction(done);
-            doneFunction();
+            done();
         }
     }
 };
 
 REGISTER_KERNEL_BUILDER(Name("AkoNegotiator").Device(DEVICE_CPU),
                         AkoNegotiator);
-
-#if KUNGFU_HAVE_GPU
-REGISTER_KERNEL_BUILDER(Name("AkoNegotiator").Device(DEVICE_GPU),
-                        AkoNegotiator);
-#endif
 
 class GlobalStepModifier : public OpKernel
 {
