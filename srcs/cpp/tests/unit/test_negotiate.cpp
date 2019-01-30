@@ -1,6 +1,6 @@
 #include "testing.hpp"
 
-TEST(kungfu_negotiate_test, test_global_step)
+TEST(kungfu_AllReduce_test, test_global_step)
 {
     using T          = int32_t;
     const int count  = 10;
@@ -13,7 +13,7 @@ TEST(kungfu_negotiate_test, test_global_step)
 
     kungfu_world kf;
     Waiter waiter;
-    kf.Negotiate(x.data(), y.data(), count, dtype, KungFu_SUM, "test",
+    kf.AllReduce(x.data(), y.data(), count, dtype, KungFu_SUM, "test",
                  [&waiter] { waiter.done(); });
     waiter.wait();
 
