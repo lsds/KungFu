@@ -160,7 +160,7 @@ class MonitoringSyncSGDOptimizer(KungFuOptimizer):
         """Negotiate grad with peers."""
 
         with tf.variable_scope('NegotiatedGrad'):
-            with tf.control_dependencies([self._op_lib.reduce_variance(grad)]):
+            with tf.control_dependencies([self._op_lib.global_variance(grad)]):
                 return self._op_lib.all_reduce(grad)
 
     def _set_num_gradients(self, n):

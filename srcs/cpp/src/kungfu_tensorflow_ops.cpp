@@ -76,7 +76,7 @@ class SetNumGradients : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("SetNumGradients").Device(DEVICE_CPU),
                         SetNumGradients);
 
-class ReduceVariance: public OpKernel
+class GlobalVariance: public OpKernel
 {
     using OpKernel::OpKernel;
 
@@ -88,6 +88,6 @@ class ReduceVariance: public OpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("ReduceVariance").Device(DEVICE_CPU), ReduceVariance);
+REGISTER_KERNEL_BUILDER(Name("GlobalVariance").Device(DEVICE_CPU), GlobalVariance);
 
 }  // namespace tensorflow

@@ -28,6 +28,6 @@ REGISTER_OP("GlobalStepModifier")
 
 REGISTER_OP("SetNumGradients").Input("input: int32");
 
-REGISTER_OP("ReduceVariance").Input("input: float32");
+REGISTER_OP("GlobalVariance").Input("input: float32");
 
 }  // namespace tensorflow
