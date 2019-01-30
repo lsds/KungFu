@@ -13,18 +13,18 @@ int KungfuInit(KungFu_AllReduceAlgo algo)
 
 int KungfuFinalize() { return GoKungfuFinalize(); }
 
-int KungfuNegotiate(const void *sendbuf, void *recvbuf, int count,
+int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                     KungFu_Datatype dtype, KungFu_Op op, const char *name)
 {
-    return GoKungfuNegotiate((void *)sendbuf, recvbuf, GoInt(count),
+    return GoKungfuAllReduce((void *)sendbuf, recvbuf, GoInt(count),
                              GoInt(dtype), GoInt(op), (char *)name, nullptr);
 }
 
-int KungfuNegotiate(const void *sendbuf, void *recvbuf, int count,
+int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                     KungFu_Datatype dtype, KungFu_Op op, const char *name,
                     DoneCallback done)
 {
-    return GoKungfuNegotiate((void *)sendbuf, recvbuf, GoInt(count),
+    return GoKungfuAllReduce((void *)sendbuf, recvbuf, GoInt(count),
                              GoInt(dtype), GoInt(op), (char *)name,
                              new CallbackWrapper(done));
 }

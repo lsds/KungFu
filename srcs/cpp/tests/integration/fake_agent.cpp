@@ -20,7 +20,7 @@ void test_sum(int np)
     std::iota(x.begin(), x.end(), 0);
 
     Waiter waiter;
-    KungfuNegotiate(x.data(), y.data(), n, dtype, KungFu_SUM, "test-tensor",
+    KungfuAllReduce(x.data(), y.data(), n, dtype, KungFu_SUM, "test-tensor",
                     [&waiter] { waiter.done(); });
     waiter.wait();
 
@@ -49,10 +49,10 @@ void test(int n, int m)
     std::string name("fake_data");
 
     for (int i = 0; i < m; ++i) {
-        TRACE_SCOPE("KungfuNegotiateAsync");
+        TRACE_SCOPE("KungfuAllReduceAsync");
 
         Waiter waiter;
-        KungfuNegotiate(x.data(), y.data(), n, dtype, KungFu_SUM, name.c_str(),
+        KungfuAllReduce(x.data(), y.data(), n, dtype, KungFu_SUM, name.c_str(),
                         [&waiter] { waiter.done(); });
         waiter.wait();
     }

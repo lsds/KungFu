@@ -32,8 +32,8 @@ func GoKungfuFinalize() int {
 	return kungfu.Close()
 }
 
-//export GoKungfuNegotiate
-func GoKungfuNegotiate(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
+//export GoKungfuAllReduce
+func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
 		SendBuf: toSlice(sendBuf, count, dtype),
 		RecvBuf: toSlice(recvBuf, count, dtype),
@@ -44,10 +44,10 @@ func GoKungfuNegotiate(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	}
 	sess := kungfu.CurrentSession()
 	if done == nil {
-		return sess.Negotiate(w)
+		return sess.AllReduce(w)
 	}
 	go func() {
-		sess.Negotiate(w)
+		sess.AllReduce(w)
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
