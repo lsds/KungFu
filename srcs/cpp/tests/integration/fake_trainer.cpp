@@ -66,8 +66,8 @@ template <bool async = true> class fake_minibatch_runner_t
     template <typename T> void run_sync(grad_list_t<T> &grads) const
     {
         for (auto &g : grads) {
-            TRACE_SCOPE("run_sync::KungfuNegotiate");
-            KungfuNegotiate(g.send_buf.data(), g.recv_buf.data(), g.count,
+            TRACE_SCOPE("run_sync::KungfuAllReduce");
+            KungfuAllReduce(g.send_buf.data(), g.recv_buf.data(), g.count,
                             g.dtype, KungFu_SUM, g.name.c_str());
         }
     }
@@ -77,7 +77,7 @@ template <bool async = true> class fake_minibatch_runner_t
         std::vector<Waiter> waiters(grads.size());
         int idx = 0;
         for (auto &g : grads) {
-            KungfuNegotiate(g.send_buf.data(), g.recv_buf.data(), g.count,
+            KungfuAllReduce(g.send_buf.data(), g.recv_buf.data(), g.count,
                             g.dtype, KungFu_SUM, g.name.c_str(),
                             [i = idx++, &waiters] { waiters[i].done(); });
         }
@@ -101,7 +101,7 @@ template <bool async = true> class fake_minibatch_runner_t
             std::this_thread::sleep_for(_fake_sleep_duration);
         }
         {
-            TRACE_SCOPE("negotiate stage");
+            TRACE_SCOPE("AllReduce stage");
             if (async) {
                 run_async(grads);
             } else {
