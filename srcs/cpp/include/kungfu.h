@@ -48,11 +48,11 @@ extern KungFu_AllReduceAlgo KungfuGetAlgoFromEnv();
 #include <functional>
 typedef std::function<void()> DoneCallback;
 
-extern int KungfuNegotiate(const void *sendbuf, void *recvbuf, int count,
+extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
                            const char *name);
 
-extern int KungfuNegotiate(const void *sendbuf, void *recvbuf, int count,
+extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
                            const char *name, DoneCallback done);
 
@@ -71,11 +71,11 @@ class kungfu_world
 
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
 
-    int Negotiate(const void *sendbuf, void *recvbuf, int count,
+    int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   DoneCallback done)
     {
-        return KungfuNegotiate(sendbuf, recvbuf, count, dtype, op, name, done);
+        return KungfuAllReduce(sendbuf, recvbuf, count, dtype, op, name, done);
     }
 };
 

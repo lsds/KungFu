@@ -1,13 +1,10 @@
 package kungfu
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
-	"github.com/lsds/KungFu/srcs/go/metrics"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
@@ -31,7 +28,6 @@ func (c Config) complete() Config {
 type Kungfu struct {
 	self           plan.PeerSpec
 	currentSession *session
-	router         *rch.Router
 	server         *rch.Server
 	localServer    *rch.Server
 	config         Config
@@ -64,34 +60,15 @@ func New(config Config) (*Kungfu, error) {
 }
 
 func (kf *Kungfu) Start() int {
-	go metrics.ListenAndServe(kf.self.MonitoringPort)
 	go kf.server.Serve()
 	go kf.localServer.Serve()
-	go func() {
-		for range time.Tick(kf.config.ReportPeriod) {
-			kf.router.UpdateRate()
-		}
-	}()
 	if kc.RunWarmup {
 		return kf.currentSession.Warmup()
 	}
 	return 0
 }
 
-func exportLogs(self plan.PeerSpec) error {
-	filename := fmt.Sprintf("peer-%s.%d.json", self.NetAddr.Host, self.NetAddr.Port)
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	metrics.RecordStop()
-	metrics.Export(f)
-	return nil
-}
-
 func (kf *Kungfu) Close() int {
-	defer exportLogs(kf.self)
 	kf.server.Close() // TODO: check error
 	kf.localServer.Close()
 	return 0
