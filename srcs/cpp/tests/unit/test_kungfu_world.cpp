@@ -2,9 +2,12 @@
 
 TEST(kungfu_world_test, test_construct)
 {
-    // FIXME: make it re-constructable
-    // panic: Reuse of exported var name: total_msg_sent
-    // kungfu_world kf;
+    {
+        kungfu_world kf1;
+    }
+    {
+        kungfu_world kf2;
+    }
 }
 
 TEST(kungfu_world_test, test_global_step)
