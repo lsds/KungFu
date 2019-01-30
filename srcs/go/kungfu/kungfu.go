@@ -1,8 +1,6 @@
 package kungfu
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -70,18 +68,7 @@ func (kf *Kungfu) Start() int {
 	return 0
 }
 
-func exportLogs(self plan.PeerSpec) error {
-	filename := fmt.Sprintf("peer-%s.%d.json", self.NetAddr.Host, self.NetAddr.Port)
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return nil
-}
-
 func (kf *Kungfu) Close() int {
-	defer exportLogs(kf.self)
 	kf.server.Close() // TODO: check error
 	kf.localServer.Close()
 	return 0
