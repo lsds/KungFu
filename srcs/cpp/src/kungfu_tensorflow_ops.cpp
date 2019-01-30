@@ -66,12 +66,7 @@ class AkoNegotiator : public AsyncOpKernel
         int numberPartitions = numberPartitionsTensor(0);
         int partitionIndex   = currentPartitionIndexTensor(0);
 
-        // This should be the total number of nodes, not the global step
-        // if p > NumberOfNodes: a node receives multiple partitions
-        // if p == NumberOfNodes: all nodes receive exactly one partition
-        // if p < NumberOfNodes: some nodes do not receive the partition at all
         if(_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {
-          //std::cout << "Negotiating this one" << std::endl;
           std::cout << partitionIndex << std::endl;
           _kungfu_world.Negotiate(
               input.tensor_data().data(), (void *)(output->tensor_data().data()),
@@ -80,8 +75,6 @@ class AkoNegotiator : public AsyncOpKernel
         } else {
           CallbackWrapper doneFunction(done);
           doneFunction();
-          std::cout << "Skipping this one " << _kungfu_world.GetGlobalStep() <<
-                                                "  "  <<   partitionIndex << std::endl;
         }
     }
 };

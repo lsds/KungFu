@@ -20,7 +20,7 @@ ALGO=SIMPLE
 ./bin/kungfu-prun \
     -np $np \
     -H $H \
-    -timeout 120s \
+    -timeout 360s \
     -algo $ALGO \
     python3 \
-    benchmarks/tensorflow_synthetic_benchmark.py
+    experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
