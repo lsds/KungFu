@@ -96,12 +96,9 @@ func (sess *session) Warmup() int {
 	k := sess.cluster.Size()
 	count := k * 4
 	dtype := kb.KungFu_INT32
-	n := count * dtype.Size()
 	w := Workspace{
-		SendBuf: make([]byte, n),
-		RecvBuf: make([]byte, n),
-		Count:   count,
-		Dtype:   dtype,
+		SendBuf: kb.NewBuffer(count, dtype),
+		RecvBuf: kb.NewBuffer(count, dtype),
 		OP:      kb.KungFu_SUM,
 		Name:    "kungfu::warmup", // TODO: use tag
 	}
@@ -114,20 +111,22 @@ func (sess *session) AllReduce(w Workspace) int {
 
 func (sess *session) runGraph(w Workspace, g *plan.Graph) error {
 	sendTo := func(peer plan.PeerSpec) {
-		sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf)
+		sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf.Data)
 	}
 
 	var lock sync.Mutex
 	recvAdd := func(peer plan.PeerSpec) {
 		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
+		b := &kb.Buffer{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
-		kb.Transform(w.RecvBuf, m.Data, w.Count, w.Dtype, w.OP)
+		kb.Transform(w.RecvBuf, b, w.OP)
 		lock.Unlock()
 	}
 
 	recvAssign := func(peer plan.PeerSpec) {
 		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
-		copy(w.RecvBuf, m.Data)
+		b := &kb.Buffer{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
+		w.RecvBuf.CopyFrom(b)
 	}
 
 	prun := func(ranks []int, op func(plan.PeerSpec)) {
@@ -144,7 +143,7 @@ func (sess *session) runGraph(w Workspace, g *plan.Graph) error {
 
 	myRank := sess.cluster.MyRank()
 	if g.IsSelfLoop(myRank) {
-		copy(w.RecvBuf, w.SendBuf)
+		w.RecvBuf.CopyFrom(w.SendBuf)
 		prun(g.Prevs(myRank), recvAdd)
 	} else {
 		prevs := g.Prevs(myRank)

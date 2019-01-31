@@ -21,6 +21,34 @@ func (dtype KungFu_Datatype) Size() int {
 	return int(C.kungfu_type_size(C.KungFu_Datatype(dtype)))
 }
 
+type Buffer struct {
+	Data  []byte
+	Count int
+	Type  KungFu_Datatype
+}
+
+func NewBuffer(count int, dtype KungFu_Datatype) *Buffer {
+	return &Buffer{
+		Data:  make([]byte, count*dtype.Size()),
+		Count: count,
+		Type:  dtype,
+	}
+}
+
+// Slice returns a new Buffer that points to a subset of the original Buffer.
+// 0 <= begin < end <= count - 1
+func (b *Buffer) Slice(begin, end int) *Buffer {
+	return &Buffer{
+		Data:  b.Data[begin*b.Type.Size() : end*b.Type.Size()],
+		Count: end - begin,
+		Type:  b.Type,
+	}
+}
+
+func (b *Buffer) CopyFrom(c *Buffer) {
+	copy(b.Data, c.Data)
+}
+
 type KungFu_Op C.KungFu_Op
 
 var (
