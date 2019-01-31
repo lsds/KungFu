@@ -9,6 +9,7 @@ import (
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/profile"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
@@ -109,6 +110,7 @@ func (sess *session) Warmup() int {
 }
 
 func (sess *session) AllReduce(w Workspace) int {
+	defer profile.Default.Profile("session::AllReduce").Done()
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
 
