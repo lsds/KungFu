@@ -108,6 +108,12 @@ func (sess *session) AllReduce(w Workspace) int {
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
 
+func (sess *session) Reduce(w Workspace) int {
+	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
+	g := strategy.Graphs[0]        // Assuming the first graph is a Gather Graph
+	return code(sess.runGraphs(w, g))
+}
+
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	if sess.cluster.Size() == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)

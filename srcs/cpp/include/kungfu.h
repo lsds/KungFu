@@ -48,6 +48,10 @@ extern KungFu_AllReduceAlgo KungfuGetAlgoFromEnv();
 #include <functional>
 typedef std::function<void()> DoneCallback;
 
+extern int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                        DoneCallback done);
+
 extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
                            const char *name);

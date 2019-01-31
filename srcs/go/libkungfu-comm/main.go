@@ -52,6 +52,26 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	return 0
 }
 
+//export GoKungfuReduce
+func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
+	w := kf.Workspace{
+		SendBuf: toBuffer(sendBuf, count, dtype),
+		RecvBuf: toBuffer(recvBuf, count, dtype),
+		OP:      kb.KungFu_Op(op),
+		Name:    C.GoString(name),
+	}
+	sess := kungfu.CurrentSession()
+	if done == nil {
+		return sess.Reduce(w)
+	}
+	go func() {
+		sess.Reduce(w)
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
 //export GoKungfuGetAlgoFromEnv
 func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 	name := os.Getenv(kb.AllReduceAlgoEnvKey)
