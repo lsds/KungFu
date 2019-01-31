@@ -61,7 +61,7 @@ func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 func main() {}
 
 func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer {
-	dt:=kb.KungFu_Datatype(dtype)
+	dt := kb.KungFu_Datatype(dtype)
 	size := count * dt.Size()
 	sh := &reflect.SliceHeader{
 		Data: uintptr(ptr),
@@ -69,8 +69,8 @@ func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer
 		Cap:  size,
 	}
 	return &kb.Buffer{
-		Data: *(*[]byte)(unsafe.Pointer(sh)),
+		Data:  *(*[]byte)(unsafe.Pointer(sh)),
 		Count: count,
-		Type: dt,
+		Type:  dt,
 	}
 }
