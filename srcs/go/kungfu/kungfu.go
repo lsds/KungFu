@@ -1,8 +1,6 @@
 package kungfu
 
 import (
-	"time"
-
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -10,17 +8,12 @@ import (
 )
 
 type Config struct {
-	Algo         kb.KungFu_AllReduceAlgo
-	ReportPeriod time.Duration
+	Algo kb.KungFu_AllReduceAlgo
 }
 
 func (c Config) complete() Config {
 	newConfig := Config{
-		Algo:         c.Algo,
-		ReportPeriod: c.ReportPeriod,
-	}
-	if newConfig.ReportPeriod == 0 {
-		newConfig.ReportPeriod = 30 * time.Second
+		Algo: c.Algo,
 	}
 	return newConfig
 }
