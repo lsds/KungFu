@@ -1,16 +1,15 @@
 #!/bin/sh
 set -e
 
-if [ -z "${RUNNER}" ]; then
-    RUNNER=kungfu
-fi
-
-if [ -z "${SRC_DIR}" ]; then
-    SRC_DIR=$HOME/KungFu
-fi
+[ -z "${RUNNER}" ] && RUNNER=kungfu
+[ -z "${SRC_DIR}" ] && SRC_DIR=$HOME/KungFu
+[ -z "${EXPERIMENT_SCRIPT}" ] && EXPERIMENT_SCRIPT=experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
+[ -z "${EXPERIMENT_ARGS}" ] && EXPERIMENT_ARGS=
 
 echo "using RUNNER=$RUNNER"
 echo "using SRC_DIR=$SRC_DIR"
+echo "using EXPERIMENT_SCRIPT=$EXPERIMENT_SCRIPT"
+echo "using EXPERIMENT_ARGS=$EXPERIMENT_ARGS"
 
 export PATH=$HOME/local/go/bin:$PATH # TODO: make it default in relay-machine
 
@@ -97,10 +96,11 @@ init_remote() {
         'pip3 install tensorflow --user'
     ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
         ./KungFu/scripts/azure/gpu-machine/install-golang1.11.sh
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
+        'DATA_DIR=$HOME/var/data ./KungFu/scripts/download-mnist.sh'
 }
 
 install_remote() {
-    # init_remote # only need for new machines
     ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
         'PATH=$HOME/local/go/bin:$PATH pip3 install --user --no-index -U ./KungFu'
 }
@@ -110,12 +110,12 @@ install_local() {
 }
 
 run_experiments() {
-    # local ARGS="--batch-size=1"
     ./bin/run-experiments -H $H -u ${RUNNER} -timeout 120s \
         env \
         TF_CPP_MIN_LOG_LEVEL=1 \
         python3 \
-        ./KungFu/experiments/kungfu/kf_tensorflow_synthetic_benchmark.py $ARGS
+        ./KungFu/$EXPERIMENT_SCRIPT \
+        $EXPERIMENT_ARGS
 }
 
 prepare() {
@@ -130,6 +130,9 @@ main() {
         measure prepare
     elif [ "$1" = "run" ]; then
         measure run_experiments
+    elif [ "$1" = "init-remote" ]; then
+        measure upload_kungfu
+        measure init_remote
     else
         measure prepare
         measure run_experiments
