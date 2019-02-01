@@ -1,11 +1,20 @@
 #!/bin/sh
 set -e
 
+if [ -z "${RUNNER}" ]; then
+    RUNNER=kungfu
+fi
+
+if [ -z "${SRC_DIR}" ]; then
+    SRC_DIR=$HOME/KungFu
+fi
+
+echo "using RUNNER=$RUNNER"
+echo "using SRC_DIR=$SRC_DIR"
+
 export PATH=$HOME/local/go/bin:$PATH # TODO: make it default in relay-machine
 
 SCRIPT_NAME=$(basename $0)
-# cd $(dirname $0)/..
-cd $HOME/kungfu
 
 show_duration() {
     local ss=$1
@@ -49,11 +58,12 @@ measure() {
 }
 
 get_host_specs() {
-    awk '{printf "%s:4:%s\n", $1, $1}' ~/hosts.txt
+    # FIXME: assuming we are in the internal network, and slots=4 for all machines.
+    awk '{printf "%s:4:%s\n", $1, $1}' $HOME/hosts.txt
 }
 
 get_host_spec() {
-    local H=
+    local H
     for spec in $(get_host_specs); do
         H="${H},${spec}"
     done
@@ -63,29 +73,28 @@ get_host_spec() {
 export H=$(get_host_spec)
 echo "using H=$H"
 
-gen_hosts() {
-    echo "" >hosts.txt
+gen_ansible_hosts() {
+    local H=$1
     for h in $(echo $H | tr ',' '\n'); do
-        echo $h | awk -F ':' '{print $3}' | cat >>hosts.txt
+        echo $h | awk -F ':' '{print $3}'
     done
-    cat hosts.txt
 }
 
 # VERBOSE=-v
-RUNNER=kungfu
 
 upload_kungfu() {
     ./scripts/pack.sh
     cp ../KungFu.tar.bz2 .
 
-    gen_hosts
-    ansible -i hosts.txt all $VERBOSE -u ${RUNNER} -m file -a 'dest=KungFu state=absent'
-    ansible -i hosts.txt all $VERBOSE -u ${RUNNER} -m unarchive -a 'src=KungFu.tar.bz2 dest=~'
+    gen_ansible_hosts $H >ansible_hosts.txt
+
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m file -a 'dest=KungFu state=absent'
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m unarchive -a 'src=KungFu.tar.bz2 dest=~'
 }
 
 install_remote() {
-    ansible -i hosts.txt all $VERBOSE -u kungfu -m shell -a \
-        'PATH=$HOME/local/go/bin:$PATH pip3 install --no-index -U ./KungFu'
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
+        'PATH=$HOME/local/go/bin:$PATH pip3 install --user --no-index -U ./KungFu'
 }
 
 install_local() {
@@ -93,11 +102,12 @@ install_local() {
 }
 
 run_experiments() {
+    # local ARGS="--batch-size=1"
     ./bin/run-experiments -H $H -u ${RUNNER} -timeout 120s \
         env \
         TF_CPP_MIN_LOG_LEVEL=1 \
         python3 \
-        ./KungFu/experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
+        ./KungFu/experiments/kungfu/kf_tensorflow_synthetic_benchmark.py $ARGS
 }
 
 prepare() {
@@ -118,4 +128,5 @@ main() {
     fi
 }
 
+cd $SRC_DIR
 measure main $@
