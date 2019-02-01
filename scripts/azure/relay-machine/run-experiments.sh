@@ -59,7 +59,7 @@ measure() {
 
 get_host_specs() {
     # FIXME: assuming we are in the internal network, and slots=4 for all machines.
-    awk '{printf "%s:4:%s\n", $1, $1}' $HOME/hosts.txt
+    grep -v '^#' $HOME/hosts.txt | awk '{printf "%s:4:%s\n", $1, $1}'
 }
 
 get_host_spec() {
@@ -92,7 +92,15 @@ upload_kungfu() {
     ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m unarchive -a 'src=KungFu.tar.bz2 dest=~'
 }
 
+init_remote() {
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
+        'pip3 install tensorflow --user'
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
+        ./KungFu/scripts/azure/gpu-machine/install-golang1.11.sh
+}
+
 install_remote() {
+    # init_remote # only need for new machines
     ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
         'PATH=$HOME/local/go/bin:$PATH pip3 install --user --no-index -U ./KungFu'
 }

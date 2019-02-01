@@ -36,3 +36,4 @@ tensorflow-prefix
 tensorflow-repo-prefix
 Testing/
 venv
+ansible_hosts.txt
