@@ -67,7 +67,6 @@ class AkoNegotiator : public AsyncOpKernel
 
         if (_kungfu_world.GetGlobalStep() % numberPartitions ==
             partitionIndex) {
-            std::cout << partitionIndex << std::endl;
             _kungfu_world.AllReduce(input.tensor_data().data(),
                                     (void *)(output->tensor_data().data()),
                                     input.NumElements(),

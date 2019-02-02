@@ -113,6 +113,8 @@ class SyncSGDOptimizer(KungFuOptimizer):
         self._op_lib = lazy_load_op_lib()
         self.strategy = strategy
 
+        print('KungFu strategy: ' + strategy)
+
         if self.strategy == 'ako':
             self.accum_map = dict()
             self.staleness = 3
@@ -219,7 +221,8 @@ class SyncSGDOptimizer(KungFuOptimizer):
                         for grad, var in grads_and_vars_ako:
                             self.accumulate(grad, var, self.accum_map,
                                             self.staleness)
-                            grad_accum = tf.add_n(self.accum_map[var])
+                            grad_tensors = self.accum_map[var]
+                            grad_accum = tf.add_n(grad_tensors) / len(grad_tensors)
                             negotiated_grad_var = (self._op_lib.ako_negotiator(
                                 grad_accum, tf.constant([i], dtype=tf.int32),
                                 tf.constant([self.akoPartitions],

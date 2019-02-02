@@ -47,7 +47,7 @@ func (r Result) String() string {
 }
 
 func parseResult(line string, r *Result) {
-	fmt.Sscanf(line, `Img/sec per /gpu:0: %f +-%f`, &r.Mean, &r.Conf)
+	fmt.Sscanf(line, `Img/sec per host: %f +-%f`, &r.Mean, &r.Conf)
 }
 
 func fmtHostSpecs(hosts []plan.HostSpec) string {
@@ -115,7 +115,7 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 			o.SaveTo(path.Join(logDir, fmt.Sprintf("peer-%02d", i)))
 		}
 		for _, o := range outputs {
-			if info := grep(`Img/sec per /gpu:0`, o.Stdout); len(info) > 0 {
+			if info := grep(`Img/sec per host`, o.Stdout); len(info) > 0 {
 				parseResult(info[0], &res)
 				break
 			}

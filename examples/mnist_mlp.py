@@ -3,11 +3,14 @@
 import argparse
 import os
 import time
+import timeit
 import sys
 
+import numpy as np
 import tensorflow as tf
 from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
+
 
 all_model_names = [
     'mnist.slp',
@@ -28,7 +31,7 @@ def measure(f, name=None):
     return result
 
 
-def build_train_ops(model_name, use_kungfu):
+def build_train_ops(model_name, use_kungfu, kungfu_strategy):
     learning_rate = 0.1
 
     if model_name == 'mnist.slp':
@@ -46,7 +49,7 @@ def build_train_ops(model_name, use_kungfu):
     optmizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_kungfu:
         import kungfu as kf
-        optmizer = kf.SyncSGDOptimizer(optmizer)
+        optmizer = kf.SyncSGDOptimizer(optmizer, strategy=kungfu_strategy)
     train_step = optmizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -69,15 +72,20 @@ def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1, batch_size=5000):
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+
+        img_secs = []
         for step in range(1, n_steps + 1):
-            print('step: %d' % step)
             xs = dataset.train.images[offset:offset + batch_size, :]
             y_s = dataset.train.labels[offset:offset + batch_size]
             offset = (offset + batch_size * shards) % train_data_size
-            sess.run(train_step, {
+            time = timeit.timeit(lambda: sess.run(train_step, {
                 x: xs.reshape(batch_size, 28 * 28),
                 y_: y_s,
-            })
+            }), number=1)
+            img_sec = batch_size / time
+            print('Iter #%d: %.1f img/sec per host' % (step, img_sec))
+            img_secs.append(img_sec)
+
             if step % log_period == 0:
                 result = sess.run(
                     acc, {
@@ -86,6 +94,12 @@ def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1, batch_size=5000):
                     })
                 print('validation accuracy: %f' % result)
 
+        # Results throoughput
+        img_sec_mean = np.mean(img_secs)
+        img_sec_conf = 1.96 * np.std(img_secs)
+        print('Img/sec per host: %.1f +-%.1f' % (img_sec_mean, img_sec_conf))
+
+        # Test set performance
         result = sess.run(
             acc, {
                 x: dataset.test.images.reshape(10000, 28 * 28),
@@ -98,6 +112,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
     parser.add_argument(
         '--use-kungfu', type=bool, default=True, help='use kungfu optimizer')
+    parser.add_argument(
+        '--kungfu-strategy',
+        type=str,
+        default='plain', # Plain SyncSGD
+        help='Specify KungFu strategy: \'plain\' or \'ako\' if --use-kungfu flag is set')
     parser.add_argument(
         '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
@@ -112,6 +131,13 @@ def parse_args():
         type=str,
         default=os.path.join(os.getenv('HOME'), 'var/data/mnist'),
         help='Path to the MNIST dataset directory.')
+    parser.add_argument(
+        '--num-batches-per-iter',
+        type=int,
+        default=10,
+        help='number of batches per benchmark iteration')
+    parser.add_argument(
+        '--num-iters', type=int, default=10, help='number of benchmark iterations')
     return parser.parse_args()
 
 
@@ -137,7 +163,7 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.model_name, args.use_kungfu)
+    x, y_, train_step, acc = build_train_ops(args.model_name, args.use_kungfu, args.kungfu_strategy)
     show_info()
     mnist = measure(
         lambda: load_datasets(args.data_dir, normalize=True, one_hot=True),
