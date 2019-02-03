@@ -1,11 +1,19 @@
 #!/bin/sh
 set -e
 
+[ -z "${RUNNER}" ] && RUNNER=kungfu
+[ -z "${SRC_DIR}" ] && SRC_DIR=$HOME/KungFu
+[ -z "${EXPERIMENT_SCRIPT}" ] && EXPERIMENT_SCRIPT=experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
+[ -z "${EXPERIMENT_ARGS}" ] && EXPERIMENT_ARGS=
+
+echo "using RUNNER=$RUNNER"
+echo "using SRC_DIR=$SRC_DIR"
+echo "using EXPERIMENT_SCRIPT=$EXPERIMENT_SCRIPT"
+echo "using EXPERIMENT_ARGS=$EXPERIMENT_ARGS"
+
 export PATH=$HOME/local/go/bin:$PATH # TODO: make it default in relay-machine
 
 SCRIPT_NAME=$(basename $0)
-# cd $(dirname $0)/..
-cd $HOME/kungfu
 
 show_duration() {
     local ss=$1
@@ -49,11 +57,12 @@ measure() {
 }
 
 get_host_specs() {
-    awk '{printf "%s:4:%s\n", $1, $1}' ~/hosts.txt
+    # FIXME: assuming we are in the internal network, and slots=4 for all machines.
+    grep -v '^#' $HOME/hosts.txt | awk '{printf "%s:4:%s\n", $1, $1}'
 }
 
 get_host_spec() {
-    local H=
+    local H
     for spec in $(get_host_specs); do
         H="${H},${spec}"
     done
@@ -63,29 +72,37 @@ get_host_spec() {
 export H=$(get_host_spec)
 echo "using H=$H"
 
-gen_hosts() {
-    echo "" >hosts.txt
+gen_ansible_hosts() {
+    local H=$1
     for h in $(echo $H | tr ',' '\n'); do
-        echo $h | awk -F ':' '{print $3}' | cat >>hosts.txt
+        echo $h | awk -F ':' '{print $3}'
     done
-    cat hosts.txt
 }
 
 # VERBOSE=-v
-RUNNER=kungfu
 
 upload_kungfu() {
     ./scripts/pack.sh
     cp ../KungFu.tar.bz2 .
 
-    gen_hosts
-    ansible -i hosts.txt all $VERBOSE -u ${RUNNER} -m file -a 'dest=KungFu state=absent'
-    ansible -i hosts.txt all $VERBOSE -u ${RUNNER} -m unarchive -a 'src=KungFu.tar.bz2 dest=~'
+    gen_ansible_hosts $H >ansible_hosts.txt
+
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m file -a 'dest=KungFu state=absent'
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m unarchive -a 'src=KungFu.tar.bz2 dest=~'
+}
+
+init_remote() {
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
+        'pip3 install tensorflow --user'
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
+        ./KungFu/scripts/azure/gpu-machine/install-golang1.11.sh
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
+        'DATA_DIR=$HOME/var/data ./KungFu/scripts/download-mnist.sh'
 }
 
 install_remote() {
-    ansible -i hosts.txt all $VERBOSE -u kungfu -m shell -a \
-        'PATH=$HOME/local/go/bin:$PATH pip3 install --no-index -U ./KungFu'
+    ansible -i ansible_hosts.txt all $VERBOSE -u ${RUNNER} -m shell -a \
+        'PATH=$HOME/local/go/bin:$PATH pip3 install --user --no-index -U ./KungFu'
 }
 
 install_local() {
@@ -97,7 +114,8 @@ run_experiments() {
         env \
         TF_CPP_MIN_LOG_LEVEL=1 \
         python3 \
-        ./KungFu/experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
+        ./KungFu/$EXPERIMENT_SCRIPT \
+        $EXPERIMENT_ARGS
 }
 
 prepare() {
@@ -112,10 +130,14 @@ main() {
         measure prepare
     elif [ "$1" = "run" ]; then
         measure run_experiments
+    elif [ "$1" = "init-remote" ]; then
+        measure upload_kungfu
+        measure init_remote
     else
         measure prepare
         measure run_experiments
     fi
 }
 
+cd $SRC_DIR
 measure main $@
