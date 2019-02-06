@@ -84,6 +84,7 @@ class AkoNegotiator : public AsyncOpKernel
         std::cout << "Kick   step: " << kickin << std::endl;
 
         if(_kungfu_world.GetGlobalStep() < kickin) {
+            std::cout << "PLAIN NEGOTIATION" << std::endl;
             // perform plain all-reduce until weight updates stabilize to minimize loss
             _kungfu_world.AllReduce(allGradients.tensor_data().data(),
                                     (void *)(output->tensor_data().data()),
@@ -92,6 +93,7 @@ class AkoNegotiator : public AsyncOpKernel
                                     name().c_str(), done);
         } else if (_kungfu_world.GetGlobalStep() % numberPartitions ==
             partitionIndex) {
+            std::cout << "AKO NEGOTIATION" << std::endl;
             _kungfu_world.AllReduce(partitionTensor.tensor_data().data(),
                                     (void *)(output->tensor_data().data()),
                                     partitionTensor.NumElements(),

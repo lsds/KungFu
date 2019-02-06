@@ -34,9 +34,8 @@ def measure(f, name=None):
     return result
 
 
-def build_train_ops(model_name, use_kungfu, kungfu_strategy):
+def build_train_ops(model_name, use_kungfu, kungfu_strategy, ako_partitions, staleness, kickin_time):
     learning_rate = 0.1
-
     if model_name == 'mnist.slp':
         from kungfu.benchmarks.mnist import slp
         x, y = slp(28 * 28, 10)
@@ -52,7 +51,10 @@ def build_train_ops(model_name, use_kungfu, kungfu_strategy):
     optmizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_kungfu:
         import kungfu as kf
-        optmizer = kf.SyncSGDOptimizer(optmizer, strategy=kungfu_strategy)
+        optmizer = kf.SyncSGDOptimizer(optmizer, strategy=kungfu_strategy,
+                                      ako_partitions=ako_partitions,
+                                      staleness=staleness,
+                                      kickin_time=kickin_time)
     train_step = optmizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -122,6 +124,12 @@ def parse_args():
         default='plain', # Plain SyncSGD
         help='Specify KungFu strategy: \'plain\' or \'ako\' if --use-kungfu flag is set')
     parser.add_argument(
+        '--ako-partitions', type=int, default=1, help='number of ako partitions')
+    parser.add_argument(
+        '--staleness', type=int, default=1, help='ako staleness constant')
+    parser.add_argument(
+        '--kickin-time', type=int, default=100, help='iteration starting from which ako kicks in')
+    parser.add_argument(
         '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
         '--batch-size', type=int, default=50, help='batch size')
@@ -167,7 +175,9 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.model_name, args.use_kungfu, args.kungfu_strategy)
+    x, y_, train_step, acc = build_train_ops(args.model_name, args.use_kungfu, 
+                                             args.kungfu_strategy, args.ako_partitions,
+                                             args.staleness, args.kickin_time)
     show_info()
     mnist = measure(
         lambda: load_datasets(args.data_dir, normalize=True, one_hot=True),

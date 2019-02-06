@@ -40,14 +40,19 @@ func (r Record) String() string {
 type Result struct {
 	Mean float32
 	Conf float32
+	TestAccuracy float32
 }
 
 func (r Result) String() string {
-	return fmt.Sprintf("%f +-%f", r.Mean, r.Conf)
+	return fmt.Sprintf("%f +-%f test accuracy: %f", r.Mean, r.Conf, r.TestAccuracy)
 }
 
 func parseResult(line string, r *Result) {
 	fmt.Sscanf(line, `Img/sec per host: %f +-%f`, &r.Mean, &r.Conf)
+}
+
+func parseTestAccuracy(line string, r *Result) {
+	fmt.Sscanf(line, `test accuracy: %f`, &r.TestAccuracy)
 }
 
 func fmtHostSpecs(hosts []plan.HostSpec) string {
@@ -117,6 +122,9 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 		for _, o := range outputs {
 			if info := grep(`Img/sec per host`, o.Stdout); len(info) > 0 {
 				parseResult(info[0], &res)
+			}
+			if info := grep(`test accuracy`, o.Stdout); len(info) > 0 {
+				parseTestAccuracy(info[0], &res)
 				break
 			}
 		}

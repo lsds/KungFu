@@ -104,23 +104,29 @@ class SyncSGDOptimizer(KungFuOptimizer):
             name=None,
             use_locking=False,
             strategy='plain',  # or ako
+            ako_partitions=1,
+            staleness=1,
+            kickin_time=200,
             device_dense='',
             device_sparse='',
             use_global_step=True):
         super(SyncSGDOptimizer, self).__init__(optimizer, name, use_locking,
                                                device_dense, device_sparse)
-
         self._op_lib = lazy_load_op_lib()
         self.strategy = strategy
 
-        print('KungFu strategy: ' + strategy)
-
         if self.strategy == 'ako':
             self.accum_map = dict()
-            self.staleness = 10
-            self.akoPartitions = 10
-            self.kickinTime    = 20
+            self.staleness = staleness
+            self.akoPartitions = ako_partitions
+            self.kickinTime    =  kickin_time
             self.partitionIndices = None
+
+        print('KungFu strategy: ' + strategy)
+        if self.strategy == 'ako':
+            print('KungFu staleness: ' + str(self.staleness))
+            print('KungFu p partitions: ' + str(self.akoPartitions))
+            print('KungFu kick in time: ' + str(self.kickinTime))        
 
         self._use_global_step = use_global_step
         if self._use_global_step:
@@ -224,6 +230,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
                        self.partitionIndices = self.__partition_positions(sizes, self.akoPartitions)
                     
                     partitions = self.__reconstruct_partition(grads_and_vars_to_negotiate,  self.akoPartitions, self.partitionIndices)
+
                     negotiated_grad_and_vars = []
                     for partition_id in range(len(partitions)):
                         for grad, var in partitions[partition_id]:
