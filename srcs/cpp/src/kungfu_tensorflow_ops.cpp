@@ -50,27 +50,52 @@ class AkoNegotiator : public AsyncOpKernel
     {
         // Check arg count: gradient tensors group, number partitions, current
         // partition index
-        DCHECK_EQ(3, context->num_inputs());
+        DCHECK_EQ(5, context->num_inputs());
 
-        const Tensor &input                 = context->input(0);
-        const Tensor &currentPartitionIndex = context->input(1);
-        const Tensor &pAkoPartitions        = context->input(2);
+        const Tensor &partitionTensor       = context->input(0);
+        const Tensor &allGradients          = context->input(1);    
+
+        const Tensor &currentPartitionIndex = context->input(2);
+        const Tensor &pAkoPartitions        = context->input(3);
+
+        const Tensor &kickinTime            = context->input(4);
+        
         Tensor *output                      = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(0, input.shape(), &output));
+        
 
         auto currentPartitionIndexTensor = currentPartitionIndex.vec<int>();
         auto numberPartitionsTensor      = pAkoPartitions.vec<int>();
+        auto kickinTimeTensor            = kickinTime.vec<int>();
 
         int numberPartitions = numberPartitionsTensor(0);
         int partitionIndex   = currentPartitionIndexTensor(0);
+        int kickin           = kickinTimeTensor(0);
 
-        if (_kungfu_world.GetGlobalStep() % numberPartitions ==
-            partitionIndex) {
-            _kungfu_world.AllReduce(input.tensor_data().data(),
+
+        if(_kungfu_world.GetGlobalStep() < kickin) {
+            OP_REQUIRES_OK(context,
+                           context->allocate_output(0, allGradients.shape(), &output));
+        } else {
+            OP_REQUIRES_OK(context,
+                           context->allocate_output(0, partitionTensor.shape(), &output));
+        }
+
+        std::cout << "Global step: " << _kungfu_world.GetGlobalStep() << std::endl;
+        std::cout << "Kick   step: " << kickin << std::endl;
+
+        if(_kungfu_world.GetGlobalStep() < kickin) {
+            // perform plain all-reduce until weight updates stabilize to minimize loss
+            _kungfu_world.AllReduce(allGradients.tensor_data().data(),
                                     (void *)(output->tensor_data().data()),
-                                    input.NumElements(),
-                                    to_kungfu_type(input.dtype()), KungFu_SUM,
+                                    allGradients.NumElements(),
+                                    to_kungfu_type(allGradients.dtype()), KungFu_SUM,
+                                    name().c_str(), done);
+        } else if (_kungfu_world.GetGlobalStep() % numberPartitions ==
+            partitionIndex) {
+            _kungfu_world.AllReduce(partitionTensor.tensor_data().data(),
+                                    (void *)(output->tensor_data().data()),
+                                    partitionTensor.NumElements(),
+                                    to_kungfu_type(partitionTensor.dtype()), KungFu_SUM,
                                     name().c_str(), done);
         } else {
             done();

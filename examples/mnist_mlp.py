@@ -17,6 +17,9 @@ all_model_names = [
     'mnist.mlp',
 ]
 
+# TODO: add to kungfu optimizer; use model size in bits x64
+def get_number_of_trainable_parameters():
+    return np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
 
 def measure(f, name=None):
     if not name:
@@ -74,6 +77,7 @@ def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1, batch_size=5000):
         sess.run(tf.global_variables_initializer())
 
         img_secs = []
+        # One epoch, each iteartion processes a batch
         for step in range(1, n_steps + 1):
             xs = dataset.train.images[offset:offset + batch_size, :]
             y_s = dataset.train.labels[offset:offset + batch_size]
@@ -83,7 +87,7 @@ def train_mnist(x, y_, train_step, acc, dataset, n_epochs=1, batch_size=5000):
                 y_: y_s,
             }), number=1)
             img_sec = batch_size / time
-            print('Iter #%d: %.1f img/sec per host' % (step, img_sec))
+            print('Batch ID #%d: %.1f img/sec per host' % (step, img_sec))
             img_secs.append(img_sec)
 
             if step % log_period == 0:

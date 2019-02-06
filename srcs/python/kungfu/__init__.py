@@ -117,13 +117,14 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
         if self.strategy == 'ako':
             self.accum_map = dict()
-            self.staleness = 3
+            self.staleness = 10
             self.akoPartitions = 10
+            self.kickinTime    = 20
+            self.partitionIndices = None
 
         self._use_global_step = use_global_step
         if self._use_global_step:
             self._trained_steps = tf.Variable(tf.zeros([], tf.int32))
-            print('aaaa')
             self._modify_trained_steps = tf.assign(
                 self._trained_steps,
                 self._op_lib.global_step_modifier(self._trained_steps))
@@ -177,16 +178,16 @@ class SyncSGDOptimizer(KungFuOptimizer):
                 D[i - 1][j - 1] = min_separator_pos
         return D
 
-    def __get_size(self, v):
-        return v.shape.num_elements() * v.dtype.size
+    def __get_size(self, tensor):
+        return tensor.shape.num_elements() * tensor.dtype.size
 
     # create k partitions of each of grads_and_vars
     # bucket gradients such that the size in bytes in each bucket
     # is approximately equal
-    def partition_gradients(self, grads_and_vars, k):
-        sizes = [self.__get_size(g) for g, _v in grads_and_vars]
-        D = self.__partition_positions(sizes, k)
-        return self.__reconstruct_partition(grads_and_vars, k, D)
+    # def partition_gradients(self, grads_and_vars, k):
+    #     sizes = [self.__get_size(g) for g, _v in grads_and_vars]
+    #     D = self.__partition_positions(sizes, k)
+    #     return self.__reconstruct_partition(grads_and_vars, k, D)
 
     # Map is a dict from variable to queue of gradients
     def accumulate(self, grad, var, map, staleness):
@@ -204,8 +205,12 @@ class SyncSGDOptimizer(KungFuOptimizer):
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Negotiate grad with peers, following flexible strategy."""
 
+        # def tensor_less(global_step, kickin_step):
+        #     return tf.cond(tf.less(global_step, kickin_step), lambda: False, lambda: True)
+
         def build_op():
             with tf.variable_scope('NegotiatedGrad'):
+                # global_step = tf.to_int32(self._op_lib.get_global_step(tf.zeros([], tf.int32)))
                 if self.strategy == 'plain':
                     negotiated_grad_and_vars = []
                     for grad, var in grads_and_vars_to_negotiate:
@@ -213,27 +218,34 @@ class SyncSGDOptimizer(KungFuOptimizer):
                             (self._op_lib.all_reduce(grad), var))
                     return negotiated_grad_and_vars
                 elif self.strategy == 'ako':
-                    buckets = self.partition_gradients(
-                        grads_and_vars_to_negotiate, self.akoPartitions)
+                    if self.partitionIndices is None:
+                       # Get partition indices by size (runs once)
+                       sizes = [self.__get_size(g) for g, _v in grads_and_vars_to_negotiate]
+                       self.partitionIndices = self.__partition_positions(sizes, self.akoPartitions)
+                    
+                    partitions = self.__reconstruct_partition(grads_and_vars_to_negotiate,  self.akoPartitions, self.partitionIndices)
                     negotiated_grad_and_vars = []
-                    for i in range(len(buckets)):
-                        grads_and_vars_ako = buckets[i]
-                        for grad, var in grads_and_vars_ako:
+                    for partition_id in range(len(partitions)):
+                        for grad, var in partitions[partition_id]:
                             self.accumulate(grad, var, self.accum_map,
                                             self.staleness)
-                            grad_tensors = self.accum_map[var]
-                            grad_accum = tf.add_n(grad_tensors) / len(grad_tensors)
+                            # TODO: optimize
+                            grad_accum = tf.add_n(self.accum_map[var]) / len(self.accum_map[var])
                             negotiated_grad_var = (self._op_lib.ako_negotiator(
-                                grad_accum, tf.constant([i], dtype=tf.int32),
-                                tf.constant([self.akoPartitions],
-                                            dtype=tf.int32)), var)
-                            negotiated_grad_and_vars.append(
-                                negotiated_grad_var)
+                                                                grad_accum, 
+                                                                grad,
+                                                                tf.constant([partition_id], dtype=tf.int32),
+                                                                tf.constant([self.akoPartitions], dtype=tf.int32),
+                                                                tf.constant([self.kickinTime], dtype=tf.int32),
+),
+                                                    var
+                                                  )
+                            negotiated_grad_and_vars.append(negotiated_grad_var)
                     return negotiated_grad_and_vars
                 else:
                     raise RuntimeError('Strategy not implemented')
 
-        if self._use_global_step:  #
+        if self._use_global_step:
             with tf.control_dependencies([self._modify_trained_steps]):
                 return build_op()
         else:
