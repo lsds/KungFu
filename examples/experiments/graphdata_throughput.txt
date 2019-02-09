@@ -1,0 +1,91 @@
+# MLP has 23 variables to negotiate
+# SLP has 3 vars
+
+slp.ako.1part.50stale.kickin200:RING [4]
+slp.ako.1part.50stale.kickin200-24900.900391 +-16232.200195 test accuracy: 0.876400
+
+
+mlp.ako.5part.5stale.kickin1500:RING [4]
+mlp.ako.5part.5stale.kickin1500-11.400000 +-0.800000 test accuracy: 0.098000
+
+
+mlp.ako.10part.5stale.kickin10:RING [4]
+mlp.ako.10part.5stale.kickin10-16.600000 +-2.300000 test accuracy: 0.098000
+
+
+mlp.ako.5part.5stale.kickin100:RING [4]
+mlp.ako.5part.5stale.kickin100-15.500000 +-3.000000 test accuracy: 0.098000
+
+
+mlp.ako.50part.5stale.kickin10:RING [4]
+
+
+slp.ako.1part.1000stale.kickin200:RING [4]
+slp.ako.1part.1000stale.kickin200-25309.599609 +-15926.799805 test accuracy: 0.887800
+
+
+mlp.ako.5part.5stale.kickin500:RING [4]
+mlp.ako.5part.5stale.kickin500-14.200000 +-4.900000 test accuracy: 0.098000
+
+
+mlp.ako.5part.5stale.kickin1000:RING [4]
+mlp.ako.5part.5stale.kickin1000-12.200000 +-3.500000 test accuracy: 0.098000
+
+
+mlp.plain:RING [4]
+mlp.plain-12.300000 +-0.900000 test accuracy: 0.098000
+
+
+slp.ako.1part.5stale.kickin1000:RING [4]
+slp.ako.1part.5stale.kickin1000-25014.099609 +-16080.799805 test accuracy: 0.891900
+
+
+slp.ako.1part.5stale.kickin500:RING [4]
+slp.ako.1part.5stale.kickin500-24688.099609 +-15535.200195 test accuracy: 0.896400
+
+
+mlp.ako.2part.5stale.kickin10:RING [4]
+mlp.ako.2part.5stale.kickin10-13.800000 +-1.900000 test accuracy: 0.098000
+
+
+mlp.ako.100part.5stale.kickin10:RING [4]
+
+
+mlp.ako.5part.5stale.kickin10:RING [4]
+mlp.ako.5part.5stale.kickin10-15.900000 +-2.100000 test accuracy: 0.098000
+
+
+slp.ako.1part.100stale.kickin200:RING [4]
+slp.ako.1part.100stale.kickin200-25240.300781 +-16188.900391 test accuracy: 0.896000
+
+
+mlp.ako.1part.5stale.kickin100:RING [4]
+mlp.ako.1part.5stale.kickin100-11.200000 +-0.800000 test accuracy: 0.098000
+
+
+mlp.ako.20part.5stale.kickin100:RING [4]
+mlp.ako.20part.5stale.kickin100-16.700001 +-3.900000 test accuracy: 0.098000
+
+
+slp.ako.1part.5stale.kickin10:RING [4]
+slp.ako.1part.5stale.kickin10-25502.800781 +-16235.900391 test accuracy: 0.897500
+
+
+slp.plain:RING [4]
+slp.plain-26359.099609 +-17974.199219 test accuracy: 0.892300
+
+
+mlp.ako.5part.5stale.kickin50:RING [4]
+mlp.ako.5part.5stale.kickin50-16.000000 +-2.600000 test accuracy: 0.098000
+
+
+slp.ako.1part.5stale.kickin200:RING [4]
+slp.ako.1part.5stale.kickin200-25224.000000 +-16839.000000 test accuracy: 0.899600
+
+
+mlp.ako.10part.5stale.kickin100:RING [4]
+mlp.ako.10part.5stale.kickin100-16.299999 +-3.500000 test accuracy: 0.098000
+
+
+slp.ako.1part.5stale.kickin1500:RING [4]
+slp.ako.1part.5stale.kickin1500-25026.300781 +-16044.500000 test accuracy: 0.894500
