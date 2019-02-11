@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
@@ -96,12 +95,9 @@ func (sess *session) Warmup() int {
 	k := sess.cluster.Size()
 	count := k * 4
 	dtype := kb.KungFu_INT32
-	n := count * dtype.Size()
 	w := Workspace{
-		SendBuf: make([]byte, n),
-		RecvBuf: make([]byte, n),
-		Count:   count,
-		Dtype:   dtype,
+		SendBuf: kb.NewBuffer(count, dtype),
+		RecvBuf: kb.NewBuffer(count, dtype),
 		OP:      kb.KungFu_SUM,
 		Name:    "kungfu::warmup", // TODO: use tag
 	}
@@ -112,25 +108,49 @@ func (sess *session) AllReduce(w Workspace) int {
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
 
-func (sess *session) runGraph(w Workspace, g *plan.Graph) error {
+func (sess *session) Reduce(w Workspace) int {
+	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
+	g := strategy.Graphs[0]        // Assuming the first graph is a Gather Graph
+	return code(sess.runGraphs(w, g))
+}
+
+func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
+	if sess.cluster.Size() == 1 {
+		w.RecvBuf.CopyFrom(w.SendBuf)
+		return nil
+	}
+
+	var recvCount int
 	sendTo := func(peer plan.PeerSpec) {
-		sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf)
+		if recvCount == 0 {
+			sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data)
+		} else {
+			sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf.Data)
+		}
 	}
 
 	var lock sync.Mutex
-	recvAdd := func(peer plan.PeerSpec) {
+	recvOnto := func(peer plan.PeerSpec) {
 		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
+		b := &kb.Buffer{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
-		kb.Transform(w.RecvBuf, m.Data, w.Count, w.Dtype, w.OP)
-		lock.Unlock()
+		defer lock.Unlock()
+		if recvCount == 0 {
+			kb.Transform2(w.RecvBuf, w.SendBuf, b, w.OP)
+		} else {
+			kb.Transform(w.RecvBuf, b, w.OP)
+		}
+		recvCount++
 	}
 
-	recvAssign := func(peer plan.PeerSpec) {
+	recvInto := func(peer plan.PeerSpec) {
 		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
-		copy(w.RecvBuf, m.Data)
+		b := &kb.Buffer{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
+		w.RecvBuf.CopyFrom(b)
+		recvCount++
 	}
 
-	prun := func(ranks []int, op func(plan.PeerSpec)) {
+	par := func(ranks []int, op func(plan.PeerSpec)) {
 		var wg sync.WaitGroup
 		for _, rank := range ranks {
 			wg.Add(1)
@@ -142,31 +162,24 @@ func (sess *session) runGraph(w Workspace, g *plan.Graph) error {
 		wg.Wait()
 	}
 
-	myRank := sess.cluster.MyRank()
-	if g.IsSelfLoop(myRank) {
-		copy(w.RecvBuf, w.SendBuf)
-		prun(g.Prevs(myRank), recvAdd)
-	} else {
-		prevs := g.Prevs(myRank)
-		if len(prevs) > 1 {
-			log.Errorf("more than once recvAssign detected at node %d", myRank)
-		}
-		for _, rank := range prevs {
-			recvAssign(sess.cluster.GetPeer(rank))
+	seq := func(ranks []int, op func(plan.PeerSpec)) {
+		for _, rank := range ranks {
+			op(sess.cluster.GetPeer(rank))
 		}
 	}
-	prun(g.Nexts(myRank), sendTo)
-	// TODO: handhel error
-	return nil
-}
 
-func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
-	if kc.InplaceAllReduce && len(graphs) == 2 { // FIXME: Assuming it is always a pair of allreduce graphs
-		return sess.runAllReduceGraphPair(w, graphs[0], graphs[1])
-	}
+	myRank := sess.cluster.MyRank()
 	for _, g := range graphs {
-		// TODO: handhel error
-		sess.runGraph(w, g)
+		prevs := g.Prevs(myRank)
+		if g.IsSelfLoop(myRank) {
+			par(prevs, recvOnto)
+		} else {
+			if len(prevs) > 1 {
+				log.Errorf("more than once recvInto detected at node %d", myRank)
+			}
+			seq(prevs, recvInto) // len(prevs) == 1 is expected
+		}
+		par(g.Nexts(myRank), sendTo)
 	}
 	return nil
 }
