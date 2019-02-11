@@ -30,17 +30,41 @@ def cumulative_discounted_reward(rewards, gamma=0.99):
 
 class BaseAgent(object):
     def __init__(self, image_shape, actions):
-        tf.reset_default_graph()
+        self._use_kungfu = True
 
         self.xs = []
         self.ys = []
         self.rs = []
 
         self._all_vars = []
-        self._model_ops = self._model(image_shape)
+        self._model_ops = self._build_model_ops(image_shape)
 
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
+
+    def _build_model_ops(self, image_shape):
+        images, probs = self._model(image_shape)
+        sampling_prob = tf.nn.softmax(probs)
+
+        actions = tf.placeholder(tf.int32, shape=(None, ))
+        discount_rewards = tf.placeholder(tf.float32, shape=(None, ))
+
+        loss = loss_func(probs, actions, discount_rewards)
+
+        learning_rate = 1e-3
+        optmizer = tf.train.GradientDescentOptimizer(learning_rate)
+        if self._use_kungfu:
+            import kungfu as kf
+            optmizer = kf.SyncSGDOptimizer(optmizer)
+
+        train_op = optmizer.minimize(loss)
+        return (
+            images,
+            sampling_prob,
+            actions,
+            discount_rewards,
+            train_op,
+        )
 
     def _model(self, image_shape):
         raise RuntimeError('Not Implemented')

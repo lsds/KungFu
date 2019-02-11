@@ -4,7 +4,7 @@ from functools import reduce
 import numpy as np
 import tensorflow as tf
 
-from base_agent import BaseAgent, loss_func
+from base_agent import BaseAgent
 
 
 class Agent(BaseAgent):
@@ -24,36 +24,10 @@ class Agent(BaseAgent):
             y = act(y)
         return y
 
-    def _mlp(self, image_shape):
+    def _model(self, image_shape):
         image_size = reduce(mul, image_shape, 1)
         x = tf.placeholder(tf.float32, shape=(None, ) + image_shape)
         x_flat = tf.reshape(x, [-1, image_size])
         l1 = self._dense(x_flat, 200)
         l2 = self._dense(l1, 3, act=None)
         return x, l2
-
-    def _model(self, image_shape):
-        images, probs = self._mlp(image_shape)
-        sampling_prob = tf.nn.softmax(probs)
-
-        actions = tf.placeholder(tf.int32, shape=(None, ))
-        discount_rewards = tf.placeholder(tf.float32, shape=(None, ))
-
-        loss = loss_func(probs, actions, discount_rewards)
-
-        learning_rate = 1e-3
-        # decay_rate = 0.99
-        # optmizer = tf.train.RMSPropOptimizer(learning_rate, decay_rate)
-        optmizer = tf.train.GradientDescentOptimizer(learning_rate)
-        # use_kungfu = False
-        # if use_kungfu:
-        #     import kungfu as kf
-        #     optmizer = kf.SyncSGDOptimizer(optmizer)
-        train_op = optmizer.minimize(loss)
-        return (
-            images,
-            sampling_prob,
-            actions,
-            discount_rewards,
-            train_op,
-        )
