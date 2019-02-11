@@ -4,7 +4,7 @@ from functools import reduce
 import numpy as np
 import tensorflow as tf
 
-from .base_agent import BaseAgent, loss_func
+from base_agent import BaseAgent, loss_func
 
 
 def conv2d(x, W):
