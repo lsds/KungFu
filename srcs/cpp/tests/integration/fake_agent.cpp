@@ -8,7 +8,9 @@
 
 #include "testing.hpp"
 
-void test_sum(int np)
+bool is_root = getSelfRank() == 0;
+
+void test_AllReduce(int np)
 {
     TRACE_SCOPE(__func__);
     using T     = int32_t;
@@ -39,18 +41,37 @@ void test_sum(int np)
     }
 }
 
-void test(int n, int m)
+void bench_Reduce(int n, int m)
 {
     TRACE_SCOPE(__func__);
 
     std::vector<int32_t> x(n);
     std::vector<int32_t> y(n);
     const auto dtype = kungfu::type_encoder::value<int32_t>();
-    std::string name("fake_data");
+    const std::string name("fake_data");
 
     for (int i = 0; i < m; ++i) {
-        TRACE_SCOPE("KungfuAllReduceAsync");
+        TRACE_SCOPE("KungfuReduce(async)");
+        Waiter waiter;
+        // void *recvBuf = is_root ? y.data() : nullptr;
+        void *recvBuf = y.data();  // TODO: allow nullptr for non-root
+        KungfuReduce(x.data(), recvBuf, n, dtype, KungFu_SUM, name.c_str(),
+                     [&waiter] { waiter.done(); });
+        waiter.wait();
+    }
+}
 
+void bench_AllReduce(int n, int m)
+{
+    TRACE_SCOPE(__func__);
+
+    std::vector<int32_t> x(n);
+    std::vector<int32_t> y(n);
+    const auto dtype = kungfu::type_encoder::value<int32_t>();
+    const std::string name("fake_data");
+
+    for (int i = 0; i < m; ++i) {
+        TRACE_SCOPE("KungfuAllReduce(async)");
         Waiter waiter;
         KungfuAllReduce(x.data(), y.data(), n, dtype, KungFu_SUM, name.c_str(),
                         [&waiter] { waiter.done(); });
@@ -65,12 +86,17 @@ int main(int argc, char *argv[])
 
     {
         const int np = getTestClusterSize();
-        test_sum(np);
+        test_AllReduce(np);
     }
     {
         const int n = 100;
         const int m = 100;
-        test(n, m);
+        bench_Reduce(n, m);
+    }
+    {
+        const int n = 100;
+        const int m = 100;
+        bench_AllReduce(n, m);
     }
     return 0;
 }

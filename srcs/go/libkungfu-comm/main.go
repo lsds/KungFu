@@ -35,10 +35,8 @@ func GoKungfuFinalize() int {
 //export GoKungfuAllReduce
 func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
-		SendBuf: toSlice(sendBuf, count, dtype),
-		RecvBuf: toSlice(recvBuf, count, dtype),
-		Count:   count,
-		Dtype:   kb.KungFu_Datatype(dtype),
+		SendBuf: toBuffer(sendBuf, count, dtype),
+		RecvBuf: toBuffer(recvBuf, count, dtype),
 		OP:      kb.KungFu_Op(op),
 		Name:    C.GoString(name),
 	}
@@ -54,6 +52,26 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	return 0
 }
 
+//export GoKungfuReduce
+func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
+	w := kf.Workspace{
+		SendBuf: toBuffer(sendBuf, count, dtype),
+		RecvBuf: toBuffer(recvBuf, count, dtype),
+		OP:      kb.KungFu_Op(op),
+		Name:    C.GoString(name),
+	}
+	sess := kungfu.CurrentSession()
+	if done == nil {
+		return sess.Reduce(w)
+	}
+	go func() {
+		sess.Reduce(w)
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
 //export GoKungfuGetAlgoFromEnv
 func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 	name := os.Getenv(kb.AllReduceAlgoEnvKey)
@@ -62,12 +80,17 @@ func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 
 func main() {}
 
-func toSlice(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) []byte {
-	size := count * kb.KungFu_Datatype(dtype).Size()
+func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer {
+	dt := kb.KungFu_Datatype(dtype)
+	size := count * dt.Size()
 	sh := &reflect.SliceHeader{
 		Data: uintptr(ptr),
 		Len:  size,
 		Cap:  size,
 	}
-	return *(*[]byte)(unsafe.Pointer(sh))
+	return &kb.Buffer{
+		Data:  *(*[]byte)(unsafe.Pointer(sh)),
+		Count: count,
+		Type:  dt,
+	}
 }
