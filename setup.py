@@ -11,6 +11,11 @@ class CMakeExtension(Extension):
         self.sourcedir = os.path.abspath(sourcedir)
 
 
+def ensure_absent(filepath):
+    if os.path.isfile(filepath):
+        os.remove(filepath)
+
+
 def cmake_flag(k, v):
     return '-D%s=%s' % (k, str(v))
 
@@ -36,6 +41,8 @@ class CMakeBuild(build_ext):
             # cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
             # cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
         ]
+
+        ensure_absent(os.path.join(ext.sourcedir, 'CMakeCache.txt'))
 
         subprocess.check_call(
             ['cmake', ext.sourcedir] + cmake_args,
