@@ -52,7 +52,8 @@ class BaseAgent(object):
         loss = loss_func(probs, actions, discount_rewards)
 
         learning_rate = 1e-3
-        optmizer = tf.train.GradientDescentOptimizer(learning_rate)
+        # optmizer = tf.train.GradientDescentOptimizer(learning_rate)
+        optmizer = tf.train.AdamOptimizer(learning_rate)
         if self._use_kungfu:
             import kungfu as kf
             optmizer = kf.SyncSGDOptimizer(optmizer)
