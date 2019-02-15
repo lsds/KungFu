@@ -65,7 +65,7 @@ setup(
     version='0.0.0',
     package_dir={'': package_dir},
     packages=find_packages(package_dir),
-    description='The ultimate distributed training framework for TensorFlow',
+    description='KungFu distributed machine learning framework',
     url='https://github.com/lsds/KungFu',
     ext_modules=[
         CMakeExtension('.'),

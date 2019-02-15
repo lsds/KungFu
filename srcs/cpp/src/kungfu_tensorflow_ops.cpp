@@ -76,4 +76,18 @@ class SetNumGradients : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("SetNumGradients").Device(DEVICE_CPU),
                         SetNumGradients);
 
+class GlobalVariance: public OpKernel
+{
+    using OpKernel::OpKernel;
+
+  public:
+    void Compute(OpKernelContext *context) override
+    {
+        const Tensor &input = context->input(0);
+        // TODO
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("GlobalVariance").Device(DEVICE_CPU), GlobalVariance);
+
 }  // namespace tensorflow
