@@ -13,16 +13,14 @@ from diff_trainer import DiffTrainer
 def parse_args():
     parser = argparse.ArgumentParser(description='RL example.')
     parser.add_argument('--agent', type=str, default='mlp', help='agent name')
-    # parser.add_argument('--agent', type=str, default='cnn', help='agent name')
+    parser.add_argument(
+        '--optimizer', type=str, default='sgd', help='sgd | adam | rmsp')
     parser.add_argument(
         '--batch-size', type=int, default=10, help='batch size')
     parser.add_argument(
         '--episodes', type=int, default=50000, help='max number of episodes')
     parser.add_argument(
-        '--checkpoint',
-        type=str,
-        default='pingpong.npz',
-        help='path to checkpoint file')
+        '--checkpoint', type=str, default='', help='path to checkpoint file')
     parser.add_argument(
         '--init', type=bool, default=False, help='generate init checkpoint')
     return parser.parse_args()
@@ -37,7 +35,7 @@ def prepro(I):
     return I.astype(np.float)
 
 
-def init_agent(env, agent):
+def init_agent(env, agent, opt):
     init = env.reset()
     image = prepro(init)
     if agent == 'cnn':
@@ -46,19 +44,19 @@ def init_agent(env, agent):
         # use mlp as default
         from mlp_agent import Agent
 
-    a = Agent(image.shape, env.action_space)
+    a = Agent(image.shape, env.action_space, opt)
     return a
 
 
 def main():
     args = parse_args()
     env = gym.make("Pong-v0")
-    agent = init_agent(env, args.agent)
+    agent = init_agent(env, args.agent, args.optimizer)
     if args.init:
         print('saving checkpoint %s' % args.checkpoint)
         agent.save(args.checkpoint)
         return
-    else:
+    elif args.checkpoint:
         print('loading checkpoint %s' % args.checkpoint)
         agent.load(args.checkpoint)
 

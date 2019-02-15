@@ -29,7 +29,7 @@ def cumulative_discounted_reward(rewards, gamma=0.99):
 
 
 class BaseAgent(object):
-    def __init__(self, image_shape, actions):
+    def __init__(self, image_shape, actions, optimizer_name):
         self._use_kungfu = True
 
         self.xs = []
@@ -37,31 +37,21 @@ class BaseAgent(object):
         self.rs = []
 
         self._all_vars = []
-        self._model_ops = self._build_model_ops(image_shape)
+        optimizer = self._build_optimizer(optimizer_name)
+        self._model_ops = self._build_model_ops(image_shape, optimizer)
 
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
-    def _build_model_ops(self, image_shape):
+    def _build_model_ops(self, image_shape, optimizer):
         images, probs = self._model(image_shape)
         sampling_prob = tf.nn.softmax(probs)
 
         actions = tf.placeholder(tf.int32, shape=(None, ))
         discount_rewards = tf.placeholder(tf.float32, shape=(None, ))
-
         loss = loss_func(probs, actions, discount_rewards)
 
-        learning_rate = 1e-3
-        decay_rate = 0.99
-        # optmizer = tf.train.GradientDescentOptimizer(learning_rate)
-        # optmizer = tf.train.AdamOptimizer(learning_rate)
-        optmizer = tf.train.RMSPropOptimizer(learning_rate, decay_rate)
-
-        if self._use_kungfu:
-            import kungfu as kf
-            optmizer = kf.SyncSGDOptimizer(optmizer)
-
-        train_op = optmizer.minimize(loss)
+        train_op = optimizer.minimize(loss)
         return (
             images,
             sampling_prob,
@@ -69,6 +59,22 @@ class BaseAgent(object):
             discount_rewards,
             train_op,
         )
+
+    def _build_optimizer(self, name):
+        learning_rate = 1e-3
+        decay_rate = 0.99
+
+        if name == 'adam':
+            optimizer = tf.train.AdamOptimizer(learning_rate)
+        elif name == 'rmsp':
+            optimizer = tf.train.RMSPropOptimizer(learning_rate, decay_rate)
+        else:
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+
+        if self._use_kungfu:
+            import kungfu as kf
+            optimizer = kf.SyncSGDOptimizer(optimizer)
+        return optimizer
 
     def _model(self, image_shape):
         raise RuntimeError('Not Implemented')
@@ -109,7 +115,7 @@ class BaseAgent(object):
         self.ys.append(action)
         self.rs.append(reward)
 
-    def learn(self):
+    def learn(self, save=False):
         (
             images,
             sampling_prob,
@@ -131,4 +137,5 @@ class BaseAgent(object):
         self.ys = []
         self.rs = []
 
-        self.save('pingpong.latest.npz')
+        if save:
+            self.save('pingpong.latest.npz')
