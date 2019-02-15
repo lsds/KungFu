@@ -4,7 +4,7 @@ import sysconfig
 def _load_op_lib(name):
     module_path = os.path.dirname(__file__)
     suffix = sysconfig.get_config_var('EXT_SUFFIX')
-    filename = os.path.join(module_path, name + suffix)
+    filename = os.path.join(os.path.dirname(module_path), name + suffix)
     return tf.load_op_library(filename)
 
 
