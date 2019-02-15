@@ -21,7 +21,9 @@ var (
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 90*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
-	logDir     = flag.String("logdir", "logs", "root directory for logs")
+	logDir = flag.String("logdir", "logs", "root directory for logs")
+	logSubDir  = flag.String("l", "log_subdir", "root directory for logs")
+	logName    = flag.String("n", "unnamed_log_subdir", "subdirectory name for experiment logs")
 	reportFile = flag.String("r", "experiment-results.txt", "filename for report")
 )
 
@@ -40,7 +42,12 @@ func main() {
 	}
 	log.Printf("using %d VMs: %s", len(hostSpecs), humanizeHostSpecs(hostSpecs))
 
-	logDirForThisRound := path.Join(*logDir, fmt.Sprintf("%d", time.Now().Unix()))
+
+	logSubDirName := fmt.Sprintf("%s-%d", *logSubDir, time.Now().Unix())
+	if *logSubDir != "log_subdir" {
+		logSubDirName = *logSubDir
+	}
+	logDirForThisRound := path.Join(*logDir, logSubDirName)
 	records, failed := runAllExperiments(logDirForThisRound, hostSpecs, prog, args, *timeout)
 
 	writeReport(records, failed, os.Stdout)

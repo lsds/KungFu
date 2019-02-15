@@ -11,6 +11,16 @@ import re
 # Regex used to match relevant loglines (in this case, a specific IP address)
 line_regex = re.compile(r".*$")
 
+def extract_experiment_time(s):
+    pattern = re.compile(r"(?P<experiment>.*):train\stook\s(?P<time>\d+\.\d+)", re.VERBOSE)
+    match = pattern.match(s)
+    if match is None:
+        return None
+    experiment = match.group("experiment")
+    time = float(match.group("time"))
+
+    return (experiment, time)
+
 def extract_throughput(s):
     pattern = re.compile(r"(?P<experiment>.*)\-(?P<mean>\d+\.\d+)\s*\+\-(?P<std>\d+\.\d+)\s*.*", re.VERBOSE)
     match = pattern.match(s)
@@ -22,20 +32,18 @@ def extract_throughput(s):
 
     return (experiment, mean, std)
 
-def get_experiment_results(log_file):
+def get_experiment_results(log_file, match_function):
     results = []
-    # Open input file in 'read' mode
     with open(log_file, "r") as in_file:
-        # Loop over each log line
         for line in in_file:
-            # If log line matches our regex, print to console, and output file
             if (line_regex.search(line)):
-                match = extract_throughput(line)
+                match = match_function(line)
                 if match is not None:
                     results.append(match)
     return results
 
 def pretty_experiment_name(experiment_name):
+    print(experiment_name)
     if 'plain' in experiment_name:
         return 'Synch SGD'
     pattern = re.compile(r".*\.(?P<parts>\d+).*\.(?P<stale>\d+).*\.kickin(?P<kickin>\d+)", re.VERBOSE)
@@ -78,24 +86,28 @@ def plot_mlp(mlp):
 
     plt.show()
 
-def plot_slp(slp):
-    N = len(slp)
-    slp  = sorted(slp, key=lambda tup: tup[1])
-    slpMeans = [exp[1] for exp in slp]
-    slpStd = [exp[2] for exp in slp]
+def plot_experiment_times():
+    results = get_experiment_results('graphdata_experiment_time.txt', extract_experiment_time)
+    timeRegex = re.compile(r'.*mlp.*')
+    times = filter(lambda x : timeRegex.match(x[0]), results)
+    times = [time for time in times]
+    N = len(times)
+    times  = sorted(times, key=lambda tup: tup[1])
+   
+    experimentTimes = [t[1] for t in times]
     ind = np.arange(N)    # the x locations for the groups
 
-    bars = plt.bar(ind, slpMeans, 0.8,yerr=slpStd)
-    akoIndex = [i for i in range(len(slp)) if slp[i][0] == 'slp.plain']
+    bars = plt.bar(ind, experimentTimes, 0.8)
+    akoIndex = [i for i in range(len(times)) if times[i][0] == 'mlp.plain']
     bars[akoIndex[0]].set_color('green')
 
-    plt.ylabel('Throughput (imgs/sec)')
+    plt.ylabel('Experiment time (sec)')
     plt.xlabel('Experiment ID')
-    plt.title('Multi-Layer Perceptron MNIST Training with Ako and Synchronous SGD Synchronization Strategies (23 trainable variables)')
-    # xTicks = ['SLP ' + str(i) for i in range(N)]
-    xTicks = [pretty_experiment_name(exp[0]) for exp in slp]
+    plt.title('Multi-Layer Perceptron MNIST Training Times with Ako and Synchronous SGD Synchronization Strategies')
+    # xTicks = ['MLP ' + str(i) for i in range(N)]
+    xTicks = [pretty_experiment_name(exp[0]) for exp in times]
     plt.xticks(ind, xTicks)
-    plt.yticks(np.arange(0, 50000, 2500))
+    plt.yticks(np.arange(0, 20000, 1000))
     #plt.legend((p1[0], p2[0]), ('Men', 'Women'))
 
     legend_dict = {'Ako with configuration (#partitions, staleness, kick-in iteration)' : 'blue', 'Synchronous SGD' : 'green'}
@@ -109,16 +121,13 @@ def plot_slp(slp):
     plt.show()
 
 def plot_ako_vs_plain(log_file):
-    results = get_experiment_results(log_file)
-    slpRegex = re.compile(r'slp\..*')
-    slp = filter(lambda x : slpRegex.match(x[0]), results)
-    slp = [x for x in slp]
-    mlpRegex = re.compile(r'mlp\..*')
-    mlp = filter(lambda x : mlpRegex.match(x[0]), results)
-    mlp = [x for x in mlp]
+    results = get_experiment_results(log_file, extract_throughput)
+    # mlpRegex = re.compile(r'mlp\..*')
+    # mlp = filter(lambda x : mlpRegex.match(x[0]), results)
+    # mlp = [x for x in mlp]
     
-    plot_mlp(mlp)
-    #plot_slp(slp)
+    #plot_mlp(mlp)
+    plot_experiment_times()
 
 def main():
     plot_ako_vs_plain("graphdata_throughput.txt")

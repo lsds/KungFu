@@ -51,7 +51,7 @@ def measure(f, name=None):
         f.write(line + '\n')
     return result
 
-def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kickin_time, num_layers):
+def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kickin_time):
     # Parameters
     learning_rate = 0.01
     training_epochs = 25
@@ -86,9 +86,20 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
     return x, y, train_step, acc
 
 
-def train_mnist(x, y, train_step, acc, n_epochs, batch_size):
+def train_mnist(x, y, train_step, acc, n_epochs, batch_size, val_accuracy_target):
     n_epochs = 25
-    batch_size = 32
+    batch_size = 50
+
+    def  evaluate_test_set_accuracy(acc):
+        test_acc = sess.run(acc,
+                    feed_dict={
+                        x: mnist.test.images,
+                        y: mnist.test.labels
+        })
+        print('test accuracy: %f' % test_acc)
+
+    time_start = time.time()
+    reached_target_accuracy = False
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         
@@ -105,15 +116,14 @@ def train_mnist(x, y, train_step, acc, n_epochs, batch_size):
                             y: mnist.validation.labels
                         })
             now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print('%s - validation accuracy: %f' % (now, val_acc))
+            print('%s - validation accuracy (epoch %d): %f' % (now, epoch_i, val_acc))
+            if val_acc * 100 >= val_accuracy_target and not reached_target_accuracy:
+                reached_target_accuracy = True
+                print("reached validation accuracy target %.3f: %.4f (time %s)" % (val_accuracy_target, val_acc, str(time.time() - time_start)))
 
         # %% Print final test accuracy:
-        test_acc = sess.run(acc,
-                    feed_dict={
-                        x: mnist.test.images,
-                        y: mnist.test.labels
-        })
-        print('test accuracy: %f' % test_acc)
+        evaluate_test_set_accuracy(acc)
+       
 
 
 
@@ -133,18 +143,11 @@ def parse_args():
     parser.add_argument(
         '--kickin-time', type=int, default=100, help='iteration starting from which ako kicks in')
     parser.add_argument(
-        '--num-layers', type=int, default=2, help='number of fully connected layers of the neural network')
-    parser.add_argument(
         '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
         '--batch-size', type=int, default=50, help='batch size')
     parser.add_argument(
-        '--num-batches-per-iter',
-        type=int,
-        default=10,
-        help='number of batches per benchmark iteration')
-    parser.add_argument(
-        '--num-iters', type=int, default=10, help='number of benchmark iterations')
+        '---val-accuracy-target', type=float, default=92., help='validation accuracy target')
     return parser.parse_args()
 
 
@@ -172,10 +175,12 @@ def main():
     measure(warmup, 'warmup')
     x, y_, train_step, acc = build_train_ops(args.use_kungfu, 
                                              args.kungfu_strategy, args.ako_partitions,
-                                             args.staleness, args.kickin_time, args.num_layers)
+                                             args.staleness, args.kickin_time)
     show_info()
     measure(
-        lambda: train_mnist(x, y_, train_step, acc, args.n_epochs, args.batch_size),
+        lambda: train_mnist(x, y_, train_step, acc, 
+                            args.n_epochs, args.batch_size,
+                            args.val_accuracy_target),
         'train')
 
 

@@ -230,14 +230,18 @@ class SyncSGDOptimizer(KungFuOptimizer):
                        self.partitionIndices = self.__partition_positions(sizes, self.akoPartitions)
                     
                     partitions = self.__reconstruct_partition(grads_and_vars_to_negotiate,  self.akoPartitions, self.partitionIndices)
+                    sizes = [self.__get_size(g) for g, _v in grads_and_vars_to_negotiate]
 
                     negotiated_grad_and_vars = []
                     for partition_id in range(len(partitions)):
                         for grad, var in partitions[partition_id]:
-                            self.accumulate(grad, var, self.accum_map,
+                            # TODO: optimize, running sum
+                            if self.staleness == 0:
+                                grad_accum = grad
+                            else:   
+                                self.accumulate(grad, var, self.accum_map,
                                             self.staleness)
-                            # TODO: optimize
-                            grad_accum = tf.add_n(self.accum_map[var]) / len(self.accum_map[var])
+                                grad_accum = tf.add_n(self.accum_map[var]) / len(self.accum_map[var])
                             negotiated_grad_var = (self._op_lib.ako_negotiator(
                                                                 grad_accum, 
                                                                 grad,

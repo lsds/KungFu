@@ -1,92 +1,54 @@
-#!/bin/sh
+import os
+import subprocess
+import sys
 
-set -e
-cd $(dirname $0)
+os.environ['RUNNER'] = os.environ['USER']
+os.environ['SRC_DIR'] = os.path.dirname(os.path.realpath(__file__)) # pwd
+os.environ['EXPERIMENT_SCRIPT'] = './examples/logistic_regression_mnist.py'
 
-export RUNNER=$USER
-export SRC_DIR=$(pwd)
-export EXPERIMENT_SCRIPT=./examples/mnist_mlp.py
+subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "init-remote"])
+subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "prepare"])
 
-./scripts/azure/relay-machine/run-experiments.sh init-remote
-./scripts/azure/relay-machine/run-experiments.sh prepare
+def build_args(strategy, partitions=None, staleness=None, kickin=None):
+    if strategy ==  'ako':
+        return "--kungfu-strategy %s --ako-partitions %d --staleness %d --kickin-time %d" % (strategy, partitions, staleness, kickin)
+    else:
+        return ""
+def set_args(args):
+    os.environ['EXPERIMENT_ARGS'] = args
 
+def build_log_name(strategy, partitions=None, staleness=None, kickin=None):
+    if strategy ==  'ako':
+        return "%s.%dparts.%dstale.%dkickin" % (strategy, partitions, staleness, kickin)
+    else:
+        return strategy
+def set_log_name(name):
+    os.environ['PRETTY_EXPERIMENT_NAME'] = name
 
-# SLP experiments AKO
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.slp --ako-partitions 1 --staleness 5 --kickin-time 200"
-./scripts/azure/relay-machine/run-experiments.sh run
+config_grid = {'strategy': ['ako', 'plain'], 
+               'parts'   : [1, 2, 3],
+               'stale'   : [i  for i in range(900)], 
+               'kickin'  : [i  for i in range(900)]}
 
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.slp --ako-partitions 1 --staleness 50 --kickin-time 200"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.slp --ako-partitions 1 --staleness 100 --kickin-time 200"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.slp --ako-partitions 1 --staleness 1000 --kickin-time 200"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.slp --ako-partitions 1 --staleness 5 --kickin-time 10"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.slp --ako-partitions 1 --staleness 5 --kickin-time 500"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.slp --ako-partitions 1 --staleness 5 --kickin-time 1000"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.slp --ako-partitions 1 --staleness 5 --kickin-time 1500"
-./scripts/azure/relay-machine/run-experiments.sh run
+config_grid = {'strategy': ['ako'], 
+               'parts'   : [1],
+               'stale'   : [0], 
+               'kickin'  : [0]}
 
 
-# SLP experiments PLAIN
-export EXPERIMENT_ARGS="--kungfu-strategy plain --model-name mnist.slp"
-./scripts/azure/relay-machine/run-experiments.sh run
+def run():
+    for strategy in config_grid['strategy']: 
+        for parts in config_grid['parts']:
+            for stale in config_grid['stale']: 
+                for kickin in config_grid['kickin']:
+                    if strategy == 'ako':
+                        set_args(build_args(strategy=strategy, partitions=parts, staleness=stale, kickin=kickin))
+                        set_log_name(build_log_name(strategy=strategy, partitions=parts, staleness=stale, kickin=kickin))
+                        subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "run"])
+                    else:
+                        set_args(build_args(strategy))
+                        set_log_name(build_log_name(strategy))
+                        subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "run"]) 
+                        return
 
-
-# MLP experiments AKO
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 1 --staleness 5 --kickin-time 100"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 5 --staleness 5 --kickin-time 100"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 10 --staleness 5 --kickin-time 100"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 20 --staleness 5 --kickin-time 100"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 2 --staleness 5 --kickin-time 10"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 5 --staleness 5 --kickin-time 10"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 10 --staleness 5 --kickin-time 10"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 50 --staleness 5 --kickin-time 10"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 100 --staleness 5 --kickin-time 10"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 5 --staleness 5 --kickin-time 50"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 5 --staleness 5 --kickin-time 100"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 5 --staleness 5 --kickin-time 500"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 5 --staleness 5 --kickin-time 1000"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --ako-partitions 5 --staleness 5 --kickin-time 1500"
-./scripts/azure/relay-machine/run-experiments.sh run
-
-# MLP experiments PLAIN
-export EXPERIMENT_ARGS="--kungfu-strategy plain --model-name mnist.mlp"
-./scripts/azure/relay-machine/run-experiments.sh run
+run()
