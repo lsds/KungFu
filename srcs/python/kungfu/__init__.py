@@ -197,8 +197,6 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
     # Map is a dict from variable to queue of gradients
     def accumulate(self, grad, var, map, staleness):
-        if staleness == 0:
-            return
         if var not in map:
             map[var] = [grad]
         else:
@@ -235,12 +233,11 @@ class SyncSGDOptimizer(KungFuOptimizer):
                     negotiated_grad_and_vars = []
                     for partition_id in range(len(partitions)):
                         for grad, var in partitions[partition_id]:
+                            self.accumulate(grad, var, self.accum_map, self.staleness)
                             # TODO: optimize, running sum
                             if self.staleness == 0:
-                                grad_accum = grad
+                                grad_accum = self.accum_map[var]
                             else:   
-                                self.accumulate(grad, var, self.accum_map,
-                                            self.staleness)
                                 grad_accum = tf.add_n(self.accum_map[var]) / len(self.accum_map[var])
                             negotiated_grad_var = (self._op_lib.ako_negotiator(
                                                                 grad_accum, 
