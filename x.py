@@ -4,7 +4,7 @@ import sys
 
 os.environ['RUNNER'] = os.environ['USER']
 os.environ['SRC_DIR'] = os.path.dirname(os.path.realpath(__file__)) # pwd
-os.environ['EXPERIMENT_SCRIPT'] = './examples/logistic_regression_mnist.py'
+os.environ['EXPERIMENT_SCRIPT'] = './examples/LeNet.py'
 
 subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "init-remote"])
 subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "prepare"])
@@ -25,18 +25,18 @@ def build_log_name(strategy, partitions=None, staleness=None, kickin=None):
 def set_log_name(name):
     os.environ['PRETTY_EXPERIMENT_NAME'] = name
 
-config_grid = {'strategy': ['ako', 'plain'], 
-               'parts'   : [1, 2, 3],
-               'stale'   : [i  for i in range(900)], 
-               'kickin'  : [i  for i in range(900)]}
+# config_grid = {'strategy': ['ako', 'plain'], 
+#                'parts'   : [1, 2, 3],
+#                'stale'   : [i  for i in range(0, 900, 25)], 
+#                'kickin'  : [i  for i in range(0, 900, 25)]}
 
 config_grid = {'strategy': ['ako'], 
-               'parts'   : [1],
+               'parts'   : [15],
                'stale'   : [0], 
-               'kickin'  : [0]}
+               'kickin'  : [100]}
 
 
-def run():
+def run_logistic_regression():
     for strategy in config_grid['strategy']: 
         for parts in config_grid['parts']:
             for stale in config_grid['stale']: 
@@ -51,4 +51,4 @@ def run():
                         subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "run"]) 
                         return
 
-run()
+run_logistic_regression()
