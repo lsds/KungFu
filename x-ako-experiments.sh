@@ -17,7 +17,7 @@ export EXPERIMENT_SCRIPT=./examples/logistic_regression_mnist.py
 # done
 
 # MLP experiments AKO
-#export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --num-layers 2 --ako-partitions 2 --staleness 1 --kickin-time 0"
+export EXPERIMENT_ARGS="--kungfu-strategy ako --num-layers 2 --ako-partitions 1 --staleness 1 --kickin-time 0"
 ./scripts/azure/relay-machine/run-experiments.sh run
 
 # export EXPERIMENT_ARGS="--kungfu-strategy ako --model-name mnist.mlp --num-layers 2 --ako-partitions 4 --staleness 1 --kickin-time 0"

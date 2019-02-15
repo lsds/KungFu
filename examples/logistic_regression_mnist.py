@@ -24,7 +24,6 @@ from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
 
 import tensorflow.examples.tutorials.mnist.input_data as input_data
-import matplotlib.pyplot as plt
 
 # %%
 # get the classic mnist dataset
@@ -74,12 +73,12 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
     loss = tf.reduce_mean(-tf.reduce_sum(y*tf.log(pred), reduction_indices=1))
 
     optmizer = tf.train.GradientDescentOptimizer(learning_rate)
-    # if use_kungfu:
-    #     import kungfu as kf
-    #     optmizer = kf.SyncSGDOptimizer(optmizer, strategy=kungfu_strategy,
-    #                                   ako_partitions=ako_partitions,
-    #                                   staleness=staleness,
-    #                                   kickin_time=kickin_time)
+    if use_kungfu:
+        import kungfu as kf
+        optmizer = kf.SyncSGDOptimizer(optmizer, strategy=kungfu_strategy,
+                                      ako_partitions=ako_partitions,
+                                      staleness=staleness,
+                                      kickin_time=kickin_time)
 
     train_step = optmizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(pred, 1))
@@ -121,7 +120,7 @@ def train_mnist(x, y, train_step, acc, n_epochs, batch_size):
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
     parser.add_argument(
-        '--use-kungfu', type=bool, default=False, help='use kungfu optimizer')
+        '--use-kungfu', type=bool, default=True, help='use kungfu optimizer')
     parser.add_argument(
         '--kungfu-strategy',
         type=str,
