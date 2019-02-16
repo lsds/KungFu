@@ -20,9 +20,9 @@ if [ $(uname -s) = "Darwin" ]; then
 fi
 
 run_train_test() {
-
     local total_batch_size=6000 # train 60k images in 10 steps
     local np=$1
+    local hosts=127.0.0.1:$np
 
     local timeout=20s
 
@@ -32,6 +32,7 @@ run_train_test() {
     ${KUNGFU_PRUN} \
         -timeout $timeout \
         -np $np \
+        -H $hosts \
         python3 \
         ${ROOT}/srcs/python/kungfu_tests/test_mnist_slp.py \
         --n-epochs $epochs \
