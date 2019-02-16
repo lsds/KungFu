@@ -9,6 +9,7 @@ if [ $(uname -s) = "Darwin" ]; then
 fi
 
 single_train() {
+    export PYTHONUNBUFFERED=1
     python3 ./pingpong.py
 }
 
@@ -40,6 +41,7 @@ async() {
     $@ >out.log 2>err.log &
 }
 
-# single_train
-# parallel_train
-async parallel_train
+ASYNC=async
+
+$ASYNC single_train
+# $ASYNC parallel_train
