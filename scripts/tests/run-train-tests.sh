@@ -19,14 +19,25 @@ if [ $(uname -s) = "Darwin" ]; then
     export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
 
-run_train_test() {
-    local total_batch_size=6000 # train 60k images in 10 steps
-    local np=$1
+SCRIPT=${ROOT}/srcs/python/tests/test_mnist_slp.py
+
+epochs=2
+
+run_single_train_test() {
+    local total_batch_size=$1
+    python3 ${SCRIPT} \
+        --no-kungfu=1 \
+        --n-epochs $epochs \
+        --batch-size $total_batch_size
+
+}
+
+run_parallel_train_test() {
+    local total_batch_size=$1
+    local np=$2
+
     local hosts=127.0.0.1:$np
-
     local timeout=20s
-
-    local epochs=2
     local batch_size=$((total_batch_size / np))
 
     ${KUNGFU_PRUN} \
@@ -34,12 +45,26 @@ run_train_test() {
         -np $np \
         -H $hosts \
         python3 \
-        ${ROOT}/srcs/python/kungfu_tests/test_mnist_slp.py \
+        ${SCRIPT} \
         --n-epochs $epochs \
         --batch-size $batch_size
 }
 
-measure run_train_test 1
-measure run_train_test 2
-measure run_train_test 3
-measure run_train_test 4
+run_train_tests() {
+    local total_batch_size=$1
+    shift
+
+    measure run_single_train_test $total_batch_size
+    for np in $@; do
+        measure run_parallel_train_test $total_batch_size $np
+    done
+}
+
+run_all_test() {
+    measure run_train_tests 6000 1 4 6
+    measure run_train_tests 600 1 3 4
+    measure run_train_tests 500 1 2 5
+    measure run_train_tests 50 1 2 5
+}
+
+measure run_all_test

@@ -30,11 +30,13 @@ def dense(x, logits, act):
     return y
 
 
-def fake_get_shard_info():
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    rank = int(os.getenv('KUNGFU_SELF_RANK'))
-    cluster_size = len(cluster_spec['Peers'])
-    return rank, cluster_size
+def fake_get_shard_info(use_kungfu):
+    if use_kungfu:
+        cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
+        rank = int(os.getenv('KUNGFU_SELF_RANK'))
+        cluster_size = len(cluster_spec['Peers'])
+        return rank, cluster_size
+    return 0, 1
 
 
 def slp(input_size, logits):
@@ -43,19 +45,23 @@ def slp(input_size, logits):
     return x, y
 
 
-def build_optimizer():
+def xentropy(y_, y):
+    return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
+
+
+def build_optimizer(shards, use_kungfu=True):
     learning_rate = 0.1
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-    from kungfu.optimizers import ParallelOptimizer
-    return ParallelOptimizer(optimizer)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
+    if use_kungfu:
+        from kungfu.optimizers import ParallelOptimizer
+        optimizer = ParallelOptimizer(optimizer)
+    return optimizer
 
 
-def build_ops():
+def build_ops(optimizer):
     x, y = slp(28 * 28, 10)
     y_ = tf.placeholder(tf.float32, [None, 10])
-    loss = tf.reduce_mean(
-        -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
-    optimizer = build_optimizer()
+    loss = tf.reduce_mean(xentropy(y_, y))
     train_op = optimizer.minimize(loss)
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     test_op = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -67,17 +73,17 @@ def divide(a, b):
 
 
 class MnistTrainer(object):
-    def __init__(self, batch_size, n_epochs, data_dir):
+    def __init__(self, optimizer, batch_size, n_epochs, data_dir, shards):
         self._batch_size = batch_size
         self._n_epochs = n_epochs
-        self._ops = build_ops()
+        self._ops = build_ops(optimizer)
         self._dataset = load_datasets(data_dir, normalize=True, one_hot=True)
         self._sess = tf.Session()
         self._sess.run(tf.global_variables_initializer())
 
     def run(self, shard_id, shards):
         train_data_size = 60000
-        log_period = 1
+        log_period = 100
 
         n_steps, rem = divide(train_data_size, self._batch_size * shards)
         if rem:
@@ -132,6 +138,8 @@ def parse_args():
         type=str,
         default=os.path.join(os.getenv('HOME'), 'var/data/mnist'),
         help='Path to the MNIST dataset directory.')
+    parser.add_argument(
+        '--no-kungfu', type=bool, default=False, help='disable kungfu')
     return parser.parse_args()
 
 
@@ -141,13 +149,13 @@ def float_eq(x, y):
 
 def check_result(result, batch_size, cluster_size, n_epochs):
     expected_results = {
-        (6000, 1, 2): 0.819300,
-        (3000, 2, 2): 0.843200,
-        (2000, 3, 2): 0.856500,
-        (1500, 4, 2): 0.864900,
+        (50, 2): 0.913700,
+        (500, 2): 0.888400,
+        (600, 2): 0.884500,
+        (6000, 2): 0.819300,
     }
 
-    expect = expected_results[(batch_size, cluster_size, n_epochs)]
+    expect = expected_results[(batch_size * cluster_size, n_epochs)]
     if not float_eq(expect, result):
         raise RuntimeError(
             'unexpected result: %f, (%d, %d, %d) should be %f' %
@@ -155,9 +163,12 @@ def check_result(result, batch_size, cluster_size, n_epochs):
 
 
 def main():
-    rank, cluster_size = fake_get_shard_info()
     args = parse_args()
-    trainer = MnistTrainer(args.batch_size, args.n_epochs, args.data_dir)
+    use_kungfu = not args.no_kungfu
+    rank, cluster_size = fake_get_shard_info(use_kungfu)
+    optimizer = build_optimizer(cluster_size, use_kungfu)
+    trainer = MnistTrainer(optimizer, args.batch_size, args.n_epochs,
+                           args.data_dir, cluster_size)
     result = trainer.run(rank, cluster_size)
     check_result(result, args.batch_size, cluster_size, args.n_epochs)
 
