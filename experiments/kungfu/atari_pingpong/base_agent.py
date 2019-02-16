@@ -73,7 +73,7 @@ class BaseAgent(object):
 
         if self._use_kungfu:
             from kungfu.optimizers import ParallelOptimizer
-            optmizer = ParallelOptimizer(optmizer)
+            optimizer = ParallelOptimizer(optimizer)
         return optimizer
 
     def _model(self, image_shape):
