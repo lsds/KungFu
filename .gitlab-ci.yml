@@ -17,7 +17,7 @@ job1:
     make test
 
   - | # Go test
-    ./scripts/tests/go-test.sh
+    ./scripts/tests/run-go-tests.sh
 
 job2:
   stage: integration test
