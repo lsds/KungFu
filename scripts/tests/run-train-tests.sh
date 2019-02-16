@@ -19,7 +19,7 @@ if [ $(uname -s) = "Darwin" ]; then
     export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
 
-SCRIPT=${ROOT}/tests/python/tests/test_mnist_slp.py
+SCRIPT=${ROOT}/tests/python/test_mnist_slp.py
 
 epochs=2
 
