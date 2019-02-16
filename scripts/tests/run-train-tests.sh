@@ -64,7 +64,7 @@ run_all_test() {
     measure run_train_tests 6000 1 4
     measure run_train_tests 600 1 3 4
     measure run_train_tests 500 1 2 4
-    measure run_train_tests 50 1 2 4
+    measure run_train_tests 50 1 2
 }
 
 measure run_all_test
