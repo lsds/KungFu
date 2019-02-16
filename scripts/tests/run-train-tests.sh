@@ -37,7 +37,7 @@ run_parallel_train_test() {
     local np=$2
 
     local hosts=127.0.0.1:$np
-    local timeout=$((np * 20))s
+    local timeout=$((np * 6))s
     local batch_size=$((total_batch_size / np))
 
     ${KUNGFU_PRUN} \
@@ -61,10 +61,10 @@ run_train_tests() {
 }
 
 run_all_test() {
-    measure run_train_tests 6000 1 4 6
+    measure run_train_tests 6000 1 4
     measure run_train_tests 600 1 3 4
-    measure run_train_tests 500 1 2 5
-    measure run_train_tests 50 1 2 5
+    measure run_train_tests 500 1 2 4
+    measure run_train_tests 50 1 2 4
 }
 
 measure run_all_test
