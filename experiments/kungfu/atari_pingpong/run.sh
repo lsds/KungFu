@@ -36,5 +36,10 @@ parallel_train() {
         --batch-size $batch_size
 }
 
+async() {
+    $@ >out.log 2>err.log &
+}
+
 # single_train
-parallel_train
+# parallel_train
+async parallel_train
