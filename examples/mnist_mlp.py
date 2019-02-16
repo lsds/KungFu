@@ -43,11 +43,11 @@ def build_train_ops(model_name, use_kungfu):
     y_ = tf.placeholder(tf.float32, [None, 10])
     loss = tf.reduce_mean(
         -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
-    optmizer = tf.train.GradientDescentOptimizer(learning_rate)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_kungfu:
         from kungfu.optimizers import ParallelOptimizer
-        optmizer = ParallelOptimizer(optmizer)
-    train_step = optmizer.minimize(loss, name='train_step')
+        optimizer = ParallelOptimizer(optimizer)
+    train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     return x, y_, train_step, acc
@@ -143,8 +143,8 @@ def main():
         lambda: load_datasets(args.data_dir, normalize=True, one_hot=True),
         'load data')
     measure(
-        lambda: train_mnist(x, y_, train_step, acc, mnist, args.n_epochs, args.batch_size),
-        'train')
+        lambda: train_mnist(x, y_, train_step, acc, mnist, args.n_epochs, args.
+                            batch_size), 'train')
 
 
 measure(main, 'main')

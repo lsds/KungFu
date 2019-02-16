@@ -53,7 +53,7 @@ ELSE()
     ENDFUNCTION()
 ENDIF()
 
-SET(KUNGFU_TESTS_DIR ${CMAKE_SOURCE_DIR}/srcs/cpp/tests)
+SET(KUNGFU_TESTS_DIR ${CMAKE_SOURCE_DIR}/tests/cpp/tests)
 
 FILE(GLOB tests ${KUNGFU_TESTS_DIR}/unit/test_*.cpp)
 FOREACH(t ${tests})

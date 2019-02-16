@@ -72,8 +72,8 @@ class BaseAgent(object):
             optimizer = tf.train.GradientDescentOptimizer(learning_rate)
 
         if self._use_kungfu:
-            import kungfu as kf
-            optimizer = kf.SyncSGDOptimizer(optimizer)
+            from kungfu.optimizers import ParallelOptimizer
+            optimizer = ParallelOptimizer(optimizer)
         return optimizer
 
     def _model(self, image_shape):
