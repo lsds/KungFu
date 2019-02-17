@@ -23,6 +23,14 @@ build_image() {
 
 }
 
+run_example() {
+    docker run --rm \
+        -v $(pwd)/../examples:/examples \
+        -v $HOME/var/data:/root/var/data \
+        -it registry.gitlab.com/lsds-kungfu/image/kungfu:tf-cpu-ubuntu18 $@
+}
+
 # build_image registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18 Dockerfile.builder-ubuntu18 .
 pack_kungfu
 build_image registry.gitlab.com/lsds-kungfu/image/kungfu:tf-cpu-ubuntu18 Dockerfile.tf-cpu-ubuntu18 .
+run_example python3 ./examples/mnist_mlp.py
