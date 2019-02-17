@@ -13,6 +13,7 @@ __pycache__
 *.swp
 *.tar
 *.tar.bz2
+*.tar.gz
 *.whl
 /3rdparty
 /bin
