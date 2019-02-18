@@ -2,6 +2,7 @@ import os
 import sys
 import sysconfig
 
+import random
 from functools import reduce
 
 import tensorflow as tf
@@ -196,13 +197,14 @@ class SyncSGDOptimizer(KungFuOptimizer):
     #     return self.__reconstruct_partition(grads_and_vars, k, D)
 
     # Map is a dict from variable to queue of gradients
-    def accumulate(self, grad, var, map, staleness):
+    def accumulate(self, grad, var, map, partitions):
         if var not in map:
             map[var] = [grad]
         else:
             queue_gradiens = map[var]
             queue_gradiens.append(grad)
-            if len(queue_gradiens) > staleness:
+            # Accumulate last #partitions gradients
+            if len(queue_gradiens) > partitions:
                 # Restore invariant
                 queue_gradiens.pop(0)
 
@@ -228,24 +230,18 @@ class SyncSGDOptimizer(KungFuOptimizer):
                        self.partitionIndices = self.__partition_positions(sizes, self.akoPartitions)
                     
                     partitions = self.__reconstruct_partition(grads_and_vars_to_negotiate,  self.akoPartitions, self.partitionIndices)
-                    sizes = [self.__get_size(g) for g, _v in grads_and_vars_to_negotiate]
-
                     negotiated_grad_and_vars = []
                     for partition_id in range(len(partitions)):
                         for grad, var in partitions[partition_id]:
-                            self.accumulate(grad, var, self.accum_map, self.staleness)
+                            self.accumulate(grad, var, self.accum_map, self.akoPartitions)
                             # TODO: optimize, running sum
-                            if self.staleness == 0:
-                                grad_accum = self.accum_map[var]
-                            else:   
-                                grad_accum = tf.add_n(self.accum_map[var]) / len(self.accum_map[var])
+                            grad_accum = tf.add_n(self.accum_map[var]) / len(self.accum_map[var])
                             negotiated_grad_var = (self._op_lib.ako_negotiator(
                                                                 grad_accum, 
                                                                 grad,
                                                                 tf.constant([partition_id], dtype=tf.int32),
                                                                 tf.constant([self.akoPartitions], dtype=tf.int32),
-                                                                tf.constant([self.kickinTime], dtype=tf.int32),
-),
+                                                                tf.constant([self.kickinTime], dtype=tf.int32)),
                                                     var
                                                   )
                             negotiated_grad_and_vars.append(negotiated_grad_var)

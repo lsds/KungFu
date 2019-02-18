@@ -25,15 +25,17 @@ def build_log_name(strategy, partitions=None, staleness=None, kickin=None):
 def set_log_name(name):
     os.environ['PRETTY_EXPERIMENT_NAME'] = name
 
+# Logistic regression experiments, 3 variables
 # config_grid = {'strategy': ['ako', 'plain'], 
 #                'parts'   : [1, 2, 3],
 #                'stale'   : [i  for i in range(0, 900, 25)], 
 #                'kickin'  : [i  for i in range(0, 900, 25)]}
 
+# LeNet5, 33 variables
 config_grid = {'strategy': ['ako'], 
-               'parts'   : [15],
-               'stale'   : [0], 
-               'kickin'  : [100]}
+               'parts'   : [10, 20, 30],
+               'stale'   : [0], # unused
+               'kickin'  : [0]}
 
 
 def run_logistic_regression():

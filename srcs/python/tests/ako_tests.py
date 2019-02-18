@@ -9,6 +9,8 @@ from functools import reduce
 import kungfu as kf
 import tensorflow as tf
 
+import random
+
 def make_list_of_size(n):
     return list(it.repeat(0, n))
 
@@ -43,8 +45,6 @@ class TestSum(unittest.TestCase):
         frequency_actual = build_size_frequency_map(actual_buckets)
         frequency_expected = build_size_frequency_map(buckets)
         self.assertEqual(frequency_actual, frequency_expected, "Wrong partitions")
-
-
 
 if __name__ == '__main__':
     unittest.main()

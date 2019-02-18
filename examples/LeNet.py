@@ -134,7 +134,7 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
     logits = LeNet5(x)
 
     #Softmax with cost function implementation
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = one_hot_y)
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = one_hot_y)
     loss = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate = 0.001)
 
@@ -152,9 +152,8 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
 
 
 def train_mnist(x, y, train_step, acc, n_epochs, batch_size, val_accuracy_target):
-    n_epochs = 25
+    n_epochs = 3
     batch_size = 50
-
     def  evaluate_test_set_accuracy(acc):
         test_acc = sess.run(acc,
                     feed_dict={
@@ -212,7 +211,7 @@ def parse_args():
     parser.add_argument(
         '--batch-size', type=int, default=50, help='batch size')
     parser.add_argument(
-        '---val-accuracy-target', type=float, default=92., help='validation accuracy target')
+        '---val-accuracy-target', type=float, default=96., help='validation accuracy target')
     return parser.parse_args()
 
 

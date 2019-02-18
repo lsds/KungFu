@@ -80,11 +80,28 @@ class AkoNegotiator : public AsyncOpKernel
                            context->allocate_output(0, partitionTensor.shape(), &output));
         }
 
+        //std::cout << output->DebugString()  << std::endl;
+        // auto output_mat = output->matrix<float>();
+        // output_mat.setZero();
+        // output->setZero();
+
+        auto flt = output->flat<float>();
+        for (int i = 0; i < flt.size(); ++i) {
+            flt(i) = 0.0;
+        }
+
+        // std::cout << "Before" << std::endl;
+        // std::cout << partitionTensor.shape() << std::endl;
+        // std::cout << output->DebugString() << std::endl;
+
+        // std::cout << "After" << std::endl;
+
         //std::cout << "Global step: " << _kungfu_world.GetGlobalStep() << std::endl;
        // std::cout << "Kick   step: " << kickin << std::endl;
 
         if(_kungfu_world.GetGlobalStep() < kickin) {
-           // std::cout << "PLAIN NEGOTIATION" << std::endl;
+
+            // std::cout << "PLAIN NEGOTIATION" << std::endl;
             // perform plain all-reduce until weight updates stabilize to minimize loss
             _kungfu_world.AllReduce(allGradients.tensor_data().data(),
                                     (void *)(output->tensor_data().data()),
@@ -93,13 +110,17 @@ class AkoNegotiator : public AsyncOpKernel
                                     name().c_str(), done);
         } else if (_kungfu_world.GetGlobalStep() % numberPartitions ==
             partitionIndex) {
-           // std::cout << "AKO NEGOTIATION" << std::endl;
+             //std::cout << "AKO NEGOTIATION " << partitionIndex << std::endl;
             _kungfu_world.AllReduce(partitionTensor.tensor_data().data(),
                                     (void *)(output->tensor_data().data()),
                                     partitionTensor.NumElements(),
                                     to_kungfu_type(partitionTensor.dtype()), KungFu_SUM,
-                                    name().c_str(), done);
+                                    name().c_str(), done); // give it an empty callback to make it async
+            //done();
         } else {
+            //std::cout << "SKIPPING " << partitionIndex << std::endl;
+            // OP_REQUIRES_OK(context,
+            //                context->allocate_output(0, TensorShape({}), &output));
             done();
         }
     }
