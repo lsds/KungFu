@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -36,6 +37,7 @@ class CMakeBuild(build_ext):
             cmake_flag('LIBRARY_OUTPUT_PATH',
                        os.path.join(install_prefix, 'kungfu')),
             cmake_flag('KUNGFU_BUILD_TF_OPS', 1),
+            cmake_flag('PYTHON', sys.executable),
 
             # uncomment to debug
             # cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
