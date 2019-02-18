@@ -16,7 +16,7 @@ def normalize(x):
     return x
 
 
-def cumulative_discounted_reward(rewards, gamma=0.99):
+def cumulative_discounted_reward(rewards, gamma):
     cdr = []
     c = 0
     for r in rewards:
@@ -25,7 +25,13 @@ def cumulative_discounted_reward(rewards, gamma=0.99):
         else:
             c = c * gamma + r
         cdr.append(c)
-    return normalize(cdr)
+    return cdr
+
+
+def discount_episode_rewards(rewards):
+    gamma = 0.99
+    cdr = cumulative_discounted_reward(reversed(rewards), gamma)
+    return normalize(list(reversed(cdr)))
 
 
 class BaseAgent(object):
@@ -124,13 +130,12 @@ class BaseAgent(object):
             train_op,
         ) = self._model_ops
 
-        gamma = 0.99
         self.sess.run(
             train_op,
             feed_dict={
                 images: self.xs,
                 actions: self.ys,
-                discount_rewards: cumulative_discounted_reward(self.rs, gamma),
+                discount_rewards: discount_episode_rewards(self.rs),
             })
 
         self.xs = []
