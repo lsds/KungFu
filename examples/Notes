@@ -1,0 +1,5 @@
+Do the synch experiments and the asynch experiments
+If there is a big gap between the synch and asynchs, introduce staleness (http://www.pdl.cmu.edu/PDL-FTP/HECStorage/lazytables.pdf)
+
+Look into how much time you gain with many partions
+Put median on the first graph
