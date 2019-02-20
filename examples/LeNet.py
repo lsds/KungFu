@@ -172,8 +172,8 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
          # Results
         img_sec_mean = np.mean(img_secs)
         img_sec_conf = 1.96 * np.std(img_secs)
-        log('Img/sec per CPU: %.1f +-%.1f' % (img_sec_mean, img_sec_conf))
-        log('Total img/sec: %.1f +-%.1f' % (4 * img_sec_mean, 4 * img_sec_conf))
+        print('Img/sec per CPU: %.1f +-%.1f' % (img_sec_mean, img_sec_conf))
+        print('Total img/sec: %.1f +-%.1f' % (4 * img_sec_mean, 4 * img_sec_conf))
 
 
         # %% Print final test accuracy:

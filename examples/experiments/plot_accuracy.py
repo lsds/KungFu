@@ -144,11 +144,11 @@ def plot_ako(data_ako):
         plt.plot(epochs, val_acc, c=color[index], marker=markers[index], ls='-', label="#partitions " + str(parts), fillstyle='none')
         plt.errorbar(epochs, val_acc, c=color[index], yerr=np.array(list(zip(min_accs, max_accs))).T,  marker=markers[index], fillstyle='none')
 
-    medianValAccs = []
-    for epoch, valAccs in epochsToValAccs.items():
-        medianValAccs.append(np.median(valAccs))
+    # medianValAccs = []
+    # for epoch, valAccs in epochsToValAccs.items():
+    #     medianValAccs.append(np.median(valAccs))
     
-    plt.plot(epochs, medianValAccs, c='black', marker='P', ls='-', label="Ako Median Validation Accuracy", fillstyle='none')
+    # plt.plot(epochs, medianValAccs, c='black', marker='P', ls='-', label="Ako Median Validation Accuracy", fillstyle='none')
 
     # for each epoch, for each partition
 
@@ -269,7 +269,7 @@ def plot_ako_vs_plain_time_to_accuracy(log_file):
 
 
 def main():
-    #plot_ako_vs_plain_validation_accuracy("val_acc.txt")
+    plot_ako_vs_plain_validation_accuracy("val_acc.txt")
     plot_ako_vs_plain_time_to_accuracy("time_to_acc.txt")
     
 
