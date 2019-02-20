@@ -5,6 +5,7 @@
 #include <kungfu_types.hpp>
 
 const KungFu_Datatype KungFu_INT32  = kungfu::type_encoder::value<int32_t>();
+const KungFu_Datatype KungFu_INT64  = kungfu::type_encoder::value<int64_t>();
 const KungFu_Datatype KungFu_FLOAT  = kungfu::type_encoder::value<float>();
 const KungFu_Datatype KungFu_DOUBLE = kungfu::type_encoder::value<double>();
 
@@ -13,6 +14,8 @@ uint32_t kungfu_type_size(KungFu_Datatype dtype)
     switch (dtype) {
     case kungfu::type_encoder::value<int32_t>():
         return sizeof(int32_t);
+    case kungfu::type_encoder::value<int64_t>():
+        return sizeof(int64_t);
     case kungfu::type_encoder::value<float>():
         return sizeof(float);
     case kungfu::type_encoder::value<double>():

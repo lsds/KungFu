@@ -12,15 +12,19 @@ template <typename R> struct data_type_t;
 using V = std::uint8_t;
 
 template <> struct data_type_t<int32_t> {
-    static constexpr V value = 0;
-};
-
-template <> struct data_type_t<float> {
     static constexpr V value = 1;
 };
 
-template <> struct data_type_t<double> {
+template <> struct data_type_t<int64_t> {
     static constexpr V value = 2;
+};
+
+template <> struct data_type_t<float> {
+    static constexpr V value = 3;
+};
+
+template <> struct data_type_t<double> {
+    static constexpr V value = 4;
 };
 
 struct encoding {
