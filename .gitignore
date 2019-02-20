@@ -11,7 +11,9 @@ __pycache__
 *.pb
 *.so
 *.swp
+*.tar
 *.tar.bz2
+*.tar.gz
 *.whl
 /3rdparty
 /bin
@@ -22,11 +24,13 @@ __pycache__
 /gopath
 /lib
 /logs
+ansible_hosts.txt
 cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/
 CTestTestfile.cmake
 env
+experiment-results.txt
 hosts.txt
 kungfu.cbp
 Makefile

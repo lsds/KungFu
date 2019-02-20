@@ -1,4 +1,4 @@
-# registry.gitlab.com/teavana/kungfu/builder:ubuntu18
+# registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 FROM ubuntu:bionic AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive

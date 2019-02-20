@@ -18,6 +18,6 @@ fi
 docker build --rm \
     --build-arg SOURCES_LIST="${SOURCES_LIST}" \
     --build-arg PY_MIRROR="${PY_MIRROR}" \
-    -t ${TAG} -f Dockerfile.ubuntu18 .
+    -t ${TAG} -f Dockerfile.builder-ubuntu18 .
 
 docker push ${TAG}

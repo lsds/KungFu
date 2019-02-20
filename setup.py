@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -9,6 +10,11 @@ class CMakeExtension(Extension):
     def __init__(self, sourcedir):
         Extension.__init__(self, '', sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
+
+
+def ensure_absent(filepath):
+    if os.path.isfile(filepath):
+        os.remove(filepath)
 
 
 def cmake_flag(k, v):
@@ -31,11 +37,14 @@ class CMakeBuild(build_ext):
             cmake_flag('LIBRARY_OUTPUT_PATH',
                        os.path.join(install_prefix, 'kungfu')),
             cmake_flag('KUNGFU_BUILD_TF_OPS', 1),
+            cmake_flag('PYTHON', sys.executable),
 
             # uncomment to debug
             # cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
             # cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
         ]
+
+        ensure_absent(os.path.join(ext.sourcedir, 'CMakeCache.txt'))
 
         subprocess.check_call(
             ['cmake', ext.sourcedir] + cmake_args,
@@ -58,7 +67,7 @@ setup(
     version='0.0.0',
     package_dir={'': package_dir},
     packages=find_packages(package_dir),
-    description='The ultimate distributed training framework for TensorFlow',
+    description='KungFu distributed machine learning framework',
     url='https://github.com/lsds/KungFu',
     ext_modules=[
         CMakeExtension('.'),

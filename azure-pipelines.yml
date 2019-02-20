@@ -45,7 +45,7 @@ steps:
   displayName: 'Run C++ Tests'
 
 - script: |
-    ./scripts/tests/go-test.sh
+    ./scripts/tests/run-go-tests.sh
   displayName: 'Run Golang Tests'
 
 - script: |

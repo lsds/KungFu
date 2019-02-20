@@ -12,7 +12,6 @@ import numpy as np
 import timeit
 
 import tensorflow as tf
-import kungfu as kf
 from tensorflow.keras import applications
 
 # Benchmark settings
@@ -73,7 +72,7 @@ model = getattr(applications, args.model)(weights=None)
 
 opt = tf.train.GradientDescentOptimizer(0.01)
 
-# Kungfu: wrap optimizer with kf.SyncSGDOptimizer.
+# Kungfu: wrap optimizer with ParallelOptimizer.
 if args.kungfu:
     opt = kf.SyncSGDOptimizer(opt, strategy='ako')
 
@@ -122,7 +121,8 @@ def run(benchmark_step):
 
 if tf.executing_eagerly():
     with tf.device(device):
-        run(lambda: opt.minimize(loss_function, var_list=model.trainable_variables))
+        run(lambda: opt.minimize(
+            loss_function, var_list=model.trainable_variables))
 else:
     with tf.Session(config=config) as session:
         init.run()

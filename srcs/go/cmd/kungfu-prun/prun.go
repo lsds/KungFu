@@ -50,7 +50,6 @@ func main() {
 	}
 	prog := restArgs[0]
 	args := restArgs[1:]
-	log.Printf("will parallel run multiple %s with %q", prog, args)
 
 	jc := sch.JobConfig{
 		PeerCount: *np,
@@ -68,6 +67,7 @@ func main() {
 		log.Print("No task to run on this node")
 		return
 	}
+	log.Printf("will parallel run %d instances of %s with %q", len(myPs), prog, args)
 
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
