@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import os
 import sys
 import sysconfig
@@ -200,13 +199,16 @@ class SyncSGDOptimizer(KungFuOptimizer):
     # Map is a dict from variable to queue of gradients
     def accumulate(self, grad, var, map, partitions):
         if var not in map:
-            map[var] = [grad]
+            map[var] = [grad] #([grad], grad)
         else:
+            # queue_gradiens, running_sum = map[var]
             queue_gradiens = map[var]
+            #queue_gradiens.append((grad, tf.add_n([running_sum, grad])))
             queue_gradiens.append(grad)
             # Accumulate last #partitions gradients
             if len(queue_gradiens) > partitions:
                 # Restore invariant
+                #subtract_from_sum = queue_gradiens[0]
                 queue_gradiens.pop(0)
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
@@ -258,7 +260,6 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
     def _set_num_gradients(self, n):
         return self._op_lib.set_num_gradients(tf.constant(n, tf.int32))
-=======
 from kungfu.optimizers.core import lazy_load_op_lib
 
 
@@ -272,4 +273,3 @@ def distributed_variables_initializer():
     for v in g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
         ops.append(tf.assign(v, _op_lib.broadcast(v)))
     return ops
->>>>>>> lg-bcast

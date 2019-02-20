@@ -10,10 +10,24 @@ import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from kungfu.helpers.utils import show_size
 from kungfu.helpers.mnist import load_datasets
-    
+
+import kungfu as kf
+
 # TODO: add to kungfu optimizer; use model size in bits x64
 def get_number_of_trainable_parameters():
     return np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
+
+def save_vars(sess, variables, filename):
+    values = sess.run(variables)
+    npz = dict((var.name, val) for var, val in zip(variables, values))
+    np.savez(filename, **npz)
+
+
+def save_all(sess, prefix):
+    g = tf.get_default_graph()
+    filename = '%s-%d.npz' % (prefix, os.getpid())
+    save_vars(sess, g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES), filename)
+
 
 def measure(f, name=None):
     if not name:
@@ -105,7 +119,6 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
     optimizer = tf.train.AdamOptimizer(learning_rate = 0.001)
 
     if use_kungfu:
-        import kungfu as kf
         optimizer = kf.SyncSGDOptimizer(optimizer, strategy=kungfu_strategy,
                                       ako_partitions=ako_partitions,
                                       staleness=staleness,
@@ -124,6 +137,10 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         
+        save_all(sess, 'before-kf-init')
+        sess.run(kf.distributed_variables_initializer())
+        save_all(sess, 'after-kf-init')
+
         time_start = time.time()
         total_val_duration = 0
         window = []
@@ -167,13 +184,13 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
                 if window_val_acc_median * 100 >= val_accuracy_target:
                    reached_target_accuracy = True
                    print("reached validation accuracy target %.3f: %.4f (time %s)" % (val_accuracy_target, val_acc, str(time.time() - time_start - total_val_duration)))
-
+            save_all(sess, 'final')
 
          # Results
         img_sec_mean = np.mean(img_secs)
         img_sec_conf = 1.96 * np.std(img_secs)
-        print('Img/sec per CPU: %.1f +-%.1f' % (img_sec_mean, img_sec_conf))
-        print('Total img/sec: %.1f +-%.1f' % (4 * img_sec_mean, 4 * img_sec_conf))
+        print('Img/sec per CPU: %.2f +- %.2f' % (img_sec_mean, img_sec_conf))
+        print('Total img/sec: %.2f +- %.2f' % (4 * img_sec_mean, 4 * img_sec_conf))
 
 
         # %% Print final test accuracy:

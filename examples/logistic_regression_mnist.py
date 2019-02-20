@@ -24,6 +24,7 @@ from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
 
 import tensorflow.examples.tutorials.mnist.input_data as input_data
+import kungfu as kf
 
 # %%
 # get the classic mnist dataset
@@ -74,7 +75,6 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
 
     optmizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_kungfu:
-        import kungfu as kf
         optmizer = kf.SyncSGDOptimizer(optmizer, strategy=kungfu_strategy,
                                       ako_partitions=ako_partitions,
                                       staleness=staleness,
@@ -102,7 +102,11 @@ def train_mnist(x, y, train_step, acc, n_epochs, batch_size, val_accuracy_target
     reached_target_accuracy = False
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        
+
+        save_all(sess, 'before-kf-init')
+        sess.run(kf.distributed_variables_initializer())
+        save_all(sess, 'after-kf-init')
+
         for epoch_i in range(n_epochs):
             for batch_i in range(mnist.train.num_examples // batch_size):
                 batch_xs, batch_ys = mnist.train.next_batch(batch_size)
@@ -123,7 +127,8 @@ def train_mnist(x, y, train_step, acc, n_epochs, batch_size, val_accuracy_target
 
         # %% Print final test accuracy:
         evaluate_test_set_accuracy(acc)
-       
+        save_all(sess, 'final')
+
 
 
 
