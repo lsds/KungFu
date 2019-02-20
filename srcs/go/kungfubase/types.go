@@ -13,6 +13,7 @@ type KungFu_Datatype C.KungFu_Datatype
 
 var (
 	KungFu_INT32  = KungFu_Datatype(C.KungFu_INT32)
+	KungFu_INT64  = KungFu_Datatype(C.KungFu_INT64)
 	KungFu_FLOAT  = KungFu_Datatype(C.KungFu_FLOAT)
 	KungFu_DOUBLE = KungFu_Datatype(C.KungFu_DOUBLE)
 )

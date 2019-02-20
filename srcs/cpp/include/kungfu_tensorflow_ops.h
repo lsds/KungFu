@@ -10,7 +10,7 @@ namespace tensorflow
 // and reduce (by taking sum) with the peers, and finally returns a tensor with
 // exactly the same shape.
 REGISTER_OP("AllReduce")
-    .Attr("T: {int32, float32}")
+    .Attr("T: {int32, int64, float32, float64}")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
@@ -19,7 +19,7 @@ REGISTER_OP("AllReduce")
     });
 
 REGISTER_OP("Broadcast")
-    .Attr("T: {int32, float32}")
+    .Attr("T: {int32, int64, float32, float64}")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
