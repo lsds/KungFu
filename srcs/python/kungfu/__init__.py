@@ -10,4 +10,4 @@ def distributed_variables_initializer():
     # with tf.control_dependencies([tf.global_variables_initializer()]):
     for v in g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
         ops.append(tf.assign(v, _op_lib.broadcast(v)))
-    return ops
+    return tf.group(ops)
