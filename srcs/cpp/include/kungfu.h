@@ -52,6 +52,11 @@ extern int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
                         KungFu_Datatype dtype, KungFu_Op op, const char *name,
                         DoneCallback done);
 
+// broadcast the data from the current root in the first pair of graphs.
+extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
+                           KungFu_Datatype dtype, const char *name,
+                           DoneCallback done);
+
 extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
                            const char *name);
@@ -80,6 +85,12 @@ class kungfu_world
                   DoneCallback done)
     {
         return KungfuAllReduce(sendbuf, recvbuf, count, dtype, op, name, done);
+    }
+
+    int Broadcast(const void *sendbuf, void *recvbuf, int count,
+                  KungFu_Datatype dtype, const char *name, DoneCallback done)
+    {
+        return KungfuBroadcast(sendbuf, recvbuf, count, dtype, name, done);
     }
 };
 

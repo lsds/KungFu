@@ -114,6 +114,12 @@ func (sess *session) Reduce(w Workspace) int {
 	return code(sess.runGraphs(w, g))
 }
 
+func (sess *session) Broadcast(w Workspace) int {
+	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
+	g := strategy.Graphs[1]        // Assuming the second graph is a Broadcast Graph
+	return code(sess.runGraphs(w, g))
+}
+
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	if sess.cluster.Size() == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)
@@ -177,7 +183,11 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			if len(prevs) > 1 {
 				log.Errorf("more than once recvInto detected at node %d", myRank)
 			}
-			seq(prevs, recvInto) // len(prevs) == 1 is expected
+			if len(prevs) == 0 && recvCount == 0 {
+				w.RecvBuf.CopyFrom(w.SendBuf)
+			} else {
+				seq(prevs, recvInto) // len(prevs) == 1 is expected
+			}
 		}
 		par(g.Nexts(myRank), sendTo)
 	}

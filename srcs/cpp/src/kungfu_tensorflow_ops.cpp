@@ -11,6 +11,8 @@ namespace tensorflow
 KungFu_Datatype to_kungfu_type(const DataType &dtype)
 {
     switch (dtype) {
+    case DT_INT32:
+        return KungFu_INT32;
     case DT_FLOAT:
         return KungFu_FLOAT;
     default:
@@ -38,6 +40,26 @@ class AllReduce : public AsyncOpKernel
 };
 
 REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
+
+class Broadcast : public AsyncOpKernel
+{
+    using AsyncOpKernel::AsyncOpKernel;
+
+  public:
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        const Tensor &input = context->input(0);
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, input.shape(), &output));
+        _kungfu_world.Broadcast(
+            input.tensor_data().data(), (void *)(output->tensor_data().data()),
+            input.NumElements(), to_kungfu_type(input.dtype()), name().c_str(),
+            done);
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("Broadcast").Device(DEVICE_CPU), Broadcast);
 
 class GlobalStepModifier : public OpKernel
 {
@@ -76,7 +98,7 @@ class SetNumGradients : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("SetNumGradients").Device(DEVICE_CPU),
                         SetNumGradients);
 
-class GlobalVariance: public OpKernel
+class GlobalVariance : public OpKernel
 {
     using OpKernel::OpKernel;
 
@@ -88,6 +110,7 @@ class GlobalVariance: public OpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("GlobalVariance").Device(DEVICE_CPU), GlobalVariance);
+REGISTER_KERNEL_BUILDER(Name("GlobalVariance").Device(DEVICE_CPU),
+                        GlobalVariance);
 
 }  // namespace tensorflow
