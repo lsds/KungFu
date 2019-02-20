@@ -17,18 +17,6 @@ import kungfu as kf
 def get_number_of_trainable_parameters():
     return np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
 
-def save_vars(sess, variables, filename):
-    values = sess.run(variables)
-    npz = dict((var.name, val) for var, val in zip(variables, values))
-    np.savez(filename, **npz)
-
-
-def save_all(sess, prefix):
-    g = tf.get_default_graph()
-    filename = '%s-%d.npz' % (prefix, os.getpid())
-    save_vars(sess, g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES), filename)
-
-
 def measure(f, name=None):
     if not name:
         name = f.__name__
@@ -137,9 +125,7 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         
-        save_all(sess, 'before-kf-init')
         sess.run(kf.distributed_variables_initializer())
-        save_all(sess, 'after-kf-init')
 
         time_start = time.time()
         total_val_duration = 0
@@ -184,7 +170,6 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
                 if window_val_acc_median * 100 >= val_accuracy_target:
                    reached_target_accuracy = True
                    print("reached validation accuracy target %.3f: %.4f (time %s)" % (val_accuracy_target, val_acc, str(time.time() - time_start - total_val_duration)))
-            save_all(sess, 'final')
 
          # Results
         img_sec_mean = np.mean(img_secs)

@@ -103,9 +103,7 @@ def train_mnist(x, y, train_step, acc, n_epochs, batch_size, val_accuracy_target
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        save_all(sess, 'before-kf-init')
         sess.run(kf.distributed_variables_initializer())
-        save_all(sess, 'after-kf-init')
 
         for epoch_i in range(n_epochs):
             for batch_i in range(mnist.train.num_examples // batch_size):
@@ -127,8 +125,6 @@ def train_mnist(x, y, train_step, acc, n_epochs, batch_size, val_accuracy_target
 
         # %% Print final test accuracy:
         evaluate_test_set_accuracy(acc)
-        save_all(sess, 'final')
-
 
 
 
