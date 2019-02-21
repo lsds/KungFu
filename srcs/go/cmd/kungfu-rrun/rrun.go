@@ -17,7 +17,7 @@ import (
 
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
-	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
+	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[:<public addr>]")
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
