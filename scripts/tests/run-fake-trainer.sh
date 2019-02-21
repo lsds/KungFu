@@ -38,7 +38,7 @@ run_fake_mpi_trainer() {
 
 run_fake_trainer_all() {
     local max_np=4
-    echo "will test $1 for from np=1 upto np=$max_np"
+    echo "will test $1 for np=1 upto $max_np"
     for np in $(seq $max_np); do
         measure $1 $np
     done
