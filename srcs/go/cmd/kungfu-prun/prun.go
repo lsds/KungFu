@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"runtime"
+	"strings"
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -23,7 +25,7 @@ var (
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 	niName     = flag.String("ni", "", "network interface name, for infer self host")
-	algo       = flag.String("algo", "", "all reduce strategy")
+	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
 )
 
 func init() {
