@@ -18,12 +18,12 @@ import (
 
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
-	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
+	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[:<public addr>]")
 	selfHost   = flag.String("self", "", "")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 	niName     = flag.String("ni", "", "network interface name, for infer self host")
-	algo       = flag.String("algo", "", "algorithm")
+	algo       = flag.String("algo", "", "all reduce strategy")
 )
 
 func init() {

@@ -21,7 +21,7 @@ var (
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
-	algo       = flag.String("algo", "", "algorithm")
+	algo       = flag.String("algo", "", "all reduce strategy")
 )
 
 func init() {
