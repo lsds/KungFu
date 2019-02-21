@@ -1,4 +1,6 @@
 #pragma once
+#include <functional>
+
 #include "testing.hpp"
 
 struct kungfu_go_collective {
