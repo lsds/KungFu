@@ -9,6 +9,11 @@ BUILD_TESTS=1 # build unit tests
 BUILD_TENSORFLOW_OPS=0
 VERBOSE=0
 
+MPI_HOME=$HOME/local/openmpi
+if [ -f $MPI_HOME/include/mpi.h ]; then
+    WITH_MPI=$MPI_HOME
+fi
+
 parse_args() {
     for i in "$@"; do
         case $i in
@@ -20,6 +25,10 @@ parse_args() {
             ;;
         --no-tests)
             BUILD_TESTS=0
+            ;;
+        --with-mpi)
+            # FIXME: parse --with-mpi
+            WITH_MPI=$MPI_HOME
             ;;
         --verbose)
             VERBOSE=1
@@ -63,6 +72,10 @@ add_cmake_flags() {
     add_cmake_flag KUNGFU_BUILD_GTEST ${BUILD_GTEST}
     add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
     add_cmake_flag KUNGFU_BUILD_TF_OPS ${BUILD_TENSORFLOW_OPS}
+
+    if [ ! -z ${WITH_MPI} ]; then
+        add_cmake_flag MPI_HOME ${WITH_MPI}
+    fi
 }
 
 cleanup_cmake_cache() {

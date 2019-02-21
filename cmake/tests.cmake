@@ -75,4 +75,18 @@ FUNCTION(ADD_TEST_BIN target)
 ENDFUNCTION()
 
 ADD_TEST_BIN(fake-agent ${KUNGFU_TESTS_DIR}/integration/fake_agent.cpp)
-ADD_TEST_BIN(fake-trainer ${KUNGFU_TESTS_DIR}/integration/fake_trainer.cpp)
+ADD_TEST_BIN(fake-kungfu-trainer
+             ${KUNGFU_TESTS_DIR}/integration/fake_kungfu_trainer.cpp)
+
+IF(MPI_HOME)
+    FIND_PACKAGE(MPI REQUIRED)
+
+    FUNCTION(USE_MPI target)
+        TARGET_INCLUDE_DIRECTORIES(${target} PRIVATE ${MPI_INCLUDE_PATH})
+        TARGET_LINK_LIBRARIES(${target} ${MPI_LIBRARIES})
+    ENDFUNCTION()
+
+    ADD_TEST_BIN(fake-mpi-trainer
+                 ${KUNGFU_TESTS_DIR}/integration/fake_mpi_trainer.cpp)
+    USE_MPI(fake-mpi-trainer)
+ENDIF()

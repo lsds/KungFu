@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "collective.hpp"

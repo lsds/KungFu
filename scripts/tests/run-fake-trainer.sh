@@ -15,7 +15,7 @@ reinstall() {
     ./scripts/go-install.sh
 }
 
-run_fake_trainer() {
+run_fake_kungfu_trainer() {
     # local ALGO=
     local np=$1
     local H=127.0.0.1:$np
@@ -26,16 +26,33 @@ run_fake_trainer() {
         -H $H \
         -timeout=120s \
         ${QUIET} \
-        ./bin/fake-trainer
+        ./bin/fake-kungfu-trainer
+}
+
+run_fake_mpi_trainer() {
+    export MPI_HOME=$HOME/local/openmpi
+    local np=$1
+    $MPI_HOME/bin/mpirun -np $np \
+        ./bin/fake-mpi-trainer
 }
 
 run_fake_trainer_all() {
-    for np in $(seq 4); do
-        measure run_fake_trainer $np
+    local max_np=4
+    echo "will test $1 for from np=1 upto np=$max_np"
+    for np in $(seq $max_np); do
+        measure $1 $np
     done
 }
 
-measure reinstall
+main() {
+    measure reinstall
+    local max_np=4
+    if [ "$1" = "mpi" ]; then
+        run_fake_trainer_all run_fake_mpi_trainer
+    else
+        export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
+        run_fake_trainer_all run_fake_kungfu_trainer
+    fi
+}
 
-export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
-measure run_fake_trainer_all
+main $@
