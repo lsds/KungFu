@@ -90,3 +90,10 @@ IF(MPI_HOME)
                  ${KUNGFU_TESTS_DIR}/integration/fake_mpi_trainer.cpp)
     USE_MPI(fake-mpi-trainer)
 ENDIF()
+
+IF(KUNGFU_USE_NCCL)
+    ADD_TEST_BIN(fake-nccl-trainer
+                 ${KUNGFU_TESTS_DIR}/integration/fake_nccl_trainer.cpp)
+    USE_NCCL(fake-nccl-trainer)
+    USE_MPI(fake-nccl-trainer) # FIXME: don't use MPI for bootsrtap
+ENDIF()
