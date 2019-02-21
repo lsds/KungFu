@@ -16,21 +16,11 @@ int main(int argc, char *argv[])
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    const bool is_root         = rank == 0;
-    const int batch_size       = 32;
-    const double image_per_sec = 185;
-    const int n_iters          = 11;
-    const int step_per_iter    = 10;
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    constexpr bool async = false;
-    fake_minibatch_runner_t<async> minibatch(batch_size, image_per_sec);
-    fake_trainer_t train(is_root, n_iters, step_per_iter, batch_size);
-
-    bool fuse_grads  = true;
-    using T          = float;
-    const auto sizes = resnet50_grad_sizes();
-    auto grads =
-        fuse_grads ? gen_fused_fake_grads<T>(sizes) : gen_fake_grads<T>(sizes);
-    train(minibatch, grads, mpi);
+    const bool is_root    = rank == 0;
+    const auto grad_sizes = resnet50_grad_sizes();
+    run_experiment(is_root, world_size, grad_sizes, mpi);
     return 0;
 }

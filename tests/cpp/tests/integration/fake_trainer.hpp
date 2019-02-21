@@ -116,14 +116,17 @@ template <bool async = true> class fake_minibatch_runner_t
 class fake_trainer_t
 {
     const bool is_root;
+    const int cluster_size;
+
     const int n_iters;
     const int step_per_iter;
     const int batch_size;
 
   public:
-    fake_trainer_t(bool is_root, int n_iters, int step_per_iter, int batch_size)
-        : is_root(is_root), n_iters(n_iters), step_per_iter(step_per_iter),
-          batch_size(batch_size)
+    fake_trainer_t(bool is_root, int cluster_size, int n_iters,
+                   int step_per_iter, int batch_size)
+        : is_root(is_root), cluster_size(cluster_size), n_iters(n_iters),
+          step_per_iter(step_per_iter), batch_size(batch_size)
     {
     }
 
@@ -144,6 +147,28 @@ class fake_trainer_t
         const auto d = testing::since(t0);
         const double img_per_sec =
             n_iters * step_per_iter * batch_size / d.count();
-        fprintf(stderr, "Img/sec %.2f\n", img_per_sec);
+        fprintf(stderr, "Img/sec %.2f per worker, np=%d\n", img_per_sec,
+                cluster_size);
     }
 };
+
+template <typename Collective>
+void run_experiment(bool is_root, int cluster_size,
+                    const std::vector<int> &grad_sizes, Collective &comm)
+{
+    const int batch_size       = 32;
+    const double image_per_sec = 185;
+    const int n_iters          = 11;
+    const int step_per_iter    = 10;
+
+    constexpr bool async = false;
+    fake_minibatch_runner_t<async> minibatch(batch_size, image_per_sec);
+    fake_trainer_t train(is_root, cluster_size, n_iters, step_per_iter,
+                         batch_size);
+
+    bool fuse_grads = true;
+    using T         = float;
+    auto grads      = fuse_grads ? gen_fused_fake_grads<T>(grad_sizes)
+                            : gen_fake_grads<T>(grad_sizes);
+    train(minibatch, grads, comm);
+}
