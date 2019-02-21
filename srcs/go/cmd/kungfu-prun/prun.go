@@ -21,10 +21,10 @@ import (
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
 	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
-	selfHost   = flag.String("self", "", "")
+	selfHost   = flag.String("self", "", "internal IP")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
-	niName     = flag.String("ni", "", "network interface name, for infer self host")
+	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
 	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
 )
 
@@ -40,8 +40,8 @@ func main() {
 		switch {
 		case len(*selfHost) > 0:
 			return *selfHost
-		case len(*niName) > 0:
-			return inferIP(*niName)
+		case len(*nicName) > 0:
+			return inferIP(*nicName)
 		}
 		return "127.0.0.1"
 	}()
