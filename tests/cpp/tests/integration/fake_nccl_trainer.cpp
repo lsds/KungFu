@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include <nccl.h>
 
-#include <cuda_vector.hpp>
+#include "cuda_vector.hpp"
 
 int main(int argc, char *argv[])
 {
