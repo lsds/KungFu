@@ -81,6 +81,12 @@ class kungfu_world
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
+                  KungFu_Datatype dtype, KungFu_Op op, const char *name)
+    {
+        return KungfuAllReduce(sendbuf, recvbuf, count, dtype, op, name);
+    }
+
+    int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   DoneCallback done)
     {
