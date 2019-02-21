@@ -4,7 +4,9 @@ set -e
 cd $(dirname $0)
 . ./scripts/utils/measure.sh
 
-BUILD_GTEST=0 # download and build gtest from source
+if [ -z "${BUILD_GTEST}" ]; then
+    BUILD_GTEST=0 # download and build gtest from source
+fi
 BUILD_TESTS=1 # build unit tests
 BUILD_TENSORFLOW_OPS=0
 VERBOSE=0
