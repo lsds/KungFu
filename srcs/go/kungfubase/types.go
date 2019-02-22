@@ -76,6 +76,14 @@ var (
 	defaultAlgo = KungFu_Tree
 )
 
+func AllAlgoNames() []string {
+	var names []string
+	for _, name := range algoNames {
+		names = append(names, name)
+	}
+	return names
+}
+
 func (a KungFu_AllReduceAlgo) String() string {
 	for k, v := range algoNames {
 		if a == k {
