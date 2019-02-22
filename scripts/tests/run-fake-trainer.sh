@@ -19,7 +19,9 @@ run_fake_kungfu_trainer() {
     # local ALGO=
     local np=$1
     local H=127.0.0.1:$np
-    KUNGFU_TEST_CLUSTER_SIZE=$np \
+    env \
+        KUNGFU_CONFIG_LOG_CONFIG_VARS=true \
+        KUNGFU_TEST_CLUSTER_SIZE=$np \
         ./bin/kungfu-prun \
         -np=$np \
         -algo="${ALGO}" \
@@ -36,9 +38,16 @@ run_fake_mpi_trainer() {
         ./bin/fake-mpi-trainer
 }
 
+run_in_proc_trainer() {
+    local np=$1
+    env \
+        KUNGFU_TEST_CLUSTER_SIZE=$np \
+        ./bin/fake-in-proc-trainer
+}
+
 run_fake_trainer_all() {
     local max_np=4
-    echo "will test $1 for np=1 upto $max_np"
+    echo "will $1 with np=1 upto $max_np"
     for np in $(seq $max_np); do
         measure $1 $np
     done
@@ -46,13 +55,13 @@ run_fake_trainer_all() {
 
 main() {
     measure reinstall
-    local max_np=4
     if [ "$1" = "mpi" ]; then
         run_fake_trainer_all run_fake_mpi_trainer
+    elif [ "$1" = "inproc" ]; then
+        run_fake_trainer_all run_in_proc_trainer
     else
-        export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
         run_fake_trainer_all run_fake_kungfu_trainer
     fi
 }
 
-main $@
+measure main $@
