@@ -42,12 +42,12 @@ func (m *NetMetrics) start(p time.Duration) {
 	}
 }
 
-func (m *NetMetrics) Sent(n int64, a plan.Addr) {
+func (m *NetMetrics) Egress(n int64, a plan.Addr) {
 	// TODO: add labels from Addr
 	m.sent.a.Add(n)
 }
 
-func (m *NetMetrics) Recv(n int64, a plan.Addr) {
+func (m *NetMetrics) Ingress(n int64, a plan.Addr) {
 	// TODO: add labels from Addr
 	m.recv.a.Add(n)
 }

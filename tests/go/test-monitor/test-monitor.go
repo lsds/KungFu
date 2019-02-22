@@ -39,8 +39,8 @@ func main() {
 			i++
 			j := int64((i*10007 + 17) % 97)
 			a := addrs[i%len(addrs)]
-			nm.Sent(j, a)
-			nm.Recv(j, a)
+			nm.Egress(j, a)
+			nm.Ingress(j, a)
 			if t.Sub(t0) > *duration {
 				break
 			}

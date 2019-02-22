@@ -48,7 +48,7 @@ func (r *Router) Send(a plan.Addr, buf []byte) error {
 		os.Exit(1)
 		// return err
 	}
-	r.metrics.Sent(int64(m.Length), a)
+	r.metrics.Egress(int64(m.Length), a)
 	return nil
 }
 
@@ -114,7 +114,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
 			return i, err
 		}
 		a := remote.WithName(name)
-		r.metrics.Recv(int64(m.Length), a)
+		r.metrics.Ingress(int64(m.Length), a)
 		r.bufferPool.require(a) <- m
 	}
 }
