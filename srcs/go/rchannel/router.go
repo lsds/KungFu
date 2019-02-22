@@ -109,12 +109,12 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
 		defer shm.Close()
 	}
 	for i := 0; ; i++ {
-		name, m, err := r.acceptOne(conn, shm)
+		name, msg, err := r.acceptOne(conn, shm)
 		if err != nil {
 			return i, err
 		}
-		a := remote.WithName(name)
-		r.metrics.Ingress(int64(m.Length), a)
-		r.bufferPool.require(a) <- m
+		addr := remote.WithName(name)
+		r.metrics.Ingress(int64(msg.Length), addr)
+		r.bufferPool.require(addr) <- msg
 	}
 }
