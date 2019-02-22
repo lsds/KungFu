@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 const (
@@ -52,7 +54,7 @@ func isTrue(val string) bool {
 func parseDuration(val string) time.Duration {
 	d, err := time.ParseDuration(val)
 	if err != nil {
-		return 0
+		utils.ExitErr(err)
 	}
 	return d
 }

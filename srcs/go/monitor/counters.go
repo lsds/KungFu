@@ -68,8 +68,8 @@ type rateAccumulator struct {
 }
 
 func newRateAccumulator(prefix string) *rateAccumulator {
-	a := newAccumulator(prefix + `{}`)
-	r := newRate(a, "_rate"+`{}`)
+	a := newAccumulator(prefix)
+	r := newRate(a, "_rate")
 	return &rateAccumulator{
 		a: a,
 		r: r,
