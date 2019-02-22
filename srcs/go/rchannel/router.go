@@ -15,7 +15,7 @@ type Router struct {
 	localAddr  plan.NetAddr
 	bufferPool *BufferPool
 	connPool   *ConnectionPool
-	metrics    *monitor.NetMetrics
+	monitor    monitor.Monitor
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -23,7 +23,7 @@ func NewRouter(self plan.PeerSpec) *Router {
 		localAddr:  self.NetAddr,
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
-		metrics:    monitor.GetNetMetrics(),
+		monitor:    monitor.GetMonitor(),
 	}
 }
 
@@ -48,7 +48,7 @@ func (r *Router) Send(a plan.Addr, buf []byte) error {
 		os.Exit(1)
 		// return err
 	}
-	r.metrics.Egress(int64(m.Length), a)
+	r.monitor.Egress(int64(m.Length), a)
 	return nil
 }
 
@@ -114,7 +114,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
 			return i, err
 		}
 		addr := remote.WithName(name)
-		r.metrics.Ingress(int64(msg.Length), addr)
+		r.monitor.Ingress(int64(msg.Length), addr)
 		r.bufferPool.require(addr) <- msg
 	}
 }

@@ -12,6 +12,7 @@ const (
 	LogConfigVarsEnvKey    = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
 	RunWarmupEnvKey        = `KUNGFU_CONFIG_RUN_WARMUP`
 	UseShmEnvKey           = `KUNGFU_CONFIG_USE_SHM`
+	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
 )
 
@@ -19,6 +20,7 @@ var ConfigEnvKeys = []string{
 	LogConfigVarsEnvKey,
 	RunWarmupEnvKey,
 	UseShmEnvKey,
+	EnableMonitoringEnvKey,
 	MonitoringPeriodEnvKey,
 }
 
@@ -26,7 +28,8 @@ var (
 	RunWarmup        = false
 	UseShm           = false
 	LogConfigVars    = false
-	MonitoringPeriod time.Duration
+	EnableMonitoring = false
+	MonitoringPeriod = 1 * time.Second
 )
 
 func init() {
@@ -36,11 +39,14 @@ func init() {
 	if val := os.Getenv(UseShmEnvKey); len(val) > 0 {
 		UseShm = isTrue(val)
 	}
-	if val := os.Getenv(LogConfigVarsEnvKey); len(val) > 0 {
-		LogConfigVars = isTrue(val)
+	if val := os.Getenv(EnableMonitoringEnvKey); len(val) > 0 {
+		EnableMonitoring = isTrue(val)
 	}
 	if val := os.Getenv(MonitoringPeriodEnvKey); len(val) > 0 {
 		MonitoringPeriod = parseDuration(val)
+	}
+	if val := os.Getenv(LogConfigVarsEnvKey); len(val) > 0 {
+		LogConfigVars = isTrue(val)
 	}
 	if LogConfigVars {
 		logConfigVars()

@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"testing"
 
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 func Test_rateAccumulator(t *testing.T) {
+	kc.EnableMonitoring = true // FIXME: don't modify global variable
 	var b bytes.Buffer
 	var a plan.Addr
-	nm := newNetMetrics(0)
+	nm := newMonitor(0)
 	nm.Egress(3, a)
 	nm.Ingress(2, a)
-	nm.WriteTo(&b)
+	nm.writeTo(&b)
 	const want = `egress_total_bytes 3
 egress_rate_bytes_per_sec 0.000000
 ingress_total_bytes 2

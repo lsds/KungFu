@@ -55,22 +55,26 @@ func New(config Config) (*Kungfu, error) {
 }
 
 func (kf *Kungfu) Start() int {
-	monitor.StartServer(int(kf.self.MonitoringPort))
 	go kf.server.Serve()
 	go kf.localServer.Serve()
 	if kc.RunWarmup {
 		return kf.currentSession.Warmup()
 	}
-	monitorAddr := plan.NetAddr{
-		Host: kf.self.NetAddr.Host, // FIXME: use pubAddr
-		Port: kf.self.MonitoringPort,
+	if kc.EnableMonitoring {
+		monitor.StartServer(int(kf.self.MonitoringPort))
+		monitorAddr := plan.NetAddr{
+			Host: kf.self.NetAddr.Host, // FIXME: use pubAddr
+			Port: kf.self.MonitoringPort,
+		}
+		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self.NetAddr, monitorAddr)
 	}
-	log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self.NetAddr, monitorAddr)
 	return 0
 }
 
 func (kf *Kungfu) Close() int {
-	monitor.StopServer()
+	if kc.EnableMonitoring {
+		monitor.StopServer()
+	}
 	kf.server.Close() // TODO: check error
 	kf.localServer.Close()
 	return 0

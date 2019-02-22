@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 var (
@@ -15,12 +15,12 @@ var (
 func StartServer(port int) {
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(int(port)))
 	monitoringServer = &http.Server{
-		Handler: netMetrics,
+		Handler: monitor,
 		Addr:    addr,
 	}
 	go func() {
 		if err := monitoringServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Warnf("failed to start monitoring server: %v", err)
+			utils.ExitErr(err)
 		}
 	}()
 }

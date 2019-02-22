@@ -32,6 +32,7 @@ run_integration_tests() {
 
     local period=10ms
     env \
+        KUNGFU_CONFIG_ENABLE_MONITORING=true \
         KUNGFU_CONFIG_MONITORING_PERIOD=$period \
         ./bin/test-monitor -p $period -d 1s
 }

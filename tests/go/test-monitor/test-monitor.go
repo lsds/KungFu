@@ -30,7 +30,7 @@ func main() {
 	t0 := time.Now()
 
 	go func() {
-		nm := monitor.GetNetMetrics()
+		mon := monitor.GetMonitor()
 		tk := time.NewTicker(*period)
 		addrs := genTestAddrs()
 		defer tk.Stop()
@@ -39,8 +39,8 @@ func main() {
 			i++
 			j := int64((i*10007 + 17) % 97)
 			a := addrs[i%len(addrs)]
-			nm.Egress(j, a)
-			nm.Ingress(j, a)
+			mon.Egress(j, a)
+			mon.Ingress(j, a)
 			if t.Sub(t0) > *duration {
 				break
 			}
