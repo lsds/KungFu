@@ -20,7 +20,8 @@ var (
 
 func main() {
 	flag.Parse()
-	go monitor.ListenAndServe(*port)
+	monitor.StartServer(*port)
+	defer monitor.StopServer()
 
 	var wg sync.WaitGroup
 	wg.Add(2)
