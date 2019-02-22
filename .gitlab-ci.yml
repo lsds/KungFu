@@ -31,7 +31,6 @@ job3:
   before_script:
   - |
     DATA_DIR=$HOME/var/data \
-    DATA_MIRROR_PREFIX=https://kungfudata.blob.core.windows.net/data \
     ./scripts/download-mnist.sh
 
   script:
