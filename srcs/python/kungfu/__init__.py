@@ -7,6 +7,8 @@ from functools import reduce
 
 import tensorflow as tf
 
+import time
+
 __all__ = [
     'SyncSGDOptimizer',
 ]
@@ -197,7 +199,22 @@ class SyncSGDOptimizer(KungFuOptimizer):
     #     return self.__reconstruct_partition(grads_and_vars, k, D)
 
     # Map is a dict from variable to queue of gradients
-    def accumulate(self, grad, var, map, partitions):
+    def accumulate_fast(self, grad, var, map, partitions):
+        print("XXXXXXXXXXXXXXXXXXX ACCUMULATING XXXXXXXXXXXXXXXXXXXXX")
+        if var not in map:
+            map[var] = ([grad], grad)
+        else:
+            queue_gradiens, running_sum = map[var]
+            queue_gradiens.append((grad, tf.add_n([running_sum, grad])))
+            # Accumulate last #partitions gradients
+            if len(queue_gradiens) > partitions:
+                # Restore invariant
+                subtract_from_sum = queue_gradiens[0]
+                map[var][1] = tf.math.subtract(running_sum, subtract_from_sum)
+                queue_gradiens.pop(0)
+    
+    def accumulate_slow(self, grad, var, map, partitions):
+        print("XXXXXXXXXXXXXXXXXXX ACCUMULATING XXXXXXXXXXXXXXXXXXXXX")
         if var not in map:
             map[var] = [grad] #([grad], grad)
         else:
@@ -210,6 +227,17 @@ class SyncSGDOptimizer(KungFuOptimizer):
                 # Restore invariant
                 #subtract_from_sum = queue_gradiens[0]
                 queue_gradiens.pop(0)
+
+    def measure(self, f, name=None):
+        if not name:
+            name = f.__name__
+        t0 = time.time()
+        result = f()
+        duration = time.time() - t0
+        line = '%s took %fs' % (name, duration)
+        print(line)
+        return result
+
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Negotiate grad with peers, following flexible strategy."""
@@ -231,14 +259,22 @@ class SyncSGDOptimizer(KungFuOptimizer):
                        # Get partition indices by size (runs once)
                        sizes = [self.__get_size(g) for g, _v in grads_and_vars_to_negotiate]
                        self.partitionIndices = self.__partition_positions(sizes, self.akoPartitions)
-                    
+
+                    # pair tensor name bucket id
                     partitions = self.__reconstruct_partition(grads_and_vars_to_negotiate,  self.akoPartitions, self.partitionIndices)
                     negotiated_grad_and_vars = []
                     for partition_id in range(len(partitions)):
                         for grad, var in partitions[partition_id]:
-                            self.accumulate(grad, var, self.accum_map, self.akoPartitions)
-                            # TODO: optimize, running sum
-                            grad_accum = tf.add_n(self.accum_map[var]) / len(self.accum_map[var])
+                            self.measure(lambda: self.accumulate_fast(grad, var, self.accum_map, self.akoPartitions), name="ACCUMULATE")
+                            # grad_accum = tf.add_n(self.accum_map[var]) / len(self.accum_map[var])
+
+                            grad_accum = self.measure(lambda: self.accum_map[var][1] / len(self.accum_map[var][0]), name="AVERAGE")
+                            
+                            # in C++, queue of tensors and one matrix which is the running sum
+                            # make sure the algorithm is correct: run the same experiments and check that it executes the accum in C++
+                            # as expected
+                            # Use monitopring from Guo with prometheus to see the network utilization
+                            # Move on to a bigger model to see the network bottleneck
                             negotiated_grad_var = (self._op_lib.ako_negotiator(
                                                                 grad_accum, 
                                                                 grad,
