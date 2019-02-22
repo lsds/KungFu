@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type accumulator struct {
@@ -37,29 +38,35 @@ type rate struct {
 	name   string
 	prev   int64
 	target *accumulator
-	value  int64
+	value  float64
 }
 
-func newRate(a *accumulator, suffixs string) *rate {
+func newRate(a *accumulator, name string) *rate {
 	r := &rate{
-		name:   a.name + suffixs,
+		name:   name,
 		target: a,
 	}
 	return r
 }
 
-func (r *rate) update() {
+const (
+	totalUnitSuffix = `bytes`
+	rateUnitSuffix  = `bytes_per_sec`
+	rateTimeUnit    = float64(time.Second)
+)
+
+func (r *rate) update(p time.Duration) {
 	now := r.target.Get()
 	r.Lock()
 	defer r.Unlock()
-	r.value = now - r.prev
+	r.value = float64(now-r.prev) / (float64(p) / rateTimeUnit)
 	r.prev = now
 }
 
 func (r *rate) WriteTo(w io.Writer) {
 	r.Lock()
 	defer r.Unlock()
-	fmt.Fprintf(w, "%s %d\n", r.name, r.value)
+	fmt.Fprintf(w, "%s %f\n", r.name, r.value)
 }
 
 type rateAccumulator struct {
@@ -68,8 +75,8 @@ type rateAccumulator struct {
 }
 
 func newRateAccumulator(prefix string) *rateAccumulator {
-	a := newAccumulator(prefix)
-	r := newRate(a, "_rate")
+	a := newAccumulator(prefix + "_total_" + totalUnitSuffix)
+	r := newRate(a, prefix+"_rate_"+rateUnitSuffix)
 	return &rateAccumulator{
 		a: a,
 		r: r,

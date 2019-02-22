@@ -37,8 +37,8 @@ func newNetMetrics(p time.Duration) *NetMetrics {
 
 func (m *NetMetrics) start(p time.Duration) {
 	for range time.Tick(p) {
-		m.egress.r.update()
-		m.ingress.r.update()
+		m.egress.r.update(p)
+		m.ingress.r.update(p)
 	}
 }
 
