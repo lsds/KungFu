@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"runtime"
+	"strings"
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -17,11 +19,11 @@ import (
 
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
-	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
+	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
-	algo       = flag.String("algo", "", "algorithm")
+	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
 )
 
 func init() {
