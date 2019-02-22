@@ -3,12 +3,14 @@ package kungfuconfig
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 const (
-	LogConfigVarsEnvKey = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
-	RunWarmupEnvKey     = `KUNGFU_CONFIG_RUN_WARMUP`
-	UseShmEnvKey        = `KUNGFU_CONFIG_USE_SHM`
+	LogConfigVarsEnvKey    = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
+	RunWarmupEnvKey        = `KUNGFU_CONFIG_RUN_WARMUP`
+	UseShmEnvKey           = `KUNGFU_CONFIG_USE_SHM`
+	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
 )
 
 var ConfigEnvKeys = []string{
@@ -18,9 +20,10 @@ var ConfigEnvKeys = []string{
 }
 
 var (
-	RunWarmup     = false
-	UseShm        = false
-	LogConfigVars = false
+	RunWarmup        = false
+	UseShm           = false
+	LogConfigVars    = false
+	MonitoringPeriod time.Duration
 )
 
 func init() {
@@ -33,6 +36,9 @@ func init() {
 	if val := os.Getenv(LogConfigVarsEnvKey); len(val) > 0 {
 		LogConfigVars = isTrue(val)
 	}
+	if val := os.Getenv(MonitoringPeriodEnvKey); len(val) > 0 {
+		MonitoringPeriod = parseDuration(val)
+	}
 	if LogConfigVars {
 		logConfigVars()
 	}
@@ -40,6 +46,14 @@ func init() {
 
 func isTrue(val string) bool {
 	return val == "true"
+}
+
+func parseDuration(val string) time.Duration {
+	d, err := time.ParseDuration(val)
+	if err != nil {
+		return 0
+	}
+	return d
 }
 
 func logConfigVars() {
