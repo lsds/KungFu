@@ -26,8 +26,8 @@ func GetNetMetrics() *NetMetrics {
 
 func newNetMetrics(p time.Duration) *NetMetrics {
 	m := &NetMetrics{
-		egress:  newRateAccumulator("Egress rate in bytes"),
-		ingress: newRateAccumulator("Ingress rate in bytes"),
+		egress:  newRateAccumulator("egress"),
+		ingress: newRateAccumulator("ingress"),
 	}
 	if p > 0 {
 		go m.start(p)

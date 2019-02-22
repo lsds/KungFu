@@ -67,8 +67,8 @@ type rateAccumulator struct {
 	r *rate
 }
 
-func newRateAccumulator(name string) *rateAccumulator {
-	a := newAccumulator(name + `{}`)
+func newRateAccumulator(prefix string) *rateAccumulator {
+	a := newAccumulator(prefix + `{}`)
 	r := newRate(a, "_rate"+`{}`)
 	return &rateAccumulator{
 		a: a,
