@@ -1,4 +1,5 @@
 #pragma once
+#include <numeric>
 #include <string>
 #include <thread>
 #include <vector>
@@ -13,14 +14,68 @@ std::string fake_grad_name(int i)
 
 template <typename T> struct fake_buffer_t {
     using value_type = T;
-    std::string name;
-    int count;
+    const std::string name;
+    const int count;
+
     std::vector<T> send_buf;
     std::vector<T> recv_buf;
+    int recv_count;
+
+    const T *effective_data() const
+    {
+        if (recv_count == 0) {
+            return send_buf.data();
+        } else {
+            return recv_buf.data();
+        }
+    }
 
     fake_buffer_t(const std::string &name, int count)
-        : name(name), count(count), send_buf(count), recv_buf(count)
+        : name(name), count(count), send_buf(count), recv_buf(count),
+          recv_count(0)
     {
+    }
+
+    void reset(T x)
+    {
+        recv_count = 0;
+        std::fill(send_buf.begin(), send_buf.end(), x);
+        const T magic = static_cast<T>(-12345678);
+        std::iota(recv_buf.begin(), recv_buf.end(), magic);
+    }
+
+    bool check(T origin, T result) const
+    {
+        for (auto x : send_buf) {
+            if (x != origin) { return false; }
+        }
+        for (auto x : recv_buf) {
+            if (x != result) { return false; }
+        }
+        return true;
+    }
+
+    void recv_self()
+    {
+        std::copy(send_buf.begin(), send_buf.end(), recv_buf.begin());
+        ++recv_count;
+    }
+
+    void recv_into(const fake_buffer_t &sender)
+    {
+        const T *src = sender.effective_data();
+        // Assuming count == sender.count
+        std::copy(src, src + count, recv_buf.data());
+        ++recv_count;
+    }
+
+    void recv_onto(const fake_buffer_t &sender)
+    {
+        const T *src = sender.effective_data();
+        // Assuming count == sender.count
+        std::transform(src, src + count, effective_data(), recv_buf.data(),
+                       std::plus<T>());
+        ++recv_count;
     }
 };
 
@@ -113,6 +168,15 @@ template <bool async = true> class fake_minibatch_runner_t
     }
 };
 
+void log_estimated_speed(int n_batches, int batch_size, testing::duration_t d,
+                         int cluster_size)
+{
+    const double img_per_sec = n_batches * batch_size / d.count();
+    fprintf(stderr,
+            "Img/sec %.2f per worker, Img/sec %.2f per cluster, np=%d\n",
+            img_per_sec, img_per_sec * cluster_size, cluster_size);
+}
+
 class fake_trainer_t
 {
     const bool is_root;
@@ -144,11 +208,8 @@ class fake_trainer_t
             }
             if (is_root) { fprintf(stderr, "after %d steps\n", step); }
         }
-        const auto d = testing::since(t0);
-        const double img_per_sec =
-            n_iters * step_per_iter * batch_size / d.count();
-        fprintf(stderr, "Img/sec %.2f per worker, np=%d\n", img_per_sec,
-                cluster_size);
+        log_estimated_speed(n_iters * step_per_iter, batch_size,
+                            testing::since(t0), cluster_size);
     }
 };
 

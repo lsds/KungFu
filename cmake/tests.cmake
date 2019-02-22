@@ -74,6 +74,9 @@ FUNCTION(ADD_TEST_BIN target)
     USE_STDTRACER(${target})
 ENDFUNCTION()
 
+ADD_TEST_BIN(fake-in-proc-trainer
+             ${KUNGFU_TESTS_DIR}/integration/fake_in_proc_trainer.cpp)
+
 ADD_TEST_BIN(fake-agent ${KUNGFU_TESTS_DIR}/integration/fake_agent.cpp)
 ADD_TEST_BIN(fake-kungfu-trainer
              ${KUNGFU_TESTS_DIR}/integration/fake_kungfu_trainer.cpp)
