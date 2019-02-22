@@ -10,8 +10,8 @@ import (
 )
 
 type netMonitor interface {
-	Egress(n int64, a plan.Addr)
-	Ingress(n int64, a plan.Addr)
+	Egress(n int64, a plan.NetAddr)
+	Ingress(n int64, a plan.NetAddr)
 }
 
 type Monitor interface {
@@ -35,17 +35,17 @@ func GetMonitor() Monitor {
 type noopMonitor struct {
 }
 
-func (m *noopMonitor) Egress(n int64, a plan.Addr) {}
+func (m *noopMonitor) Egress(n int64, a plan.NetAddr) {}
 
-func (m *noopMonitor) Ingress(n int64, a plan.Addr) {}
+func (m *noopMonitor) Ingress(n int64, a plan.NetAddr) {}
 
 func (m *noopMonitor) ServeHTTP(w http.ResponseWriter, req *http.Request) {}
 
 func (m *noopMonitor) writeTo(w io.Writer) {}
 
 type netMetrics struct {
-	egress  *rateAccumulator
-	ingress *rateAccumulator
+	egressCounters  *rateAccumulatorGroup
+	ingressCounters *rateAccumulatorGroup
 }
 
 func newMonitor(p time.Duration) Monitor {
@@ -53,8 +53,8 @@ func newMonitor(p time.Duration) Monitor {
 		return &noopMonitor{}
 	}
 	m := &netMetrics{
-		egress:  newRateAccumulator("egress"),
-		ingress: newRateAccumulator("ingress"),
+		egressCounters:  newRateAccumulatorGroup("egress"),
+		ingressCounters: newRateAccumulatorGroup("ingress"),
 	}
 	if p > 0 {
 		go m.start(p)
@@ -64,24 +64,24 @@ func newMonitor(p time.Duration) Monitor {
 
 func (m *netMetrics) start(p time.Duration) {
 	for range time.Tick(p) {
-		m.egress.r.update(p)
-		m.ingress.r.update(p)
+		m.egressCounters.update(p)
+		m.ingressCounters.update(p)
 	}
 }
 
-func (m *netMetrics) Egress(n int64, a plan.Addr) {
-	// TODO: add labels from Addr
-	m.egress.a.Add(n)
+func (m *netMetrics) Egress(n int64, a plan.NetAddr) {
+	ra := m.egressCounters.getOrCreate(a)
+	ra.a.Add(n)
 }
 
-func (m *netMetrics) Ingress(n int64, a plan.Addr) {
-	// TODO: add labels from Addr
-	m.ingress.a.Add(n)
+func (m *netMetrics) Ingress(n int64, a plan.NetAddr) {
+	ra := m.ingressCounters.getOrCreate(a)
+	ra.a.Add(n)
 }
 
 func (m *netMetrics) WriteTo(w io.Writer) {
-	m.egress.WriteTo(w)
-	m.ingress.WriteTo(w)
+	m.egressCounters.WriteTo(w)
+	m.ingressCounters.WriteTo(w)
 }
 
 func (m *netMetrics) ServeHTTP(w http.ResponseWriter, req *http.Request) {

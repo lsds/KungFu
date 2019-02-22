@@ -6,6 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 type accumulator struct {
@@ -74,9 +76,9 @@ type rateAccumulator struct {
 	r *rate
 }
 
-func newRateAccumulator(prefix string) *rateAccumulator {
-	a := newAccumulator(prefix + "_total_" + totalUnitSuffix)
-	r := newRate(a, prefix+"_rate_"+rateUnitSuffix)
+func newRateAccumulator(prefix string, labels string) *rateAccumulator {
+	a := newAccumulator(prefix + "_total_" + totalUnitSuffix + labels)
+	r := newRate(a, prefix+"_rate_"+rateUnitSuffix+labels)
 	return &rateAccumulator{
 		a: a,
 		r: r,
@@ -86,4 +88,47 @@ func newRateAccumulator(prefix string) *rateAccumulator {
 func (c *rateAccumulator) WriteTo(w io.Writer) {
 	c.a.WriteTo(w)
 	c.r.WriteTo(w)
+}
+
+type rateAccumulatorGroup struct {
+	sync.Mutex
+
+	prefix           string
+	rateAccumulators map[string]*rateAccumulator
+}
+
+func newRateAccumulatorGroup(prefix string) *rateAccumulatorGroup {
+	return &rateAccumulatorGroup{
+		prefix:           prefix,
+		rateAccumulators: make(map[string]*rateAccumulator),
+	}
+}
+
+func (g *rateAccumulatorGroup) getOrCreate(a plan.NetAddr) *rateAccumulator {
+	labels := fmt.Sprintf(`{peer="%s:%d"}`, a.Host, a.Port)
+	g.Lock()
+	defer g.Unlock()
+	if ra, ok := g.rateAccumulators[labels]; !ok {
+		ra := newRateAccumulator(g.prefix, labels)
+		g.rateAccumulators[labels] = ra
+		return ra
+	} else {
+		return ra
+	}
+}
+
+func (g *rateAccumulatorGroup) update(p time.Duration) {
+	g.Lock()
+	defer g.Unlock()
+	for _, ra := range g.rateAccumulators {
+		ra.r.update(p)
+	}
+}
+
+func (g *rateAccumulatorGroup) WriteTo(w io.Writer) {
+	g.Lock()
+	defer g.Unlock()
+	for _, ra := range g.rateAccumulators {
+		ra.WriteTo(w)
+	}
 }

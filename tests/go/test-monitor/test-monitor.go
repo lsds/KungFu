@@ -64,13 +64,12 @@ func main() {
 	wg.Wait()
 }
 
-func genTestAddrs() []plan.Addr {
-	var addrs []plan.Addr
+func genTestAddrs() []plan.NetAddr {
+	var addrs []plan.NetAddr
 	for i := 0; i < 10; i++ {
-		addrs = append(addrs, plan.Addr{
+		addrs = append(addrs, plan.NetAddr{
 			Host: `127.0.0.1`,
 			Port: uint16(9999 + i),
-			Name: `test-tensor`,
 		})
 	}
 	return addrs

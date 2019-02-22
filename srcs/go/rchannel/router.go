@@ -48,7 +48,7 @@ func (r *Router) Send(a plan.Addr, buf []byte) error {
 		os.Exit(1)
 		// return err
 	}
-	r.monitor.Egress(int64(msg.Length), a)
+	r.monitor.Egress(int64(msg.Length), a.NetAddr())
 	return nil
 }
 
@@ -113,8 +113,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
 		if err != nil {
 			return i, err
 		}
-		addr := remote.WithName(name)
-		r.monitor.Ingress(int64(msg.Length), addr)
-		r.bufferPool.require(addr) <- msg
+		r.monitor.Ingress(int64(msg.Length), remote)
+		r.bufferPool.require(remote.WithName(name)) <- msg
 	}
 }
