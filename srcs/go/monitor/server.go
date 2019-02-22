@@ -20,7 +20,9 @@ func StartServer(port int) {
 	}
 	go func() {
 		if err := monitoringServer.ListenAndServe(); err != nil {
-			log.Warnf("failed to start monitoring server: %v", err)
+			if err != http.ErrServerClosed {
+				log.Warnf("failed to start monitoring server: %v", err)
+			}
 		}
 	}()
 }
