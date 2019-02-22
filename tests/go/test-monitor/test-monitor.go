@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	port     = flag.Int("port", 8080, "")
+	port     = flag.Int("port", 9999, "")
 	duration = flag.Duration("d", 1*time.Second, "")
 	period   = flag.Duration("p", 10*time.Millisecond, "")
 )

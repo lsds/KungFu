@@ -23,6 +23,7 @@ run_unit_tests() {
 
     go test -v ./srcs/go/rchannel
     go test -v ./srcs/go/plan
+    go test -v ./srcs/go/monitor
 }
 
 run_integration_tests() {
