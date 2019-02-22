@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"sync/atomic"
 )
 
 type accumulator struct {
-	sync.Mutex
-
 	name  string
 	value int64
 }
@@ -19,23 +18,18 @@ func newAccumulator(name string) *accumulator {
 	}
 }
 
-func (a *accumulator) Add(n int64) {
-	a.Lock()
-	defer a.Unlock()
-	a.value += n
+func (a *accumulator) Add(n int64) int64 {
+	return atomic.AddInt64(&a.value, n)
 }
 
 func (a *accumulator) Get() int64 {
-	a.Lock()
-	defer a.Unlock()
-	return a.value
+	return atomic.LoadInt64(&a.value)
 }
 
 func (a *accumulator) WriteTo(w io.Writer) {
-	a.Lock()
-	defer a.Unlock()
+	val := atomic.LoadInt64(&a.value)
 	// FIXME: add labels
-	fmt.Fprintf(w, "%s{} %d\n", a.name, a.value)
+	fmt.Fprintf(w, "%s{} %d\n", a.name, val)
 }
 
 type rate struct {
