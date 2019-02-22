@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/monitor"
+	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 var (
@@ -31,12 +32,15 @@ func main() {
 	go func() {
 		nm := monitor.GetNetMetrics()
 		tk := time.NewTicker(*period)
+		addrs := genTestAddrs()
 		defer tk.Stop()
-		var i int64
+		var i int
 		for t := range tk.C {
-			i = (i*10007 + 17) % 97
-			nm.Sent(i)
-			nm.Recv(i)
+			i++
+			j := int64((i*10007 + 17) % 97)
+			a := addrs[i%len(addrs)]
+			nm.Sent(j, a)
+			nm.Recv(j, a)
 			if t.Sub(t0) > *duration {
 				break
 			}
@@ -58,6 +62,18 @@ func main() {
 		wg.Done()
 	}()
 	wg.Wait()
+}
+
+func genTestAddrs() []plan.Addr {
+	var addrs []plan.Addr
+	for i := 0; i < 10; i++ {
+		addrs = append(addrs, plan.Addr{
+			Host: `127.0.0.1`,
+			Port: uint16(9999 + i),
+			Name: `test-tensor`,
+		})
+	}
+	return addrs
 }
 
 type client struct {

@@ -28,8 +28,7 @@ func (a *accumulator) Get() int64 {
 
 func (a *accumulator) WriteTo(w io.Writer) {
 	val := atomic.LoadInt64(&a.value)
-	// FIXME: add labels
-	fmt.Fprintf(w, "%s{} %d\n", a.name, val)
+	fmt.Fprintf(w, "%s %d\n", a.name, val)
 }
 
 type rate struct {
@@ -60,6 +59,24 @@ func (r *rate) update() {
 func (r *rate) WriteTo(w io.Writer) {
 	r.Lock()
 	defer r.Unlock()
-	// FIXME: add labels
-	fmt.Fprintf(w, "%s{} %d\n", r.name, r.value)
+	fmt.Fprintf(w, "%s %d\n", r.name, r.value)
+}
+
+type rateAccumulator struct {
+	a *accumulator
+	r *rate
+}
+
+func newRateAccumulator(name string) *rateAccumulator {
+	a := newAccumulator(name + `{}`)
+	r := newRate(a, "_rate"+`{}`)
+	return &rateAccumulator{
+		a: a,
+		r: r,
+	}
+}
+
+func (c *rateAccumulator) WriteTo(w io.Writer) {
+	c.a.WriteTo(w)
+	c.r.WriteTo(w)
 }
