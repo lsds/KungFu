@@ -29,10 +29,10 @@ func main() {
 
 	go func() {
 		nm := monitor.GetNetMetrics()
-		tk := time.NewTicker(time.Second / 100)
+		tk := time.NewTicker(*period)
 		defer tk.Stop()
 		var i int64
-		for t := range time.Tick(time.Second / 100) {
+		for t := range tk.C {
 			i = (i*10007 + 17) % 97
 			nm.Sent(i)
 			nm.Recv(i)
@@ -45,7 +45,7 @@ func main() {
 
 	go func() {
 		c := newClient(fmt.Sprintf(`http://127.0.0.1:%d/metrics`, *port))
-		tk := time.NewTicker(time.Second / 100)
+		tk := time.NewTicker(*period)
 		defer tk.Stop()
 		for t := range tk.C {
 			fmt.Printf("%s\n", t)

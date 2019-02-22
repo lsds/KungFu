@@ -6,6 +6,7 @@ import (
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/shm"
 )
@@ -14,6 +15,7 @@ type Router struct {
 	localAddr  plan.NetAddr
 	bufferPool *BufferPool
 	connPool   *ConnectionPool
+	metrics    *monitor.NetMetrics
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -21,6 +23,7 @@ func NewRouter(self plan.PeerSpec) *Router {
 		localAddr:  self.NetAddr,
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
+		metrics:    monitor.GetNetMetrics(),
 	}
 }
 
@@ -45,6 +48,7 @@ func (r *Router) Send(a plan.Addr, buf []byte) error {
 		os.Exit(1)
 		// return err
 	}
+	r.metrics.Sent(int64(m.Length))
 	return nil
 }
 
@@ -109,6 +113,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
 		if err != nil {
 			return i, err
 		}
+		r.metrics.Recv(int64(m.Length))
 		r.bufferPool.require(remote.WithName(name)) <- m
 	}
 }

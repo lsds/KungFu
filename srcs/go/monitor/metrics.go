@@ -65,8 +65,6 @@ func (m *NetMetrics) WriteTo(w io.Writer) {
 	m.recvRete.WriteTo(w)
 }
 
-func (m *NetMetrics) Handler() http.Handler {
-	return &server{
-		metrics: m,
-	}
+func (m *NetMetrics) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	m.WriteTo(w)
 }

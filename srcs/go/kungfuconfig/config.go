@@ -17,6 +17,7 @@ var ConfigEnvKeys = []string{
 	LogConfigVarsEnvKey,
 	RunWarmupEnvKey,
 	UseShmEnvKey,
+	MonitoringPeriodEnvKey,
 }
 
 var (

@@ -4,17 +4,27 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+
+	"github.com/lsds/KungFu/srcs/go/log"
 )
 
-type server struct {
-	metrics *NetMetrics
-}
+var (
+	monitoringServer *http.Server
+)
 
-func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	s.metrics.WriteTo(w)
-}
-
-func ListenAndServe(port int) {
+func StartServer(port int) {
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(int(port)))
-	http.ListenAndServe(addr, netMetrics.Handler())
+	monitoringServer = &http.Server{
+		Handler: netMetrics,
+		Addr:    addr,
+	}
+	go func() {
+		if err := monitoringServer.ListenAndServe(); err != nil {
+			log.Warnf("failed to start monitoring server: %v", err)
+		}
+	}()
+}
+
+func StopServer() {
+	monitoringServer.Close()
 }
