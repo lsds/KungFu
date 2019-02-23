@@ -5,8 +5,8 @@
 #include <mpi.h>
 
 template <typename T> struct mpi_type;
-template <> struct mpi_type<char> {
-    static auto value() { return MPI_CHAR; }
+template <> struct mpi_type<uint8_t> {
+    static auto value() { return MPI_INT8_T; }
 };
 template <> struct mpi_type<int> {
     static auto value() { return MPI_INT; }
