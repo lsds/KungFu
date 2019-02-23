@@ -81,13 +81,13 @@ func main() {
 	}
 }
 
-func inferIP(niName string) string {
+func inferIP(nicName string) string {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return "127.0.0.1"
 	}
 	for _, i := range ifaces {
-		if i.Name != niName {
+		if i.Name != nicName {
 			continue
 		}
 		addrs, err := i.Addrs()

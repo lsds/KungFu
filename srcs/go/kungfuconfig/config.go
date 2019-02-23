@@ -3,24 +3,33 @@ package kungfuconfig
 import (
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 const (
-	LogConfigVarsEnvKey = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
-	RunWarmupEnvKey     = `KUNGFU_CONFIG_RUN_WARMUP`
-	UseShmEnvKey        = `KUNGFU_CONFIG_USE_SHM`
+	LogConfigVarsEnvKey    = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
+	RunWarmupEnvKey        = `KUNGFU_CONFIG_RUN_WARMUP`
+	UseShmEnvKey           = `KUNGFU_CONFIG_USE_SHM`
+	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
+	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
 )
 
 var ConfigEnvKeys = []string{
 	LogConfigVarsEnvKey,
 	RunWarmupEnvKey,
 	UseShmEnvKey,
+	EnableMonitoringEnvKey,
+	MonitoringPeriodEnvKey,
 }
 
 var (
-	RunWarmup     = false
-	UseShm        = false
-	LogConfigVars = false
+	RunWarmup        = false
+	UseShm           = false
+	LogConfigVars    = false
+	EnableMonitoring = false
+	MonitoringPeriod = 1 * time.Second
 )
 
 func init() {
@@ -29,6 +38,12 @@ func init() {
 	}
 	if val := os.Getenv(UseShmEnvKey); len(val) > 0 {
 		UseShm = isTrue(val)
+	}
+	if val := os.Getenv(EnableMonitoringEnvKey); len(val) > 0 {
+		EnableMonitoring = isTrue(val)
+	}
+	if val := os.Getenv(MonitoringPeriodEnvKey); len(val) > 0 {
+		MonitoringPeriod = parseDuration(val)
 	}
 	if val := os.Getenv(LogConfigVarsEnvKey); len(val) > 0 {
 		LogConfigVars = isTrue(val)
@@ -40,6 +55,14 @@ func init() {
 
 func isTrue(val string) bool {
 	return val == "true"
+}
+
+func parseDuration(val string) time.Duration {
+	d, err := time.ParseDuration(val)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	return d
 }
 
 func logConfigVars() {
