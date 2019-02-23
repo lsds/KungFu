@@ -5,6 +5,9 @@
 #include <mpi.h>
 
 template <typename T> struct mpi_type;
+template <> struct mpi_type<char> {
+    static auto value() { return MPI_CHAR; }
+};
 template <> struct mpi_type<int> {
     static auto value() { return MPI_INT; }
 };
@@ -12,9 +15,28 @@ template <> struct mpi_type<float> {
     static auto value() { return MPI_FLOAT; }
 };
 
-struct mpi_collective {
-    mpi_collective(int argc, char *argv[]) { MPI_Init(&argc, &argv); }
+class mpi_collective
+{
+    const int _root;
+    int _rank;
+    int _cluster_size;
+
+  public:
+    mpi_collective(int argc, char *argv[]) : _root(0)
+    {
+        MPI_Init(&argc, &argv);
+        MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &_cluster_size);
+        printf("rank=%d/%d\n", _rank, _cluster_size);
+    }
+
     ~mpi_collective() { MPI_Finalize(); }
+
+    bool is_root() const { return _root == _rank; }
+
+    int rank() const { return _rank; }
+
+    int cluster_size() const { return _cluster_size; }
 
     template <typename T>
     void all_reduce(const T *send_buf, T *recv_buf, size_t count,
@@ -31,5 +53,11 @@ struct mpi_collective {
         // FIXME: not supported
         std::cerr << "mpi_collective::all_reduce<async> is not implemted"
                   << std::endl;
+    }
+
+    template <typename T>
+    void bcast(T *buf, size_t count, const char * /* name */)
+    {
+        MPI_Bcast(buf, count, mpi_type<T>::value(), _root, MPI_COMM_WORLD);
     }
 };
