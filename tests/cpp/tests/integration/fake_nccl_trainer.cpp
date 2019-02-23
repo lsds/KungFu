@@ -6,7 +6,23 @@
 #include "collective_mpi_impl.hpp"
 #include "collective_nccl_impl.hpp"
 #include "cuda_vector.hpp"
+#include "fake_trainer.hpp"
+#include "resnet50_info.hpp"
 #include "testing.hpp"
+
+template <typename T> struct fake_gpu_buffer_t {
+    using value_type = T;
+    const std::string name;
+    const int count;
+
+    cuda_vector<T> send_buf;
+    cuda_vector<T> recv_buf;
+
+    fake_gpu_buffer_t(const std::string &name, int count)
+        : name(name), count(count), send_buf(count), recv_buf(count),
+    {
+    }
+};
 
 template <typename Collective> int main1(int argc, char *argv[])
 {
@@ -18,19 +34,14 @@ template <typename Collective> int main1(int argc, char *argv[])
 
     nccl_collective nccl(id, bootstrap.cluster_size(), bootstrap.rank());
 
-    using T     = float;
-    const int n = 10;
-    cuda_vector<T> x(n);
-    cuda_vector<T> y(n);
-
-    collective_all_reduce(x.data(), y.data(), n, "test-tensor", nccl);
-
+    const auto grad_sizes = resnet50_grad_sizes();
+    run_experiment<nccl_collective, fake_gpu_buffer_t<float>>(grad_sizes, nccl);
     return 0;
 }
 
 int main(int argc, char *argv[])
 {
-    bool using_kungfu = not safe_getenv("KUNGFU_SELF_RANK").empty();
+    bool using_kungfu = not safe_getenv("KUNGFU_TEST_CLUSTER_SIZE").empty();
     if (using_kungfu) {
         return main1<kungfu_go_collective>(argc, argv);
     } else {

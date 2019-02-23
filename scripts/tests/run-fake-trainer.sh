@@ -7,6 +7,8 @@ SCRIPT_NAME=$(dirname $0)
 cd ../..
 . ./scripts/utils/measure.sh
 
+KUNGFU_PRUN=$(pwd)/bin/kungfu-prun
+
 reinstall() {
     CMAKE_SOURCE_DIR=$(pwd)
     export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
@@ -22,12 +24,11 @@ run_fake_kungfu_trainer() {
     env \
         KUNGFU_CONFIG_LOG_CONFIG_VARS=true \
         KUNGFU_TEST_CLUSTER_SIZE=$np \
-        ./bin/kungfu-prun \
+        ${KUNGFU_PRUN} \
         -np=$np \
         -algo="${ALGO}" \
         -H $H \
         -timeout=120s \
-        ${QUIET} \
         ./bin/fake-kungfu-trainer
 }
 
@@ -36,6 +37,19 @@ run_fake_mpi_trainer() {
     local np=$1
     $MPI_HOME/bin/mpirun -np $np \
         ./bin/fake-mpi-trainer
+}
+
+run_fake_nccl_trainer() {
+    local np=$1
+    local H=127.0.0.1:$np
+    env \
+        KUNGFU_CONFIG_LOG_CONFIG_VARS=true \
+        KUNGFU_TEST_CLUSTER_SIZE=$np \
+        ${KUNGFU_PRUN} \
+        -np=$np \
+        -H $H \
+        -timeout=120s \
+        ./bin/fake-nccl-trainer
 }
 
 run_in_proc_trainer() {
@@ -55,12 +69,26 @@ run_fake_trainer_all() {
 
 main() {
     measure reinstall
-    if [ "$1" = "mpi" ]; then
+    local collective=$1
+    if [ -z "$collective" ]; then
+        collective=kungfu
+    fi
+
+    if [ "$collective" = "kungfu" ]; then
+        run_fake_trainer_all run_fake_kungfu_trainer
+    elif [ "$collective" = "mpi" ]; then
         run_fake_trainer_all run_fake_mpi_trainer
-    elif [ "$1" = "inproc" ]; then
+    elif [ "$collective" = "nccl" ]; then
+        run_fake_trainer_all run_fake_nccl_trainer
+    elif [ "$collective" = "inproc" ]; then
+        run_fake_trainer_all run_in_proc_trainer
+    elif [ "$collective" = "all" ]; then
+        run_fake_trainer_all run_fake_kungfu_trainer
+        run_fake_trainer_all run_fake_mpi_trainer
+        # run_fake_trainer_all run_fake_nccl_trainer
         run_fake_trainer_all run_in_proc_trainer
     else
-        run_fake_trainer_all run_fake_kungfu_trainer
+        echo "invalid option"
     fi
 }
 

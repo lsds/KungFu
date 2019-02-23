@@ -27,7 +27,8 @@ template <typename T>
 bool test_in_proc_all_reduce(int np, const std::vector<int> &grad_sizes)
 {
     TRACE_SCOPE(__func__);
-    const auto grads  = gen_fused_fake_grads<T>(grad_sizes);
+    using buffer_t    = fake_cpu_buffer_t<T>;
+    const auto grads  = gen_fused_fake_grads<buffer_t>(grad_sizes);
     const int n_grads = grads.size();
     std::vector<grad_list_t<T>> node_grads;
     for (int i = 0; i < np; ++i) { node_grads.push_back(grads); }
@@ -49,7 +50,8 @@ template <typename T>
 void train_in_proc_all_reduce(int np, const std::vector<int> &grad_sizes)
 {
     TRACE_SCOPE(__func__);
-    const auto grads  = gen_fused_fake_grads<T>(grad_sizes);
+    using buffer_t    = fake_cpu_buffer_t<T>;
+    const auto grads  = gen_fused_fake_grads<buffer_t>(grad_sizes);
     const int n_grads = grads.size();
 
     std::vector<grad_list_t<T>> node_grads;

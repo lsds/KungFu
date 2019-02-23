@@ -12,7 +12,7 @@ std::string fake_grad_name(int i)
     return "NegotiatedGrad_" + std::to_string(i) + "/AllReduce";
 }
 
-template <typename T> struct fake_buffer_t {
+template <typename T> struct fake_cpu_buffer_t {
     using value_type = T;
     const std::string name;
     const int count;
@@ -30,7 +30,7 @@ template <typename T> struct fake_buffer_t {
         }
     }
 
-    fake_buffer_t(const std::string &name, int count)
+    fake_cpu_buffer_t(const std::string &name, int count)
         : name(name), count(count), send_buf(count), recv_buf(count),
           recv_count(0)
     {
@@ -61,7 +61,7 @@ template <typename T> struct fake_buffer_t {
         ++recv_count;
     }
 
-    void recv_into(const fake_buffer_t &sender)
+    void recv_into(const fake_cpu_buffer_t &sender)
     {
         const T *src = sender.effective_data();
         // Assuming count == sender.count
@@ -69,7 +69,7 @@ template <typename T> struct fake_buffer_t {
         ++recv_count;
     }
 
-    void recv_onto(const fake_buffer_t &sender)
+    void recv_onto(const fake_cpu_buffer_t &sender)
     {
         const T *src = sender.effective_data();
         // Assuming count == sender.count
@@ -79,22 +79,23 @@ template <typename T> struct fake_buffer_t {
     }
 };
 
-template <typename T> using grad_list_t = std::vector<fake_buffer_t<T>>;
+template <typename T> using grad_list_t = std::vector<fake_cpu_buffer_t<T>>;
 
-template <typename T>
-grad_list_t<T> gen_fake_grads(const std::vector<int> &sizes)
+template <typename buffer_t>
+std::vector<buffer_t> gen_fake_grads(const std::vector<int> &sizes)
 {
-    grad_list_t<T> grads;
+    TRACE_SCOPE(__func__);
+    std::vector<buffer_t> grads;
     int idx = 0;
     for (const auto &size : sizes) {
-        fake_buffer_t<T> g(fake_grad_name(idx++), size);
+        buffer_t g(fake_grad_name(idx++), size);
         grads.push_back(g);
     }
     return grads;
 }
 
-template <typename T>
-grad_list_t<T> gen_fused_fake_grads(const std::vector<int> &sizes)
+template <typename buffer_t>
+std::vector<buffer_t> gen_fused_fake_grads(const std::vector<int> &sizes)
 {
     TRACE_SCOPE(__func__);
     int total_size = 0;
@@ -104,8 +105,8 @@ grad_list_t<T> gen_fused_fake_grads(const std::vector<int> &sizes)
         fused_name += fake_grad_name(idx++);
         total_size += size;
     }
-    grad_list_t<T> grads;
-    fake_buffer_t<T> g(fused_name, total_size);
+    std::vector<buffer_t> grads;
+    buffer_t g(fused_name, total_size);
     grads.push_back(g);
     return grads;
 }
@@ -213,9 +214,8 @@ class fake_trainer_t
     }
 };
 
-template <typename Collective>
-void run_experiment(bool is_root, int cluster_size,
-                    const std::vector<int> &grad_sizes, Collective &comm)
+template <typename Collective, typename buffer_t = fake_cpu_buffer_t<float>>
+void run_experiment(const std::vector<int> &grad_sizes, Collective &comm)
 {
     const int batch_size       = 32;
     const double image_per_sec = 185;
@@ -224,12 +224,11 @@ void run_experiment(bool is_root, int cluster_size,
 
     constexpr bool async = false;
     fake_minibatch_runner_t<async> minibatch(batch_size, image_per_sec);
-    fake_trainer_t train(is_root, cluster_size, n_iters, step_per_iter,
-                         batch_size);
+    fake_trainer_t train(comm.is_root(), comm.cluster_size(), n_iters,
+                         step_per_iter, batch_size);
 
     bool fuse_grads = true;
-    using T         = float;
-    auto grads      = fuse_grads ? gen_fused_fake_grads<T>(grad_sizes)
-                            : gen_fake_grads<T>(grad_sizes);
+    auto grads      = fuse_grads ? gen_fused_fake_grads<buffer_t>(grad_sizes)
+                            : gen_fake_grads<buffer_t>(grad_sizes);
     train(minibatch, grads, comm);
 }

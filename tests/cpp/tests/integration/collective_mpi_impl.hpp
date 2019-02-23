@@ -53,6 +53,7 @@ class mpi_collective
         // FIXME: not supported
         std::cerr << "mpi_collective::all_reduce<async> is not implemted"
                   << std::endl;
+        done();
     }
 
     template <typename T>

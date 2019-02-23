@@ -12,9 +12,12 @@ template <> struct nccl_type<float> {
 class nccl_collective
 {
     ncclComm_t comm;
+    const int _rank;
+    const int _cluster_size;
 
   public:
     nccl_collective(ncclUniqueId id, int cluster_size, int rank)
+        : _rank(rank), _cluster_size(cluster_size)
     {
         ncclCommInitRank(&comm, cluster_size, id, rank);
         printf("nccl inited.\n");
@@ -25,6 +28,10 @@ class nccl_collective
         ncclCommDestroy(comm);
         printf("nccl destroyed.\n");
     }
+
+    bool is_root() const { return _rank == 0; }
+
+    int cluster_size() const { return _cluster_size; }
 
     template <typename T>
     void all_reduce(const T *send_buf, T *recv_buf, size_t count,
@@ -51,5 +58,6 @@ class nccl_collective
         // FIXME: not supported
         std::cerr << "nccl_collective::all_reduce<async> is not implemted"
                   << std::endl;
+        done();
     }
 };
