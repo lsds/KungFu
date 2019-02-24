@@ -32,6 +32,7 @@ class mpi_collective
 
     ~mpi_collective()
     {
+        printf("before MPI_Finalize\n");
         MPI_Finalize();
         printf("MPI finalized: %d/%d\n", _rank, _cluster_size);
     }
