@@ -18,7 +18,7 @@ struct cuda_mem_deleter {
 template <typename R> class cuda_vector
 {
     const size_t count;
-    const std::unique_ptr<R, cuda_mem_deleter> data_;
+    std::unique_ptr<R, cuda_mem_deleter> data_;
 
   public:
     explicit cuda_vector(size_t count)
