@@ -2,7 +2,32 @@
 #include <functional>
 #include <iostream>
 
+#include <cuda_runtime.h>
 #include <nccl.h>
+
+struct check_cuda {
+    const check_cuda &operator<<(cudaError_t error) const
+    {
+        if (error != cudaSuccess) {
+            printf("want %d, got %d\n", cudaSuccess, error);
+            perror("cudnn error");
+            exit(1);
+        }
+        return *this;
+    }
+};
+
+struct check_nccl {
+    const check_nccl &operator<<(ncclResult_t error) const
+    {
+        if (error != ncclSuccess) {
+            printf("want %d, got %d\n", ncclSuccess, error);
+            perror("nccl error");
+            exit(1);
+        }
+        return *this;
+    }
+};
 
 template <typename T> struct nccl_type;
 template <> struct nccl_type<float> {
@@ -19,14 +44,14 @@ class nccl_collective
     nccl_collective(ncclUniqueId id, int cluster_size, int rank)
         : _rank(rank), _cluster_size(cluster_size)
     {
-        ncclCommInitRank(&comm, cluster_size, id, rank);
+        check_nccl() << ncclCommInitRank(&comm, cluster_size, id, rank);
         printf("nccl inited: %d/%d.\n", rank, cluster_size);
     }
 
     ~nccl_collective()
     {
         printf("before nccl destroyed: %d/%d.\n", _rank, _cluster_size);
-        ncclCommDestroy(comm);
+        check_nccl() << ncclCommDestroy(comm);
         printf("nccl destroyed: %d/%d.\n", _rank, _cluster_size);
     }
 
@@ -41,16 +66,17 @@ class nccl_collective
                     const char * /* FIXME: ignored */)
     {
         cudaStream_t stream;
-        cudaStreamCreate(&stream);
+        check_cuda() << cudaStreamCreate(&stream);
 
-        ncclAllReduce(send_buf, recv_buf, count, nccl_type<T>::value(), ncclSum,
-                      comm, stream);
+        check_nccl() << ncclAllReduce(send_buf, recv_buf, count,
+                                      nccl_type<T>::value(), ncclSum, comm,
+                                      stream);
         // printf("ncclAllReduce done.\n");
 
-        cudaStreamSynchronize(stream);
+        check_cuda() << cudaStreamSynchronize(stream);
         // printf("cudaStreamSynchronize done.\n");
 
-        cudaStreamDestroy(stream);
+        check_cuda() << cudaStreamDestroy(stream);
         // printf("cudaStreamDestroy done.\n");
     }
 
