@@ -42,13 +42,13 @@ class nccl_collective
 
         ncclAllReduce(send_buf, recv_buf, count, nccl_type<T>::value(), ncclSum,
                       comm, stream);
-        printf("ncclAllReduce done.\n");
+        // printf("ncclAllReduce done.\n");
 
         cudaStreamSynchronize(stream);
-        printf("cudaStreamSynchronize done.\n");
+        // printf("cudaStreamSynchronize done.\n");
 
         cudaStreamDestroy(stream);
-        printf("cudaStreamDestroy done.\n");
+        // printf("cudaStreamDestroy done.\n");
     }
 
     template <typename T>
