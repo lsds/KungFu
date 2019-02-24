@@ -86,8 +86,7 @@ std::vector<buffer_t> gen_fake_grads(const std::vector<int> &sizes)
     std::vector<buffer_t> grads;
     int idx = 0;
     for (const auto &size : sizes) {
-        buffer_t g(fake_grad_name(idx++), size);
-        grads.push_back(g);
+        grads.push_back(buffer_t(fake_grad_name(idx++), size));
     }
     return grads;
 }
@@ -104,8 +103,7 @@ std::vector<buffer_t> gen_fused_fake_grads(const std::vector<int> &sizes)
         total_size += size;
     }
     std::vector<buffer_t> grads;
-    buffer_t g(fused_name, total_size);
-    grads.push_back(g);
+    grads.push_back(buffer_t(fused_name, total_size));
     return grads;
 }
 
