@@ -27,10 +27,14 @@ class mpi_collective
         MPI_Init(&argc, &argv);
         MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &_cluster_size);
-        printf("rank=%d/%d\n", _rank, _cluster_size);
+        printf("MPI inited: %d/%d\n", _rank, _cluster_size);
     }
 
-    ~mpi_collective() { MPI_Finalize(); }
+    ~mpi_collective()
+    {
+        MPI_Finalize();
+        printf("MPI finalized: %d/%d\n", _rank, _cluster_size);
+    }
 
     bool is_root() const { return _root == _rank; }
 

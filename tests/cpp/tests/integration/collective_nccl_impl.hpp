@@ -20,13 +20,13 @@ class nccl_collective
         : _rank(rank), _cluster_size(cluster_size)
     {
         ncclCommInitRank(&comm, cluster_size, id, rank);
-        printf("nccl inited %d/%d.\n", rank, cluster_size);
+        printf("nccl inited: %d/%d.\n", rank, cluster_size);
     }
 
     ~nccl_collective()
     {
         ncclCommDestroy(comm);
-        printf("nccl destroyed %d/%d.\n", rank, cluster_size);
+        printf("nccl destroyed: %d/%d.\n", _rank, _cluster_size);
     }
 
     bool is_root() const { return _rank == 0; }
