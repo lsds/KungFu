@@ -46,6 +46,7 @@ class nccl_collective
     {
         check_nccl() << ncclCommInitRank(&comm, cluster_size, id, rank);
         printf("nccl inited: %d/%d.\n", rank, cluster_size);
+        check_cuda() << cudaSetDevice(rank);
     }
 
     ~nccl_collective()
