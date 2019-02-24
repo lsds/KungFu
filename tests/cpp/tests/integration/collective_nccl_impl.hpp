@@ -51,7 +51,7 @@ class nccl_collective
     ~nccl_collective()
     {
         printf("before nccl destroyed: %d/%d.\n", _rank, _cluster_size);
-        check_nccl() << ncclCommDestroy(comm);
+        ncclCommDestroy(comm);
         printf("nccl destroyed: %d/%d.\n", _rank, _cluster_size);
     }
 
