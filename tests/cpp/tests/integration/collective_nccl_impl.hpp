@@ -32,6 +32,8 @@ class nccl_collective
 
     bool is_root() const { return _rank == 0; }
 
+    int rank() const { return _rank; }
+
     int cluster_size() const { return _cluster_size; }
 
     template <typename T>

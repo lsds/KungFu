@@ -176,18 +176,13 @@ void log_estimated_speed(int n_batches, int batch_size, testing::duration_t d,
 
 class fake_trainer_t
 {
-    const bool is_root;
-    const int cluster_size;
-
     const int n_iters;
     const int step_per_iter;
     const int batch_size;
 
   public:
-    fake_trainer_t(bool is_root, int cluster_size, int n_iters,
-                   int step_per_iter, int batch_size)
-        : is_root(is_root), cluster_size(cluster_size), n_iters(n_iters),
-          step_per_iter(step_per_iter), batch_size(batch_size)
+    fake_trainer_t(int n_iters, int step_per_iter, int batch_size)
+        : n_iters(n_iters), step_per_iter(step_per_iter), batch_size(batch_size)
     {
     }
 
@@ -203,10 +198,12 @@ class fake_trainer_t
                 TRACE_SCOPE("mini batch");
                 minibatch(grads, comm);
             }
-            if (is_root) { fprintf(stderr, "after %d steps\n", step); }
+            // if (comm.is_root()) {
+            fprintf(stderr, "%02d after %d steps\n", comm.rank(), step);
+            // }
         }
         log_estimated_speed(n_iters * step_per_iter, batch_size,
-                            testing::since(t0), cluster_size);
+                            testing::since(t0), comm.cluster_size());
     }
 };
 
@@ -220,8 +217,7 @@ void run_experiment(const std::vector<int> &grad_sizes, Collective &comm)
 
     constexpr bool async = false;
     fake_minibatch_runner_t<async> minibatch(batch_size, image_per_sec);
-    fake_trainer_t train(comm.is_root(), comm.cluster_size(), n_iters,
-                         step_per_iter, batch_size);
+    fake_trainer_t train(n_iters, step_per_iter, batch_size);
 
     bool fuse_grads = true;
     auto grads      = fuse_grads ? gen_fused_fake_grads<buffer_t>(grad_sizes)
