@@ -9,8 +9,8 @@ struct check_cuda {
     const check_cuda &operator<<(cudaError_t error) const
     {
         if (error != cudaSuccess) {
-            printf("want %d, got %d\n", cudaSuccess, error);
-            perror("cudnn error");
+            fprintf(stderr, "cuda error %d\n", error);
+            perror(cudaGetErrorString(error));
             exit(1);
         }
         return *this;
@@ -21,8 +21,8 @@ struct check_nccl {
     const check_nccl &operator<<(ncclResult_t error) const
     {
         if (error != ncclSuccess) {
-            printf("want %d, got %d\n", ncclSuccess, error);
-            perror("nccl error");
+            fprintf(stderr, "nccl error %d\n", error);
+            perror(ncclGetErrorString(error));
             exit(1);
         }
         return *this;
