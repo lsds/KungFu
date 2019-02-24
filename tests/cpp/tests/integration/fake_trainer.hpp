@@ -79,8 +79,6 @@ template <typename T> struct fake_cpu_buffer_t {
     }
 };
 
-template <typename T> using grad_list_t = std::vector<fake_cpu_buffer_t<T>>;
-
 template <typename buffer_t>
 std::vector<buffer_t> gen_fake_grads(const std::vector<int> &sizes)
 {
@@ -118,8 +116,8 @@ template <bool async = true> class fake_minibatch_runner_t
     const bool _fake_train = false;
     const ms _fake_sleep_duration;
 
-    template <typename T, typename Collective>
-    void run_sync(grad_list_t<T> &grads, Collective &comm) const
+    template <typename buffer_t, typename Collective>
+    void run_sync(std::vector<buffer_t> &grads, Collective &comm) const
     {
         for (auto &g : grads) {
             TRACE_SCOPE("run_sync::collective_all_reduce");
@@ -128,8 +126,8 @@ template <bool async = true> class fake_minibatch_runner_t
         }
     }
 
-    template <typename T, typename Collective>
-    void run_async(grad_list_t<T> &grads, Collective &comm) const
+    template <typename buffer_t, typename Collective>
+    void run_async(std::vector<buffer_t> &grads, Collective &comm) const
     {
         std::vector<Waiter> waiters(grads.size());
         int idx = 0;
@@ -151,8 +149,8 @@ template <bool async = true> class fake_minibatch_runner_t
         }
     }
 
-    template <typename T, typename Collective>
-    void operator()(grad_list_t<T> &grads, Collective &comm) const
+    template <typename buffer_t, typename Collective>
+    void operator()(std::vector<buffer_t> &grads, Collective &comm) const
     {
         if (_fake_train) {
             TRACE_SCOPE("train stage");
@@ -195,8 +193,8 @@ class fake_trainer_t
     {
     }
 
-    template <typename T, typename Step, typename Collective>
-    void operator()(const Step &minibatch, grad_list_t<T> &grads,
+    template <typename buffer_t, typename Step, typename Collective>
+    void operator()(const Step &minibatch, std::vector<buffer_t> &grads,
                     Collective &comm)
     {
         const auto t0 = testing::now();
