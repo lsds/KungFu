@@ -21,14 +21,14 @@ struct cuda_mem_deleter {
     void operator()(void *ptr) { CHECK(cuda_checker) << cudaFree(ptr); }
 };
 
-template <typename R> class cuda_vector
+template <typename T> class cuda_vector
 {
     const size_t count;
-    std::unique_ptr<R, cuda_mem_deleter> data_;
+    std::unique_ptr<T, cuda_mem_deleter> data_;
 
   public:
     explicit cuda_vector(size_t count)
-        : count(count), data_(cuda_mem_allocator<R>()(count))
+        : count(count), data_(cuda_mem_allocator<T>()(count))
     {
     }
 
