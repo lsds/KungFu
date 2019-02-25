@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <iostream>
 
@@ -20,6 +21,9 @@ struct show_nccl_error {
 using nccl_checker = error_checker<ncclResult_t, ncclSuccess, show_nccl_error>;
 
 template <typename T> struct nccl_type;
+template <> struct nccl_type<int32_t> {
+    static auto value() { return ncclInt32; }
+};
 template <> struct nccl_type<float> {
     static auto value() { return ncclFloat; }
 };

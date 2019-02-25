@@ -35,18 +35,18 @@ void simple_test(int size, nccl_collective &nccl)
     const int np   = nccl.cluster_size();
 
     printf("simple_test of size: %d Mi\n", (int)(size / Mi));
-    int n = size / sizeof(float);
-    cuda_vector<float> x(n);
+    int n = size / sizeof(int32_t);
+    cuda_vector<int32_t> x(n);
     {
-        std::vector<int> v(n);
+        std::vector<int32_t> v(n);
         std::fill(v.begin(), v.end(), rank);
         x.from_host(v.data());
     }
-    cuda_vector<float> y(n);
+    cuda_vector<int32_t> y(n);
     nccl.all_reduce(x.data(), y.data(), n, "test-tensor");
     {
         const int s = np * (np + 1) / 2;
-        std::vector<int> v(n);
+        std::vector<int32_t> v(n);
         y.to_host(v.data());
         for (int i = 0; i < n; i++) {
             if (y[i] != s) {
