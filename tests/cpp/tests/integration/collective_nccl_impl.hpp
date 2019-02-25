@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <functional>
 #include <iostream>
 
@@ -88,7 +89,7 @@ class nccl_collective
         size_t block_size         = size_cap / sizeof(T);
         for (size_t off = 0; off < count; off += block_size) {
             all_reduce_safe(send_buf + off, recv_buf + off,
-                            sdt::min(block_size, count - off), name);
+                            std::min(block_size, count - off), name);
         }
     }
 
