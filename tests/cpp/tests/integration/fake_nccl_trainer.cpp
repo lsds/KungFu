@@ -34,6 +34,14 @@ template <typename Collective> int main1(int argc, char *argv[])
 
     nccl_collective nccl(id, bootstrap.cluster_size(), bootstrap.rank());
 
+    {
+        int n = 10;
+        cuda_vector<float> x(n);
+        cuda_vector<float> y(n);
+        nccl.all_reduce(x.data(), y.data(), n, "test-tensor");
+    }
+    printf("simple test is done\n");
+
     const auto grad_sizes = resnet50_grad_sizes();
     run_experiment<nccl_collective, fake_gpu_buffer_t<float>>(grad_sizes, nccl);
     return 0;

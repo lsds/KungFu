@@ -5,16 +5,8 @@
 #include <cuda_runtime.h>
 #include <nccl.h>
 
+#include "cuda_helper.hpp"
 #include "error_checker.hpp"
-
-struct show_cuda_error {
-    std::string operator()(cudaError_t err) const
-    {
-        return cudaGetErrorString(err);
-    }
-};
-
-using cuda_checker = error_checker<cudaError_t, cudaSuccess, show_cuda_error>;
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
