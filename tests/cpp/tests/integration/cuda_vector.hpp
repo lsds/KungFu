@@ -11,7 +11,7 @@ template <typename T> struct cuda_mem_allocator {
     {
         T *deviceMem;
         CHECK(cuda_checker) << cudaMalloc<T>(&deviceMem, count);
-        printf("cudaMalloc<T> of size: %d at %p\n", (int)sizeof(T) * count,
+        printf("cudaMalloc<T> of size: %d at %p\n", (int)(sizeof(T) * count),
                deviceMem);
         return deviceMem;
     }
@@ -34,7 +34,8 @@ template <typename R> class cuda_vector
     explicit cuda_vector(size_t count)
         : count(count), data_(cuda_mem_allocator<R>()(count))
     {
-        printf("create cuda vector of size: %d\n", (int)sizeof(R) * count);
+        printf("create cuda vector of size: %d at %p\n", (int)sizeof(R) * count,
+               data_.get());
     }
 
     R *data() { return data_.get(); }

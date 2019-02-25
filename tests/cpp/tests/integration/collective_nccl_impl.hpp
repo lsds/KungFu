@@ -58,6 +58,8 @@ class nccl_collective
         cudaStream_t stream;
         CHECK(cuda_checker) << cudaStreamCreate(&stream);
 
+        printf("ncclAllReduce: %p <- %p of data size: %d\n", send_buf, recv_buf,
+               (int)(count * sizeof(T)));
         CHECK(nccl_checker)
             << ncclAllReduce(send_buf, recv_buf, count, nccl_type<T>::value(),
                              ncclSum, comm, stream);
