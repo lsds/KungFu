@@ -28,7 +28,7 @@ template <typename T> struct fake_gpu_buffer_t {
 
 constexpr size_t Mi = 1 << 10;
 
-void simple_test(int size)
+void simple_test(int size, nccl_collective &nccl)
 {
     printf("simple_test of size: %d Mi\n", (int)(size / Mi));
     int n = size / sizeof(float);
@@ -47,8 +47,8 @@ template <typename Collective> int main1(int argc, char *argv[])
 
     nccl_collective nccl(id, bootstrap.cluster_size(), bootstrap.rank());
 
-    for (int i = 1; i < 10; ++i) { simple_test(i * Mi); }
-    for (int i = 1; i < 10; ++i) { simple_test(i * 10 * Mi); }
+    for (int i = 1; i < 10; ++i) { simple_test(i * Mi, nccl); }
+    for (int i = 1; i < 10; ++i) { simple_test(i * 10 * Mi, nccl); }
     printf("simple tests are done\n");
 
     const auto grad_sizes = resnet50_grad_sizes();
