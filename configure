@@ -11,9 +11,9 @@ BUILD_TESTS=1 # build unit tests
 BUILD_TENSORFLOW_OPS=0
 VERBOSE=0
 
-USE_NCCL=0
-if [ -f /usr/include/nccl.h ]; then
-    USE_NCCL=1
+NCCL_HOME=$HOME/local/nccl
+if [ -f $NCCL_HOME/include/nccl.h ]; then
+    WITH_NCCL=$NCCL_HOME
 fi
 
 MPI_HOME=$HOME/local/openmpi
@@ -36,6 +36,10 @@ parse_args() {
         --with-mpi)
             # FIXME: parse --with-mpi
             WITH_MPI=$MPI_HOME
+            ;;
+        --with-nccl)
+            # FIXME: parse --with-nccl
+            WITH_NCCL=$NCCL_HOME
             ;;
         --verbose)
             VERBOSE=1
@@ -79,10 +83,13 @@ add_cmake_flags() {
     add_cmake_flag KUNGFU_BUILD_GTEST ${BUILD_GTEST}
     add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
     add_cmake_flag KUNGFU_BUILD_TF_OPS ${BUILD_TENSORFLOW_OPS}
-    add_cmake_flag KUNGFU_USE_NCCL ${USE_NCCL}
 
     if [ ! -z ${WITH_MPI} ]; then
         add_cmake_flag MPI_HOME ${WITH_MPI}
+    fi
+    if [ ! -z ${WITH_NCCL} ]; then
+        add_cmake_flag NCCL_HOME ${WITH_NCCL}
+        add_cmake_flag KUNGFU_USE_NCCL 1
     fi
 }
 
