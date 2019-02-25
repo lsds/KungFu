@@ -21,6 +21,8 @@ template <typename T> struct fake_gpu_buffer_t {
     fake_gpu_buffer_t(const std::string &name, int count)
         : name(name), count(count), send_buf(count), recv_buf(count)
     {
+        printf("fake_gpu_buffer_t of count %d, size %d\n", count,
+               count * sizeof(T));
     }
 };
 

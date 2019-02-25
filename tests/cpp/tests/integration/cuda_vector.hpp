@@ -11,8 +11,8 @@ template <typename T> struct cuda_mem_allocator {
     {
         T *deviceMem;
         CHECK(cuda_checker) << cudaMalloc<T>(&deviceMem, count);
-        printf("cudaMalloc<T> of size: %d at %p\n", (int)(sizeof(T) * count),
-               deviceMem);
+        printf("cudaMalloc<T> of size: %d (%d x %d) at %p\n",
+               (int)(sizeof(T) * count), (int)count, (int)sizeof(T), deviceMem);
         return deviceMem;
     }
 };
