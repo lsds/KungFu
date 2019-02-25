@@ -33,4 +33,16 @@ template <typename T> class cuda_vector
     }
 
     T *data() { return data_.get(); }
+
+    void from_host(const T *buffer)
+    {
+        cudaMemcpy(data_.get(), buffer, count * sizeof(T),
+                   cudaMemcpyHostToDevice);
+    }
+
+    void to_host(T *buffer)
+    {
+        cudaMemcpy(buffer, data_.get(), count * sizeof(T),
+                   cudaMemcpyDeviceToHost);
+    }
 };

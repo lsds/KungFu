@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <vector>
+
 #include <mpi.h>
 #include <nccl.h>
 
@@ -28,15 +31,38 @@ constexpr size_t Mi = 1 << 20;
 
 void simple_test(int size, nccl_collective &nccl)
 {
-    // printf("simple_test of size: %d Mi\n", (int)(size / Mi));
+    const int rank = nccl.rank();
+    const int np   = nccl.cluster_size();
+
+    printf("simple_test of size: %d Mi\n", (int)(size / Mi));
     int n = size / sizeof(float);
     cuda_vector<float> x(n);
+    {
+        std::vector<int> v(n);
+        std::fill(v.begin(), v.end(), rank);
+        x.from_host(v.data());
+    }
     cuda_vector<float> y(n);
     nccl.all_reduce(x.data(), y.data(), n, "test-tensor");
+    {
+        const int s = np * (np + 1) / 2;
+        std::vector<int> v(n);
+        y.to_host(v.data());
+        for (int i = 0; i < n; i++) {
+            if (y[i] != s) {
+                fprintf(stderr,
+                        "incorrect all_reduce result, expect %d, got %d", s,
+                        y[i]);
+                exit(1);
+            }
+        }
+    }
+    printf("simple_test result is correct\n");
 }
 
 template <typename Collective> int main1(int argc, char *argv[])
 {
+    TRACE_SCOPE(__func__);
     Collective bootstrap(argc, argv);
 
     ncclUniqueId id;
@@ -44,9 +70,12 @@ template <typename Collective> int main1(int argc, char *argv[])
     bootstrap.template bcast<uint8_t>((uint8_t *)&id, sizeof(id), "nccl id");
 
     nccl_collective nccl(id, bootstrap.cluster_size(), bootstrap.rank());
-
-    for (int i = 1; i < 10; ++i) { simple_test(i * Mi, nccl); }
-    for (int i = 1; i < 10; ++i) { simple_test(i * 10 * Mi, nccl); }
+    |
+    {
+        TRACE_SCOPE("run simple tests");
+        for (int i = 1; i < 10; ++i) { simple_test(i * Mi, nccl); }
+        for (int i = 1; i < 10; ++i) { simple_test(i * 10 * Mi, nccl); }
+    }
     printf("simple tests are done\n");
 
     const auto grad_sizes = resnet50_grad_sizes();
