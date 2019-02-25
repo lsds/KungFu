@@ -11,12 +11,18 @@ template <typename T> struct cuda_mem_allocator {
     {
         T *deviceMem;
         CHECK(cuda_checker) << cudaMalloc<T>(&deviceMem, count);
+        printf("cudaMalloc<T> of size: %d at %p\n", (int)sizeof(R) * count,
+               deviceMem);
         return deviceMem;
     }
 };
 
 struct cuda_mem_deleter {
-    void operator()(void *ptr) { CHECK(cuda_checker) << cudaFree(ptr); }
+    void operator()(void *ptr)
+    {
+        CHECK(cuda_checker) << cudaFree(ptr);
+        printf("cudaFree: %p\n", ptr);
+    }
 };
 
 template <typename R> class cuda_vector
