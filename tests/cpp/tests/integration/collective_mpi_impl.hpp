@@ -4,6 +4,17 @@
 
 #include <mpi.h>
 
+#include "error_checker.hpp"
+
+struct show_mpi_error {
+    std::string operator()(int code) const
+    {
+        return "mpi_err_code: " + std::to_string(code);
+    }
+};
+
+using mpi_checker = error_checker<int, MPI_SUCCESS, show_mpi_error>;
+
 template <typename T> struct mpi_type;
 template <> struct mpi_type<uint8_t> {
     static auto value() { return MPI_INT8_T; }
@@ -24,16 +35,16 @@ class mpi_collective
   public:
     mpi_collective(int argc, char *argv[]) : _root(0)
     {
-        MPI_Init(&argc, &argv);
-        MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &_cluster_size);
+        CHECK(mpi_checker) << MPI_Init(&argc, &argv);
+        CHECK(mpi_checker) << MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
+        CHECK(mpi_checker) << MPI_Comm_size(MPI_COMM_WORLD, &_cluster_size);
         printf("MPI inited: %d/%d\n", _rank, _cluster_size);
     }
 
     ~mpi_collective()
     {
         printf("before MPI_Finalize: %d/%d\n", _rank, _cluster_size);
-        MPI_Finalize();
+        CHECK(mpi_checker) << MPI_Finalize();
         printf("MPI finalized: %d/%d\n", _rank, _cluster_size);
     }
 
@@ -47,8 +58,9 @@ class mpi_collective
     void all_reduce(const T *send_buf, T *recv_buf, size_t count,
                     const char * /* FIXME: ignored */)
     {
-        MPI_Allreduce(send_buf, recv_buf, count, mpi_type<T>::value(), MPI_SUM,
-                      MPI_COMM_WORLD);
+        CHECK(mpi_checker) << MPI_Allreduce(send_buf, recv_buf, count,
+                                            mpi_type<T>::value(), MPI_SUM,
+                                            MPI_COMM_WORLD);
     }
 
     template <typename T>
@@ -64,6 +76,7 @@ class mpi_collective
     template <typename T>
     void bcast(T *buf, size_t count, const char * /* name */)
     {
-        MPI_Bcast(buf, count, mpi_type<T>::value(), _root, MPI_COMM_WORLD);
+        CHECK(mpi_checker) << MPI_Bcast(buf, count, mpi_type<T>::value(), _root,
+                                        MPI_COMM_WORLD);
     }
 };

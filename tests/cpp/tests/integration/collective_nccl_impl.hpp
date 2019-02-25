@@ -5,29 +5,25 @@
 #include <cuda_runtime.h>
 #include <nccl.h>
 
-struct check_cuda {
-    const check_cuda &operator<<(cudaError_t error) const
+#include "error_checker.hpp"
+
+struct show_cuda_error {
+    std::string operator()(cudaError_t err) const
     {
-        if (error != cudaSuccess) {
-            fprintf(stderr, "cuda error %d\n", error);
-            perror(cudaGetErrorString(error));
-            exit(1);
-        }
-        return *this;
+        return cudaGetErrorString(err);
     }
 };
 
-struct check_nccl {
-    const check_nccl &operator<<(ncclResult_t error) const
+using cuda_checker = error_checker<cudaError_t, cudaSuccess, show_cuda_error>;
+
+struct show_nccl_error {
+    std::string operator()(ncclResult_t err) const
     {
-        if (error != ncclSuccess) {
-            fprintf(stderr, "nccl error %d\n", error);
-            perror(ncclGetErrorString(error));
-            exit(1);
-        }
-        return *this;
+        return ncclGetErrorString(err);
     }
 };
+
+using nccl_checker = error_checker<ncclResult_t, ncclSuccess, show_nccl_error>;
 
 template <typename T> struct nccl_type;
 template <> struct nccl_type<float> {
@@ -44,9 +40,9 @@ class nccl_collective
     nccl_collective(ncclUniqueId id, int cluster_size, int rank)
         : _rank(rank), _cluster_size(cluster_size)
     {
-        check_cuda() << cudaSetDevice(rank);
+        CHECK(cuda_checker) << cudaSetDevice(rank);
         printf("cuda device selected to %d\n", rank);
-        check_nccl() << ncclCommInitRank(&comm, cluster_size, id, rank);
+        CHECK(nccl_checker) << ncclCommInitRank(&comm, cluster_size, id, rank);
         printf("nccl inited: %d/%d.\n", rank, cluster_size);
     }
 
@@ -68,17 +64,17 @@ class nccl_collective
                     const char * /* FIXME: ignored */)
     {
         cudaStream_t stream;
-        check_cuda() << cudaStreamCreate(&stream);
+        CHECK(cuda_checker) << cudaStreamCreate(&stream);
 
-        check_nccl() << ncclAllReduce(send_buf, recv_buf, count,
-                                      nccl_type<T>::value(), ncclSum, comm,
-                                      stream);
+        CHECK(nccl_checker)
+            << ncclAllReduce(send_buf, recv_buf, count, nccl_type<T>::value(),
+                             ncclSum, comm, stream);
         // printf("ncclAllReduce done.\n");
 
-        check_cuda() << cudaStreamSynchronize(stream);
+        CHECK(cuda_checker) << cudaStreamSynchronize(stream);
         // printf("cudaStreamSynchronize done.\n");
 
-        check_cuda() << cudaStreamDestroy(stream);
+        CHECK(cuda_checker) << cudaStreamDestroy(stream);
         // printf("cudaStreamDestroy done.\n");
     }
 
