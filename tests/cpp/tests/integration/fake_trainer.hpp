@@ -207,7 +207,8 @@ class fake_trainer_t
     }
 };
 
-template <typename Collective, typename buffer_t = fake_cpu_buffer_t<float>>
+template <typename Collective, typename buffer_t = fake_cpu_buffer_t<float>,
+          bool fuse_grads = true>
 void run_experiment(const std::vector<int> &grad_sizes, Collective &comm)
 {
     const int batch_size       = 32;
@@ -218,9 +219,7 @@ void run_experiment(const std::vector<int> &grad_sizes, Collective &comm)
     constexpr bool async = false;
     fake_minibatch_runner_t<async> minibatch(batch_size, image_per_sec);
     fake_trainer_t train(n_iters, step_per_iter, batch_size);
-
-    bool fuse_grads = true;
-    auto grads      = fuse_grads ? gen_fused_fake_grads<buffer_t>(grad_sizes)
+    auto grads = fuse_grads ? gen_fused_fake_grads<buffer_t>(grad_sizes)
                             : gen_fake_grads<buffer_t>(grad_sizes);
     train(minibatch, grads, comm);
 }
