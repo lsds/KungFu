@@ -83,9 +83,9 @@ class nccl_collective
     void all_reduce(const T *send_buf, T *recv_buf, size_t count,
                     const char *name)
     {
-        constexpr size_t Mi = 1 << 20;
-        constexpr size_cap  = 1 * Mi;
-        size_t block_size   = size_cap / sizeof(T);
+        constexpr size_t Mi       = 1 << 20;
+        constexpr size_t size_cap = 1 * Mi;
+        size_t block_size         = size_cap / sizeof(T);
         for (size_t off = 0; off < count; off += block_size) {
             all_reduce_safe(send_buf + off, recv_buf + off,
                             sdt::min(block_size, count - off), name);
