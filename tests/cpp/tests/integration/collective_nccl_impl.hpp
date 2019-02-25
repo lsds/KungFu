@@ -44,9 +44,10 @@ class nccl_collective
     nccl_collective(ncclUniqueId id, int cluster_size, int rank)
         : _rank(rank), _cluster_size(cluster_size)
     {
+        check_cuda() << cudaSetDevice(rank);
+        printf("cuda device selected to %d\n", rank);
         check_nccl() << ncclCommInitRank(&comm, cluster_size, id, rank);
         printf("nccl inited: %d/%d.\n", rank, cluster_size);
-        check_cuda() << cudaSetDevice(rank);
     }
 
     ~nccl_collective()
