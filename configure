@@ -11,6 +11,11 @@ BUILD_TESTS=1 # build unit tests
 BUILD_TENSORFLOW_OPS=0
 VERBOSE=0
 
+USE_NCCL=0
+if [ -f /usr/include/nccl.h ]; then
+    USE_NCCL=1
+fi
+
 MPI_HOME=$HOME/local/openmpi
 if [ -f $MPI_HOME/include/mpi.h ]; then
     WITH_MPI=$MPI_HOME
@@ -74,6 +79,7 @@ add_cmake_flags() {
     add_cmake_flag KUNGFU_BUILD_GTEST ${BUILD_GTEST}
     add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
     add_cmake_flag KUNGFU_BUILD_TF_OPS ${BUILD_TENSORFLOW_OPS}
+    add_cmake_flag KUNGFU_USE_NCCL ${USE_NCCL}
 
     if [ ! -z ${WITH_MPI} ]; then
         add_cmake_flag MPI_HOME ${WITH_MPI}

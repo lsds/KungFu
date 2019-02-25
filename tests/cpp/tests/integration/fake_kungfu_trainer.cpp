@@ -14,10 +14,7 @@ int main(int argc, char *argv[])
 {
     TRACE_SCOPE(__func__);
     kungfu_go_collective kungfu;
-
-    const bool is_root    = getSelfRank() == 0;
-    const int np          = getTestClusterSize();
     const auto grad_sizes = resnet50_grad_sizes();
-    run_experiment(is_root, np, grad_sizes, kungfu);
+    run_experiment(grad_sizes, kungfu);
     return 0;
 }

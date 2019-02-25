@@ -4,8 +4,8 @@
 #include "resnet50_info.hpp"
 #include "testing.hpp"
 
-template <typename T>
-void in_proc_all_reduce(int np, std::vector<grad_list_t<T>> &node_grads,
+template <typename buffer_t>
+void in_proc_all_reduce(int np, std::vector<std::vector<buffer_t>> &node_grads,
                         int n_grads)
 {
     for (int j = 0; j < n_grads; ++j) {
@@ -23,13 +23,13 @@ void in_proc_all_reduce(int np, std::vector<grad_list_t<T>> &node_grads,
     }
 }
 
-template <typename T>
+template <typename buffer_t>
 bool test_in_proc_all_reduce(int np, const std::vector<int> &grad_sizes)
 {
     TRACE_SCOPE(__func__);
-    const auto grads  = gen_fused_fake_grads<T>(grad_sizes);
+    const auto grads  = gen_fused_fake_grads<buffer_t>(grad_sizes);
     const int n_grads = grads.size();
-    std::vector<grad_list_t<T>> node_grads;
+    std::vector<std::vector<buffer_t>> node_grads;
     for (int i = 0; i < np; ++i) { node_grads.push_back(grads); }
 
     for (int i = 0; i < np; ++i) {
@@ -38,21 +38,21 @@ bool test_in_proc_all_reduce(int np, const std::vector<int> &grad_sizes)
     in_proc_all_reduce(np, node_grads, n_grads);
     for (int i = 0; i < np; ++i) {
         for (int j = 0; j < n_grads; ++j) {
-            const T result = np * (np + 1) / 2;
+            const typename buffer_t::value_type result = np * (np + 1) / 2;
             if (!node_grads[i][j].check(i + 1, result)) { return false; }
         }
     }
     return true;
 }
 
-template <typename T>
+template <typename buffer_t>
 void train_in_proc_all_reduce(int np, const std::vector<int> &grad_sizes)
 {
     TRACE_SCOPE(__func__);
-    const auto grads  = gen_fused_fake_grads<T>(grad_sizes);
+    const auto grads  = gen_fused_fake_grads<buffer_t>(grad_sizes);
     const int n_grads = grads.size();
 
-    std::vector<grad_list_t<T>> node_grads;
+    std::vector<std::vector<buffer_t>> node_grads;
     for (int i = 0; i < np; ++i) { node_grads.push_back(grads); }
 
     const int batch_size    = 32;
@@ -75,10 +75,10 @@ int main(int argc, char *argv[])
     TRACE_SCOPE(__func__);
     const int np          = getTestClusterSize();
     const auto grad_sizes = resnet50_grad_sizes();
-    if (!test_in_proc_all_reduce<int>(np, grad_sizes)) {
+    if (!test_in_proc_all_reduce<fake_cpu_buffer_t<int>>(np, grad_sizes)) {
         fprintf(stderr, "invalid in_proc_all_reduce result for np=%d\n", np);
         return 1;
     }
-    train_in_proc_all_reduce<float>(np, grad_sizes);
+    train_in_proc_all_reduce<fake_cpu_buffer_t<float>>(np, grad_sizes);
     return 0;
 }
