@@ -3,6 +3,8 @@
 #include <kungfu.h>
 #include <kungfu_base.h>
 #include <kungfu_tensorflow_ops.h>
+#include <queue>
+
 
 static kungfu_world _kungfu_world;
 
@@ -48,22 +50,31 @@ class AkoNegotiator : public AsyncOpKernel
     using AsyncOpKernel::AsyncOpKernel;
 
   public:
+    // have them public for now
+
+    std::queue<Tensor> tensorWindow;
+    Tensor runningSum;
+
+    explicit AkoNegotiator(OpKernelConstruction* context) : AsyncOpKernel(context) {
+        std::cout << "Initializing ako negotiator " << context->input_type(0) << std::endl;
+
+    }
+
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         // Check arg count: gradient tensors group, number partitions, current
         // partition index
-        DCHECK_EQ(5, context->num_inputs());
+        DCHECK_EQ(4, context->num_inputs());
 
-        const Tensor &partitionTensor       = context->input(0);
-        const Tensor &allGradients          = context->input(1);    
+        
+        const Tensor &gradients          = context->input(0);    
 
-        const Tensor &currentPartitionIndex = context->input(2);
-        const Tensor &pAkoPartitions        = context->input(3);
+        const Tensor &currentPartitionIndex = context->input(1);
+        const Tensor &pAkoPartitions        = context->input(2);
 
-        const Tensor &kickinTime            = context->input(4);
+        const Tensor &kickinTime            = context->input(3);
         
         Tensor *output                      = nullptr;
-        
 
         auto currentPartitionIndexTensor = currentPartitionIndex.vec<int>();
         auto numberPartitionsTensor      = pAkoPartitions.vec<int>();
@@ -73,56 +84,61 @@ class AkoNegotiator : public AsyncOpKernel
         int partitionIndex   = currentPartitionIndexTensor(0);
         int kickin           = kickinTimeTensor(0);
 
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, gradients.shape(), &output));
 
-        if(_kungfu_world.GetGlobalStep() < kickin) {
-            OP_REQUIRES_OK(context,
-                           context->allocate_output(0, allGradients.shape(), &output));
-        } else {
-            OP_REQUIRES_OK(context,
-                           context->allocate_output(0, partitionTensor.shape(), &output));
-        }
-
-        //std::cout << output->DebugString()  << std::endl;
-        // auto output_mat = output->matrix<float>();
-        // output_mat.setZero();
-        // output->setZero();
-
+        // FIXME
         auto flt = output->flat<float>();
         for (int i = 0; i < flt.size(); ++i) {
             flt(i) = 0.0;
         }
+        
+        if (_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {           
+            if(runningSum.NumElements() == 0) {
+                Tensor grad_accumulated(DataTypeToEnum<float>::v(), gradients.shape());
+                auto grad_accumulated_flt = grad_accumulated.flat<float>();
+                for (int i = 0; i < grad_accumulated_flt.size(); ++i) {
+                    grad_accumulated_flt(i) = 0.0;
+                }
+               runningSum = grad_accumulated;
+            }
 
-        // std::cout << "Before" << std::endl;
-        // std::cout << partitionTensor.shape() << std::endl;
-        // std::cout << output->DebugString() << std::endl;
+            auto grads_flt = gradients.flat<float>();
+            auto runningSum_flt = runningSum.flat<float>();
+            for (int i = 0; i < runningSum_flt.size(); ++i) {
+                runningSum_flt(i) = grads_flt(i) + runningSum_flt(i);
+            }
 
-        // std::cout << "After" << std::endl;
+            // TODO: combine with prev loop
+            tensorWindow.push(gradients);    
+            if(tensorWindow.size() > numberPartitions) {
+               Tensor stale = tensorWindow.front();
+               auto stale_flt = stale.flat<float>();
+               for(int i = 0; i < runningSum_flt.size(); ++i) {
+                   runningSum_flt(i) = runningSum_flt(i) - stale_flt(i);
+               }
+               tensorWindow.pop();
+            }
 
-        //std::cout << "Global step: " << _kungfu_world.GetGlobalStep() << std::endl;
-       // std::cout << "Kick   step: " << kickin << std::endl;
+            // Compute running sum average (CHECK)
+            // Tensor avg(DataTypeToEnum<float>::v(), runningSum.shape());
+            // auto avg_flt = avg.flat<float>();
 
-        if(_kungfu_world.GetGlobalStep() < kickin) {
+            // for (int i = 0; i < avg_flt.size(); ++i) {
+            //     avg_flt(i) = 0.0;
+            // }
 
-            // std::cout << "PLAIN NEGOTIATION" << std::endl;
-            // perform plain all-reduce until weight updates stabilize to minimize loss
-            _kungfu_world.AllReduce(allGradients.tensor_data().data(),
+            // for (int i = 0; i < runningSum_flt.size(); ++i) {
+            //     avg_flt(i) = runningSum_flt(i) / tensorWindow.size();
+            // }
+
+
+            _kungfu_world.AllReduce(runningSum.tensor_data().data(),
                                     (void *)(output->tensor_data().data()),
-                                    allGradients.NumElements(),
-                                    to_kungfu_type(allGradients.dtype()), KungFu_SUM,
-                                    name().c_str(), done);
-        } else if (_kungfu_world.GetGlobalStep() % numberPartitions ==
-            partitionIndex) {
-             //std::cout << "AKO NEGOTIATION " << partitionIndex << std::endl;
-            _kungfu_world.AllReduce(partitionTensor.tensor_data().data(),
-                                    (void *)(output->tensor_data().data()),
-                                    partitionTensor.NumElements(),
-                                    to_kungfu_type(partitionTensor.dtype()), KungFu_SUM,
+                                    runningSum.NumElements(),
+                                    to_kungfu_type(runningSum.dtype()), KungFu_SUM,
                                     name().c_str(), done); // give it an empty callback to make it async
-            //done();
         } else {
-            //std::cout << "SKIPPING " << partitionIndex << std::endl;
-            // OP_REQUIRES_OK(context,
-            //                context->allocate_output(0, TensorShape({}), &output));
             done();
         }
     }
