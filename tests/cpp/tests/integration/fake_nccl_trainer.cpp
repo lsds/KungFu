@@ -52,8 +52,7 @@ template <typename Collective> int main1(int argc, char *argv[])
     printf("simple tests are done\n");
 
     const auto grad_sizes = resnet50_grad_sizes();
-    run_experiment<nccl_collective, fake_gpu_buffer_t<float>, false>(grad_sizes,
-                                                                     nccl);
+    run_experiment<nccl_collective, fake_gpu_buffer_t<float>>(grad_sizes, nccl);
     return 0;
 }
 

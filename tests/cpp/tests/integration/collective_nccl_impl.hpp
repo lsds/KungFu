@@ -48,7 +48,6 @@ class nccl_collective
 
     ~nccl_collective()
     {
-        printf("before nccl destroyed: %d/%d.\n", _rank, _cluster_size);
         ncclCommDestroy(comm);
         printf("nccl destroyed: %d/%d.\n", _rank, _cluster_size);
     }
@@ -60,37 +59,16 @@ class nccl_collective
     int cluster_size() const { return _cluster_size; }
 
     template <typename T>
-    void all_reduce_safe(const T *send_buf, T *recv_buf, size_t count,
-                         const char * /* FIXME: ignored */)
+    void all_reduce(const T *send_buf, T *recv_buf, size_t count,
+                    const char * /* FIXME: ignored */)
     {
         cudaStream_t stream;
         CHECK(cuda_checker) << cudaStreamCreate(&stream);
-
-        printf("ncclAllReduce: %p <- %p of data size: %d\n", send_buf, recv_buf,
-               (int)(count * sizeof(T)));
         CHECK(nccl_checker)
             << ncclAllReduce(send_buf, recv_buf, count, nccl_type<T>::value(),
                              ncclSum, comm, stream);
-        // printf("ncclAllReduce done.\n");
-
         CHECK(cuda_checker) << cudaStreamSynchronize(stream);
-        // printf("cudaStreamSynchronize done.\n");
-
         CHECK(cuda_checker) << cudaStreamDestroy(stream);
-        // printf("cudaStreamDestroy done.\n");
-    }
-
-    template <typename T>
-    void all_reduce(const T *send_buf, T *recv_buf, size_t count,
-                    const char *name)
-    {
-        constexpr size_t Mi       = 1 << 20;
-        constexpr size_t size_cap = 1 * Mi;
-        size_t block_size         = size_cap / sizeof(T);
-        for (size_t off = 0; off < count; off += block_size) {
-            all_reduce_safe(send_buf + off, recv_buf + off,
-                            std::min(block_size, count - off), name);
-        }
     }
 
     template <typename T>

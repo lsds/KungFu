@@ -18,11 +18,7 @@ template <typename T> struct cuda_mem_allocator {
 };
 
 struct cuda_mem_deleter {
-    void operator()(void *ptr)
-    {
-        CHECK(cuda_checker) << cudaFree(ptr);
-        printf("cudaFree: %p\n", ptr);
-    }
+    void operator()(void *ptr) { CHECK(cuda_checker) << cudaFree(ptr); }
 };
 
 template <typename R> class cuda_vector
@@ -34,8 +30,6 @@ template <typename R> class cuda_vector
     explicit cuda_vector(size_t count)
         : count(count), data_(cuda_mem_allocator<R>()(count))
     {
-        printf("create cuda vector of size: %d at %p\n",
-               (int)(sizeof(R) * count), data_.get());
     }
 
     R *data() { return data_.get(); }
