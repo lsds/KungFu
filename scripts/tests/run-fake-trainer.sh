@@ -7,6 +7,7 @@ SCRIPT_NAME=$(dirname $0)
 cd ../..
 . ./scripts/utils/measure.sh
 
+export MPI_HOME=$HOME/local/openmpi
 KUNGFU_PRUN=$(pwd)/bin/kungfu-prun
 
 reinstall() {
@@ -33,7 +34,6 @@ run_fake_kungfu_trainer() {
 }
 
 run_fake_mpi_trainer() {
-    export MPI_HOME=$HOME/local/openmpi
     local np=$1
     $MPI_HOME/bin/mpirun -np $np \
         ./bin/fake-mpi-trainer
@@ -41,15 +41,17 @@ run_fake_mpi_trainer() {
 
 run_fake_nccl_trainer() {
     local np=$1
-    local H=127.0.0.1:$np
-    env \
-        KUNGFU_CONFIG_LOG_CONFIG_VARS=true \
-        KUNGFU_TEST_CLUSTER_SIZE=$np \
-        ${KUNGFU_PRUN} \
-        -np=$np \
-        -H $H \
-        -timeout=120s \
+    $MPI_HOME/bin/mpirun -np $np \
         ./bin/fake-nccl-trainer
+    # local H=127.0.0.1:$np
+    # env \
+    #     KUNGFU_CONFIG_LOG_CONFIG_VARS=true \
+    #     KUNGFU_TEST_CLUSTER_SIZE=$np \
+    #     ${KUNGFU_PRUN} \
+    #     -np=$np \
+    #     -H $H \
+    #     -timeout=120s \
+    #     ./bin/fake-nccl-trainer
 }
 
 run_in_proc_trainer() {
@@ -85,8 +87,10 @@ main() {
     elif [ "$collective" = "all" ]; then
         run_fake_trainer_all run_fake_kungfu_trainer
         run_fake_trainer_all run_fake_mpi_trainer
-        # run_fake_trainer_all run_fake_nccl_trainer
         run_fake_trainer_all run_in_proc_trainer
+        if [ -f /usr/include/nccl.h ]; then
+            run_fake_trainer_all run_fake_nccl_trainer
+        fi
     else
         echo "invalid option"
     fi
