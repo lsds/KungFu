@@ -59,8 +59,8 @@ class nccl_collective
     int cluster_size() const { return _cluster_size; }
 
     template <typename T>
-    void all_reduce(const T *send_buf, T *recv_buf, size_t count,
-                    const char * /* FIXME: ignored */)
+    void all_reduce_safe(const T *send_buf, T *recv_buf, size_t count,
+                         const char * /* FIXME: ignored */)
     {
         cudaStream_t stream;
         CHECK(cuda_checker) << cudaStreamCreate(&stream);
@@ -77,6 +77,19 @@ class nccl_collective
 
         CHECK(cuda_checker) << cudaStreamDestroy(stream);
         // printf("cudaStreamDestroy done.\n");
+    }
+
+    template <typename T>
+    void all_reduce(const T *send_buf, T *recv_buf, size_t count,
+                    const char *name)
+    {
+        constexpr size_t Mi = 1 << 20;
+        constexpr size_cap  = 1 * Mi;
+        size_t block_size   = size_cap / sizeof(T);
+        for (size_t off = 0; off < count; off += block_size) {
+            all_reduce_safe(send_buf + off, recv_buf + off,
+                            sdt::min(block_size, count - off), name);
+        }
     }
 
     template <typename T>
