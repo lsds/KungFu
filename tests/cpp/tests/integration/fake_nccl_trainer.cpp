@@ -26,7 +26,7 @@ template <typename T> struct fake_gpu_buffer_t {
     }
 };
 
-constexpr size_t Mi = 1 << 10;
+constexpr size_t Mi = 1 << 20;
 
 void simple_test(int size, nccl_collective &nccl)
 {
