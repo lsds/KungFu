@@ -198,9 +198,9 @@ class fake_trainer_t
                 TRACE_SCOPE("mini batch");
                 minibatch(grads, comm);
             }
-            // if (comm.is_root()) {
-            fprintf(stderr, "%02d after %d steps\n", comm.rank(), step);
-            // }
+            if (comm.is_root()) {
+                fprintf(stderr, "%02d after %d steps\n", comm.rank(), step);
+            }
         }
         log_estimated_speed(n_iters * step_per_iter, batch_size,
                             testing::since(t0), comm.cluster_size());
@@ -211,6 +211,7 @@ template <typename Collective, typename buffer_t = fake_cpu_buffer_t<float>,
           bool fuse_grads = true>
 void run_experiment(const std::vector<int> &grad_sizes, Collective &comm)
 {
+    TRACE_SCOPE(__func__);
     const int batch_size       = 32;
     const double image_per_sec = 185;
     const int n_iters          = 11;

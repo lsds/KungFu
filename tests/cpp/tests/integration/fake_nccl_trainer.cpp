@@ -21,8 +21,6 @@ template <typename T> struct fake_gpu_buffer_t {
     fake_gpu_buffer_t(const std::string &name, int count)
         : name(name), count(count), send_buf(count), recv_buf(count)
     {
-        printf("fake_gpu_buffer_t of count %d, size %d\n", count,
-               (int)(count * sizeof(T)));
     }
 };
 
@@ -30,7 +28,7 @@ constexpr size_t Mi = 1 << 20;
 
 void simple_test(int size, nccl_collective &nccl)
 {
-    printf("simple_test of size: %d Mi\n", (int)(size / Mi));
+    // printf("simple_test of size: %d Mi\n", (int)(size / Mi));
     int n = size / sizeof(float);
     cuda_vector<float> x(n);
     cuda_vector<float> y(n);
