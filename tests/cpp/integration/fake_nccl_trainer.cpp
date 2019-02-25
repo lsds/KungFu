@@ -45,14 +45,14 @@ void simple_test(int size, nccl_collective &nccl)
     cuda_vector<int32_t> y(n);
     nccl.all_reduce(x.data(), y.data(), n, "test-tensor");
     {
-        const int s = np * (np + 1) / 2;
+        const int s = np * (np - 1) / 2;
         std::vector<int32_t> v(n);
         y.to_host(v.data());
         for (int i = 0; i < n; i++) {
-            if (y[i] != s) {
+            if (v[i] != s) {
                 fprintf(stderr,
                         "incorrect all_reduce result, expect %d, got %d", s,
-                        y[i]);
+                        v[i]);
                 exit(1);
             }
         }
@@ -70,7 +70,6 @@ template <typename Collective> int main1(int argc, char *argv[])
     bootstrap.template bcast<uint8_t>((uint8_t *)&id, sizeof(id), "nccl id");
 
     nccl_collective nccl(id, bootstrap.cluster_size(), bootstrap.rank());
-    |
     {
         TRACE_SCOPE("run simple tests");
         for (int i = 1; i < 10; ++i) { simple_test(i * Mi, nccl); }
