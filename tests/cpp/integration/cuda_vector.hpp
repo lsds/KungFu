@@ -32,5 +32,5 @@ template <typename T> class cuda_vector
     {
     }
 
-    R *data() { return data_.get(); }
+    T *data() { return data_.get(); }
 };
