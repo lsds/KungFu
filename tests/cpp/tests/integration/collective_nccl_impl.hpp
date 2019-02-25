@@ -7,6 +7,7 @@
 
 #include "cuda_helper.hpp"
 #include "error_checker.hpp"
+#include "testing.hpp"
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
@@ -32,8 +33,14 @@ class nccl_collective
     nccl_collective(ncclUniqueId id, int cluster_size, int rank)
         : _rank(rank), _cluster_size(cluster_size)
     {
-        CHECK(cuda_checker) << cudaSetDevice(rank);
-        printf("cuda device selected to %d\n", rank);
+        bool using_kungfu = not safe_getenv("KUNGFU_TEST_CLUSTER_SIZE").empty();
+        if (using_kungfu) {
+            CHECK(cuda_checker) << cudaSetDevice(0);
+            printf("cuda device selected to %d\n", 0);
+        } else {
+            CHECK(cuda_checker) << cudaSetDevice(rank);
+            printf("cuda device selected to %d\n", rank);
+        }
         CHECK(nccl_checker) << ncclCommInitRank(&comm, cluster_size, id, rank);
         printf("nccl inited: %d/%d.\n", rank, cluster_size);
     }

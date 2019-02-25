@@ -34,8 +34,8 @@ template <typename R> class cuda_vector
     explicit cuda_vector(size_t count)
         : count(count), data_(cuda_mem_allocator<R>()(count))
     {
-        printf("create cuda vector of size: %d at %p\n", (int)sizeof(R) * count,
-               data_.get());
+        printf("create cuda vector of size: %d at %p\n",
+               (int)(sizeof(R) * count), data_.get());
     }
 
     R *data() { return data_.get(); }
