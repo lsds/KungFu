@@ -9,7 +9,7 @@ extern "C" {
 typedef int KungFu_Datatype;
 
 // extern const KungFu_Datatype KungFu_INT8;
-// extern const KungFu_Datatype KungFu_UINT8;
+extern const KungFu_Datatype KungFu_UINT8;
 // extern const KungFu_Datatype KungFu_INT16;
 // extern const KungFu_Datatype KungFu_UINT16;
 extern const KungFu_Datatype KungFu_INT32;
@@ -54,6 +54,9 @@ extern int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
 
 // broadcast the data from the current root in the first pair of graphs.
 extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
+                           KungFu_Datatype dtype, const char *name);
+
+extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, const char *name,
                            DoneCallback done);
 
@@ -81,10 +84,22 @@ class kungfu_world
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
+                  KungFu_Datatype dtype, KungFu_Op op, const char *name)
+    {
+        return KungfuAllReduce(sendbuf, recvbuf, count, dtype, op, name);
+    }
+
+    int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   DoneCallback done)
     {
         return KungfuAllReduce(sendbuf, recvbuf, count, dtype, op, name, done);
+    }
+
+    int Broadcast(const void *sendbuf, void *recvbuf, int count,
+                  KungFu_Datatype dtype, const char *name)
+    {
+        return KungfuBroadcast(sendbuf, recvbuf, count, dtype, name);
     }
 
     int Broadcast(const void *sendbuf, void *recvbuf, int count,

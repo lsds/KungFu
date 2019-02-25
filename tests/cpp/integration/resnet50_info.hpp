@@ -1,11 +1,6 @@
 #pragma once
 #include <vector>
 
-std::string resnet50_grad_name(int i)
-{
-    return "NegotiatedGrad_" + std::to_string(i) + "/AllReduce";
-}
-
 std::vector<int> resnet50_grad_sizes()
 {
     return {

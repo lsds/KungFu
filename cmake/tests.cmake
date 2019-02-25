@@ -53,7 +53,7 @@ ELSE()
     ENDFUNCTION()
 ENDIF()
 
-SET(KUNGFU_TESTS_DIR ${CMAKE_SOURCE_DIR}/tests/cpp/tests)
+SET(KUNGFU_TESTS_DIR ${CMAKE_SOURCE_DIR}/tests/cpp)
 
 FILE(GLOB tests ${KUNGFU_TESTS_DIR}/unit/test_*.cpp)
 FOREACH(t ${tests})
@@ -74,5 +74,29 @@ FUNCTION(ADD_TEST_BIN target)
     USE_STDTRACER(${target})
 ENDFUNCTION()
 
+ADD_TEST_BIN(fake-in-proc-trainer
+             ${KUNGFU_TESTS_DIR}/integration/fake_in_proc_trainer.cpp)
+
 ADD_TEST_BIN(fake-agent ${KUNGFU_TESTS_DIR}/integration/fake_agent.cpp)
-ADD_TEST_BIN(fake-trainer ${KUNGFU_TESTS_DIR}/integration/fake_trainer.cpp)
+ADD_TEST_BIN(fake-kungfu-trainer
+             ${KUNGFU_TESTS_DIR}/integration/fake_kungfu_trainer.cpp)
+
+IF(MPI_HOME)
+    FIND_PACKAGE(MPI REQUIRED)
+
+    FUNCTION(USE_MPI target)
+        TARGET_INCLUDE_DIRECTORIES(${target} PRIVATE ${MPI_INCLUDE_PATH})
+        TARGET_LINK_LIBRARIES(${target} ${MPI_LIBRARIES})
+    ENDFUNCTION()
+
+    ADD_TEST_BIN(fake-mpi-trainer
+                 ${KUNGFU_TESTS_DIR}/integration/fake_mpi_trainer.cpp)
+    USE_MPI(fake-mpi-trainer)
+ENDIF()
+
+IF(KUNGFU_USE_NCCL)
+    ADD_TEST_BIN(fake-nccl-trainer
+                 ${KUNGFU_TESTS_DIR}/integration/fake_nccl_trainer.cpp)
+    USE_NCCL(fake-nccl-trainer)
+    USE_MPI(fake-nccl-trainer) # FIXME: don't use MPI for bootsrtap
+ENDIF()
