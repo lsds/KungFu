@@ -22,6 +22,13 @@ int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
 }
 
 int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
+                    KungFu_Datatype dtype, const char *name)
+{
+    return GoKungfuBroadcast((void *)sendbuf, recvbuf, GoInt(count),
+                             GoInt(dtype), (char *)name, nullptr);
+}
+
+int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
                     KungFu_Datatype dtype, const char *name, DoneCallback done)
 {
     return GoKungfuBroadcast((void *)sendbuf, recvbuf, GoInt(count),

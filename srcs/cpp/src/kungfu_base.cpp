@@ -62,8 +62,14 @@ void std_transform_2(const void *input_1, const void *input_2, void *output,
     const auto args = std::make_tuple(input_1, input_2, output, n, binary_op);
 
     switch (dtype) {
+    case kungfu::type_encoder::value<uint8_t>():
+        _call_std_transform_2_tpl<uint8_t>(args);
+        return;
     case kungfu::type_encoder::value<int32_t>():
         _call_std_transform_2_tpl<int32_t>(args);
+        return;
+    case kungfu::type_encoder::value<int64_t>():
+        _call_std_transform_2_tpl<int64_t>(args);
         return;
     case kungfu::type_encoder::value<float>():
         _call_std_transform_2_tpl<float>(args);

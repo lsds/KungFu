@@ -45,6 +45,10 @@ ELSE()
 ENDIF()
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 
+IF(KUNGFU_USE_NCCL)
+    INCLUDE(cmake/nccl.cmake)
+ENDIF()
+
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(cmake/tf-op.cmake)
     ADD_TF_OP_LIB(kungfu_tensorflow_ops srcs/cpp/src/kungfu_tensorflow_ops.cpp)

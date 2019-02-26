@@ -13,6 +13,7 @@ type KungFu_Datatype C.KungFu_Datatype
 
 var (
 	KungFu_INT32  = KungFu_Datatype(C.KungFu_INT32)
+	KungFu_INT64  = KungFu_Datatype(C.KungFu_INT64)
 	KungFu_FLOAT  = KungFu_Datatype(C.KungFu_FLOAT)
 	KungFu_DOUBLE = KungFu_Datatype(C.KungFu_DOUBLE)
 )
@@ -74,6 +75,14 @@ var (
 
 	defaultAlgo = KungFu_Tree
 )
+
+func AllAlgoNames() []string {
+	var names []string
+	for _, name := range algoNames {
+		names = append(names, name)
+	}
+	return names
+}
 
 func (a KungFu_AllReduceAlgo) String() string {
 	for k, v := range algoNames {

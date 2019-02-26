@@ -18,8 +18,12 @@ KungFu_Datatype to_kungfu_type(const DataType &dtype)
     switch (dtype) {
     case DT_INT32:
         return KungFu_INT32;
+    case DT_INT64:
+        return KungFu_INT64;
     case DT_FLOAT:
         return KungFu_FLOAT;
+    case DT_DOUBLE:
+        return KungFu_DOUBLE;
     default:
         // TODO: add more types
         throw std::invalid_argument("unsupported dtype");
@@ -172,7 +176,7 @@ class Broadcast : public AsyncOpKernel
     
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
-    {                        
+    {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,

@@ -3,6 +3,8 @@ package kungfu
 import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
@@ -58,10 +60,21 @@ func (kf *Kungfu) Start() int {
 	if kc.RunWarmup {
 		return kf.currentSession.Warmup()
 	}
+	if kc.EnableMonitoring {
+		monitor.StartServer(int(kf.self.MonitoringPort))
+		monitorAddr := plan.NetAddr{
+			Host: kf.self.NetAddr.Host, // FIXME: use pubAddr
+			Port: kf.self.MonitoringPort,
+		}
+		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self.NetAddr, monitorAddr)
+	}
 	return 0
 }
 
 func (kf *Kungfu) Close() int {
+	if kc.EnableMonitoring {
+		monitor.StopServer()
+	}
 	kf.server.Close() // TODO: check error
 	kf.localServer.Close()
 	return 0

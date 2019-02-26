@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"runtime"
+	"strings"
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -18,12 +20,12 @@ import (
 
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
-	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <hostname>:<nslots>[,<public addr>]")
-	selfHost   = flag.String("self", "", "")
+	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	selfHost   = flag.String("self", "", "internal IP")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
-	niName     = flag.String("ni", "", "network interface name, for infer self host")
-	algo       = flag.String("algo", "", "algorithm")
+	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
+	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
 )
 
 func init() {
@@ -38,8 +40,8 @@ func main() {
 		switch {
 		case len(*selfHost) > 0:
 			return *selfHost
-		case len(*niName) > 0:
-			return inferIP(*niName)
+		case len(*nicName) > 0:
+			return inferIP(*nicName)
 		}
 		return "127.0.0.1"
 	}()
@@ -79,13 +81,13 @@ func main() {
 	}
 }
 
-func inferIP(niName string) string {
+func inferIP(nicName string) string {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return "127.0.0.1"
 	}
 	for _, i := range ifaces {
-		if i.Name != niName {
+		if i.Name != nicName {
 			continue
 		}
 		addrs, err := i.Addrs()
