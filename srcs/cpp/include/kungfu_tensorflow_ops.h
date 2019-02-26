@@ -28,7 +28,6 @@ REGISTER_OP("Broadcast")
     });
 
 REGISTER_OP("AkoNegotiator")
-    .Input("input: float32")
     .Input("allgradients: float32")
     .Input("partition: int32")
     .Input("partitioncount: int32")

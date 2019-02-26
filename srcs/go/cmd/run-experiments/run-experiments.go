@@ -137,17 +137,22 @@ func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args [
 		//kb.KungFu_Clique,
 		//kb.KungFu_Tree,
 	}
+
+	/*
+	  Each element of the partition array represents
+	  the number of processes spawned per host.
+	*/
 	for _, a := range algos {
 		// run(a, []int{1})
 		// run(a, []int{2})
 		// run(a, []int{3})
-		 run(a, []int{4})
+		// run(a, []int{4})
 
 		// run(a, []int{1, 3})
 		// run(a, []int{2, 2})
 		// run(a, []int{3, 3})
 		// run(a, []int{4, 4})
-		//run(a, []int{1, 1, 1, 1})
+		run(a, []int{1, 1, 1, 1})
 	}
 
 	wg.Wait()

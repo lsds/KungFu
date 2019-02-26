@@ -196,10 +196,10 @@ def plot_validation_accuracy(data_ako, data_plain):
     plt.title('LeNet (MNIST) Average Peer Validation Accuracy with Ako and Synchronous SGD Synchronization Strategies (33 trainable variables)')
     
 
-    plt.xticks(np.arange(10))
+    plt.xticks(np.arange(34))
     plt.yticks(np.arange(0.9, 1.0, 0.01))
 
-    plt.legend(loc='bottom right')
+    plt.legend(loc='best')
 
     plt.show()
 
@@ -223,6 +223,7 @@ def plot_time_to_accuracy(data_ako, data_plain):
     num_partitions, times = [[ i for i, j in tups ], [ j for i, j in tups ]]
 
     ind = range(0, 34)
+    print(data_plain)
     ts =  [np.mean([51.95504546165466, 51.7059862613678, 51.50437092781067])] + [np.mean(ts) for ts in times]
     std = [np.std([51.95504546165466, 51.7059862613678, 51.50437092781067])] + [np.std(ts) for ts in times]
     print(ts)
@@ -270,7 +271,7 @@ def plot_ako_vs_plain_time_to_accuracy(log_file):
 
 def main():
     plot_ako_vs_plain_validation_accuracy("val_acc.txt")
-    plot_ako_vs_plain_time_to_accuracy("time_to_acc.txt")
+    #plot_ako_vs_plain_time_to_accuracy("time_to_acc.txt")
     
 
 if __name__ == "__main__":

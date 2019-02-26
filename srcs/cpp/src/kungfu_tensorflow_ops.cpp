@@ -5,6 +5,8 @@
 #include <kungfu_tensorflow_ops.h>
 #include <queue>
 
+#include <chrono>
+
 
 static kungfu_world _kungfu_world;
 
@@ -87,13 +89,18 @@ class AkoNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        // FIXME
-        auto flt = output->flat<float>();
-        for (int i = 0; i < flt.size(); ++i) {
-            flt(i) = 0.0;
+        // FIXME: it does not work if the output is not initialized to zero
+
+        tensorWindow.push(gradients);    
+
+        Tensor stale;
+        if(tensorWindow.size() > numberPartitions) {
+            stale = tensorWindow.front();
+            tensorWindow.pop();
         }
-        
+    
         if (_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {           
+           // std::chrono::steady_clock::time_point begin_initrunningsum = std::chrono::steady_clock::now();      
             if(runningSum.NumElements() == 0) {
                 Tensor grad_accumulated(DataTypeToEnum<float>::v(), gradients.shape());
                 auto grad_accumulated_flt = grad_accumulated.flat<float>();
@@ -102,23 +109,31 @@ class AkoNegotiator : public AsyncOpKernel
                 }
                runningSum = grad_accumulated;
             }
+            //std::chrono::steady_clock::time_point end_initrunningsum = std::chrono::steady_clock::now();
 
+
+            // std::cout  << "Running sum init took: " << std::chrono::duration_cast<std::chrono::microseconds>(end_initrunningsum - begin_initrunningsum).count() << std::endl;
+
+            //std::chrono::steady_clock::time_point begin_FLAT= std::chrono::steady_clock::now();      
             auto grads_flt = gradients.flat<float>();
             auto runningSum_flt = runningSum.flat<float>();
-            for (int i = 0; i < runningSum_flt.size(); ++i) {
-                runningSum_flt(i) = grads_flt(i) + runningSum_flt(i);
-            }
+            //std::chrono::steady_clock::time_point end_FLAT = std::chrono::steady_clock::now();
 
-            // TODO: combine with prev loop
-            tensorWindow.push(gradients);    
-            if(tensorWindow.size() > numberPartitions) {
-               Tensor stale = tensorWindow.front();
-               auto stale_flt = stale.flat<float>();
-               for(int i = 0; i < runningSum_flt.size(); ++i) {
-                   runningSum_flt(i) = runningSum_flt(i) - stale_flt(i);
-               }
-               tensorWindow.pop();
+
+            //std::cout  << "Flatten took: " << std::chrono::duration_cast<std::chrono::microseconds>(end_FLAT - begin_FLAT).count() << std::endl;
+
+
+
+            // std::chrono::steady_clock::time_point begin_UPDATE = std::chrono::steady_clock::now();      
+            auto expire = stale.NumElements() > 0;
+            for (int i = 0; i < runningSum_flt.size(); ++i) {
+                auto stale = expire ? stale.flat<float>()(i) : 0.0;
+                runningSum_flt(i) = grads_flt(i) + runningSum_flt(i) - stale;
             }
+            
+            // std::chrono::steady_clock::time_point end_UPDATE = std::chrono::steady_clock::now();
+
+            // std::cout  << "Update running sum took: " << std::chrono::duration_cast<std::chrono::microseconds>(end_UPDATE - begin_UPDATE).count() << std::endl;
 
             // Compute running sum average (CHECK)
             // Tensor avg(DataTypeToEnum<float>::v(), runningSum.shape());
@@ -139,6 +154,10 @@ class AkoNegotiator : public AsyncOpKernel
                                     to_kungfu_type(runningSum.dtype()), KungFu_SUM,
                                     name().c_str(), done); // give it an empty callback to make it async
         } else {
+            auto flt = output->flat<float>();
+            for (int i = 0; i < flt.size(); ++i) {
+                flt(i) = 0.0;
+            }
             done();
         }
     }

@@ -21,6 +21,7 @@ func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bo
 	var wg sync.WaitGroup
 	var fail int32
 	for i, p := range ps {
+		fmt.Printf("The process run is: %v", p)
 		wg.Add(1)
 		go func(i int, p sch.Proc) {
 			defer wg.Done()

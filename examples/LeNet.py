@@ -91,7 +91,6 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
     # Parameters
     learning_rate = 0.01
     training_epochs = 25
-    batch_size = 100
     display_step = 1
 
     x = tf.placeholder(tf.float32, shape=(None,32,32,1))
@@ -119,10 +118,10 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
 
 
 def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy_target):
-    n_epochs   = 30
-    batch_size = 50
     reached_target_accuracy = False
     with tf.Session() as sess:
+        writer = tf.summary.FileWriter("/home/ab7515/tensorboard-logs-andrei", sess.graph)
+
         sess.run(tf.global_variables_initializer())
         
         sess.run(kf.distributed_variables_initializer())
@@ -163,10 +162,10 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
             window_val_acc_median = 0
             if not reached_target_accuracy:
                 window.append(val_acc)
-                if len(window) > 5:
+                if len(window) > 1:
                    window.pop(0)
                 
-                window_val_acc_median = 0 if len(window) < 5 else np.median(window)
+                window_val_acc_median = 0 if len(window) < 1 else np.median(window)
                 if window_val_acc_median * 100 >= val_accuracy_target:
                    reached_target_accuracy = True
                    print("reached validation accuracy target %.3f: %.4f (time %s)" % (val_accuracy_target, val_acc, str(time.time() - time_start - total_val_duration)))
@@ -185,6 +184,7 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
                     y: mnist.test.labels
                 })
         print('test accuracy: %f' % test_acc)
+        writer.close()
 
 
 
@@ -213,12 +213,12 @@ def parse_args():
     return parser.parse_args()
 
 
-def show_info():
+def show_trainable_variables_info():
     g = tf.get_default_graph()
     tot_vars = 0
     tot_dim = 0
     tot_size = 0
-    for v in g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+    for v in g.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
         dim = v.shape.num_elements()
         tot_vars += 1
         tot_dim += dim
@@ -238,7 +238,7 @@ def main():
     x, y_, train_step, acc = build_train_ops(args.use_kungfu, 
                                              args.kungfu_strategy, args.ako_partitions,
                                              args.staleness, args.kickin_time)
-    show_info()
+    show_trainable_variables_info()
     
     mnist = measure(lambda: load_datasets('var/data/mnist', normalize=True, one_hot=True), 'load data')
 

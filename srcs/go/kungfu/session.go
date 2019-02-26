@@ -129,6 +129,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	var recvCount int
 	sendTo := func(peer plan.PeerSpec) {
 		if recvCount == 0 {
+			// fmt.Printf("%s" .... ) // Check size.
 			sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data)
 		} else {
 			sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf.Data)

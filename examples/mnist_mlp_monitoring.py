@@ -120,7 +120,7 @@ def show_info():
     tot_vars = 0
     tot_dim = 0
     tot_size = 0
-    for v in g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+    for v in g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES): # print only trainable
         dim = v.shape.num_elements()
         tot_vars += 1
         tot_dim += dim
