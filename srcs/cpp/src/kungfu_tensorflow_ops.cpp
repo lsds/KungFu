@@ -50,26 +50,32 @@ class AllReduce : public AsyncOpKernel
 
 REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
 
+typedef std::function<void(Tensor&, Tensor&)> AccumulateExternalGradientsCallback;
+
+void accumulateExternalFunc(Tensor& accumulatedLocalGradients, Tensor& gradients) {
+
+}
+
+
 // Ako implementation
-class AkoNegotiator : public AsyncOpKernel
+class AkoNegotiator : public OpKernel
 {
-    using AsyncOpKernel::AsyncOpKernel;
+    using OpKernel::OpKernel;
 
   public:
     // have them public for now
 
-    std::queue<Tensor> tensorWindow;
-    Tensor runningSum;
+    std::queue<Tensor> localGradientsWindow;
+    Tensor accumulatedLocalGradients;
+    Tensor accumulatedExternalGradients;
 
-    explicit AkoNegotiator(OpKernelConstruction* context) : AsyncOpKernel(context) {
-        std::cout << "Initializing ako negotiator " << context->input_type(0) << std::endl;
+     explicit OpKernel(OpKernelConstruction* context) {
+        // accummulateExternalCb =    
+     }
 
-    }
 
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    void Compute(OpKernelContext *context) override
     {
-        // Check arg count: gradient tensors group, number partitions, current
-        // partition index
         DCHECK_EQ(4, context->num_inputs());
 
         
@@ -93,78 +99,49 @@ class AkoNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        // FIXME: it does not work if the output is not initialized to zero
 
-        tensorWindow.push(gradients);    
+        localGradientsWindow.push(gradients);    
 
         Tensor stale;
-        if(tensorWindow.size() > numberPartitions) {
-            stale = tensorWindow.front();
-            tensorWindow.pop();
+        if(localGradientsWindow.size() > numberPartitions) {
+            stale = localGradientsWindow.front();
+            localGradientsWindow.pop();
         }
     
         if (_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {           
-           // std::chrono::steady_clock::time_point begin_initrunningsum = std::chrono::steady_clock::now();      
-            if(runningSum.NumElements() == 0) {
+            if(accumulatedLocalGradients.NumElements() == 0) {
                 Tensor grad_accumulated(DataTypeToEnum<float>::v(), gradients.shape());
                 auto grad_accumulated_flt = grad_accumulated.flat<float>();
                 for (int i = 0; i < grad_accumulated_flt.size(); ++i) {
                     grad_accumulated_flt(i) = 0.0;
                 }
-               runningSum = grad_accumulated;
+               accumulatedLocalGradients = grad_accumulated;
             }
-            //std::chrono::steady_clock::time_point end_initrunningsum = std::chrono::steady_clock::now();
 
-
-            // std::cout  << "Running sum init took: " << std::chrono::duration_cast<std::chrono::microseconds>(end_initrunningsum - begin_initrunningsum).count() << std::endl;
-
-            //std::chrono::steady_clock::time_point begin_FLAT= std::chrono::steady_clock::now();      
             auto grads_flt = gradients.flat<float>();
-            auto runningSum_flt = runningSum.flat<float>();
-            //std::chrono::steady_clock::time_point end_FLAT = std::chrono::steady_clock::now();
-
-
-            //std::cout  << "Flatten took: " << std::chrono::duration_cast<std::chrono::microseconds>(end_FLAT - begin_FLAT).count() << std::endl;
-
-
-
-            // std::chrono::steady_clock::time_point begin_UPDATE = std::chrono::steady_clock::now();      
-            auto expire = stale.NumElements() > 0;
-            for (int i = 0; i < runningSum_flt.size(); ++i) {
-                auto stale = expire ? stale.flat<float>()(i) : 0.0;
-                runningSum_flt(i) = grads_flt(i) + runningSum_flt(i) - stale;
-            }
+            auto accumulatedLocalGradients_flt = accumulatedLocalGradients.flat<float>();
             
-            // std::chrono::steady_clock::time_point end_UPDATE = std::chrono::steady_clock::now();
+            auto expire = stale.NumElements() > 0;
+            for (int i = 0; i < accumulatedLocalGradients_flt.size(); ++i) {
+                auto expiredTensor = expire ? stale.flat<float>()(i) : 0.0;
+                accumulatedLocalGradients_flt(i) = grads_flt(i) + accumulatedLocalGradients_flt(i) - expiredTensor;
+            }
 
-            // std::cout  << "Update running sum took: " << std::chrono::duration_cast<std::chrono::microseconds>(end_UPDATE - begin_UPDATE).count() << std::endl;
-
-            // Compute running sum average (CHECK)
-            // Tensor avg(DataTypeToEnum<float>::v(), runningSum.shape());
-            // auto avg_flt = avg.flat<float>();
-
-            // for (int i = 0; i < avg_flt.size(); ++i) {
-            //     avg_flt(i) = 0.0;
-            // }
-
-            // for (int i = 0; i < runningSum_flt.size(); ++i) {
-            //     avg_flt(i) = runningSum_flt(i) / tensorWindow.size();
-            // }
-
-
-            _kungfu_world.AllReduce(runningSum.tensor_data().data(),
+            _kungfu_world.AllReduce(accumulatedLocalGradients.tensor_data().data(),
                                     (void *)(output->tensor_data().data()),
-                                    runningSum.NumElements(),
-                                    to_kungfu_type(runningSum.dtype()), KungFu_SUM,
-                                    name().c_str(), done); // give it an empty callback to make it async
+                                    accumulatedLocalGradients.NumElements(),
+                                    to_kungfu_type(accumulatedLocalGradients.dtype()), KungFu_SUM,
+                                    name().c_str(), accumulateExternalCb); // give it an empty callback to make it async
         } else {
             auto flt = output->flat<float>();
             for (int i = 0; i < flt.size(); ++i) {
                 flt(i) = 0.0;
             }
-            done();
         }
     }
+
+    private:
+       AccumulateExternalGradientsCallback accummulateExternalCb;
 };
 
 REGISTER_KERNEL_BUILDER(Name("AkoNegotiator").Device(DEVICE_CPU),

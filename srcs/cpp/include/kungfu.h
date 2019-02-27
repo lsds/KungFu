@@ -99,15 +99,12 @@ class kungfu_world
     }
 
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
-<<<<<<< HEAD
-=======
                   KungFu_Datatype dtype, const char *name)
     {
         return KungfuBroadcast(sendbuf, recvbuf, count, dtype, name);
     }
 
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
->>>>>>> master
                   KungFu_Datatype dtype, const char *name, DoneCallback done)
     {
         return KungfuBroadcast(sendbuf, recvbuf, count, dtype, name, done);

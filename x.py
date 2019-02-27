@@ -5,6 +5,8 @@ import sys
 os.environ['RUNNER'] = os.environ['USER']
 os.environ['SRC_DIR'] = os.path.dirname(os.path.realpath(__file__)) # pwd
 os.environ['EXPERIMENT_SCRIPT'] = './examples/LeNet.py'
+os.environ['KUNGFU_CONFIG_ENABLE_MONITORING'] = 'true'
+os.environ['KUNGFU_CONFIG_MONITORING_PERIOD'] = '10ms'
 
 subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "init-remote"])
 subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "prepare"])
