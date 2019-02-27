@@ -1,8 +1,6 @@
-from .ops import broadcast
-
-
 def distributed_variables_initializer():
     import tensorflow as tf
+    from .ops import broadcast
     g = tf.get_default_graph()
     ops = []
     # TODO: auto inject tf.global_variables_initializer

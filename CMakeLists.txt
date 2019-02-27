@@ -50,13 +50,19 @@ IF(KUNGFU_BUILD_TF_OPS)
 
     ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/kungfu_python.cpp)
     TARGET_LINK_LIBRARIES(kungfu_python kungfu)
-    SET_INSTALL_RPATH(kungfu_python)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops #
                   srcs/cpp/src/tensorflow/ops/common.cpp
                   srcs/cpp/src/tensorflow/ops/all_reduce.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
-    SET_INSTALL_RPATH(kungfu_tensorflow_ops)
+
+    IF(UNIX)
+        SET_INSTALL_RPATH(kungfu_python)
+        SET_INSTALL_RPATH(kungfu_tensorflow_ops)
+    ENDIF()
+    IF(APPLE)
+        # FIXME: ?
+    ENDIF()
 ENDIF()
 
 IF(KUNGFU_BUILD_TESTS)
