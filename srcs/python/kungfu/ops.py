@@ -20,13 +20,12 @@ def _load_init_lib(name):
 
 
 def _load_and_init_op_lib():
-    _op_lib = _load_op_lib(_op_lib_name)
-    _init_lib = _load_init_lib('libkungfu_python_init')
+    _op_lib = _load_op_lib('kungfu_tensorflow_ops')
+    _init_lib = _load_init_lib('libkungfu_python')
     _init_lib.kungfu_python_init()
     return _op_lib
 
 
-_op_lib_name = 'kungfu_tensorflow_ops'
 _op_lib = _load_and_init_op_lib()
 
 
