@@ -1,9 +1,14 @@
+#include <memory>
+
 #include <tensorflow/core/framework/op_kernel.h>
 
 #include <kungfu.h>
 #include <kungfu_tensorflow_ops.h>
 
-static kungfu_world _kungfu_world;
+std::unique_ptr<kungfu_world> _kungfu_world;
+
+// TODO: use this to init from python
+void kungfu_tf_init() { _kungfu_world.reset(new kungfu_world); }
 
 namespace tensorflow
 {
@@ -25,6 +30,16 @@ KungFu_Datatype to_kungfu_type(const DataType &dtype)
     }
 }
 
+class InitKungfu : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+  public:
+    void Compute(OpKernelContext *context) override { kungfu_tf_init(); }
+};
+REGISTER_OP("InitKungfu");
+REGISTER_KERNEL_BUILDER(Name("InitKungfu").Device(DEVICE_CPU), InitKungfu);
+
 class AllReduce : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
@@ -36,7 +51,7 @@ class AllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
-        _kungfu_world.AllReduce(
+        _kungfu_world->AllReduce(
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
             name().c_str(), done);
@@ -56,7 +71,7 @@ class Broadcast : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
-        _kungfu_world.Broadcast(
+        _kungfu_world->Broadcast(
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), name().c_str(),
             done);
@@ -79,7 +94,7 @@ class GlobalStepModifier : public OpKernel
 
         int32_t *y =
             static_cast<int32_t *>((void *)output->tensor_data().data());
-        y[0] = _kungfu_world.AdvanceGlobalStep();
+        y[0] = _kungfu_world->AdvanceGlobalStep();
     }
 };
 
@@ -95,7 +110,7 @@ class SetNumGradients : public OpKernel
     {
         const Tensor &input = context->input(0);
         int32_t *x = static_cast<int32_t *>((void *)input.tensor_data().data());
-        _kungfu_world.SetNumGradients(x[0]);
+        _kungfu_world->SetNumGradients(x[0]);
     }
 };
 
