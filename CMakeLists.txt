@@ -48,14 +48,14 @@ ENDFUNCTION()
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(cmake/tf-op.cmake)
 
-    ADD_LIBRARY(kungfu_python_init SHARED srcs/cpp/src/kungfu_python.cpp)
-    TARGET_LINK_LIBRARIES(kungfu_python_init kungfu)
-    SET_INSTALL_RPATH(kungfu_python_init)
+    ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/kungfu_python.cpp)
+    TARGET_LINK_LIBRARIES(kungfu_python kungfu)
+    SET_INSTALL_RPATH(kungfu_python)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops #
                   srcs/cpp/src/tensorflow/ops/common.cpp
                   srcs/cpp/src/tensorflow/ops/all_reduce.cpp)
-    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python_init kungfu)
+    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
     SET_INSTALL_RPATH(kungfu_tensorflow_ops)
 ENDIF()
 
