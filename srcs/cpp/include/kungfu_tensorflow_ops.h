@@ -1,43 +1,28 @@
 // https://www.tensorflow.org/extend/adding_an_op
 #pragma once
-
 #include <tensorflow/core/framework/op.h>
+#include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
+
+#include <kungfu.h>
+#include <kungfu_python.h>
 
 namespace tensorflow
 {
-// The AllReduce operator takes a single tensor (e.g. the computed gradient),
-// and reduce (by taking sum) with the peers, and finally returns a tensor with
-// exactly the same shape.
-REGISTER_OP("AllReduce")
-    .Attr("T: {int32, int64, float32, float64}")
-    .Input("input: T")
-    .Output("output: T")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
-
-REGISTER_OP("Broadcast")
-    .Attr("T: {int32, int64, float32, float64}")
-    .Input("input: T")
-    .Output("output: T")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
-
-REGISTER_OP("GlobalStepModifier")
-    .Input("input: int32")
-    .Output("output: int32")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));  // TODO: don't require input
-        // c->set_output(0, TensorShape());
-        return Status::OK();
-    });
-
-REGISTER_OP("SetNumGradients").Input("input: int32");
-
-REGISTER_OP("GlobalVariance").Input("input: float32");
-
+inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
+{
+    switch (dtype) {
+    case DT_INT32:
+        return KungFu_INT32;
+    case DT_INT64:
+        return KungFu_INT64;
+    case DT_FLOAT:
+        return KungFu_FLOAT;
+    case DT_DOUBLE:
+        return KungFu_DOUBLE;
+    default:
+        // TODO: add more types
+        throw std::invalid_argument("unsupported dtype");
+    }
+}
 }  // namespace tensorflow

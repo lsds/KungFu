@@ -1,5 +1,7 @@
 import os
+import platform
 import sysconfig
+from ctypes import cdll
 
 
 def _load_op_lib(name):
@@ -10,18 +12,22 @@ def _load_op_lib(name):
     return tf.load_op_library(filename)
 
 
+def _load_init_lib(name):
+    module_path = os.path.dirname(__file__)
+    suffix = 'so' if platform.uname()[0] != 'Darwin' else 'dylib'
+    filename = os.path.join(module_path, name + '.' + suffix)
+    return cdll.LoadLibrary(filename)
+
+
 def _load_and_init_op_lib():
     _op_lib = _load_op_lib(_op_lib_name)
-    # TODO: call _op_lib.kungfu_tf_init
+    _init_lib = _load_init_lib('libkungfu_python_init')
+    _init_lib.kungfu_python_init()
     return _op_lib
 
 
 _op_lib_name = 'kungfu_tensorflow_ops'
 _op_lib = _load_and_init_op_lib()
-
-
-def init_kungfu():
-    return _op_lib.init_kungfu()
 
 
 def broadcast(t):
