@@ -37,16 +37,24 @@ func (g *orderGroup) Do(name string, f func()) {
 		os.Exit(1)
 	}
 	go func() {
-		<-g.dones[rank]
-		defer func() { g.dones[rank+1] <- struct{}{} }()
+		g.wait(rank)
+		defer g.start(rank + 1)
 		f()
 	}()
 }
 
+func (g *orderGroup) start(i int) {
+	g.dones[i] <- struct{}{}
+}
+
+func (g *orderGroup) wait(i int) {
+	<-g.dones[i]
+}
+
 func (g *orderGroup) Start() {
-	g.dones[0] <- struct{}{}
+	g.start(0)
 }
 
 func (g *orderGroup) Wait() {
-	<-g.dones[g.size]
+	g.wait(g.size)
 }

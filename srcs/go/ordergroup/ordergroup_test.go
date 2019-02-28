@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 func genExecOrder(n int) []string {
@@ -38,10 +39,11 @@ func Test_1(t *testing.T) {
 		fmt.Printf("%s arrived\n", name)
 		func(name string) {
 			g.Do(name, func() {
+				fmt.Printf("doing %s\n", name)
+				time.Sleep(5 * time.Millisecond)
 				lock.Lock()
 				defer lock.Unlock()
 				execOrder = append(execOrder, name)
-				fmt.Printf("doing %s\n", name)
 			})
 		}(name)
 	}
