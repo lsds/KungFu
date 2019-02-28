@@ -3,12 +3,9 @@ package ordergroup
 import (
 	"log"
 	"os"
-	"sync"
 )
 
 type orderGroup struct {
-	sync.Mutex
-
 	size  int
 	names []string
 	ranks map[string]int
