@@ -33,7 +33,7 @@ func Test_1(t *testing.T) {
 
 	var execOrder []string
 	var lock sync.Mutex
-	g := NewGroup(scheduledOrder)
+	g := New(scheduledOrder)
 	for _, name := range arrives {
 		fmt.Printf("%s arrived\n", name)
 		func(name string) {
