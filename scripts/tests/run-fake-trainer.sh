@@ -58,7 +58,6 @@ run_fake_nccl_trainer() {
 }
 
 run_fake_go_trainer() {
-    local KUNGFU_PRUN=$(pwd)/bin/kungfu-prun
     local np=$1
     local H=127.0.0.1:$np
     env \
@@ -69,6 +68,34 @@ run_fake_go_trainer() {
         -timeout=120s \
         ./bin/fake-go-trainer
 
+}
+
+installed=
+
+install_pip() {
+    if [ -z $installed ]; then
+        pip3 install --user -U .
+        installed=1
+    fi
+}
+
+run_fake_tf_trainer() {
+    install_pip
+    local np=$1
+    local H=127.0.0.1:$np
+
+    if [ $(uname -s) = "Darwin" ]; then
+        export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
+    fi
+
+    env \
+        KUNGFU_TEST_CLUSTER_SIZE=$np \
+        ${KUNGFU_PRUN} \
+        -np=$np \
+        -H $H \
+        -timeout=120s \
+        python3 \
+        ./tests/python/fake_tf_trainer.py
 }
 
 run_in_proc_trainer() {
@@ -101,11 +128,15 @@ main() {
         run_fake_trainer_all run_fake_nccl_trainer
     elif [ "$collective" = "go" ]; then
         run_fake_trainer_all run_fake_go_trainer
+    elif [ "$collective" = "tf" ]; then
+        run_fake_trainer_all run_fake_tf_trainer
     elif [ "$collective" = "inproc" ]; then
         run_fake_trainer_all run_in_proc_trainer
     elif [ "$collective" = "all" ]; then
         run_fake_trainer_all run_fake_kungfu_trainer
         run_fake_trainer_all run_fake_mpi_trainer
+        run_fake_trainer_all run_fake_go_trainer
+        run_fake_trainer_all run_fake_tf_trainer
         run_fake_trainer_all run_in_proc_trainer
         if [ -f /usr/include/nccl.h ]; then
             run_fake_trainer_all run_fake_nccl_trainer
