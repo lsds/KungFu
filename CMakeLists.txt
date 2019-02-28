@@ -25,16 +25,9 @@ ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 ADD_DEPENDENCIES(libkungfu-comm kungfu-base)
 
 ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
-
-TARGET_INCLUDE_DIRECTORIES(kungfu PRIVATE ${LIBRARY_OUTPUT_PATH})
 TARGET_LINK_LIBRARIES(kungfu kungfu-comm kungfu-base)
-IF(APPLE)
-    TARGET_LINK_LIBRARIES(kungfu "-framework CoreFoundation")
-    TARGET_LINK_LIBRARIES(kungfu "-framework Security")
-ELSE()
-    TARGET_LINK_LIBRARIES(kungfu rt)
-ENDIF()
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
+ADD_CGO_DEPS(kungfu)
 
 IF(KUNGFU_USE_NCCL)
     INCLUDE(cmake/nccl.cmake)
