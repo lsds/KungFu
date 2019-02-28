@@ -15,8 +15,7 @@ type orderGroup struct {
 	dones []chan struct{}
 }
 
-
-func (names []string) *orderGroup {
+func New(names []string) *orderGroup {
 	var dones []chan struct{}
 	ranks := make(map[string]int)
 	for i, name := range names {
