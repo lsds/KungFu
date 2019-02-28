@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type OrderGroup struct {
+type orderGroup struct {
 	sync.Mutex
 
 	size  int
@@ -15,7 +15,7 @@ type OrderGroup struct {
 	dones []chan struct{}
 }
 
-func NewGroup(names []string) *OrderGroup {
+func NewGroup(names []string) *orderGroup {
 	var dones []chan struct{}
 	ranks := make(map[string]int)
 	for i, name := range names {
@@ -23,7 +23,7 @@ func NewGroup(names []string) *OrderGroup {
 		dones = append(dones, make(chan struct{}, 1))
 	}
 	dones = append(dones, make(chan struct{}, 1))
-	g := &OrderGroup{
+	g := &orderGroup{
 		size:  len(names),
 		names: names,
 		ranks: ranks,
@@ -33,7 +33,7 @@ func NewGroup(names []string) *OrderGroup {
 	return g
 }
 
-func (g *OrderGroup) Do(name string, f func()) {
+func (g *orderGroup) Do(name string, f func()) {
 	rank, ok := g.ranks[name]
 	if !ok {
 		log.Printf("%s is not schedued", name)
@@ -46,10 +46,10 @@ func (g *OrderGroup) Do(name string, f func()) {
 	}()
 }
 
-func (g *OrderGroup) Start() {
+func (g *orderGroup) Start() {
 	g.dones[0] <- struct{}{}
 }
 
-func (g *OrderGroup) Wait() {
+func (g *orderGroup) Wait() {
 	<-g.dones[g.size]
 }
