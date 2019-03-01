@@ -1,5 +1,7 @@
 OPTION(KUNGFU_BUILD_GTEST "Build gtest from source." OFF)
 
+FIND_PACKAGE(Threads REQUIRED)
+
 FUNCTION(LINK_KUNGFU_LIBS target)
     TARGET_LINK_LIBRARIES(${target} kungfu-base kungfu-comm kungfu)
 ENDFUNCTION()
