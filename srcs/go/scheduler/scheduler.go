@@ -40,6 +40,8 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 			kb.AllReduceAlgoEnvKey: algo.String(),
 			`CUDA_VISIBLE_DEVICES`: strconv.Itoa(self.DeviceID),
 			`PYTHONUNBUFFERED`:     `1`,
+			// TODO: add LD_PRELOAD to tcmalloc path
+			// `LD_PRELOAD`:``,
 		}
 		ps = append(ps, Proc{
 			Name:    name,

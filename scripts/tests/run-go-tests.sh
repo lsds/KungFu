@@ -15,7 +15,10 @@ reset_go_mod() {
 }
 
 rebuild() {
-    ./configure && make
+    ./scripts/go-install.sh --no-tests
+    env \
+        GOBIN=$(pwd)/bin \
+        go install -v ./tests/go/...
 }
 
 run_unit_tests() {
@@ -27,9 +30,6 @@ run_unit_tests() {
 }
 
 run_integration_tests() {
-    export GOBIN=$(pwd)/bin
-    go install -v ./tests/go/...
-
     local period=10ms
     env \
         KUNGFU_CONFIG_ENABLE_MONITORING=true \
