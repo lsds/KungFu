@@ -46,7 +46,7 @@ IF(KUNGFU_BUILD_TF_OPS)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops #
                   srcs/cpp/src/tensorflow/ops/common.cpp
-                  srcs/cpp/src/tensorflow/ops/all_reduce.cpp)
+                  srcs/cpp/src/tensorflow/ops/collective.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
 
     IF(UNIX)
