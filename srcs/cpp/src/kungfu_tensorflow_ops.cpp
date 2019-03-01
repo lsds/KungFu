@@ -63,13 +63,13 @@ class AkoNegotiator : public AsyncOpKernel
     std::queue<Tensor> tensorWindow;
     Tensor outGrad; // the accumulated gradient to be negotiated
     Tensor inGrad;  // the accumulated gradient received through negotiation
-    std::mutex inGradMutex;
-    std::atomic<bool> hasInGrad;
+    std::mutex inGradMutex; // protects
+    bool hasInGrad;
 
 
     explicit AkoNegotiator(OpKernelConstruction* context) : AsyncOpKernel(context) {
         std::cout << "Initializing ako negotiator" << std::endl;
-        hasInGrad = true;
+        hasInGrad = false;
         std::cout << "After init ako negotiator" << std::endl;
         
     }
@@ -127,25 +127,26 @@ class AkoNegotiator : public AsyncOpKernel
         auto inGrad_flt  = inGrad.flat<float>();
         auto stale_flt   = stale.flat<float>();
 
-        std::cout << "XXXXX" << std::endl;
 
-        bool t = true;
-        bool f = false;
-        // TODO the bug is here. check if a tensor is empty
-        // compare exc does not work, 0 shape 
-        if (hasInGrad.compare_exchange_strong(t, f)) {
+        std::cout << "XXXX" << std::endl;
+        {   
             std::lock_guard<std::mutex> lock(inGradMutex);
-            
-            std::cout << inGrad.DebugString() << std::endl;
+            if (hasInGrad) {
+                std::cout << "Ever going here" << std::endl;
+                std::cout << inGrad.DebugString() << std::endl;
 
-            for (int i = 0; i < grads_flt.size(); ++i) {
-                 grads_flt(i) = grads_flt(i) + inGrad_flt(i);
+                for (int i = 0; i < grads_flt.size(); ++i) {
+                    grads_flt(i) = grads_flt(i) + inGrad_flt(i);
+                }
+                Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
+                inGrad = tensorReset;
+            } else {
+                Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
+                inGrad = tensorReset;
+                hasInGrad = true;
             }
-            Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
-            inGrad = tensorReset;
         }
-
-        std::cout << "YYYYY" << std::endl;
+        std::cout << "YYYY" << std::endl;
 
 
         auto expire = stale.NumElements() > 0;
@@ -162,15 +163,25 @@ class AkoNegotiator : public AsyncOpKernel
                 std::cout << "I am calling the callback" << std::endl;
                 
                 // subract gradients from inGrad to not apply them twice
+                std::cout << "Betweeen A" << std::endl;
+                
+                std::cout << inGrad.DebugString() << std::endl;
+                
+                std::cout << gradients.DebugString() << std::endl;
+                
                 for (int i = 0; i < inGrad_flt.size(); ++i) {
                      inGrad_flt(i) = inGrad_flt(i) - grads_flt(i);
                 }
+                std::cout << "Before done" << std::endl;
                 done();
+                std::cout << "And B" << std::endl;
             };
             CallbackWrapper accumulatedGradientCallback(func);
              
 
              std::cout << "The pointer is " << (&inGrad) << std::endl;
+             std::cout << "The inGrad is " << inGrad.DebugString() << std::endl;
+            
             _kungfu_world.AllReduce(outGrad.tensor_data().data(),
                                     (void *)((&inGrad)->tensor_data().data()),
                                     outGrad.NumElements(),
@@ -178,6 +189,7 @@ class AkoNegotiator : public AsyncOpKernel
                                     name().c_str(), accumulatedGradientCallback);
             // The name will not be unique in the async case because it would not be 
             // able to differentiated the traffic of the allreduce with diff global steps
+
             std::cout << "Before 1" << std::endl;
             *output = gradients;
             std::cout << "After 1" << std::endl;
