@@ -46,7 +46,7 @@ parse_args() {
             ;;
         *)
             echo "unknown argument $1"
-            exit
+            exit 1
             ;;
         esac
     done
@@ -72,6 +72,7 @@ add_cmake_flags() {
         add_cmake_flag PYTHON $(which python3)
     fi
 
+    add_cmake_flag CMAKE_PREFIX_PATH $HOME/local
     add_cmake_flag CMAKE_BUILD_TYPE Release
     add_cmake_flag LIBRARY_OUTPUT_PATH $(pwd)/lib
     add_cmake_flag CMAKE_RUNTIME_OUTPUT_DIRECTORY $(pwd)/bin
