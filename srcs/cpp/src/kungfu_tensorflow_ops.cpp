@@ -102,7 +102,6 @@ class AkoNegotiator : public AsyncOpKernel
                        context->allocate_output(0, gradients.shape(), &output));
 
         // Update gradient window
-
         tensorWindow.push(gradients);    
         Tensor stale;
         if(tensorWindow.size() > numberPartitions) {
@@ -120,21 +119,15 @@ class AkoNegotiator : public AsyncOpKernel
             outGrad = grad_accumulated;
         }
 
+        std::cout << "Is it ever exec" << std::endl;
 
-
+        // Create snapshots right before you use the tensors
         auto grads_flt   = gradients.flat<float>();
-        auto outGrad_flt = outGrad.flat<float>();
         auto inGrad_flt  = inGrad.flat<float>();
-        auto stale_flt   = stale.flat<float>();
 
-
-        std::cout << "XXXX" << std::endl;
         {   
             std::lock_guard<std::mutex> lock(inGradMutex);
             if (hasInGrad) {
-                std::cout << "Ever going here" << std::endl;
-                std::cout << inGrad.DebugString() << std::endl;
-
                 for (int i = 0; i < grads_flt.size(); ++i) {
                     grads_flt(i) = grads_flt(i) + inGrad_flt(i);
                 }
@@ -146,9 +139,10 @@ class AkoNegotiator : public AsyncOpKernel
                 hasInGrad = true;
             }
         }
-        std::cout << "YYYY" << std::endl;
 
 
+        auto outGrad_flt = outGrad.flat<float>();
+        auto stale_flt   = stale.flat<float>();
         auto expire = stale.NumElements() > 0;
         // TODO: cast operations to pointers to avoid bound checks
         for (int i = 0; i < outGrad_flt.size(); ++i) {
@@ -157,46 +151,34 @@ class AkoNegotiator : public AsyncOpKernel
         }
 
         if (_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {           
-            std::function<void()> func = [&]() {
-                std::lock_guard<std::mutex> lock(inGradMutex);
-                hasInGrad = true;
-                std::cout << "I am calling the callback" << std::endl;
-                
-                // subract gradients from inGrad to not apply them twice
-                std::cout << "Betweeen A" << std::endl;
-                
-                std::cout << inGrad.DebugString() << std::endl;
-                
-                std::cout << gradients.DebugString() << std::endl;
-                
-                for (int i = 0; i < inGrad_flt.size(); ++i) {
-                     inGrad_flt(i) = inGrad_flt(i) - grads_flt(i);
-                }
-                std::cout << "Before done" << std::endl;
-                done();
-                std::cout << "And B" << std::endl;
-            };
-            CallbackWrapper accumulatedGradientCallback(func);
-             
+            std::function<void()> func = [&, done]() {
+                {
+                    std::lock_guard<std::mutex> lock(inGradMutex);
+                    hasInGrad = true;
+                    
+                    auto grads_flt_cb   = gradients.flat<float>();
+                    auto inGrad_flt_cb  = inGrad.flat<float>();
+                    // subract gradients from inGrad to not apply them twice
+                    DCHECK_EQ(inGrad_flt_cb.size(), grads_flt_cb.size());
 
-             std::cout << "The pointer is " << (&inGrad) << std::endl;
-             std::cout << "The inGrad is " << inGrad.DebugString() << std::endl;
+                    for (int i = 0; i < inGrad_flt_cb.size(); ++i) {
+                        inGrad_flt_cb(i) = inGrad_flt_cb(i) - grads_flt_cb(i);
+                    }
+                }
+                done();
+            };
             
             _kungfu_world.AllReduce(outGrad.tensor_data().data(),
                                     (void *)((&inGrad)->tensor_data().data()),
                                     outGrad.NumElements(),
                                     to_kungfu_type(outGrad.dtype()), KungFu_SUM,
-                                    name().c_str(), accumulatedGradientCallback);
+                                    name().c_str(), func);
             // The name will not be unique in the async case because it would not be 
             // able to differentiated the traffic of the allreduce with diff global steps
 
-            std::cout << "Before 1" << std::endl;
             *output = gradients;
-            std::cout << "After 1" << std::endl;
         } else {
-            std::cout << "Before 2" << std::endl;
             *output = gradients;
-            std::cout << "After 2" << std::endl;
             done();
         }
     }
