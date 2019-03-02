@@ -98,8 +98,7 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
     if use_kungfu:
         optimizer = kf.SyncSGDOptimizer(optimizer, strategy=kungfu_strategy,
                                       ako_partitions=ako_partitions,
-                                      staleness=staleness,
-                                      kickin_time=kickin_time)
+                                      staleness=staleness)
 
     train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(y,1))

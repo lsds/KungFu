@@ -109,7 +109,6 @@ class SyncSGDOptimizer(KungFuOptimizer):
             strategy='plain',  # or ako
             ako_partitions=1,
             staleness=1,
-            kickin_time=200,
             device_dense='',
             device_sparse='',
             use_global_step=True):
@@ -122,14 +121,12 @@ class SyncSGDOptimizer(KungFuOptimizer):
             self.accum_map = dict()
             self.staleness = staleness
             self.akoPartitions = ako_partitions
-            self.kickinTime    =  kickin_time
             self.partitionIndices = None
 
         print('KungFu strategy: ' + strategy)
         if self.strategy == 'ako':
             print('KungFu staleness: ' + str(self.staleness))
             print('KungFu p partitions: ' + str(self.akoPartitions))
-            print('KungFu kick in time: ' + str(self.kickinTime))        
 
         self._use_global_step = use_global_step
         if self._use_global_step:
@@ -215,8 +212,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
                             negotiated_grad_var = (self._op_lib.ako_negotiator(
                                                                 grad,
                                                                 tf.constant([partition_id], dtype=tf.int32),
-                                                                tf.constant([self.akoPartitions], dtype=tf.int32),
-                                                                tf.constant([self.kickinTime], dtype=tf.int32)),
+                                                                tf.constant([self.akoPartitions], dtype=tf.int32)),
                                                     var
                                                   )
                             negotiated_grad_and_vars.append(negotiated_grad_var)
@@ -232,9 +228,6 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
     def _set_num_gradients(self, n):
         return self._op_lib.set_num_gradients(tf.constant(n, tf.int32))
-
-
-from kungfu.optimizers.core import lazy_load_op_lib
 
 def distributed_variables_initializer():
     import tensorflow as tf

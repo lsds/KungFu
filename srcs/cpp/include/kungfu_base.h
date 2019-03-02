@@ -24,11 +24,7 @@ struct CallbackWrapper {
   public:
     explicit CallbackWrapper(const func_t &f) : f_(f) {}
 
-    void operator()() { 
-      std::cout << "Before calling the callback [WRAPPER]" << std::endl;
-      f_();   
-      std::cout << "After calling the callback [WRAPPER]" << std::endl;
-    }
+    void operator()() { f_(); }
 
   private:
     func_t f_;
