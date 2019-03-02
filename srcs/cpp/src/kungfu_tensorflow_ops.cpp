@@ -9,6 +9,11 @@
 
 #include <chrono>
 
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <csignal>
 
 static kungfu_world _kungfu_world;
 
@@ -52,6 +57,16 @@ class AllReduce : public AsyncOpKernel
 
 REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
 
+void signalHandler( int signum ) {
+   std::cout << "Interrupt signal (" << signum << ") received.\n";
+
+   // cleanup and close up stuff here  
+   // terminate program  
+
+   std::exit(signum);  
+}
+
+
 // Ako implementation
 class AkoNegotiator : public AsyncOpKernel
 {
@@ -63,16 +78,17 @@ class AkoNegotiator : public AsyncOpKernel
     std::queue<Tensor> tensorWindow;
     Tensor outGrad; // the accumulated gradient to be negotiated
     Tensor inGrad;  // the accumulated gradient received through negotiation
-    std::mutex inGradMutex; // protects
+    std::mutex allMutex; // protects
     bool hasInGrad;
 
 
     explicit AkoNegotiator(OpKernelConstruction* context) : AsyncOpKernel(context) {
-        std::cout << "Initializing ako negotiator" << std::endl;
         hasInGrad = false;
-        std::cout << "After init ako negotiator" << std::endl;
-        
     }
+
+    // creates a TF pool to  perform the operation
+    // bool IsExpensive() override { return true; }
+
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
@@ -81,7 +97,7 @@ class AkoNegotiator : public AsyncOpKernel
         DCHECK_EQ(4, context->num_inputs());
 
         
-        Tensor &gradients             = (Tensor&) context->input(0);    
+        Tensor &gradients                   = (Tensor&) context->input(0);    
 
         const Tensor &currentPartitionIndex = context->input(1);
         const Tensor &pAkoPartitions        = context->input(2);
@@ -101,75 +117,104 @@ class AkoNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
+        // std::cout << "GRADIENTS: " << gradients.DebugString() << std::endl;
+
+
+        std::lock_guard<std::mutex> lock(allMutex);
+
         // Update gradient window
-        tensorWindow.push(gradients);    
         Tensor stale;
+        tensorWindow.push(gradients);    
         if(tensorWindow.size() > numberPartitions) {
             stale = tensorWindow.front();
             tensorWindow.pop(); 
         }
+       // std::cout << "Queue size " << tensorWindow.size() << std::endl;
+
 
         if(outGrad.NumElements() == 0) {
             Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
+            for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
+                tensorReset.flat<float>()(i) = 0.0;
+            }
             Tensor grad_accumulated = tensorReset;
+            //std::cout << "Out GRAD INIT Before" << outGrad.DebugString() << std::endl;
             auto grad_accumulated_flt = grad_accumulated.flat<float>();
             for (int i = 0; i < grad_accumulated_flt.size(); ++i) {
                 grad_accumulated_flt(i) = 0.0;
             }
             outGrad = grad_accumulated;
+           // std::cout << "Out GRAD INIT After" << outGrad.DebugString() << std::endl;
         }
-
-        std::cout << "Is it ever exec" << std::endl;
 
         // Create snapshots right before you use the tensors
-        auto grads_flt   = gradients.flat<float>();
-        auto inGrad_flt  = inGrad.flat<float>();
 
-        {   
-            std::lock_guard<std::mutex> lock(inGradMutex);
-            if (hasInGrad) {
-                for (int i = 0; i < grads_flt.size(); ++i) {
-                    grads_flt(i) = grads_flt(i) + inGrad_flt(i);
-                }
-                Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
-                inGrad = tensorReset;
-            } else {
-                Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
-                inGrad = tensorReset;
-                hasInGrad = true;
+        if (hasInGrad) {
+            auto grads_flt   = gradients.flat<float>();
+            auto inGrad_flt  = inGrad.flat<float>();
+
+
+            // std::cout << "IS IT BIG: InGrad" << inGrad.DebugString() << std::endl;
+            // std::cout << "IS IT BIG: Gradients" << gradients.DebugString() << std::endl;
+
+
+            DCHECK_EQ(grads_flt.size(), inGrad_flt.size());
+            grads_flt = grads_flt + inGrad_flt;
+            // for (int i = 0; i < grads_flt.size(); ++i) {
+            //     grads_flt(i) = grads_flt(i) + inGrad_flt(i);
+            // }
+            Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
+            for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
+                tensorReset.flat<float>()(i) = 0.0;
             }
+            inGrad = tensorReset;
+        } else {
+            Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
+            inGrad = tensorReset;
+            for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
+                tensorReset.flat<float>()(i) = 0.0;
+            }
+            hasInGrad = true;
         }
 
 
+        
+        auto grads_flt   = gradients.flat<float>();
         auto outGrad_flt = outGrad.flat<float>();
         auto stale_flt   = stale.flat<float>();
         auto expire = stale.NumElements() > 0;
-        // TODO: cast operations to pointers to avoid bound checks
-        for (int i = 0; i < outGrad_flt.size(); ++i) {
-            auto stale = expire ? stale_flt(i) : 0.0;
-            outGrad_flt(i) = grads_flt(i) + outGrad_flt(i) - stale;
+
+        DCHECK_EQ(outGrad_flt.size(), grads_flt.size());
+        if(expire) {
+            DCHECK_EQ(outGrad_flt.size(), stale_flt.size());
+            outGrad_flt = grads_flt + outGrad_flt - stale_flt;
+        } else {
+            outGrad_flt = grads_flt + outGrad_flt;
         }
+        
 
         if (_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {           
             std::function<void()> func = [&, done]() {
-                {
-                    std::lock_guard<std::mutex> lock(inGradMutex);
-                    hasInGrad = true;
-                    
-                    auto grads_flt_cb   = gradients.flat<float>();
-                    auto inGrad_flt_cb  = inGrad.flat<float>();
-                    // subract gradients from inGrad to not apply them twice
-                    DCHECK_EQ(inGrad_flt_cb.size(), grads_flt_cb.size());
+                std::lock_guard<std::mutex> l(allMutex);
+                hasInGrad = true;
+                
+                auto grads_flt_cb   = gradients.flat<float>();
+                auto inGrad_flt_cb  = inGrad.flat<float>();
+                // subract gradients from inGrad to not apply them twice
+                DCHECK_EQ(inGrad_flt_cb.size(), grads_flt_cb.size());
+                //inGrad_flt_cb = inGrad_flt_cb - grads_flt_cb;
 
-                    for (int i = 0; i < inGrad_flt_cb.size(); ++i) {
-                        inGrad_flt_cb(i) = inGrad_flt_cb(i) - grads_flt_cb(i);
-                    }
-                }
+                //std::cout << "InGrad In Callback After Reduction" << inGrad.DebugString() << std::endl;
+                //std::cout << "Gradients In Callback After Reduction" << gradients.DebugString() << std::endl;
                 done();
             };
+
+          //  std::cout << "C++ send buf" << outGrad.DebugString() << std::endl;
+          //  std::cout << "C++ recv buf" << inGrad.DebugString() << std::endl;
             
+         //   std::cout << "Global step: " << _kungfu_world.GetGlobalStep() << std::endl;
             _kungfu_world.AllReduce(outGrad.tensor_data().data(),
-                                    (void *)((&inGrad)->tensor_data().data()),
+                                    (void *)(inGrad.tensor_data().data()),
                                     outGrad.NumElements(),
                                     to_kungfu_type(outGrad.dtype()), KungFu_SUM,
                                     name().c_str(), func);
@@ -178,14 +223,140 @@ class AkoNegotiator : public AsyncOpKernel
 
             *output = gradients;
         } else {
+           // std::cout << "Dying before 1" << std::endl;
             *output = gradients;
             done();
+          //  std::cout << "Dying after 1" << std::endl;
         }
     }
 };
 
+// class AkoNegotiator : public AsyncOpKernel
+// {
+//     using AsyncOpKernel::AsyncOpKernel;
+
+//   public:
+//     // have them public for now
+
+//     std::queue<Tensor> tensorWindow;
+//     Tensor outGrad; // the accumulated gradient to be negotiated
+//     Tensor inGrad;  // the accumulated gradient received through negotiation
+
+//     explicit AkoNegotiator(OpKernelConstruction* context) : AsyncOpKernel(context) {
+//     }
+
+//     // creates a TF pool to  perform the operation
+//     // bool IsExpensive() override { return true; }
+
+
+//     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+//     {
+//         // Check arg count: gradient tensors group, number partitions, current
+//         // partition index
+//         DCHECK_EQ(4, context->num_inputs());
+
+        
+//         Tensor &gradients                   = (Tensor&) context->input(0);    
+
+//         const Tensor &currentPartitionIndex = context->input(1);
+//         const Tensor &pAkoPartitions        = context->input(2);
+
+//         const Tensor &kickinTime            = context->input(3);
+        
+//         Tensor *output                      = nullptr;
+
+//         auto currentPartitionIndexTensor = currentPartitionIndex.vec<int>();
+//         auto numberPartitionsTensor      = pAkoPartitions.vec<int>();
+//         auto kickinTimeTensor            = kickinTime.vec<int>();
+
+//         uint32_t numberPartitions = numberPartitionsTensor(0);
+//         uint32_t partitionIndex   = currentPartitionIndexTensor(0);
+//         uint32_t kickin           = kickinTimeTensor(0);
+
+//         OP_REQUIRES_OK(context,
+//                        context->allocate_output(0, gradients.shape(), &output));
+
+
+//         // Update gradient window
+//         Tensor stale;
+//         tensorWindow.push(gradients);    
+//         if(tensorWindow.size() > numberPartitions) {
+//             stale = tensorWindow.front();
+//             tensorWindow.pop(); 
+//         }
+    
+//         if(outGrad.NumElements() == 0) {
+//             Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
+//             for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
+//                 tensorReset.flat<float>()(i) = 0.0;
+//             }
+//             Tensor grad_accumulated = tensorReset;
+//             auto grad_accumulated_flt = grad_accumulated.flat<float>();
+//             for (int i = 0; i < grad_accumulated_flt.size(); ++i) {
+//                 grad_accumulated_flt(i) = 0.0;
+//             }
+//             outGrad = grad_accumulated;
+//         }
+
+
+//         auto grads_flt   = gradients.flat<float>();
+//         auto inGrad_flt  = inGrad.flat<float>();
+
+//         DCHECK_EQ(grads_flt.size(), inGrad_flt.size());
+//         grads_flt = grads_flt + inGrad_flt;
+
+//         Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
+//         for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
+//             tensorReset.flat<float>()(i) = 0.0;
+//         }
+//         inGrad = tensorReset;
+
+    
+//             auto grads_flt   = gradients.flat<float>();
+//             auto outGrad_flt = outGrad.flat<float>();
+//             auto stale_flt   = stale.flat<float>();
+//             auto expire = stale.NumElements() > 0;
+
+//             DCHECK_EQ(outGrad_flt.size(), grads_flt.size());
+//             if(expire) {
+//                 outGrad_flt = grads_flt + outGrad_flt - stale_flt;
+//             } else {
+//                 outGrad_flt = grads_flt + outGrad_flt;
+//             }
+//         }
+
+//         if (_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {           
+//             std::function<void()> func = [&, done]() {
+//                 std::lock_guard<std::mutex> lock(inGradMutex);
+//                 hasInGrad = true;
+                
+//                 auto grads_flt_cb   = gradients.flat<float>();
+//                 auto inGrad_flt_cb  = inGrad.flat<float>();
+//                 // subract gradients from inGrad to not apply them twice
+//                 DCHECK_EQ(inGrad_flt_cb.size(), grads_flt_cb.size());
+//                 inGrad_flt_cb = inGrad_flt_cb - grads_flt_cb;
+//                 done();
+//             };
+
+        
+//             _kungfu_world.AllReduce(outGrad.tensor_data().data(),
+//                                     (void *)(inGrad.tensor_data().data()),
+//                                     outGrad.NumElements(),
+//                                     to_kungfu_type(outGrad.dtype()), KungFu_SUM,
+//                                     name().c_str(), func);
+
+//             *output = gradients;
+//         } else {
+//             *output = gradients;
+//             done();
+//         }
+//     }
+// };
+
 REGISTER_KERNEL_BUILDER(Name("AkoNegotiator").Device(DEVICE_CPU),
                         AkoNegotiator);
+
+
 
 class Broadcast : public AsyncOpKernel
 {
