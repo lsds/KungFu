@@ -66,11 +66,22 @@ void signalHandler( int signum ) {
    std::exit(signum);  
 }
 
+// namespace  functor {
+//     struct ApplyAccumulate<CPUDevice, float> {
+//     void operator()(const CPUDevice& d, typename TTypes<float>::Flat outGrad_flt,
+//                     typename TTypes<float>::Flat gradients_flt,
+//                     typename TTypes<float>::Flat stale_flt) {
+//         outGrad_flt.device(d) = grads_flt + outGrad_flt - stale_flt;
+//     }
+//     };
+// }
+
 
 // Ako implementation
 class AkoNegotiator : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
+    using CPUDevice = Eigen::ThreadPoolDevice;
 
   public:
     // have them public for now
@@ -137,7 +148,7 @@ class AkoNegotiator : public AsyncOpKernel
             Tensor grad_accumulated = tensorReset;
             auto grad_accumulated_flt = grad_accumulated.flat<float>();
             for (int i = 0; i < grad_accumulated_flt.size(); ++i) {
-                grad_accumulated_flt(i) = 0.0;
+                grad_accumulated_flt.data()[i] = 0.0;
             }
             outGrad = grad_accumulated;
         }
@@ -151,14 +162,14 @@ class AkoNegotiator : public AsyncOpKernel
             grads_flt = grads_flt + inGrad_flt;
             Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
             for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
-                tensorReset.flat<float>()(i) = 0.0;
+                tensorReset.flat<float>().data()[i] = 0.0;
             }
             inGrad = tensorReset;
         } else {
             Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
             inGrad = tensorReset;
             for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
-                tensorReset.flat<float>()(i) = 0.0;
+                tensorReset.flat<float>().data()[i] = 0.0;
             }
             hasInGrad = true;
         }
@@ -173,9 +184,47 @@ class AkoNegotiator : public AsyncOpKernel
         DCHECK_EQ(outGrad_flt.size(), grads_flt.size());
         if(expire) {
             DCHECK_EQ(outGrad_flt.size(), stale_flt.size());
-            outGrad_flt = grads_flt + outGrad_flt - stale_flt;
+            std::cout << "gradients: " << gradients.DebugString() << std::endl;
+            std::cout << "stale: " << stale.DebugString() << std::endl;
+            std::cout << "outGrad before: " << outGrad.DebugString() << std::endl;            
+            int size = static_cast<int>(outGrad.NumElements());
+            float *grads_ptr   = grads_flt.data();
+            float *outGrad_ptr = outGrad_flt.data();
+            float *stale_ptr   = stale_flt.data();
+            for(int i = 0; i < size; i++) {
+                outGrad_ptr[i] = grads_ptr[i] + outGrad_ptr[i] - stale_ptr[i]; 
+            } 
+           
+            //outGrad_flt = grads_flt + outGrad_flt - stale_flt;
+            //DCHECK_EQ(outGrad_flt, grads_flt + outGrad_flt - stale_flt);
+            // TODO: cast operations to pointers to avoid bound checks
+
+            // functor::ApplyAccumulate<Device, float>()(
+            //      device, outGrad.flat<float>(), gradients.flat<float>(), stale.flat<float>());            
+            // outGrad_flt.device(d) = grads_flt + outGrad_flt - stale_flt;
+
+            // std::cout << outGrad_ptr[0] << std::endl;
+             std::cout << "outGrad after: " << outGrad.DebugString() << std::endl;            
+            // for (int i = 0; i < size; ++i) {
+            //     DCHECK_EQ(outGrad_ptr[i], grads_ptr[i] + outGrad_ptr[i] - stale_ptr[i]);
+            // }
+            
+           
+            // Check this if case is correct
+            // if subtraction is correctly performed, this should not happen
+            // understand the adam way and the benefits it provides (more fine grained locking?)
+            // checkpoint meeting on monday
         } else {
-            outGrad_flt = grads_flt + outGrad_flt;
+            // for (int i = 0; i < outGrad_flt.size(); ++i) {
+            //     outGrad_flt(i) = grads_flt(i) + outGrad_flt(i);
+            // }
+            // outGrad_flt = grads_flt + outGrad_flt;
+            float *grads_ptr   = grads_flt.data();
+            float *outGrad_ptr = outGrad_flt.data();
+            int size = static_cast<int>(outGrad.NumElements());
+            for(int i = 0; i < size; i++) {
+                outGrad_ptr[i] = grads_ptr[i] + outGrad_ptr[i]; 
+            } 
         }
         
 
@@ -186,9 +235,16 @@ class AkoNegotiator : public AsyncOpKernel
                 
                 auto grads_flt_cb   = gradients.flat<float>();
                 auto inGrad_flt_cb  = inGrad.flat<float>();
+                float *grads_ptr    = grads_flt_cb.data();
+                float *inGrad_ptr   = inGrad_flt_cb.data();
+                int   size = static_cast<int>(inGrad.NumElements());
+                
                 // subract gradients from inGrad to not apply them twice
                 DCHECK_EQ(inGrad_flt_cb.size(), grads_flt_cb.size());
-                inGrad_flt_cb = inGrad_flt_cb - grads_flt_cb;
+                for(int i = 0; i < size; i++) {
+                    inGrad_ptr[i] = inGrad_ptr[i] - grads_ptr[i];
+                }
+                // inGrad_flt_cb = inGrad_flt_cb - grads_flt_cb;
                 done();
             };
             _kungfu_world.AllReduce(outGrad.tensor_data().data(),
