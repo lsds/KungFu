@@ -72,17 +72,12 @@ class AkoNegotiator : public AsyncOpKernel
     Tensor inGrad;  // the accumulated gradient received through negotiation
     std::mutex allMutex; // protects
     bool hasInGrad;
-    int id;
     bool isInit;
 
     explicit AkoNegotiator(OpKernelConstruction* context) : AsyncOpKernel(context) {
         hasInGrad = false;
-        id = std::rand();
         isInit = false;
     }
-
-    // creates a TF pool to  perform the operation
-    // bool IsExpensive() override { return true; }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
@@ -113,13 +108,6 @@ class AkoNegotiator : public AsyncOpKernel
 
         std::lock_guard<std::mutex> lock(allMutex);
 
-
-        std::cout << gradients.DebugString() << std::endl;
-        std::cout << outGrad.DebugString() << std::endl;
-        std::cout << inGrad.DebugString() << std::endl;
-
-
-
         // Update gradient window
         Tensor stale;
         tensorWindow.push(gradients);    
@@ -127,123 +115,55 @@ class AkoNegotiator : public AsyncOpKernel
             stale = tensorWindow.front();
             tensorWindow.pop(); 
         }
+
         if(!isInit) {
             Tensor zeros(DataTypeToEnum<float>::v(), gradients.shape());
-            for (int i = 0; i < zeros.flat<float>().size(); ++i) {
-                zeros.flat<float>()(i) = 0.0;
-            }
+            auto zeros_flt = zeros.flat<float>();
+            zeros_flt.setZero();
             outGrad = zeros;
             inGrad = zeros;
-
-            // std::cout << outGrad.DebugString() << std::endl;
-            // std::cout << inGrad.DebugString() << std::endl;
-
-            // auto inGrad_flt = inGrad.flat<float>();
-            // inGrad_flt.setZero();
-            // auto outGrad_flt = outGrad.flat<float>();
-            // outGrad_flt.setZero();
             isInit = true;
         }
 
-
         // Create snapshots right before you use the tensors
         if (hasInGrad) {
-            auto grads_flt   = gradients.flat<float>();
-            auto inGrad_flt  = inGrad.flat<float>();
-
-            DCHECK_EQ(grads_flt.size(), inGrad_flt.size());
-            grads_flt = grads_flt + inGrad_flt;
+            gradients.flat<float>() = gradients.flat<float>() + inGrad.flat<float>();
             hasInGrad = false;
         } 
 
-
-        int inGrad_size = static_cast<int>(inGrad.NumElements());
-        float *inGrad_ptr = inGrad.flat<float>().data();
-        for(int i = 0; i < inGrad_size; i++) {
-            inGrad_ptr[i] = 0.0;
-        }
-
-
-        auto inGrad_flt = inGrad.flat<float>();
+        // Important: reset inbound gradients
+        inGrad.flat<float>().setZero();
+    
+        auto inGrad_flt  = inGrad.flat<float>();
         auto grads_flt   = gradients.flat<float>();
         auto outGrad_flt = outGrad.flat<float>();
         auto stale_flt   = stale.flat<float>();
-        auto expire = stale.NumElements() > 0;
+        auto expire      = stale.NumElements() > 0;
 
-        DCHECK_EQ(outGrad_flt.size(), grads_flt.size());
         if(expire) {
-            DCHECK_EQ(outGrad_flt.size(), stale_flt.size());
-            // std::cout << "gradients: " << gradients.DebugString() << std::endl;
-            // std::cout << "stale: " << stale.DebugString() << std::endl;
-            // std::cout << "outGrad before: " << outGrad.DebugString() << std::endl;            
-            // int size = static_cast<int>(outGrad.NumElements());
-            // float *grads_ptr   = grads_flt.data();
-            // float *outGrad_ptr = outGrad_flt.data();
-            // float *stale_ptr   = stale_flt.data();
-            // for(int i = 0; i < size; i++) {
-            //     outGrad_ptr[i] = static_cast<float>((double)grads_ptr[i] + (double)outGrad_ptr[i] - (double)stale_ptr[i]); 
-            // } 
-           
             outGrad_flt = grads_flt + outGrad_flt - stale_flt;
-            //DCHECK_EQ(outGrad_flt, grads_flt + outGrad_flt - stale_flt);
-            // TODO: cast operations to pointers to avoid bound checks
-
-            // functor::ApplyAccumulate<Device, float>()(
-            //      device, outGrad.flat<float>(), gradients.flat<float>(), stale.flat<float>());            
-            // outGrad_flt.device(d) = grads_flt + outGrad_flt - stale_flt;
-
-            // std::cout << outGrad_ptr[0] << std::endl;
-            // std::cout << "outGrad after: " << outGrad.DebugString() << std::endl;            
-            // for (int i = 0; i < size; ++i) {
-            //     DCHECK_EQ(outGrad_ptr[i], grads_ptr[i] + outGrad_ptr[i] - stale_ptr[i]);
-            // }
-            
-           
-            // Check this if case is correct
-            // if subtraction is correctly performed, this should not happen
-            // understand the adam way and the benefits it provides (more fine grained locking?)
-            // checkpoint meeting on monday
         } else {
-            // for (int i = 0; i < outGrad_flt.size(); ++i) {
-            //     outGrad_flt(i) = grads_flt(i) + outGrad_flt(i);
-            // }
             outGrad_flt = grads_flt + outGrad_flt;
-            // float *grads_ptr   = grads_flt.data();
-            // float *outGrad_ptr = outGrad_flt.data();
-            // int size = static_cast<int>(outGrad.NumElements());
-            // for(int i = 0; i < size; i++) {
-            //     outGrad_ptr[i] = static_cast<float>((double)grads_ptr[i] + (double)outGrad_ptr[i]);
-            // } 
         }
         
 
         if (_kungfu_world.GetGlobalStep() % numberPartitions == partitionIndex) {           
+            // Create a callback to accumulate gradients from other peers
             std::function<void()> func = [&, done]() {
                 std::lock_guard<std::mutex> l(allMutex);
                 
-                auto grads_flt_cb   = gradients.flat<float>();
-                auto inGrad_flt_cb  = inGrad.flat<float>();
-                float *grads_ptr    = grads_flt_cb.data();
-                float *inGrad_ptr   = inGrad_flt_cb.data();
-                int   size = static_cast<int>(inGrad.NumElements());
-                
                 // subract gradients from inGrad to not apply them twice
-                DCHECK_EQ(inGrad_flt_cb.size(), grads_flt_cb.size());
-                // for(int i = 0; i < size; i++) {
-                //     inGrad_ptr[i] = static_cast<float>((double)inGrad_ptr[i] - (double)grads_ptr[i]);
-                // }
-                inGrad_flt_cb = inGrad_flt_cb - grads_flt_cb;
+                inGrad.flat<float>() = inGrad.flat<float>() - gradients.flat<float>();
 
                 hasInGrad = true;
                 done();
             };
+
             _kungfu_world.AllReduce(outGrad.tensor_data().data(),
                                     (void *)(inGrad.tensor_data().data()),
                                     outGrad.NumElements(),
                                     to_kungfu_type(outGrad.dtype()), KungFu_SUM,
                                     name().c_str(), func);
-            // The name will not be unique in the async case because it would not be 
-            // able to differentiated the traffic of the allreduce with diff global steps
             *output = gradients;
         } else {
             *output = gradients;

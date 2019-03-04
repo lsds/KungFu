@@ -17,7 +17,6 @@ extern void delete_callback(callback_t *);
 
 #ifdef __cplusplus
 #include <functional>
-#include <iostream>
 struct CallbackWrapper {
     using func_t = std::function<void()>;
 
@@ -25,9 +24,7 @@ struct CallbackWrapper {
     explicit CallbackWrapper(const func_t &f) : f_(f) {}
 
     void operator()() { 
-      std::cout << "Before calling the callback [WRAPPER]" << std::endl;
       f_();   
-      std::cout << "After calling the callback [WRAPPER]" << std::endl;
     }
 
   private:
