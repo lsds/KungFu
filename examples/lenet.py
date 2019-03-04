@@ -77,7 +77,7 @@ def LeNet5(x):
     logits = tf.matmul(fc2, fc3_w) + fc3_b
     return logits
 
-def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kickin_time):
+def build_train_ops(kungfu_strategy, ako_partitions):
     # Parameters
     learning_rate = 0.01
     training_epochs = 25
@@ -95,10 +95,10 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
     loss = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate = 0.001)
 
-    if use_kungfu:
-        optimizer = kf.SyncSGDOptimizer(optimizer, strategy=kungfu_strategy,
-                                      ako_partitions=ako_partitions,
-                                      staleness=staleness)
+    if kungfu_strategy == 'ako':
+        from kungfu.optimizers import AkoOptimizer
+        optimizer = AkoOptimizer(optimizer, ako_partitions=ako_partitions)
+
 
     train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(y,1))
@@ -190,10 +190,6 @@ def parse_args():
     parser.add_argument(
         '--ako-partitions', type=int, default=1, help='number of ako partitions')
     parser.add_argument(
-        '--staleness', type=int, default=1, help='ako staleness constant')
-    parser.add_argument(
-        '--kickin-time', type=int, default=100, help='iteration starting from which ako kicks in')
-    parser.add_argument(
         '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
         '--batch-size', type=int, default=50, help='batch size')
@@ -224,12 +220,10 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.use_kungfu, 
-                                             args.kungfu_strategy, args.ako_partitions,
-                                             args.staleness, args.kickin_time)
+    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions)
     show_trainable_variables_info()
     
-    mnist = measure(lambda: load_datasets('var/data/mnist', normalize=True, one_hot=True), 'load data')
+    mnist = measure(lambda: load_datasets('var/data/mnist', normalize=True, one_hot=True, padded=True), 'load data')
 
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, 

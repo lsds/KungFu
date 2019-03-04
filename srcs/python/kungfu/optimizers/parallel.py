@@ -23,12 +23,15 @@ class ParallelOptimizer(KungFuOptimizer):
             self._modify_trained_steps = tf.assign(
                 self._trained_steps, global_step_modifier(self._trained_steps))
 
-    def _negotiate_grad(self, grad):
-        """Negotiate grad with peers."""
-
+    def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
+        """Negotiate grad with peers, following flexible strategy."""
         def build_op():
-            with tf.variable_scope('NegotiatedGrad'):
-                return all_reduce(grad)
+            negotiated_grad_and_vars = []
+            for grad, var in grads_and_vars_to_negotiate:
+                with tf.variable_scope('NegotiatedGrad'):
+                    negotiated_grad_and_vars.append(
+                        (all_reduce(grad), var))
+            return negotiated_grad_and_vars
 
         if self._use_global_step:
             with tf.control_dependencies([self._modify_trained_steps]):

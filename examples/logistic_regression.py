@@ -52,7 +52,7 @@ def measure(f, name=None):
         f.write(line + '\n')
     return result
 
-def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kickin_time):
+def build_train_ops(kungfu_strategy, ako_partitions):
     # Parameters
     learning_rate = 0.01
     training_epochs = 25
@@ -74,11 +74,9 @@ def build_train_ops(use_kungfu, kungfu_strategy, ako_partitions, staleness, kick
     loss = tf.reduce_mean(-tf.reduce_sum(y*tf.log(pred), reduction_indices=1))
 
     optmizer = tf.train.GradientDescentOptimizer(learning_rate)
-    if use_kungfu:
-        optmizer = kf.SyncSGDOptimizer(optmizer, strategy=kungfu_strategy,
-                                      ako_partitions=ako_partitions,
-                                      staleness=staleness,
-                                      kickin_time=kickin_time)
+    if kungfu_strategy == 'ako':
+        from kungfu.optimizers import AkoOptimizer
+        optimizer = AkoOptimizer(optimizer, ako_partitions=ako_partitions)
 
     train_step = optmizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(pred, 1))
@@ -140,24 +138,20 @@ def parse_args():
     parser.add_argument(
         '--ako-partitions', type=int, default=1, help='number of ako partitions')
     parser.add_argument(
-        '--staleness', type=int, default=1, help='ako staleness constant')
-    parser.add_argument(
-        '--kickin-time', type=int, default=100, help='iteration starting from which ako kicks in')
-    parser.add_argument(
         '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
         '--batch-size', type=int, default=50, help='batch size')
     parser.add_argument(
-        '---val-accuracy-target', type=float, default=92., help='validation accuracy target')
+        '---val-accuracy-target', type=float, default=98.5, help='validation accuracy target')
     return parser.parse_args()
 
 
-def show_info():
+def show_trainable_variables_info():
     g = tf.get_default_graph()
     tot_vars = 0
     tot_dim = 0
     tot_size = 0
-    for v in g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+    for v in g.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
         dim = v.shape.num_elements()
         tot_vars += 1
         tot_dim += dim
@@ -174,12 +168,13 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.use_kungfu, 
-                                             args.kungfu_strategy, args.ako_partitions,
-                                             args.staleness, args.kickin_time)
-    show_info()
+    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions)
+    show_trainable_variables_info()
+    
+    mnist = measure(lambda: load_datasets('var/data/mnist', normalize=True, one_hot=True, padded=False), 'load data')
+
     measure(
-        lambda: train_mnist(x, y_, train_step, acc, 
+        lambda: train_mnist(x, y_, mnist, train_step, acc, 
                             args.n_epochs, args.batch_size,
                             args.val_accuracy_target),
         'train')

@@ -97,10 +97,11 @@ REGISTER_OP("AkoNegotiator")
         return Status::OK();
 });
 
-
+// Ako implementation
 class AkoNegotiator : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
+    using CPUDevice = Eigen::ThreadPoolDevice;
 
   public:
     // have them public for now
@@ -110,17 +111,12 @@ class AkoNegotiator : public AsyncOpKernel
     Tensor inGrad;  // the accumulated gradient received through negotiation
     std::mutex allMutex; // protects
     bool hasInGrad;
-    int id;
-
+    bool isInit;
 
     explicit AkoNegotiator(OpKernelConstruction* context) : AsyncOpKernel(context) {
         hasInGrad = false;
-        id = std::rand();
+        isInit = false;
     }
-
-    // creates a TF pool to  perform the operation
-    // bool IsExpensive() override { return true; }
-
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
@@ -128,12 +124,13 @@ class AkoNegotiator : public AsyncOpKernel
         // partition index
         DCHECK_EQ(3, context->num_inputs());
 
-
-        Tensor &gradients                   = (Tensor&) context->input(0);
+        
+        Tensor &gradients                   = (Tensor&) context->input(0);    
 
         const Tensor &currentPartitionIndex = context->input(1);
         const Tensor &pAkoPartitions        = context->input(2);
 
+        
         Tensor *output                      = nullptr;
 
         auto currentPartitionIndexTensor = currentPartitionIndex.vec<int>();
@@ -149,73 +146,55 @@ class AkoNegotiator : public AsyncOpKernel
 
         // Update gradient window
         Tensor stale;
-        tensorWindow.push(gradients);
+        tensorWindow.push(gradients);    
         if(tensorWindow.size() > numberPartitions) {
             stale = tensorWindow.front();
-            tensorWindow.pop();
+            tensorWindow.pop(); 
         }
 
-        if(outGrad.NumElements() == 0) {
-            Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
-            for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
-                tensorReset.flat<float>()(i) = 0.0;
-            }
-            Tensor grad_accumulated = tensorReset;
-            auto grad_accumulated_flt = grad_accumulated.flat<float>();
-            for (int i = 0; i < grad_accumulated_flt.size(); ++i) {
-                grad_accumulated_flt(i) = 0.0;
-            }
-            outGrad = grad_accumulated;
+        if(!isInit) {
+            Tensor zeros(DataTypeToEnum<float>::v(), gradients.shape());
+            auto zeros_flt = zeros.flat<float>();
+            zeros_flt.setZero();
+            outGrad = zeros;
+            inGrad = zeros;
+            isInit = true;
         }
 
         // Create snapshots right before you use the tensors
         if (hasInGrad) {
-            auto grads_flt   = gradients.flat<float>();
-            auto inGrad_flt  = inGrad.flat<float>();
+            gradients.flat<float>() = gradients.flat<float>() + inGrad.flat<float>();
+            hasInGrad = false;
+        } 
 
-            DCHECK_EQ(grads_flt.size(), inGrad_flt.size());
-            grads_flt = grads_flt + inGrad_flt;
-            Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
-            for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
-                tensorReset.flat<float>()(i) = 0.0;
-            }
-            inGrad = tensorReset;
-        } else {
-            Tensor tensorReset(DataTypeToEnum<float>::v(), gradients.shape());
-            inGrad = tensorReset;
-            for (int i = 0; i < tensorReset.flat<float>().size(); ++i) {
-                tensorReset.flat<float>()(i) = 0.0;
-            }
-            hasInGrad = true;
-        }
-
-
-
+        // Important: reset inbound gradients
+        inGrad.flat<float>().setZero();
+    
+        auto inGrad_flt  = inGrad.flat<float>();
         auto grads_flt   = gradients.flat<float>();
         auto outGrad_flt = outGrad.flat<float>();
         auto stale_flt   = stale.flat<float>();
-        auto expire = stale.NumElements() > 0;
+        auto expire      = stale.NumElements() > 0;
 
-        DCHECK_EQ(outGrad_flt.size(), grads_flt.size());
         if(expire) {
-            DCHECK_EQ(outGrad_flt.size(), stale_flt.size());
             outGrad_flt = grads_flt + outGrad_flt - stale_flt;
         } else {
             outGrad_flt = grads_flt + outGrad_flt;
         }
+        
 
-        if (_kungfu_world->GetGlobalStep() % numberPartitions == partitionIndex) {  
+        if (_kungfu_world->GetGlobalStep() % numberPartitions == partitionIndex) {           
+            // Create a callback to accumulate gradients from other peers
             std::function<void()> func = [&, done]() {
                 std::lock_guard<std::mutex> l(allMutex);
-                hasInGrad = true;
-
-                auto grads_flt_cb   = gradients.flat<float>();
-                auto inGrad_flt_cb  = inGrad.flat<float>();
+                
                 // subract gradients from inGrad to not apply them twice
-                DCHECK_EQ(inGrad_flt_cb.size(), grads_flt_cb.size());
-                inGrad_flt_cb = inGrad_flt_cb - grads_flt_cb;
+                inGrad.flat<float>() = inGrad.flat<float>() - gradients.flat<float>();
+
+                hasInGrad = true;
                 done();
             };
+
             _kungfu_world->AllReduce(outGrad.tensor_data().data(),
                                     (void *)(inGrad.tensor_data().data()),
                                     outGrad.NumElements(),

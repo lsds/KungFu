@@ -36,6 +36,8 @@ def broadcast(t):
 def all_reduce(t):
     return _op_lib.all_reduce(t)
 
+def ako_all_reduce(t, partition_id, num_partitions):
+    return _op_lib.ako_negotiator(t, partition_id, num_partitions)
 
 def global_variance(t):
     return _op_lib.global_variance(t)
