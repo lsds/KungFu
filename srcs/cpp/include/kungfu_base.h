@@ -17,7 +17,6 @@ extern void delete_callback(callback_t *);
 
 #ifdef __cplusplus
 #include <functional>
-#include <iostream>
 struct CallbackWrapper {
     using func_t = std::function<void()>;
 
