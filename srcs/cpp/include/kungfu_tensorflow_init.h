@@ -11,9 +11,7 @@ extern "C" {
 extern void kungfu_tensorflow_init();
 }
 
-extern std::unique_ptr<kungfu_world> _kungfu_bootstrap;
-
-extern kungfu_world *_kungfu_world;  // FIXME: remove
+extern std::unique_ptr<kungfu_world> _kungfu_world;
 
 namespace kungfu
 {
@@ -52,14 +50,11 @@ class world
 
     void init_gpu_collective();
 
-    int32_t AdvanceGlobalStep()
-    {
-        return _kungfu_bootstrap->AdvanceGlobalStep();
-    }
+    int32_t AdvanceGlobalStep() { return _kungfu_world->AdvanceGlobalStep(); }
 
     void SetNumGradients(int32_t n_grads)
     {
-        _kungfu_bootstrap->SetNumGradients(n_grads);
+        _kungfu_world->SetNumGradients(n_grads);
     }
 
     void StartGpuGroup(const std::vector<std::string> &name);

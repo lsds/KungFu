@@ -3,18 +3,14 @@
 #include <kungfu_base.h>
 #include <kungfu_tensorflow_init.h>
 
-std::unique_ptr<kungfu_world> _kungfu_bootstrap;
-kungfu_world *_kungfu_world;  // FIXME: remove
+std::unique_ptr<kungfu_world> _kungfu_world;
 
 void kungfu_tensorflow_init()
 {
-    _kungfu_bootstrap.reset(new kungfu_world);
-    _kungfu_world = _kungfu_bootstrap.get();  // FIXME: remove
-
-    fprintf(stderr, "%s\n", __func__);
+    _kungfu_world.reset(new kungfu_world);
     kungfu::tensorflow::_world.reset(new kungfu::tensorflow::world);
 
-    bool have_gpu = true;
+    bool have_gpu = true;  // FIXME: auto detect
     if (have_gpu) { kungfu::tensorflow::_world->init_gpu_collective(); }
 }
 
@@ -45,14 +41,13 @@ void all_reduce_group::start(const std::string &name, Task task)
 
 void all_reduce_group::wait() { order_group_wait(_og); }
 
-world::world() { fprintf(stderr, "%s\n", __func__); }
+world::world() {}
 
-world::~world() { fprintf(stderr, "%s\n", __func__); }
+world::~world() {}
 
 void world::init_gpu_collective()
 {
-    fprintf(stderr, "%s\n", __func__);
-    _gpu_collective.reset(new_gpu_collective(*_kungfu_bootstrap));
+    _gpu_collective.reset(new_gpu_collective(*_kungfu_world));
 }
 
 void world::StartGpuGroup(const std::vector<std::string> &names)

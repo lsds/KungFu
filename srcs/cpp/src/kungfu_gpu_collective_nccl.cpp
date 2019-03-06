@@ -5,13 +5,6 @@
 #include "cuda_helper.hpp"
 #include "error_checker.hpp"
 
-std::string safe_getenv(const char *name)
-{
-    const char *ptr = std::getenv(name);
-    if (ptr) { return std::string(ptr); }
-    return "";
-}
-
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
     {
@@ -55,29 +48,12 @@ class gpu_collective_nccl : public gpu_collective
     gpu_collective_nccl(ncclUniqueId id, int cluster_size, int rank)
         : _rank(rank), _cluster_size(cluster_size)
     {
-        fprintf(stderr, "%s %s\n", "CUDA_VISIBLE_DEVICES",
-                safe_getenv("CUDA_VISIBLE_DEVICES").c_str());
-        const int dev_id = 0;
-        KUNGFU_CHECK(cuda_checker) << cudaSetDevice(dev_id);
-        fprintf(stderr, "cuda device selected to %d\n", dev_id);
-
-        fprintf(stderr, "before nccl inited: %d/%d.\n", rank, cluster_size);
+        KUNGFU_CHECK(cuda_checker) << cudaSetDevice(0);
         KUNGFU_CHECK(nccl_checker)
             << ncclCommInitRank(&comm, cluster_size, id, rank);
-        fprintf(stderr, "nccl inited: %d/%d.\n", rank, cluster_size);
     }
 
-    ~gpu_collective_nccl()
-    {
-        ncclCommDestroy(comm);
-        fprintf(stderr, "nccl destroyed: %d/%d.\n", _rank, _cluster_size);
-    }
-
-    bool is_root() const { return _rank == 0; }
-
-    int rank() const { return _rank; }
-
-    int cluster_size() const { return _cluster_size; }
+    ~gpu_collective_nccl() { ncclCommDestroy(comm); }
 
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                     KungFu_Datatype dtype)

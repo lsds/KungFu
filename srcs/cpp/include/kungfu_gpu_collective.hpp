@@ -7,11 +7,7 @@ namespace kungfu
 class gpu_collective
 {
   public:
-    virtual bool is_root() const = 0;
-
-    virtual int rank() const = 0;
-
-    virtual int cluster_size() const = 0;
+    virtual ~gpu_collective() {}
 
     virtual void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                             KungFu_Datatype dtype) = 0;
