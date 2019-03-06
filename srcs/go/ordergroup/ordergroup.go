@@ -5,14 +5,27 @@ import (
 	"os"
 )
 
-type orderGroup struct {
+type OrderGroup struct {
 	size  int
 	names []string
 	ranks map[string]int
 	dones []chan struct{}
 }
 
-func New(names []string) *orderGroup {
+func NewRanked(n int) *OrderGroup {
+	var dones []chan struct{}
+	for i := 0; i <= n; i++ {
+		dones = append(dones, make(chan struct{}, 1))
+	}
+	g := &OrderGroup{
+		size:  n,
+		dones: dones,
+	}
+	g.Start()
+	return g
+}
+
+func New(names []string) *OrderGroup {
 	var dones []chan struct{}
 	ranks := make(map[string]int)
 	for i, name := range names {
@@ -20,7 +33,7 @@ func New(names []string) *orderGroup {
 		dones = append(dones, make(chan struct{}, 1))
 	}
 	dones = append(dones, make(chan struct{}, 1))
-	g := &orderGroup{
+	g := &OrderGroup{
 		size:  len(names),
 		names: names,
 		ranks: ranks,
@@ -30,12 +43,16 @@ func New(names []string) *orderGroup {
 	return g
 }
 
-func (g *orderGroup) Do(name string, f func()) {
+func (g *OrderGroup) Do(name string, f func()) {
 	rank, ok := g.ranks[name]
 	if !ok {
 		log.Printf("%s is not schedued", name)
 		os.Exit(1)
 	}
+	g.DoRank(rank, f)
+}
+
+func (g *OrderGroup) DoRank(rank int, f func()) {
 	go func() {
 		g.wait(rank)
 		defer g.start(rank + 1)
@@ -43,18 +60,18 @@ func (g *orderGroup) Do(name string, f func()) {
 	}()
 }
 
-func (g *orderGroup) start(i int) {
+func (g *OrderGroup) start(i int) {
 	g.dones[i] <- struct{}{}
 }
 
-func (g *orderGroup) wait(i int) {
+func (g *OrderGroup) wait(i int) {
 	<-g.dones[i]
 }
 
-func (g *orderGroup) Start() {
+func (g *OrderGroup) Start() {
 	g.start(0)
 }
 
-func (g *orderGroup) Wait() {
+func (g *OrderGroup) Wait() {
 	g.wait(g.size)
 }
