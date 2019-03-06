@@ -31,13 +31,9 @@ IF(KUNGFU_USE_NCCL)
     INCLUDE(cmake/nccl.cmake)
 ENDIF()
 
-FUNCTION(SET_INSTALL_RPATH target)
-    SET_TARGET_PROPERTIES(${target} PROPERTIES INSTALL_RPATH "$ORIGIN")
-    SET_TARGET_PROPERTIES(${target} PROPERTIES BUILD_WITH_INSTALL_RPATH true)
-ENDFUNCTION()
-
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(cmake/tf-op.cmake)
+    INCLUDE(cmake/rpath.cmake)
 
     ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/kungfu_python.cpp)
     TARGET_LINK_LIBRARIES(kungfu_python kungfu)
@@ -46,14 +42,8 @@ IF(KUNGFU_BUILD_TF_OPS)
                   srcs/cpp/src/tensorflow/ops/common.cpp
                   srcs/cpp/src/tensorflow/ops/collective.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
-
-    IF(UNIX)
-        SET_INSTALL_RPATH(kungfu_python)
-        SET_INSTALL_RPATH(kungfu_tensorflow_ops)
-    ENDIF()
-    IF(APPLE)
-        # FIXME: ?
-    ENDIF()
+    SET_INSTALL_RPATH(kungfu_python)
+    SET_INSTALL_RPATH(kungfu_tensorflow_ops)
 ENDIF()
 
 IF(KUNGFU_BUILD_TESTS)
