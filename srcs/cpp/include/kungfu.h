@@ -88,6 +88,10 @@ class kungfu_world
 
     ~kungfu_world();
 
+    int Rank() const;
+
+    int ClusterSize() const;
+
     int32_t AdvanceGlobalStep() { return ++_global_step; }
 
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }

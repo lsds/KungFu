@@ -91,6 +91,14 @@ func createRingStrategies(peers []plan.PeerSpec) []strategy {
 	return ss
 }
 
+func (sess *session) ClusterSize() int {
+	return len(sess.cluster.AllPeers())
+}
+
+func (sess *session) Rank() int {
+	return sess.cluster.SelfRank
+}
+
 func (sess *session) Warmup() int {
 	k := sess.cluster.Size()
 	count := k * 4

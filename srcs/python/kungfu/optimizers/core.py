@@ -1,4 +1,5 @@
 import tensorflow as tf
+from kungfu.ops import gpu_group_all_reduce
 
 
 class KungFuOptimizer(tf.train.Optimizer):
@@ -31,24 +32,15 @@ class KungFuOptimizer(tf.train.Optimizer):
     def compute_gradients(self, *args, **kwargs):
         """Compute gradients and negotiate with peers."""
         grads_and_vars = self._optimizer.compute_gradients(*args, **kwargs)
-        grads_and_vars_to_negotiate = []
+        grads_to_negotiate = []
+        variables_to_update = []
         for grad, var in grads_and_vars:
             if grad is not None:
-                grads_and_vars_to_negotiate.append((grad, var))
-
-        def build_op():
-            negotiated_grad_and_vars = []
-            for grad, var in grads_and_vars_to_negotiate:
-                negotiated_grad_and_vars.append((self._negotiate_grad(grad),
-                                                 var))
-            return negotiated_grad_and_vars
-
-        if self._enable_set_num_gradients:
-            n_grads = len(grads_and_vars_to_negotiate)
-            with tf.control_dependencies([self._set_num_gradients(n_grads)]):
-                return build_op()
-        else:
-            return build_op()
+                grads_to_negotiate.append(grad)
+                variables_to_update.append(var)
+        # FIXME: auto determine device
+        negotiated_grads = gpu_group_all_reduce(grads_to_negotiate)
+        return list(zip(negotiated_grads, variables_to_update))
 
     # forward to the underlying optimizer
 

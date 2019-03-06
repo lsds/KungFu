@@ -32,6 +32,18 @@ func GoKungfuFinalize() int {
 	return kungfu.Close()
 }
 
+//export GoKungfuClusterSize
+func GoKungfuClusterSize() int {
+	sess := kungfu.CurrentSession()
+	return sess.ClusterSize()
+}
+
+//export GoKungfuRank
+func GoKungfuRank() int {
+	sess := kungfu.CurrentSession()
+	return sess.Rank()
+}
+
 //export GoKungfuAllReduce
 func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
