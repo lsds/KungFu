@@ -3,42 +3,54 @@ package ordergroup
 import (
 	"log"
 	"os"
+	"sync"
+	"sync/atomic"
 )
 
-type OrderGroup struct {
-	size  int
-	names []string
-	ranks map[string]int
-	dones []chan struct{}
+type Option struct {
+	AutoWait bool
 }
 
-func NewRanked(n int) *OrderGroup {
-	var dones []chan struct{}
+type OrderGroup struct {
+	size     int
+	names    []string
+	ranks    map[string]int
+	ready    []chan struct{}
+	wg       sync.WaitGroup
+	started  int32
+	autoWait bool
+}
+
+func NewRanked(n int, opt Option) *OrderGroup {
+	var ready []chan struct{}
 	for i := 0; i <= n; i++ {
-		dones = append(dones, make(chan struct{}, 1))
+		ready = append(ready, make(chan struct{}, 1))
 	}
 	g := &OrderGroup{
-		size:  n,
-		dones: dones,
+		size:     n,
+		ready:    ready,
+		autoWait: opt.AutoWait,
 	}
+	g.wg.Add(g.size)
 	g.Start()
 	return g
 }
 
 func New(names []string) *OrderGroup {
-	var dones []chan struct{}
+	var ready []chan struct{}
 	ranks := make(map[string]int)
 	for i, name := range names {
 		ranks[name] = i
-		dones = append(dones, make(chan struct{}, 1))
+		ready = append(ready, make(chan struct{}, 1))
 	}
-	dones = append(dones, make(chan struct{}, 1))
+	ready = append(ready, make(chan struct{}, 1))
 	g := &OrderGroup{
 		size:  len(names),
 		names: names,
 		ranks: ranks,
-		dones: dones,
+		ready: ready,
 	}
+	g.wg.Add(g.size)
 	g.Start()
 	return g
 }
@@ -55,17 +67,22 @@ func (g *OrderGroup) Do(name string, f func()) {
 func (g *OrderGroup) DoRank(rank int, f func()) {
 	go func() {
 		g.wait(rank)
-		defer g.start(rank + 1)
 		f()
+		g.start(rank + 1)
+		g.wg.Done()
 	}()
+	started := atomic.AddInt32(&g.started, 1)
+	if int(started) == g.size && g.autoWait {
+		g.Wait()
+	}
 }
 
 func (g *OrderGroup) start(i int) {
-	g.dones[i] <- struct{}{}
+	g.ready[i] <- struct{}{}
 }
 
 func (g *OrderGroup) wait(i int) {
-	<-g.dones[i]
+	<-g.ready[i]
 }
 
 func (g *OrderGroup) Start() {
@@ -73,5 +90,5 @@ func (g *OrderGroup) Start() {
 }
 
 func (g *OrderGroup) Wait() {
-	g.wait(g.size)
+	g.wg.Wait()
 }

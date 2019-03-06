@@ -18,14 +18,14 @@ import "C"
 
 //export GoNewRankedOrderGroup
 func GoNewRankedOrderGroup(nNames int, cPtr *C.struct_order_group_s) {
-	gPtr := og.NewRanked(nNames)
-    // TODO: make sure gPtr will not be auto GCed.
+	gPtr := og.NewRanked(nNames, og.Option{AutoWait: true})
+	// TODO: make sure gPtr will not be auto GCed.
 	cPtr.ptr = unsafe.Pointer(gPtr)
 }
 
 //export GoFreeOrderGroup
 func GoFreeOrderGroup(cPtr *C.struct_order_group_s) {
-    freeOrderGroup(toOrderGroup(cPtr))
+	freeOrderGroup(toOrderGroup(cPtr))
 }
 
 //export GoOrderGroupDoRank
@@ -44,7 +44,7 @@ func GoOrderGroupWait(cPtr *C.struct_order_group_s) {
 }
 
 func freeOrderGroup(gPtr *og.OrderGroup) {
-    // TODO:
+	// TODO:
 }
 
 func toOrderGroup(cPtr *C.struct_order_group_s) *og.OrderGroup {
