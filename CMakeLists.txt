@@ -44,7 +44,9 @@ IF(KUNGFU_BUILD_TF_OPS)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
     IF(KUNGFU_USE_NCCL)
-        TARGET_SOURCES(kungfu_tensorflow_init PRIVATE
+        TARGET_SOURCES(kungfu_tensorflow_init
+                       PRIVATE
+                       srcs/cpp/src/tensorflow/init_gpu.cpp
                        srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
         USE_NCCL(kungfu_tensorflow_init)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE

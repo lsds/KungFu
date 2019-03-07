@@ -9,6 +9,7 @@
 
 extern "C" {
 extern void kungfu_tensorflow_init();
+extern void kungfu_tensorflow_init_gpu();
 }
 
 extern std::unique_ptr<kungfu_world> _kungfu_world;
@@ -17,8 +18,6 @@ namespace kungfu
 {
 namespace tensorflow
 {
-struct cpu;
-struct gpu;
 
 class all_reduce_group
 {
@@ -37,7 +36,12 @@ class all_reduce_group
     void wait();
 };
 
-class world
+struct cpu;
+struct gpu;
+
+template <class device> class world;
+
+template <> class world<gpu>
 {
     std::unique_ptr<gpu_collective> _gpu_collective;
 
@@ -48,23 +52,14 @@ class world
 
     ~world();
 
-    void init_gpu_collective();
+    void StartGroup(const std::vector<std::string> &name);
 
-    int32_t AdvanceGlobalStep() { return _kungfu_world->AdvanceGlobalStep(); }
-
-    void SetNumGradients(int32_t n_grads)
-    {
-        _kungfu_world->SetNumGradients(n_grads);
-    }
-
-    void StartGpuGroup(const std::vector<std::string> &name);
-
-    int AllReduceGpu(DoneCallback ready, const void *sendbuf, void *recvbuf,
-                     int count, KungFu_Datatype dtype, KungFu_Op op,
-                     const char *name, DoneCallback done);
+    int AllReduce(DoneCallback ready, const void *sendbuf, void *recvbuf,
+                  int count, KungFu_Datatype dtype, KungFu_Op op,
+                  const char *name, DoneCallback done);
 };
 
-extern std::unique_ptr<world> _world;
+extern std::unique_ptr<world<gpu>> _world_gpu;
 
 }  // namespace tensorflow
 }  // namespace kungfu

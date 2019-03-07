@@ -23,7 +23,7 @@ class StartGpuGroup : public OpKernel
         for (int i = 0; i < t_names.size(); ++i) {
             names.push_back("kungfu_" + t_names(i));
         }
-        kungfu::tensorflow::_world->StartGpuGroup(names);
+        kungfu::tensorflow::_world_gpu->StartGroup(names);
     }
 };
 
@@ -51,7 +51,7 @@ class AllReduceGpu : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
 
-        kungfu::tensorflow::_world->AllReduceGpu(
+        kungfu::tensorflow::_world_gpu->AllReduce(
             [stream = context->op_device_context()->stream()]() {
                 stream->BlockHostUntilDone();
             },

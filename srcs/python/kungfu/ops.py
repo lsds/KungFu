@@ -23,10 +23,14 @@ def _load_and_init_op_lib():
     _op_lib = _load_op_lib('kungfu_tensorflow_ops')
     _init_lib = _load_init_lib('libkungfu_tensorflow_init')
     _init_lib.kungfu_tensorflow_init()
-    return _op_lib
+    has_gpu = False
+    if 'kungfu_tensorflow_init_gpu' in dir(_init_lib):
+        _init_lib.kungfu_tensorflow_init_gpu()
+        has_gpu = True
+    return _op_lib, has_gpu
 
 
-_op_lib = _load_and_init_op_lib()
+_op_lib, _has_gpu = _load_and_init_op_lib()
 
 
 def broadcast(t):
@@ -57,6 +61,10 @@ def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
 
+def cpu_group_all_reduce(ts):
+    return [all_reduce(t) for t in ts]
+
+
 def gpu_group_all_reduce(ts):
     names = [t.name[:-2] for t in ts]
     names = list(sorted(names))  # FIXME: use topsort
@@ -65,3 +73,10 @@ def gpu_group_all_reduce(ts):
             start_gpu_group(names),
     ]):
         return [all_reduce_gpu(t) for t in ts]
+
+
+def group_all_reduce(ts):
+    # FIXME: auto determine device
+    if _has_gpu:
+        gpu_group_all_reduce(ts)
+    return cpu_group_all_reduce(ts)
