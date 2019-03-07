@@ -29,6 +29,12 @@ TEST(kungfu_order_group_test, test_order_group_simple)
     del_order_group(og);
 }
 
+void test_idempotent_wait(order_group_t *og)
+{
+    order_group_wait(og);
+    order_group_wait(og);
+}
+
 void test_order_group(int n)
 {
     order_group_t *og = new_ranked_order_group(n);
@@ -44,14 +50,14 @@ void test_order_group(int n)
     for (int i = 0; i < n; ++i) {
         const int rank = arrive_order[i];
         order_group_do_rank(
-            og, rank,
-            new CallbackWrapper([&exec_order, rank = rank, &idx, n = n] {
+            og, rank, new CallbackWrapper([&exec_order, rank = rank, &idx] {
                 // printf("exec %d/%d\n", rank, n);
                 exec_order[rank] = idx++;
             }));
     }
 
     order_group_wait(og);
+    test_idempotent_wait(og);
 
     for (int i = 0; i < n; ++i) { ASSERT_EQ(exec_order[i], i); }
 

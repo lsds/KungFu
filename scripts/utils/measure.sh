@@ -42,7 +42,7 @@ measure() {
     else
         local name=$(basename $0)
     fi
-    if [ ! -z $log_dir ]; then
+    if [ ! -z $SCRIPT_DIR ]; then
         local log_dir=$SCRIPT_DIR
     else
         local log_dir=$(dirname $0)

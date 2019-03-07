@@ -19,6 +19,10 @@ ensure_file 0dcac5994c54af839e2e1646e88d12c2fe77b338 $filename $URL
 tar -xf $filename
 cd $folder
 
-export PREFIX=$HOME/local/nccl
+if [ -z "$PREFIX" ]; then
+    PREFIX=$HOME/local/nccl
+fi
+export PREFIX
+
 make -j$(nproc)
 make install

@@ -81,3 +81,7 @@ kungfu_world::kungfu_world()
 }
 
 kungfu_world::~kungfu_world() { KungfuFinalize(); }
+
+int kungfu_world::Rank() const { return GoKungfuRank(); }
+
+int kungfu_world::ClusterSize() const { return GoKungfuClusterSize(); }
