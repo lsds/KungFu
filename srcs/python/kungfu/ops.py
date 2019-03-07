@@ -24,9 +24,12 @@ def _load_and_init_op_lib():
     _init_lib = _load_init_lib('libkungfu_tensorflow_init')
     _init_lib.kungfu_tensorflow_init()
     has_gpu = False
-    if 'kungfu_tensorflow_init_gpu' in dir(_init_lib):
+    try:
+        # FIXME: auto detect GPU support
         _init_lib.kungfu_tensorflow_init_gpu()
         has_gpu = True
+    except:
+        pass
     return _op_lib, has_gpu
 
 
@@ -79,4 +82,5 @@ def group_all_reduce(ts):
     # FIXME: auto determine device
     if _has_gpu:
         gpu_group_all_reduce(ts)
+    print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
