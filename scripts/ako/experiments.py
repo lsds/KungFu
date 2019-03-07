@@ -2,15 +2,18 @@ import os
 import subprocess
 import sys
 
-# Change paths according to lcoation of this experiment script
+FILE_PATH = os.path.dirname(os.path.realpath(__file__))
+RUN_EXPERIMENTS_SCRIPT = FILE_PATH + "/../azure/relay-machine/run-experiments.sh"
+EXPERIMENT_SCRIPT     = FILE_PATH + "/../../examples/lenet.py"
+
 os.environ['RUNNER'] = os.environ['USER']
-os.environ['SRC_DIR'] = os.path.dirname(os.path.realpath(__file__)) # pwd
-os.environ['EXPERIMENT_SCRIPT'] = 'examples/lenet.py'
+os.environ['SRC_DIR'] = FILE_PATH
+os.environ['EXPERIMENT_SCRIPT'] = EXPERIMENT_SCRIPT
 os.environ['KUNGFU_CONFIG_ENABLE_MONITORING'] = 'true'
 os.environ['KUNGFU_CONFIG_MONITORING_PERIOD'] = '10ms'
 
-subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "init-remote"])
-subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "prepare"])
+subprocess.call([RUN_EXPERIMENTS_SCRIPT, "init-remote"])
+subprocess.call([RUN_EXPERIMENTS_SCRIPT, "prepare"])
 
 def build_args(strategy, batch_size, n_epochs, partitions=None):
     if strategy ==  'ako':
@@ -37,19 +40,19 @@ def run_experiments(n_epochs):
                          print('The args are: ' + build_args(strategy, batch_size, n_epochs, partitions=parts))
                          set_args(build_args(strategy, batch_size, n_epochs, partitions=parts))
                          set_log_name(build_log_name(strategy, batch_size, n_epochs, partitions=parts))
-                         subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "run"])
+                         subprocess.call([RUN_EXPERIMENTS_SCRIPT, "run"])
                      else:
                          print('The args are ' + build_args(strategy, batch_size, n_epochs))
                          set_args(build_args(strategy, batch_size, n_epochs))
                          set_log_name(build_log_name(strategy, batch_size, n_epochs))
-                         subprocess.call(["./KungFu/scripts/azure/relay-machine/run-experiments.sh", "run"]) 
+                         subprocess.call([RUN_EXPERIMENTS_SCRIPT, "run"]) 
                          return
 
-os.environ['EXPERIMENT_SCRIPT'] = 'examples/lenet.py'
+os.environ['EXPERIMENT_SCRIPT'] = EXPERIMENT_SCRIPT
 # LeNet5, 33 variables
-config_grid = {'strategy': ['ako'], 
-               'batch'   : [8], # [1, 2, 4, 8, 16, 32] Pick batch size 8 because it generates more traffic
-               'parts'   : [5], # [i for i in range(1, 12)],
+config_grid = {'strategy': ['ako', 'plain'], 
+               'batch'   : [8], # Smaller batch size generates more traffic
+               'parts'   : [5], # Number of partitions
                }
 
 run_experiments(n_epochs=1)

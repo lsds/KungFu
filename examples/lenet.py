@@ -98,7 +98,9 @@ def build_train_ops(kungfu_strategy, ako_partitions):
     if kungfu_strategy == 'ako':
         from kungfu.optimizers import AkoOptimizer
         optimizer = AkoOptimizer(optimizer, ako_partitions=ako_partitions)
-
+    else:
+        from kungfu.optimizers import ParallelOptimizer
+        optimizer = ParallelOptimizer(optimizer)
 
     train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(y,1))
