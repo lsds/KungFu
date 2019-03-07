@@ -18,7 +18,7 @@ import "C"
 
 //export GoNewRankedOrderGroup
 func GoNewRankedOrderGroup(nNames int, cPtr *C.struct_order_group_s) {
-	gPtr := og.NewRanked(nNames, og.Option{AutoWait: true})
+	gPtr := og.New(nNames, og.Option{AutoWait: true})
 	// TODO: make sure gPtr will not be auto GCed.
 	cPtr.ptr = unsafe.Pointer(gPtr)
 }
