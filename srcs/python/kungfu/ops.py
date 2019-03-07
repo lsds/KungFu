@@ -81,6 +81,6 @@ def gpu_group_all_reduce(ts):
 def group_all_reduce(ts):
     # FIXME: auto determine device
     if _has_gpu:
-        gpu_group_all_reduce(ts)
+        return gpu_group_all_reduce(ts)
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)

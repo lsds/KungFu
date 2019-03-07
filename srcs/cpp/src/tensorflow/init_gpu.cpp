@@ -23,7 +23,7 @@ world<gpu>::~world() {}
 
 void world<gpu>::StartGroup(const std::vector<std::string> &names)
 {
-    _gpu_all_reduce_group.reset(new all_reduce_group(names));
+    _gpu_all_reduce_group.reset(new order_group(names));
 }
 
 int world<gpu>::AllReduce(DoneCallback ready, const void *sendbuf,
