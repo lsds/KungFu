@@ -28,8 +28,8 @@ def _load_and_init_op_lib():
         # FIXME: auto detect GPU support
         _init_lib.kungfu_tensorflow_init_gpu()
         has_gpu = True
-    except:
-        pass
+    except Exception as e:
+        print('kungfu_tensorflow_init_gpu FAILED: %s' % e)
     return _op_lib, has_gpu
 
 

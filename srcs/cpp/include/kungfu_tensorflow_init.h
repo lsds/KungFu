@@ -16,10 +16,8 @@ extern std::unique_ptr<kungfu_world> _kungfu_world;
 
 namespace kungfu
 {
-namespace tensorflow
-{
-
-class all_reduce_group
+// order_group wraps order_group_t
+class order_group
 {
     order_group_t *_og;
     std::map<std::string, int> _ranks;
@@ -27,14 +25,17 @@ class all_reduce_group
   public:
     using Task = DoneCallback;
 
-    all_reduce_group(const std::vector<std::string> &names);
+    order_group(const std::vector<std::string> &names);
 
-    ~all_reduce_group();
+    ~order_group();
 
     void start(const std::string &name, Task task);
 
     void wait();
 };
+
+namespace tensorflow
+{
 
 struct cpu;
 struct gpu;
@@ -45,7 +46,7 @@ template <> class world<gpu>
 {
     std::unique_ptr<gpu_collective> _gpu_collective;
 
-    std::unique_ptr<all_reduce_group> _gpu_all_reduce_group;
+    std::unique_ptr<order_group> _gpu_all_reduce_group;
 
   public:
     world();
