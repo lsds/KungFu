@@ -3,7 +3,6 @@ set -e
 
 cd $(dirname $0)/..
 ROOT=$(pwd)
-export GOPATH=${ROOT}/gopath
 
 CMAKE_SOURCE_DIR=$(pwd)
 export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
@@ -17,20 +16,34 @@ get_go_source() {
     fi
 }
 
-if [ -z "${GO_X_CRYPTO_GIT_URL}" ]; then
-    GO_X_CRYPTO_GIT_URL=https://github.com/golang/crypto.git
-fi
+go_install_old() {
+    export GOPATH=${ROOT}/gopath
 
-get_go_source $GO_X_CRYPTO_GIT_URL $GOPATH/src/golang.org/x/crypto
+    if [ -z "${GO_X_CRYPTO_GIT_URL}" ]; then
+        GO_X_CRYPTO_GIT_URL=https://github.com/golang/crypto.git
+    fi
 
-gomod=$(head -n 1 ${ROOT}/go.mod | awk '{print $2}')
-src_loc=$GOPATH/src/$gomod
-mkdir -p $(dirname $src_loc)
-[ -d $src_loc ] && rm $src_loc
-ln -v -s $ROOT $src_loc
+    get_go_source $GO_X_CRYPTO_GIT_URL $GOPATH/src/golang.org/x/crypto
 
-./configure $@ && make
-env \
-    GO111MODULE=off \
-    GOBIN=$(pwd)/bin \
-    go install -v ./srcs/go/cmd/...
+    gomod=$(head -n 1 ${ROOT}/go.mod | awk '{print $2}')
+    src_loc=$GOPATH/src/$gomod
+    mkdir -p $(dirname $src_loc)
+    [ -d $src_loc ] && rm $src_loc
+    ln -v -s $ROOT $src_loc
+
+    ./configure $@ && make
+    env \
+        GO111MODULE=off \
+        GOBIN=$(pwd)/bin \
+        go install -v ./srcs/go/cmd/...
+}
+
+go_install() {
+    ./configure --no-tests && make
+    env \
+        GOPROXY=https://goproxy.io \
+        GOBIN=$(pwd)/bin \
+        go install -v ./srcs/go/cmd/...
+}
+
+go_install
