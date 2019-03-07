@@ -10,8 +10,8 @@ RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
 ENV PATH=${PATH}:/usr/local/go/bin
 
 ADD scripts /src/scripts
-RUN PREFIX=/usr /src/scripts/install-nccl.sh
-# RUN /src/scripts/install-gtest.sh
+RUN PREFIX=/usr /src/scripts/install-nccl.sh && \
+    rm /usr/lib/x86_64-linux-gnu/libnccl.so.2
 
 ADD . /src/kungfu
 WORKDIR /src/kungfu
