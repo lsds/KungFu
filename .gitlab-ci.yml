@@ -19,9 +19,6 @@ job1:
   - | # Go test
     ./scripts/tests/run-go-tests.sh
 
-  - | # Python test
-    python3 ./srcs/python/kungfu/tests/ako_partition_test.py
-
 job2:
   stage: integration test
   script:
