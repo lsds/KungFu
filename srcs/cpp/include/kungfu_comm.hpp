@@ -8,6 +8,8 @@ namespace kungfu
 class sync_communicator
 {
   public:
+    virtual ~sync_communicator() {}
+
     virtual void bcast(const void *send_buf, void *recv_buf, size_t count,
                        KungFu_Datatype dtype) = 0;
 
@@ -21,6 +23,8 @@ class sync_communicator
 class async_communicator
 {
   public:
+    virtual ~async_communicator() {}
+
     virtual void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                             KungFu_Datatype dtype, const char *name,
                             DoneCallback done) = 0;
