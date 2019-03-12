@@ -94,6 +94,8 @@ class kungfu_world
 
     int32_t AdvanceGlobalStep() { return ++_global_step; }
 
+    int32_t GetGlobalStep() { return _global_step; }
+
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
