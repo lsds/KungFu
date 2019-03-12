@@ -1,5 +1,4 @@
 import tensorflow as tf
-from kungfu.ops import group_all_reduce
 
 
 class KungFuOptimizer(tf.train.Optimizer):
@@ -32,14 +31,9 @@ class KungFuOptimizer(tf.train.Optimizer):
     def compute_gradients(self, *args, **kwargs):
         """Compute gradients and negotiate with peers."""
         grads_and_vars = self._optimizer.compute_gradients(*args, **kwargs)
-        grads_to_negotiate = []
-        variables_to_update = []
+        grads_and_vars_to_negotiate = []
         for grad, var in grads_and_vars:
             if grad is not None:
-                grads_to_negotiate.append(grad)
-                variables_to_update.append(var)
-        negotiated_grads = group_all_reduce(grads_to_negotiate)
-        return list(zip(negotiated_grads, variables_to_update))
                 grads_and_vars_to_negotiate.append((grad, var))
 
         def build_op():
