@@ -83,5 +83,4 @@ class GlobalVariance : public OpKernel
 
 REGISTER_KERNEL_BUILDER(Name("GlobalVariance").Device(DEVICE_CPU),
                         GlobalVariance);
-
 }  // namespace tensorflow

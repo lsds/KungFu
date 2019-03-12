@@ -45,6 +45,8 @@ IF(KUNGFU_BUILD_TF_OPS)
                   srcs/cpp/src/tensorflow/ops/common.cpp
                   srcs/cpp/src/tensorflow/ops/collective.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
+                  srcs/cpp/src/tensorflow/ops/collective.cpp
+                  srcs/cpp/src/tensorflow/ops/ako.cpp)
 
     IF(KUNGFU_USE_NCCL)
         TARGET_SOURCES(kungfu_tensorflow_init
