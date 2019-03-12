@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <kungfu.h>
-#include <kungfu_gpu_collective.hpp>
+#include <kungfu_comm.hpp>
 
 extern "C" {
 extern void kungfu_tensorflow_init();
@@ -42,11 +42,35 @@ struct gpu;
 
 template <class device> class world;
 
+template <> class world<cpu>
+{
+    std::unique_ptr<sync_communicator> _local_nccl_comm;
+    std::unique_ptr<async_communicator> _inter_host_comm;
+
+    std::unique_ptr<order_group> _local_reduce_group;
+    std::unique_ptr<order_group> _local_bcast_group;
+
+  public:
+    world();
+
+    ~world();
+
+    void StartGroup(const std::vector<std::string> &name);
+
+    int AllReduce(DoneCallback ready, const void *sendbuf, void *recvbuf,
+                  int count, KungFu_Datatype dtype, KungFu_Op op,
+                  const char *name, DoneCallback done);
+};
+
+extern std::unique_ptr<world<cpu>> _world_cpu;
+
 template <> class world<gpu>
 {
-    std::unique_ptr<gpu_collective> _gpu_collective;
+    std::unique_ptr<sync_communicator> _local_nccl_comm;
+    std::unique_ptr<async_communicator> _inter_host_comm;
 
-    std::unique_ptr<order_group> _gpu_all_reduce_group;
+    std::unique_ptr<order_group> _local_reduce_group;
+    std::unique_ptr<order_group> _local_bcast_group;
 
   public:
     world();

@@ -65,12 +65,14 @@ var (
 	KungFu_Ring   = KungFu_AllReduceAlgo(C.KungFu_RingAllReduce)
 	KungFu_Clique = KungFu_AllReduceAlgo(C.KungFu_CliqueAllReduce)
 	KungFu_Tree   = KungFu_AllReduceAlgo(C.KungFu_TreeAllReduce)
+	KungFu_Hybird = KungFu_AllReduceAlgo(C.KungFu_HybirdAllReduce)
 
 	algoNames = map[KungFu_AllReduceAlgo]string{
 		KungFu_Star:   `STAR`,
 		KungFu_Ring:   `RING`,
 		KungFu_Clique: `CLIQUE`,
 		KungFu_Tree:   `TREE`,
+		KungFu_Hybird: `HYBIRD`,
 	}
 
 	defaultAlgo = KungFu_Tree

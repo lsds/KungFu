@@ -36,6 +36,10 @@ test_show_duration() {
     show_duration 10
 }
 
+succ() {
+    echo -e "\x1b[1;32mSUCCESS\x1b[m $@"
+}
+
 measure() {
     if [ ! -z $SCRIPT_NAME ]; then
         local name=$SCRIPT_NAME
@@ -54,5 +58,7 @@ measure() {
     local end=$(date +%s)
     local duration=$((end - begin))
     local dur=$(show_duration $duration)
+
     echo "[done] $name $ $@ took ${dur}" | tee -a $log_dir/profile.log
+    succ $name
 }

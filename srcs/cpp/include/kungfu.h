@@ -34,6 +34,7 @@ extern const KungFu_AllReduceAlgo KungFu_StarAllReduce;
 extern const KungFu_AllReduceAlgo KungFu_RingAllReduce;
 extern const KungFu_AllReduceAlgo KungFu_CliqueAllReduce;
 extern const KungFu_AllReduceAlgo KungFu_TreeAllReduce;
+extern const KungFu_AllReduceAlgo KungFu_HybirdAllReduce;
 // extern KungFu_AllReduceAlgo KungFu_DynamicAllReduce;
 
 extern int KungfuInit(KungFu_AllReduceAlgo algo);
@@ -77,6 +78,7 @@ extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
                            const char *name, DoneCallback done);
 
+// FIXME: replace it by kungfu::world<cpu>
 class kungfu_world
 {
     KungFu_AllReduceAlgo _algo;

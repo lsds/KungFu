@@ -1,4 +1,4 @@
-#include <kungfu_gpu_collective.hpp>
+#include <kungfu_comm.hpp>
 
 #include <nccl.h>
 
@@ -38,22 +38,45 @@ ncclDataType_t to_nccl_type(const KungFu_Datatype dtype)
     }
 }
 
-class gpu_collective_nccl : public gpu_collective
+class nccl_comm : public sync_communicator
 {
     ncclComm_t comm;
-    const int _rank;
     const int _cluster_size;
+    const int _rank;
+    const int _root;
 
   public:
-    gpu_collective_nccl(ncclUniqueId id, int cluster_size, int rank)
-        : _rank(rank), _cluster_size(cluster_size)
+    nccl_comm(ncclUniqueId id, int cluster_size, int rank)
+        : _cluster_size(cluster_size), _rank(rank), _root(0)
     {
         KUNGFU_CHECK(cuda_checker) << cudaSetDevice(0);
         KUNGFU_CHECK(nccl_checker)
             << ncclCommInitRank(&comm, cluster_size, id, rank);
     }
 
-    ~gpu_collective_nccl() { ncclCommDestroy(comm); }
+    ~nccl_comm() { ncclCommDestroy(comm); }
+
+    void bcast(const void *send_buf, void *recv_buf, size_t count,
+               KungFu_Datatype dtype)
+    {
+        cuda_stream stream;
+        // https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/api/colls.html#ncclbroadcast
+        KUNGFU_CHECK(nccl_checker)
+            << ncclBroadcast(send_buf, recv_buf, count, to_nccl_type(dtype),
+                             _root, comm, stream);
+        stream.sync();
+    }
+
+    void reduce(const void *send_buf, void *recv_buf, size_t count,
+                KungFu_Datatype dtype)
+    {
+        cuda_stream stream;
+        // https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/api/colls.html#ncclreduce
+        KUNGFU_CHECK(nccl_checker)
+            << ncclReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
+                          ncclSum, _root, comm, stream);
+        stream.sync();
+    }
 
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                     KungFu_Datatype dtype)
@@ -67,15 +90,14 @@ class gpu_collective_nccl : public gpu_collective
     }
 };
 
-gpu_collective *new_gpu_collective(kungfu_world &world)
+communicator *new_local_nccl_comm(kungfu_world &bootstrap)
 {
-
     ncclUniqueId id;
     const int root = 0;
-    const int rank = world.Rank();
+    const int rank = bootstrap.Rank();
     if (rank == root) { KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id); }
-    world.Broadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
-                    "nccl id");
-    return new gpu_collective_nccl(id, world.ClusterSize(), rank);
+    bootstrap.Broadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
+                        "nccl id");
+    return new nccl_comm(id, bootstrap.ClusterSize(), rank);
 }
 }  // namespace kungfu

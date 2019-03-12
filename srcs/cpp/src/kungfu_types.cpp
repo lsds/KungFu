@@ -37,3 +37,4 @@ const KungFu_AllReduceAlgo KungFu_StarAllReduce   = 0;
 const KungFu_AllReduceAlgo KungFu_RingAllReduce   = 1;
 const KungFu_AllReduceAlgo KungFu_CliqueAllReduce = 2;
 const KungFu_AllReduceAlgo KungFu_TreeAllReduce   = 3;
+const KungFu_AllReduceAlgo KungFu_HybirdAllReduce = 4;
