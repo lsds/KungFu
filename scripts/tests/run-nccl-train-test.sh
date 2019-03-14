@@ -12,7 +12,7 @@ export NCCL_HOME=$HOME/local/nccl
 
 env \
     KUNGFU_USE_NCCL=1 \
-    pip3 install --no-index --user -U .
+    pip3 install --no-index -U .
 
 KUNGFU_PRUN=${ROOT}/bin/kungfu-prun
 if [ ! -f ${KUNGFU_PRUN} ]; then
