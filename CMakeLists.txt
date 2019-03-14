@@ -31,30 +31,32 @@ IF(KUNGFU_USE_NCCL)
     INCLUDE(cmake/nccl.cmake)
 ENDIF()
 
-FUNCTION(SET_INSTALL_RPATH target)
-    SET_TARGET_PROPERTIES(${target} PROPERTIES INSTALL_RPATH "$ORIGIN")
-    SET_TARGET_PROPERTIES(${target} PROPERTIES BUILD_WITH_INSTALL_RPATH true)
-ENDFUNCTION()
-
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(cmake/tf-op.cmake)
+    INCLUDE(cmake/rpath.cmake)
 
-    ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/kungfu_python.cpp)
-    TARGET_LINK_LIBRARIES(kungfu_python kungfu)
+    ADD_LIBRARY(kungfu_tensorflow_init SHARED srcs/cpp/src/tensorflow/init.cpp)
+    TARGET_LINK_LIBRARIES(kungfu_tensorflow_init kungfu)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops #
                   srcs/cpp/src/tensorflow/ops/common.cpp
                   srcs/cpp/src/tensorflow/ops/collective.cpp
                   srcs/cpp/src/tensorflow/ops/ako.cpp)
-    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
+    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
-    IF(UNIX)
-        SET_INSTALL_RPATH(kungfu_python)
-        SET_INSTALL_RPATH(kungfu_tensorflow_ops)
+    IF(KUNGFU_USE_NCCL)
+        TARGET_SOURCES(kungfu_tensorflow_init
+                       PRIVATE
+                       srcs/cpp/src/tensorflow/init_gpu.cpp
+                       srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
+        USE_NCCL(kungfu_tensorflow_init)
+        TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE
+                       srcs/cpp/src/tensorflow/ops/collective_gpu.cpp)
     ENDIF()
-    IF(APPLE)
-        # FIXME: ?
-    ENDIF()
+
+    SET_TF_CXX11_ABI(kungfu_tensorflow_init)
+    SET_INSTALL_RPATH(kungfu_tensorflow_init)
+    SET_INSTALL_RPATH(kungfu_tensorflow_ops)
 ENDIF()
 
 IF(KUNGFU_BUILD_TESTS)

@@ -1,0 +1,19 @@
+FROM tensorflow/tensorflow:1.12.0-gpu-py3 AS builder
+
+ADD docker/sources.list.aliyun /etc/apt/sources.list
+RUN rm -fr /etc/apt/sources.list.d/* && \
+    apt update && \
+    apt install -y cmake wget
+RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
+    tar -C /usr/local -xf go1.11.linux-amd64.tar.gz && \
+    rm go1.11.linux-amd64.tar.gz
+ENV PATH=${PATH}:/usr/local/go/bin
+
+ADD scripts /src/scripts
+RUN PREFIX=/usr /src/scripts/install-nccl.sh && \
+    rm /usr/lib/x86_64-linux-gnu/libnccl.so.2
+
+ADD . /src/kungfu
+WORKDIR /src/kungfu
+
+# RUN pip3 install --no-index -U .

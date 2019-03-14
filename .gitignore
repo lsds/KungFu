@@ -14,6 +14,7 @@ __pycache__
 *.tar
 *.tar.bz2
 *.tar.gz
+*.test
 *.whl
 /3rdparty
 /bin

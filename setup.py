@@ -44,6 +44,13 @@ class CMakeBuild(build_ext):
             # cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
         ]
 
+        use_nccl = os.getenv('KUNGFU_USE_NCCL')
+        if use_nccl:
+            cmake_args.append(cmake_flag('KUNGFU_USE_NCCL', use_nccl))
+            nccl_home = os.getenv('NCCL_HOME')
+            if nccl_home:
+                cmake_args.append(cmake_flag('NCCL_HOME', nccl_home))
+
         ensure_absent(os.path.join(ext.sourcedir, 'CMakeCache.txt'))
 
         subprocess.check_call(

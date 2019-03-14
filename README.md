@@ -4,7 +4,7 @@ KungFu distributed machine learning framework
 
 ## Install
 
-Make sure you have tensorflow python installed.
+Make sure you have `tensorflow` or `tensorflow-gpu` python library installed.
 
 ```bash
 # install
@@ -12,6 +12,17 @@ pip3 install --no-index -U .
 
 # FIXME: For Mac users, the following is required after the install:
 # export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
+```
+
+To enable NCCL support
+
+```bash
+# uncomment to use your own NCCL
+# export NCCL_HOME=$HOME/local/nccl
+
+env \
+    KUNGFU_USE_NCCL=1 \
+    pip3 install --no-index --user -U .
 ```
 
 ## Example

@@ -42,6 +42,15 @@ extern int KungfuFinalize();
 
 extern KungFu_AllReduceAlgo KungfuGetAlgoFromEnv();
 
+typedef struct CallbackWrapper callback_t;
+
+typedef struct order_group_s order_group_t;
+
+extern order_group_t *new_ranked_order_group(int n_names);
+extern void del_order_group(order_group_t *);
+extern void order_group_do_rank(order_group_t *, int rank, callback_t *task);
+extern void order_group_wait(order_group_t *);
+
 #ifdef __cplusplus
 }
 
@@ -78,6 +87,10 @@ class kungfu_world
     kungfu_world();
 
     ~kungfu_world();
+
+    int Rank() const;
+
+    int ClusterSize() const;
 
     int32_t AdvanceGlobalStep() { return ++_global_step; }
 

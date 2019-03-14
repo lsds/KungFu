@@ -54,6 +54,26 @@ int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
 
 KungFu_AllReduceAlgo KungfuGetAlgoFromEnv() { return GoKungfuGetAlgoFromEnv(); }
 
+order_group_t *new_ranked_order_group(int n_names)
+{
+    order_group_t *og = new order_group_t;
+    GoNewRankedOrderGroup(GoInt(n_names), og);
+    return og;
+}
+
+void del_order_group(order_group_t *og)
+{
+    GoFreeOrderGroup(og);
+    delete og;
+}
+
+void order_group_do_rank(order_group_t *og, int rank, callback_t *task)
+{
+    GoOrderGroupDoRank(og, rank, task);
+}
+
+void order_group_wait(order_group_t *og) { GoOrderGroupWait(og); }
+
 kungfu_world::kungfu_world()
     : _algo(KungfuGetAlgoFromEnv()), _global_step(0), _n_grads(0)
 {
@@ -61,3 +81,7 @@ kungfu_world::kungfu_world()
 }
 
 kungfu_world::~kungfu_world() { KungfuFinalize(); }
+
+int kungfu_world::Rank() const { return GoKungfuRank(); }
+
+int kungfu_world::ClusterSize() const { return GoKungfuClusterSize(); }
