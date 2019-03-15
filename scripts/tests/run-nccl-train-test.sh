@@ -24,12 +24,18 @@ SCRIPT=${ROOT}/experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
 # FIXME: don't depend on LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$NCCL_HOME/lib
 
-np=4
-timeout=45s
+run_nccl_benchmark() {
+    local image_format=$1
+    local np=4
+    local timeout=45s
 
-${KUNGFU_PRUN} \
-    -timeout $timeout \
-    -np $np \
-    python3 \
-    ${SCRIPT} \
-    --image-format=channels_first
+    ${KUNGFU_PRUN} \
+        -timeout $timeout \
+        -np $np \
+        python3 \
+        ${SCRIPT} \
+        --image-format=$image_format
+}
+
+run_nccl_benchmark channels_last
+run_nccl_benchmark channels_first
