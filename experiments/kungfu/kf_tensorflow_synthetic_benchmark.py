@@ -13,6 +13,7 @@ import timeit
 
 import tensorflow as tf
 from tensorflow.keras import applications
+from tensorflow.keras.layers import Input
 
 # Benchmark settings
 parser = argparse.ArgumentParser(
@@ -21,6 +22,11 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument(
     '--model', type=str, default='ResNet50', help='model to benchmark')
+parser.add_argument(
+    '--image-format',
+    type=str,
+    default='channels_last',
+    help='channels_last | channels_first')
 parser.add_argument(
     '--batch-size', type=int, default=32, help='input batch size')
 
@@ -67,8 +73,18 @@ else:
 if args.eager:
     tf.enable_eager_execution(config)
 
+if args.image_format == 'channels_first':
+    input_shape = (3, 244, 224)
+elif args.image_format == 'channels_last':
+    input_shape = (244, 224, 3)
+else:
+    raise RuntimeError('invalid image_format: %s' % args.image_format)
+
+input_tensor = Input(shape=input_shape)
+
 # Set up standard model.
-model = getattr(applications, args.model)(weights=None)
+model = getattr(applications, args.model)(
+    input_tensor=input_tensor, weights=None)
 
 opt = tf.train.GradientDescentOptimizer(0.01)
 
@@ -79,7 +95,7 @@ if args.kungfu:
 
 init = tf.global_variables_initializer()
 
-data = tf.random_uniform([args.batch_size, 224, 224, 3])
+data = tf.random_uniform((args.batch_size, ) + input_shape)
 target = tf.random_uniform([args.batch_size, 1],
                            minval=0,
                            maxval=999,

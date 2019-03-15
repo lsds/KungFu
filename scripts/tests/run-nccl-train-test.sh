@@ -31,4 +31,5 @@ ${KUNGFU_PRUN} \
     -timeout $timeout \
     -np $np \
     python3 \
-    ${SCRIPT}
+    ${SCRIPT} \
+    --image-format=channels_first
