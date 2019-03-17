@@ -17,7 +17,7 @@ type OrderGroup struct {
 	tasks    []Task
 	ready    chan int
 	isReady  []int32
-	wg       sync.WaitGroup
+	allDone  sync.WaitGroup
 	started  int32
 	autoWait bool
 }
@@ -31,7 +31,7 @@ func New(n int, opt Option) *OrderGroup {
 		isReady:  make([]int32, n),
 		autoWait: opt.AutoWait,
 	}
-	g.wg.Add(g.size)
+	g.allDone.Add(1)
 	g.Start()
 	return g
 }
@@ -60,13 +60,17 @@ func (g *OrderGroup) schedule() {
 			}
 			g.tasks[next]()
 			next++
-			g.wg.Done()
+		}
+		if next == g.size {
+			break
 		}
 	}
+	g.allDone.Done()
 }
 
+// Wait until all tasks done.
 func (g *OrderGroup) Wait() {
-	g.wg.Wait()
+	g.allDone.Wait()
 }
 
 func (g *OrderGroup) Stop() {
