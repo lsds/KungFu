@@ -33,4 +33,8 @@ run_nccl_experiment() {
 }
 
 run_nccl_experiment 4 ./tests/python/fake_tf_trainer.py
+
+run_nccl_experiment 1 ./experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
+run_nccl_experiment 2 ./experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
+run_nccl_experiment 3 ./experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
 run_nccl_experiment 4 ./experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
