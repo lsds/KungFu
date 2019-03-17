@@ -26,7 +26,9 @@ run_nccl_experiment() {
     local np=$1
     shift
     local timeout=45s
-    ${KUNGFU_PRUN} \
+    env \
+        TF_CPP_MIN_LOG_LEVEL=1 \
+        ${KUNGFU_PRUN} \
         -timeout $timeout \
         -np $np \
         python3 $@
