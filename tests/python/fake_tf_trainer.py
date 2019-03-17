@@ -5,7 +5,7 @@ import time
 import os
 
 import tensorflow as tf
-from kungfu.ops import all_reduce
+from kungfu.ops import group_all_reduce
 from resnet50 import grad_sizes
 
 
@@ -20,9 +20,10 @@ def gen_fake_train_op(sizes):
     grads = []
     for size in sizes:
         grads.append(tf.Variable(tf.ones(shape=(size, ), dtype=tf.float32)))
+    new_grads = group_all_reduce(grads)
     ops = []
-    for g in grads:
-        ops.append(tf.assign(g, all_reduce(g)))
+    for g, new_g in zip(grads, new_grads):
+        ops.append(tf.assign(g, new_g))
     return tf.group(ops)
 
 

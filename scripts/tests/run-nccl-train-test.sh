@@ -26,11 +26,19 @@ run_nccl_experiment() {
     local np=$1
     shift
     local timeout=45s
-    ${KUNGFU_PRUN} \
+    env \
+        TF_CPP_MIN_LOG_LEVEL=1 \
+        ${KUNGFU_PRUN} \
         -timeout $timeout \
         -np $np \
         python3 $@
 }
 
-run_nccl_experiment 4 ./tests/python/fake_tf_trainer.py
-run_nccl_experiment 4 ./experiments/kungfu/kf_tensorflow_synthetic_benchmark.py
+run_nccl_experiment_all() {
+    for np in $(seq 4); do
+        run_nccl_experiment $np $@
+    done
+}
+
+run_nccl_experiment_all ./tests/python/fake_tf_trainer.py
+run_nccl_experiment_all ./experiments/kungfu/kf_tensorflow_synthetic_benchmark.py

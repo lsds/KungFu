@@ -44,6 +44,8 @@ class gpu_collective_nccl : public gpu_collective
     const int _rank;
     const int _cluster_size;
 
+    cuda_stream _stream;
+
   public:
     gpu_collective_nccl(ncclUniqueId id, int cluster_size, int rank)
         : _rank(rank), _cluster_size(cluster_size)
@@ -58,12 +60,11 @@ class gpu_collective_nccl : public gpu_collective
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                     KungFu_Datatype dtype)
     {
-        cuda_stream stream;
         // https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/api/colls.html#ncclallreduce
         KUNGFU_CHECK(nccl_checker)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
-                             ncclSum, comm, stream);
-        stream.sync();
+                             ncclSum, comm, _stream);
+        _stream.sync();
     }
 };
 
