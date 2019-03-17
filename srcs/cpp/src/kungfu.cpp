@@ -57,7 +57,7 @@ KungFu_AllReduceAlgo KungfuGetAlgoFromEnv() { return GoKungfuGetAlgoFromEnv(); }
 order_group_t *new_ranked_order_group(int n_names)
 {
     order_group_t *og = new order_group_t;
-    GoNewRankedOrderGroup(GoInt(n_names), og);
+    GoNewOrderGroup(GoInt(n_names), og);
     return og;
 }
 
