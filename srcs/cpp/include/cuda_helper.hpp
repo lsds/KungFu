@@ -23,7 +23,15 @@ class cuda_stream
   public:
     cuda_stream() { KUNGFU_CHECK(cuda_checker) << cudaStreamCreate(&_stream); }
 
-    ~cuda_stream() { KUNGFU_CHECK(cuda_checker) << cudaStreamDestroy(_stream); }
+    ~cuda_stream()
+    {
+        const cudaError_t err = cudaStreamDestroy(_stream);
+        if (err == 29) {
+            // ignore: 29: driver shutting down
+            return;
+        }
+        KUNGFU_CHECK(cuda_checker) << err;
+    }
 
     void sync()
     {
