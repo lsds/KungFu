@@ -28,9 +28,9 @@ class AllReduce : public AsyncOpKernel
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
-        OP_REQUIRES(context, input_tensor_name_.size() >= 0,
-                    errors::InvalidArgument(
-                        "Need input_tensor_name must not be empty"));
+        OP_REQUIRES(
+            context, input_tensor_name_.size() >= 0,
+            errors::InvalidArgument("input_tensor_name must not be empty"));
     }
 
   public:
