@@ -21,7 +21,7 @@ class StartGpuGroup : public OpKernel
         const auto t_names  = input.vec<std::string>();
         std::vector<std::string> names;
         for (int i = 0; i < t_names.size(); ++i) {
-            names.push_back("kungfu_" + t_names(i));
+            names.push_back(t_names(i));
         }
         kungfu::tensorflow::_world_gpu->StartGroup(names);
     }
@@ -32,6 +32,7 @@ REGISTER_KERNEL_BUILDER(Name("StartGpuGroup").Device(DEVICE_CPU),
 
 REGISTER_OP("AllReduceGpu")
     .Attr("T: {int32, int64, float32, float64}")
+    .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
@@ -41,9 +42,19 @@ REGISTER_OP("AllReduceGpu")
 
 class AllReduceGpu : public AsyncOpKernel
 {
-    using AsyncOpKernel::AsyncOpKernel;
+    std::string input_tensor_name_;
 
   public:
+    explicit AllReduceGpu(OpKernelConstruction *context)
+        : AsyncOpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
+                                                 &input_tensor_name_));
+        OP_REQUIRES(context, input_tensor_name_.size() >= 0,
+                    errors::InvalidArgument(
+                        "Need input_tensor_name must not be empty"));
+    }
+
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
@@ -57,7 +68,7 @@ class AllReduceGpu : public AsyncOpKernel
             },
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            name().c_str(), done);
+            input_tensor_name_.c_str(), done);
     }
 };
 

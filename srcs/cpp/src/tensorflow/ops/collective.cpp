@@ -11,6 +11,7 @@ namespace tensorflow
 // exactly the same shape.
 REGISTER_OP("AllReduce")
     .Attr("T: {int32, int64, float32, float64}")
+    .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
@@ -20,7 +21,17 @@ REGISTER_OP("AllReduce")
 
 class AllReduce : public AsyncOpKernel
 {
-    using AsyncOpKernel::AsyncOpKernel;
+    std::string input_tensor_name_;
+
+  public:
+    explicit AllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
+                                                 &input_tensor_name_));
+        OP_REQUIRES(context, input_tensor_name_.size() >= 0,
+                    errors::InvalidArgument(
+                        "Need input_tensor_name must not be empty"));
+    }
 
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -32,7 +43,7 @@ class AllReduce : public AsyncOpKernel
         _kungfu_world->AllReduce(
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            name().c_str(), done);
+            input_tensor_name_.c_str(), done);
     }
 };
 
