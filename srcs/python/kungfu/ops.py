@@ -41,14 +41,16 @@ def broadcast(t):
 
 
 def all_reduce(t):
-    return _op_lib.all_reduce(t, name='kungfu_' + t.name[:-2])
+    return _op_lib.all_reduce(t, input_tensor_name=t.name[:-2])
 
 
 def all_reduce_gpu(t):
-    return _op_lib.all_reduce_gpu(t, name='kungfu_' + t.name[:-2])
+    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name[:-2])
+
 
 def ako_all_reduce(t, partition_id, num_partitions):
     return _op_lib.ako_negotiator(t, partition_id, num_partitions)
+
 
 def global_variance(t):
     return _op_lib.global_variance(t)
