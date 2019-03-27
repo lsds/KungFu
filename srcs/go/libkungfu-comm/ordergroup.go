@@ -10,17 +10,17 @@ import (
 #include <kungfu_base.h>
 
 struct order_group_s {
-    void * ptr;
+    void * _go_ptr;
 };
 
 */
 import "C"
 
-//export GoNewRankedOrderGroup
-func GoNewRankedOrderGroup(nNames int, cPtr *C.struct_order_group_s) {
-	gPtr := og.New(nNames, og.Option{AutoWait: true})
-	// TODO: make sure gPtr will not be auto GCed.
-	cPtr.ptr = unsafe.Pointer(gPtr)
+//export GoNewOrderGroup
+func GoNewOrderGroup(nNames int, cPtr *C.struct_order_group_s) {
+	goPtr := og.New(nNames, og.Option{AutoWait: true})
+	// TODO: make sure goPtr will not be auto GCed.
+	cPtr._go_ptr = unsafe.Pointer(goPtr)
 }
 
 //export GoFreeOrderGroup
@@ -43,10 +43,11 @@ func GoOrderGroupWait(cPtr *C.struct_order_group_s) {
 	g.Wait()
 }
 
-func freeOrderGroup(gPtr *og.OrderGroup) {
-	// TODO:
+func freeOrderGroup(g *og.OrderGroup) {
+	g.Stop()
+	// TODO: GC g
 }
 
 func toOrderGroup(cPtr *C.struct_order_group_s) *og.OrderGroup {
-	return (*og.OrderGroup)(cPtr.ptr)
+	return (*og.OrderGroup)(cPtr._go_ptr)
 }

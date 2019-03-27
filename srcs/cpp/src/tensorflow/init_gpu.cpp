@@ -16,35 +16,25 @@ std::unique_ptr<world<gpu>> _world_gpu;
 
 world<gpu>::world()
 {
-    _local_nccl_comm.reset(new_local_nccl_comm(*_kungfu_world));
+    _gpu_collective.reset(new_gpu_collective(*_kungfu_world));
 }
 
 world<gpu>::~world() {}
 
 void world<gpu>::StartGroup(const std::vector<std::string> &names)
 {
-    _local_reduce_group.reset(new order_group(names));
-    _local_bcast_group.reset(new order_group(names));
+    _gpu_all_reduce_group.reset(new order_group(names));
 }
 
 int world<gpu>::AllReduce(DoneCallback ready, const void *sendbuf,
                           void *recvbuf, int count, KungFu_Datatype dtype,
                           KungFu_Op op, const char *name, DoneCallback done)
 {
-    auto _local_comm = _local_nccl_comm.get();
-    auto _inter_comm = _inter_host_comm.get();
-
-    _local_reduce_group->start(name, [=] {
+    _gpu_all_reduce_group->start(name, [=, comm = _gpu_collective.get()]() {
         ready();
-        _local_comm->reduce(sendbuf, recvbuf, count, dtype);
-        _inter_comm->all_reduce(recvbuf, recvbuf, count, dtype, name, [=] {
-            _local_bcast_group->start(name, [=] {
-                _local_comm->bcast(recvbuf, recvbuf, count, dtype);
-                done();
-            });
-        });
+        comm->all_reduce(sendbuf, recvbuf, count, dtype);
+        done();
     });
-
     return 0;
 }
 

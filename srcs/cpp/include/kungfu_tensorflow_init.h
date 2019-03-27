@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <kungfu.h>
-#include <kungfu_comm.hpp>
+#include <kungfu_gpu_collective.hpp>
 
 extern "C" {
 extern void kungfu_tensorflow_init();
@@ -71,20 +71,24 @@ template <> class world<gpu>
 
     std::unique_ptr<order_group> _local_reduce_group;
     std::unique_ptr<order_group> _local_bcast_group;
+    template <> class world<gpu>
+    {
+        std::unique_ptr<gpu_collective> _gpu_collective;
 
-  public:
-    world();
+        std::unique_ptr<order_group> _gpu_all_reduce_group;
 
-    ~world();
+      public:
+        world();
 
-    void StartGroup(const std::vector<std::string> &name);
+        ~world();
 
-    int AllReduce(DoneCallback ready, const void *sendbuf, void *recvbuf,
-                  int count, KungFu_Datatype dtype, KungFu_Op op,
-                  const char *name, DoneCallback done);
-};
+        void StartGroup(const std::vector<std::string> &name);
 
-extern std::unique_ptr<world<gpu>> _world_gpu;
+        int AllReduce(DoneCallback ready, const void *sendbuf, void *recvbuf,
+                      int count, KungFu_Datatype dtype, KungFu_Op op,
+                      const char *name, DoneCallback done);
+    };
+
+    extern std::unique_ptr<world<gpu>> _world_gpu;
 
 }  // namespace tensorflow
-}  // namespace kungfu

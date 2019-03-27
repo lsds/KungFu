@@ -39,6 +39,7 @@ IF(KUNGFU_BUILD_TF_OPS)
                 SHARED
                 srcs/cpp/src/tensorflow/init.cpp
                 srcs/cpp/src/kungfu_comm_go.cpp)
+    ADD_LIBRARY(kungfu_tensorflow_init SHARED srcs/cpp/src/tensorflow/init.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_init kungfu)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops #
@@ -52,6 +53,7 @@ IF(KUNGFU_BUILD_TF_OPS)
                        PRIVATE
                        srcs/cpp/src/tensorflow/init_gpu.cpp
                        srcs/cpp/src/kungfu_nccl_comm.cpp)
+                       srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
         USE_NCCL(kungfu_tensorflow_init)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE
                        srcs/cpp/src/tensorflow/ops/collective_gpu.cpp)
