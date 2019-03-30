@@ -48,15 +48,3 @@ RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
     tar -C /usr/local -xf go1.11.linux-amd64.tar.gz && \
     rm go1.11.linux-amd64.tar.gz
 ENV PATH=${PATH}:/usr/local/go/bin
-
-# Add the KungFu sources
-ADD . /KungFu
-
-# Install KungFu
-RUN cd /KungFu && \
-        ldconfig /usr/local/cuda-9.0/targets/x86_64-linux/lib/stubs && \
-        env KUNGFU_USE_NCCL=1 pip3 install --no-index --user -U . && \
-        ldconfig && \
-        ./scripts/go-install.sh
-
-WORKDIR /

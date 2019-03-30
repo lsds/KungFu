@@ -1,0 +1,15 @@
+# KungFu Docker image based on Huawei ModelArts CUDA 9
+# ModelArts example: https://github.com/huawei-clouds/modelarts-example/blob/master/CustomImage
+FROM swr.cn-north-1.myhuaweicloud.com/eiwizard/custom-gpu-cuda9-base:1.0 as base
+
+# Add the KungFu sources
+ADD . /KungFu
+
+# Install KungFu
+RUN cd /KungFu && \
+        ldconfig /usr/local/cuda-9.0/targets/x86_64-linux/lib/stubs && \
+        env KUNGFU_USE_NCCL=1 pip3 install --no-index --user -U . && \
+        ldconfig && \
+        ./scripts/go-install.sh
+
+WORKDIR /
