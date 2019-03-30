@@ -2,8 +2,11 @@
 # ModelArts example: https://github.com/huawei-clouds/modelarts-example/blob/master/CustomImage
 FROM swr.cn-north-1.myhuaweicloud.com/eiwizard/custom-gpu-cuda9-base:1.0 as base
 
+ARG SOURCES_LIST=docker/sources.list.aliyun
+ADD ${SOURCES_LIST} /etc/apt/sources.list
+
 # Fix the source lists
-RUN sed -i 's/cmc-cd-mirror.rnd.huawei.com/security.ubuntu.com/g' /etc/apt/sources.list
+# RUN sed -i 's/cmc-cd-mirror.rnd.huawei.com/security.ubuntu.com/g' /etc/apt/sources.list
 
 # The pip source has been pre-configured to an internal source. Roll back to public sources.
 RUN rm $HOME/.pip/pip.conf
@@ -42,7 +45,7 @@ RUN apt update && apt install -y --no-install-recommends \
         && rm -rf /var/lib/apt/lists/*
 
 # Install tensorflow-gpu 1.12.0
-RUN pip3 install tensorflow-gpu==1.12.0
+RUN pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple tensorflow-gpu==1.12.0
 
 # Install golang 1.11.1
 RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
@@ -51,10 +54,10 @@ RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
 ENV PATH=${PATH}:/usr/local/go/bin
 
 # Add the KungFu sources
-ADD ./KungFu /KungFu
+ADD . /KungFu
 
 # Install KungFu
-RUN cd KungFu && \
+RUN cd /KungFu && \
         ldconfig /usr/local/cuda-10.0/targets/x86_64-linux/lib/stubs && \
         env KUNGFU_USE_NCCL=1 pip3 install --no-index --user -U . && \
         ldconfig && \
