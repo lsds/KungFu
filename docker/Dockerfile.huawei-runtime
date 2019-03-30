@@ -1,6 +1,4 @@
-# KungFu Docker image based on Huawei ModelArts CUDA 9
-# ModelArts example: https://github.com/huawei-clouds/modelarts-example/blob/master/CustomImage
-FROM swr.cn-north-1.myhuaweicloud.com/eiwizard/custom-gpu-cuda9-base:1.0 as base
+FROM swr.cn-north-1.myhuaweicloud.com/mailuo/kungfu-huawei-builder:v.1
 
 # Add the KungFu sources
 ADD . /KungFu
