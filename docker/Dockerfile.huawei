@@ -2,7 +2,7 @@
 # ModelArts example: https://github.com/huawei-clouds/modelarts-example/blob/master/CustomImage
 FROM swr.cn-north-1.myhuaweicloud.com/eiwizard/custom-gpu-cuda9-base:1.0 as base
 
-ARG SOURCES_LIST=docker/sources.list.aliyun
+ARG SOURCES_LIST=docker/sources.list.xenial-aliyun
 ADD ${SOURCES_LIST} /etc/apt/sources.list
 
 # Fix the source lists
