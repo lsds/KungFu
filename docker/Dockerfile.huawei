@@ -13,7 +13,9 @@ RUN rm $HOME/.pip/pip.conf
 
 # Add the NVIDIA package repo and fetch key
 # Reference: https://gitlab.com/nvidia/cuda/blob/ubuntu16.04/9.0/base/Dockerfile#L4
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates apt-transport-https gnupg-curl && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates apt-transport-https gnupg-curl \
+    build-essential git wget cmake python3 python3-pip python3-setuptools && \
     rm -rf /var/lib/apt/lists/* && \
     NVIDIA_GPGKEY_SUM=d1be581509378368edeec8c1eb2958702feedf3bc3d17011adbf24efacce4ab5 && \
     NVIDIA_GPGKEY_FPR=ae09fe4bbd223a84b2ccfce3f60f4b3d7fa2af80 && \
@@ -26,7 +28,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 # Install the GPU support for TensorFlow 1.12 (CUDA 9)
 # Reference: https://www.tensorflow.org/install/gpu
 RUN apt update && apt install -y --no-install-recommends \
-        build-essential \
         cuda9.0 \
         cuda-cublas-9-0 \
         cuda-cufft-9-0 \
@@ -36,12 +37,6 @@ RUN apt update && apt install -y --no-install-recommends \
         libcudnn7=7.2.1.38-1+cuda9.0 \
         libnccl2=2.2.13-1+cuda9.0 \
         cuda-command-line-tools-9-0 \
-        git \
-        wget \
-        cmake \
-        python3 \
-        python3-pip  \
-        python3-setuptools \
         && rm -rf /var/lib/apt/lists/*
 
 # Install tensorflow-gpu 1.12.0
