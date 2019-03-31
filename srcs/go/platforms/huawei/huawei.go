@@ -29,6 +29,9 @@ func ParseEnv() (*ContainerInfo, error) {
 		return nil, err
 	}
 	peers, err := parsePeers(num)
+	if err != nil {
+		return nil, err
+	}
 	return &ContainerInfo{
 		ContainerIndex: idx,
 		ClusterSize:    num,
