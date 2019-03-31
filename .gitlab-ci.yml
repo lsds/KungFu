@@ -23,7 +23,7 @@ job2:
   stage: integration test
   script:
   - |
-    ./configure
+    ./configure --build-tests
     make
   - |
     ./scripts/tests/run-integration-tests.sh
