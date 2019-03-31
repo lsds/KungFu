@@ -12,7 +12,7 @@ job1:
 
   script:
   - | # C++ test
-    ./configure
+    ./configure --build-tests
     make
     make test
 
@@ -23,7 +23,7 @@ job2:
   stage: integration test
   script:
   - |
-    ./configure
+    ./configure --build-tests
     make
   - |
     ./scripts/tests/run-integration-tests.sh
