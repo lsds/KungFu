@@ -7,8 +7,9 @@ cd $(dirname $0)
 if [ -z "${BUILD_GTEST}" ]; then
     BUILD_GTEST=0 # download and build gtest from source
 fi
-BUILD_TESTS=1 # build unit tests
+BUILD_TESTS=0 # build unit tests
 BUILD_TENSORFLOW_OPS=0
+BUILD_TOOLS=0
 VERBOSE=0
 
 NCCL_HOME=$HOME/local/nccl
@@ -26,6 +27,9 @@ parse_args() {
         case $i in
         --build-tensorflow-ops)
             BUILD_TENSORFLOW_OPS=1
+            ;;
+        --build-tools)
+            BUILD_TOOLS=1
             ;;
         --build-gtest)
             BUILD_GTEST=1
@@ -84,6 +88,7 @@ add_cmake_flags() {
     add_cmake_flag KUNGFU_BUILD_GTEST ${BUILD_GTEST}
     add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
     add_cmake_flag KUNGFU_BUILD_TF_OPS ${BUILD_TENSORFLOW_OPS}
+    add_cmake_flag KUNGFU_BUILD_TOOLS ${BUILD_TOOLS}
 
     if [ ! -z ${WITH_MPI} ]; then
         add_cmake_flag MPI_HOME ${WITH_MPI}
