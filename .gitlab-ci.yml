@@ -12,7 +12,7 @@ job1:
 
   script:
   - | # C++ test
-    ./configure
+    ./configure --build-tests
     make
     make test
 

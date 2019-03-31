@@ -34,6 +34,9 @@ parse_args() {
         --build-gtest)
             BUILD_GTEST=1
             ;;
+        --build-tests)
+            BUILD_TESTS=1
+            ;;
         --no-tests)
             BUILD_TESTS=0
             ;;
