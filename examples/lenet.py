@@ -13,7 +13,6 @@ from kungfu.helpers.mnist import load_datasets
 
 import kungfu as kf
 
-# TODO: add to kungfu optimizer; use model size in bits x64
 def get_number_of_trainable_parameters():
     return np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
 
