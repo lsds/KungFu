@@ -4,6 +4,7 @@ http://yann.lecun.com/exdb/mnist/
 """
 
 import io
+import sys
 import tarfile
 from struct import pack, unpack
 
@@ -52,8 +53,10 @@ def write_idx_file(name, a):
 
 def read_idx_header(f):
     magic = f.read(4)  # [0, 0, dtype, rank]
-    dtype = ord(magic[2])
-    rank = ord(magic[3])
+    _, _, dtype, rank = magic
+    if sys.version_info.major == 2:
+        dtype = ord(dtype)
+        rank = ord(dtype)
     # https://docs.python.org/3/library/struct.html#format-characters
     dims = [unpack('>I', f.read(4))[0] for _ in range(rank)]
     return dtype, dims
