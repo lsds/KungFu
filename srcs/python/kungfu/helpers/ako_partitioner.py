@@ -1,3 +1,5 @@
+import sys
+
 class AkoPartitioner:
     def __init__(self, num_partitions):
         self.num_partitions = num_partitions
@@ -27,8 +29,7 @@ class AkoPartitioner:
         return result
 
     def partition_positions(self, grads_and_vars):
-        sizes = [self.__get_size(g) for g, _v in grads_and_vars_to_negotiate]
-
+        grads_sizes = [self.__get_size(g) for g, _v in grads_and_vars]
 
         k = self.num_partitions
         n = len(grads_sizes)
