@@ -22,6 +22,12 @@ func LogKungfuEnv() {
 	}
 }
 
+func LogAllEnvs() {
+	for _, e := range os.Environ() {
+		fmt.Printf("%s\n", e)
+	}
+}
+
 func ExitErr(err error) {
 	log.Printf("exit on error: %v", err)
 	os.Exit(1)

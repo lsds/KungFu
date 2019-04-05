@@ -24,6 +24,8 @@ var (
 )
 
 func init() {
+	utils.LogAllEnvs()
+
 	log.SetPrefix("[kungfu-huawei-launcher] ")
 	flag.Parse()
 	utils.LogArgs()
