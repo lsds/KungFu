@@ -41,7 +41,7 @@ RUN apt update && apt install -y --no-install-recommends \
         && rm -rf /var/lib/apt/lists/*
 
 # Install tensorflow-gpu 1.12.0
-RUN pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple tensorflow-gpu==1.12.0
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple tensorflow-gpu==1.12.0
 
 # Install golang 1.11.1
 RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
