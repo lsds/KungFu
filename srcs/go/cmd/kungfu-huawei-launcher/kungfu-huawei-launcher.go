@@ -78,8 +78,9 @@ func createHostSpec(env *huawei.ContainerInfo) []plan.HostSpec {
 	var hs []plan.HostSpec
 	for _, h := range env.Peers {
 		hs = append(hs, plan.HostSpec{
-			Hostname: h,
-			Slots:    1, // FIXME: support multi-gpu in one container
+			Hostname:   h,
+			Slots:      1, // FIXME: support multi-gpu in one container
+			PublicAddr: h,
 		})
 	}
 	return hs
