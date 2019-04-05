@@ -1,5 +1,8 @@
 FROM swr.cn-north-1.myhuaweicloud.com/mailuo/kungfu-huawei-builder:v.1
 
+# Install tensorflow-gpu 1.12.0
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple tensorflow-gpu==1.12.0
+
 # Add the KungFu sources
 ADD . /KungFu
 
