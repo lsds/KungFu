@@ -4,6 +4,7 @@ http://yann.lecun.com/exdb/mnist/
 """
 
 import io
+import sys
 import tarfile
 from struct import pack, unpack
 
@@ -33,36 +34,40 @@ def _get_np_type(idx_type):
     raise ValueError('unsupported idx_type %s' % idx_type)
 
 
-def write_idx_header(f, a: np.ndarray):
+def write_idx_header(f, a):
     f.write(pack('BBBB', 0, 0, _get_idx_type(a.dtype), len(a.shape)))
     for dim in a.shape:
         # https://docs.python.org/3/library/struct.html#format-characters
         f.write(pack('>I', dim))
 
 
-def write_idx_to(f, a: np.ndarray):
+def write_idx_to(f, a):
     write_idx_header(f, a)
     f.write(a.tobytes())
 
 
-def write_idx_file(name, a: np.ndarray):
+def write_idx_file(name, a):
     with open(name, 'wb') as f:
         write_idx_to(f, a)
 
 
 def read_idx_header(f):
     magic = f.read(4)  # [0, 0, dtype, rank]
+    _, _, dtype, rank = magic
+    if sys.version_info.major == 2:
+        dtype = ord(dtype)
+        rank = ord(dtype)
     # https://docs.python.org/3/library/struct.html#format-characters
-    dims = [unpack('>I', f.read(4))[0] for _ in range(magic[3])]
-    return magic[2], dims
+    dims = [unpack('>I', f.read(4))[0] for _ in range(rank)]
+    return dtype, dims
 
 
-def read_idx_from(f) -> np.ndarray:
+def read_idx_from(f):
     dtype, dims = read_idx_header(f)
     return np.ndarray(dims, _get_np_type(dtype), f.read())
 
 
-def read_idx_file(name) -> np.ndarray:
+def read_idx_file(name):
     with open(name, 'rb') as f:
         return read_idx_from(f)
 

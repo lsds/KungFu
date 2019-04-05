@@ -6,6 +6,7 @@ stages:
 - unit test
 - integration test
 - system test
+- python 2 test
 
 job1:
   stage: unit test
@@ -40,6 +41,23 @@ job3:
   - |
     cmake --version
     pip3 install -vvv -U .
-    ./scripts/go-install.sh
   - |
+    ./scripts/tests/run-train-tests.sh
+
+job4:
+  stage: python 2 test
+
+  before_script:
+  - apt install -y python python-pip
+  - |
+    DATA_DIR=$HOME/var/data \
+    ./scripts/download-mnist.sh
+
+  script:
+  - cmake --version
+  - which python
+  - python --version
+  - pip install -vvv -U .
+  - |
+    PYTHON=$(which python) \
     ./scripts/tests/run-train-tests.sh

@@ -62,8 +62,10 @@ ENDIF()
 
 IF(KUNGFU_BUILD_TOOLS)
     FUNCTION(ADD_GO_BINARY target)
+        FILE(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
         ADD_CUSTOM_TARGET(${target} ALL
                           COMMAND env #
+                                  GOBIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
                                   CGO_CFLAGS=${CGO_CFLAGS}
                                   CGO_LDFLAGS=${CGO_LDFLAGS}
                                   go
