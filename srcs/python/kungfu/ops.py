@@ -36,7 +36,7 @@ def _load_and_init_op_lib():
 
 _op_lib, _has_gpu = _load_and_init_op_lib()
 
-from kungfu.helpers import AkoPartitioner
+from kungfu.helpers.ako_partitioner import AkoPartitioner
 
 # Benchmark negotiator
 def kungfu_strategy_negotiate(gradient_tensors, strategy='parallel', device='cpu', num_partitions=1):
