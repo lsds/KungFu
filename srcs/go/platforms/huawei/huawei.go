@@ -1,9 +1,13 @@
 package huawei
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
+
+	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 // https://github.com/huawei-clouds/modelarts-example/blob/master/CustomImage/自定义镜像训练功能操作指南.md
@@ -16,7 +20,8 @@ const (
 type ContainerInfo struct {
 	ContainerIndex int
 	ClusterSize    int
-	Peers          []string
+	SelfIPv4       string
+	ClusterSpec    *plan.ClusterSpec
 }
 
 func ParseEnv() (*ContainerInfo, error) {
@@ -28,14 +33,15 @@ func ParseEnv() (*ContainerInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	peers, err := parsePeers(num)
+	clusterSpec, err := parseClusterSpec(num)
 	if err != nil {
 		return nil, err
 	}
 	return &ContainerInfo{
 		ContainerIndex: idx,
 		ClusterSize:    num,
-		Peers:          peers,
+		SelfIPv4:       clusterSpec.Peers[idx].NetAddr.Host,
+		ClusterSpec:    clusterSpec,
 	}, nil
 }
 
@@ -51,15 +57,46 @@ func requireInt(key string) (int, error) {
 	return n, nil
 }
 
-func parsePeers(n int) ([]string, error) {
-	var ips []string
+func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
+	var peers []plan.PeerSpec
 	for i := 0; i < n; i++ {
 		key := fmt.Sprintf(PeerAddrFormat, i)
 		val := os.Getenv(key)
 		if len(val) <= 0 {
 			return nil, fmt.Errorf("%s not set", key)
 		}
-		ips = append(ips, val)
+		ipv4, port, err := resolvePeer(val)
+		if err != nil {
+			return nil, err
+		}
+		peer := plan.PeerSpec{
+			DeviceID: 0,
+			NetAddr: plan.NetAddr{
+				Host: ipv4,
+				Port: uint16(port),
+			},
+			MonitoringPort: uint16(20001),
+		}
+		peers = append(peers, peer)
 	}
-	return ips, nil
+	return &plan.ClusterSpec{Peers: peers}, nil
+}
+
+func resolvePeer(hostPort string) (string, int, error) {
+	h, p, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return "", 0, err
+	}
+	addrs, err := net.LookupHost(h)
+	if err != nil {
+		return "", 0, err
+	}
+	if len(addrs) != 1 {
+		return "", 0, errors.New("exactly 1 addr is expected")
+	}
+	port, err := strconv.Atoi(p)
+	if len(addrs) != 1 {
+		return "", 0, err
+	}
+	return addrs[0], port, nil
 }

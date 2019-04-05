@@ -55,6 +55,32 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 	return ps, nil
 }
 
+func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
+	configEnvs := getConfigEnvs()
+	var ps []Proc
+	for i, self := range cs.Peers {
+		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
+		envs := Envs{
+			kb.ClusterSpecEnvKey:   cs.String(),
+			kb.SelfRankEnvKey:      strconv.Itoa(i),
+			kb.AllReduceAlgoEnvKey: algo.String(),
+			`CUDA_VISIBLE_DEVICES`: strconv.Itoa(self.DeviceID),
+			`PYTHONUNBUFFERED`:     `1`,
+			// TODO: add LD_PRELOAD to tcmalloc path
+			// `LD_PRELOAD`:``,
+		}
+		ps = append(ps, Proc{
+			Name:    name,
+			Prog:    prog,
+			Args:    args,
+			Envs:    merge(configEnvs, envs),
+			Host:    self.NetAddr.Host,
+			PubAddr: self.NetAddr.Host,
+		})
+	}
+	return ps, nil
+}
+
 func ForHost(myHost string, ps []Proc) []Proc {
 	var myPs []Proc
 	for _, p := range ps {

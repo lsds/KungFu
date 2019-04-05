@@ -10,7 +10,6 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/platforms/huawei"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
@@ -45,20 +44,11 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	hosts := createHostSpec(env)
-	log.Printf("using hostspec: %s", plan.FormatHostSpec(hosts))
-	jc := sch.JobConfig{
-		PeerCount: plan.TotalCap(hosts),
-		HostList:  plan.FormatHostSpec(hosts),
-		Prog:      prog,
-		Args:      args,
-	}
-	ps, err := jc.CreateProcs(kb.ParseAlgo(*algo))
+	ps, err := sch.CreateProcs(prog, args, env.ClusterSpec, kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	selfIP := env.Peers[env.ContainerIndex]
-	myPs := sch.ForHost(selfIP, ps)
+	myPs := sch.ForHost(env.SelfIPv4, ps)
 	if len(myPs) <= 0 {
 		log.Print("No task to run on this node")
 		return
@@ -73,16 +63,4 @@ func main() {
 	if err != nil && err != context.DeadlineExceeded {
 		utils.ExitErr(err)
 	}
-}
-
-func createHostSpec(env *huawei.ContainerInfo) []plan.HostSpec {
-	var hs []plan.HostSpec
-	for _, h := range env.Peers {
-		hs = append(hs, plan.HostSpec{
-			Hostname:   h,
-			Slots:      1, // FIXME: support multi-gpu in one container
-			PublicAddr: h,
-		})
-	}
-	return hs
 }
