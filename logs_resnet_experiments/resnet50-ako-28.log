@@ -1,0 +1,273 @@
+[kungfu-prun] 2019/04/05 16:04:16 args[0]=/KungFu/bin/kungfu-prun
+[kungfu-prun] 2019/04/05 16:04:16 args[1]=-np=4
+[kungfu-prun] 2019/04/05 16:04:16 args[2]=-timeout=10m
+[kungfu-prun] 2019/04/05 16:04:16 args[3]=python3
+[kungfu-prun] 2019/04/05 16:04:16 args[4]=./benchmarks/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks_kungfu.py
+[kungfu-prun] 2019/04/05 16:04:16 args[5]=--num_gpus=1
+[kungfu-prun] 2019/04/05 16:04:16 args[6]=--batch_size=32
+[kungfu-prun] 2019/04/05 16:04:16 args[7]=--model=resnet50
+[kungfu-prun] 2019/04/05 16:04:16 args[8]=--variable_update=kungfu
+[kungfu-prun] 2019/04/05 16:04:16 args[9]=--ako_partitions=28
+[kungfu-prun] 2019/04/05 16:04:16 Using selfHost=127.0.0.1
+[kungfu-prun] 2019/04/05 16:04:16 will parallel run 4 instances of python3 with ["./benchmarks/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks_kungfu.py" "--num_gpus=1" "--batch_size=32" "--model=resnet50" "--variable_update=kungfu" "--ako_partitions=28"]
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:20.070414: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:20.084606: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:20.108462: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:20.248458: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:20.461933: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1432] Found device 0 with properties: 
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] name: TITAN X (Pascal) major: 6 minor: 1 memoryClockRate(GHz): 1.531
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] pciBusID: 0000:02:00.0
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] totalMemory: 11.91GiB freeMemory: 11.77GiB
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:20.461980: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:20.551998: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1432] Found device 0 with properties: 
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] name: TITAN X (Pascal) major: 6 minor: 1 memoryClockRate(GHz): 1.531
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] pciBusID: 0000:83:00.0
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] totalMemory: 11.91GiB freeMemory: 11.77GiB
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:20.552039: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:20.563489: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1432] Found device 0 with properties: 
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] name: TITAN X (Pascal) major: 6 minor: 1 memoryClockRate(GHz): 1.531
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] pciBusID: 0000:84:00.0
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] totalMemory: 11.91GiB freeMemory: 11.77GiB
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:20.563520: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:20.595439: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1432] Found device 0 with properties: 
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] name: TITAN X (Pascal) major: 6 minor: 1 memoryClockRate(GHz): 1.531
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] pciBusID: 0000:03:00.0
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] totalMemory: 11.91GiB freeMemory: 11.77GiB
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:20.595477: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:21.019730: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:21.019783: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:21.019797: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:21.020363: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11385 MB memory) -> physical GPU (device: 0, name: TITAN X (Pascal), pci bus id: 0000:03:00.0, compute capability: 6.1)
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] TensorFlow:  1.12
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Model:       resnet50
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Dataset:     imagenet (synthetic)
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Mode:        BenchmarkMode.TRAIN
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] SingleSess:  False
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Batch size:  128 global
+[[1;34m127.0.0.1/01/01-of-04[m::stdout]              32.0 per device
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Num batches: 200
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Num epochs:  0.02
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Devices:     ['/gpu:0']
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Data format: NCHW
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Optimizer:   sgd
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Variables:   kungfu
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] ==========
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Generating training model
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:21.034015: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:21.034041: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:21.034048: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:21.034582: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11385 MB memory) -> physical GPU (device: 0, name: TITAN X (Pascal), pci bus id: 0000:02:00.0, compute capability: 6.1)
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] TensorFlow:  1.12
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Model:       resnet50
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Dataset:     imagenet (synthetic)
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Mode:        BenchmarkMode.TRAIN
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] SingleSess:  False
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Batch size:  128 global
+[[1;32m127.0.0.1/00/00-of-04[m::stdout]              32.0 per device
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Num batches: 200
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Num epochs:  0.02
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Devices:     ['/gpu:0']
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Data format: NCHW
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Optimizer:   sgd
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Variables:   kungfu
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] ==========
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Generating training model
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:21.051629: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:21.051695: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:21.051703: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:21.052322: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11385 MB memory) -> physical GPU (device: 0, name: TITAN X (Pascal), pci bus id: 0000:83:00.0, compute capability: 6.1)
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] TensorFlow:  1.12
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Model:       resnet50
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Dataset:     imagenet (synthetic)
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Mode:        BenchmarkMode.TRAIN
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] SingleSess:  False
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Batch size:  128 global
+[[1;33m127.0.0.1/02/02-of-04[m::stdout]              32.0 per device
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Num batches: 200
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Num epochs:  0.02
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Devices:     ['/gpu:0']
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Data format: NCHW
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Optimizer:   sgd
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Variables:   kungfu
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] ==========
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Generating training model
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:21.073167: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:21.073219: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:21.073228: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:21.073878: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11385 MB memory) -> physical GPU (device: 0, name: TITAN X (Pascal), pci bus id: 0000:84:00.0, compute capability: 6.1)
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] TensorFlow:  1.12
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Model:       resnet50
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Dataset:     imagenet (synthetic)
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Mode:        BenchmarkMode.TRAIN
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] SingleSess:  False
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Batch size:  128 global
+[[1;36m127.0.0.1/03/03-of-04[m::stdout]              32.0 per device
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Num batches: 200
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Num epochs:  0.02
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Devices:     ['/gpu:0']
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Data format: NCHW
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Optimizer:   sgd
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Variables:   kungfu
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] ==========
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Generating training model
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] kungfu_tensorflow_init_gpu FAILED: /root/.local/lib/python3.5/site-packages/kungfu/libkungfu_tensorflow_init.so: undefined symbol: kungfu_tensorflow_init_gpu
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] kungfu_tensorflow_init_gpu FAILED: /root/.local/lib/python3.5/site-packages/kungfu/libkungfu_tensorflow_init.so: undefined symbol: kungfu_tensorflow_init_gpu
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] kungfu_tensorflow_init_gpu FAILED: /root/.local/lib/python3.5/site-packages/kungfu/libkungfu_tensorflow_init.so: undefined symbol: kungfu_tensorflow_init_gpu
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] kungfu_tensorflow_init_gpu FAILED: /root/.local/lib/python3.5/site-packages/kungfu/libkungfu_tensorflow_init.so: undefined symbol: kungfu_tensorflow_init_gpu
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Initializing graph
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Initializing graph
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Initializing graph
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Initializing graph
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] W0405 16:04:24.930693 140138412656384 tf_logging.py:125] From /benchmarks/scripts/tf_cnn_benchmarks/benchmark_cnn_kungfu.py:2172: Supervisor.__init__ (from tensorflow.python.training.supervisor) is deprecated and will be removed in a future version.
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] Instructions for updating:
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] Please switch to tf.train.MonitoredTrainingSession
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] W0405 16:04:24.968786 139994892326656 tf_logging.py:125] From /benchmarks/scripts/tf_cnn_benchmarks/benchmark_cnn_kungfu.py:2172: Supervisor.__init__ (from tensorflow.python.training.supervisor) is deprecated and will be removed in a future version.
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] Instructions for updating:
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] Please switch to tf.train.MonitoredTrainingSession
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] W0405 16:04:25.025106 140394754619136 tf_logging.py:125] From /benchmarks/scripts/tf_cnn_benchmarks/benchmark_cnn_kungfu.py:2172: Supervisor.__init__ (from tensorflow.python.training.supervisor) is deprecated and will be removed in a future version.
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] Instructions for updating:
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] Please switch to tf.train.MonitoredTrainingSession
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] W0405 16:04:25.114686 139708595742464 tf_logging.py:125] From /benchmarks/scripts/tf_cnn_benchmarks/benchmark_cnn_kungfu.py:2172: Supervisor.__init__ (from tensorflow.python.training.supervisor) is deprecated and will be removed in a future version.
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] Instructions for updating:
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] Please switch to tf.train.MonitoredTrainingSession
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:25.419980: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:25.420060: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:25.420068: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:25.420074: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] 2019-04-05 16:04:25.420639: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11385 MB memory) -> physical GPU (device: 0, name: TITAN X (Pascal), pci bus id: 0000:03:00.0, compute capability: 6.1)
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:25.454887: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:25.454960: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:25.454969: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:25.454990: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] 2019-04-05 16:04:25.455622: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11385 MB memory) -> physical GPU (device: 0, name: TITAN X (Pascal), pci bus id: 0000:83:00.0, compute capability: 6.1)
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:25.514982: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:25.515077: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:25.515086: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:25.515093: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] 2019-04-05 16:04:25.515759: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11385 MB memory) -> physical GPU (device: 0, name: TITAN X (Pascal), pci bus id: 0000:84:00.0, compute capability: 6.1)
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:25.623366: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:25.623437: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:25.623446: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:25.623451: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N 
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] 2019-04-05 16:04:25.624035: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11385 MB memory) -> physical GPU (device: 0, name: TITAN X (Pascal), pci bus id: 0000:02:00.0, compute capability: 6.1)
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] I0405 16:04:26.055045 140138412656384 tf_logging.py:115] Running local_init_op.
+[[1;34m127.0.0.1/01/01-of-04[m::stderr] I0405 16:04:26.101097 140138412656384 tf_logging.py:115] Done running local_init_op.
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] I0405 16:04:26.103064 139994892326656 tf_logging.py:115] Running local_init_op.
+[[1;33m127.0.0.1/02/02-of-04[m::stderr] I0405 16:04:26.156070 139994892326656 tf_logging.py:115] Done running local_init_op.
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] I0405 16:04:26.171420 140394754619136 tf_logging.py:115] Running local_init_op.
+[[1;36m127.0.0.1/03/03-of-04[m::stderr] I0405 16:04:26.212562 140394754619136 tf_logging.py:115] Done running local_init_op.
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] I0405 16:04:26.288243 139708595742464 tf_logging.py:115] Running local_init_op.
+[[1;32m127.0.0.1/00/00-of-04[m::stderr] I0405 16:04:26.344578 139708595742464 tf_logging.py:115] Done running local_init_op.
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Running warm up
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Running warm up
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Running warm up
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Running warm up
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Done warm up
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] Step	Img/sec	total_loss
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Done warm up
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] Step	Img/sec	total_loss
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Done warm up
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] Step	Img/sec	total_loss
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Done warm up
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] Step	Img/sec	total_loss
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 1	images/sec: 137.4 +/- 0.0 (jitter = 0.0)	8.311
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 1	images/sec: 161.6 +/- 0.0 (jitter = 0.0)	8.491
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 1	images/sec: 155.7 +/- 0.0 (jitter = 0.0)	8.298
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 1	images/sec: 176.4 +/- 0.0 (jitter = 0.0)	8.060
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 10	images/sec: 96.7 +/- 11.4 (jitter = 5.2)	60273252.000
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 10	images/sec: 98.0 +/- 12.0 (jitter = 16.8)	60273252.000
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 10	images/sec: 97.8 +/- 11.9 (jitter = 10.7)	60273252.000
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 10	images/sec: 98.5 +/- 12.8 (jitter = 10.6)	60273252.000
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 20	images/sec: 117.1 +/- 6.7 (jitter = 14.5)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 20	images/sec: 115.4 +/- 6.1 (jitter = 11.1)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 20	images/sec: 116.2 +/- 6.2 (jitter = 7.7)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 20	images/sec: 116.3 +/- 6.3 (jitter = 12.6)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 30	images/sec: 121.5 +/- 4.2 (jitter = 9.6)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 30	images/sec: 121.3 +/- 4.6 (jitter = 14.8)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 30	images/sec: 120.2 +/- 4.1 (jitter = 9.6)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 30	images/sec: 120.8 +/- 4.3 (jitter = 10.7)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 40	images/sec: 124.5 +/- 3.4 (jitter = 11.5)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 40	images/sec: 123.8 +/- 3.2 (jitter = 11.2)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 40	images/sec: 124.1 +/- 3.3 (jitter = 13.1)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 40	images/sec: 124.2 +/- 3.5 (jitter = 15.2)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 50	images/sec: 126.5 +/- 2.8 (jitter = 10.9)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 50	images/sec: 125.5 +/- 2.6 (jitter = 9.6)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 50	images/sec: 125.9 +/- 2.7 (jitter = 8.6)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 50	images/sec: 125.8 +/- 2.7 (jitter = 11.8)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 60	images/sec: 128.2 +/- 2.4 (jitter = 8.9)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 60	images/sec: 127.3 +/- 2.2 (jitter = 9.5)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 60	images/sec: 127.6 +/- 2.3 (jitter = 8.3)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 60	images/sec: 127.4 +/- 2.3 (jitter = 11.8)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 70	images/sec: 129.6 +/- 2.1 (jitter = 8.0)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 70	images/sec: 129.1 +/- 1.9 (jitter = 8.6)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 70	images/sec: 129.1 +/- 2.0 (jitter = 11.3)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 70	images/sec: 129.0 +/- 2.0 (jitter = 9.6)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 80	images/sec: 130.6 +/- 1.8 (jitter = 8.1)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 80	images/sec: 130.2 +/- 1.8 (jitter = 10.4)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 80	images/sec: 130.1 +/- 1.8 (jitter = 11.7)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 80	images/sec: 129.7 +/- 1.7 (jitter = 9.0)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 90	images/sec: 130.8 +/- 1.6 (jitter = 8.3)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 90	images/sec: 131.2 +/- 1.7 (jitter = 7.9)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 90	images/sec: 130.9 +/- 1.7 (jitter = 10.4)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 90	images/sec: 130.8 +/- 1.6 (jitter = 10.6)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 100	images/sec: 131.6 +/- 1.5 (jitter = 7.8)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 100	images/sec: 131.2 +/- 1.4 (jitter = 7.8)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 100	images/sec: 131.3 +/- 1.5 (jitter = 10.8)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 100	images/sec: 131.2 +/- 1.5 (jitter = 10.0)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 110	images/sec: 131.7 +/- 1.4 (jitter = 9.8)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 110	images/sec: 131.7 +/- 1.4 (jitter = 8.7)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 110	images/sec: 131.5 +/- 1.4 (jitter = 11.4)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 110	images/sec: 131.3 +/- 1.3 (jitter = 8.5)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 120	images/sec: 132.2 +/- 1.3 (jitter = 8.5)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 120	images/sec: 132.1 +/- 1.3 (jitter = 11.4)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 120	images/sec: 131.9 +/- 1.2 (jitter = 8.4)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 120	images/sec: 132.1 +/- 1.3 (jitter = 9.6)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 130	images/sec: 132.2 +/- 1.1 (jitter = 8.6)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 130	images/sec: 132.3 +/- 1.2 (jitter = 8.6)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 130	images/sec: 132.2 +/- 1.2 (jitter = 11.3)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 130	images/sec: 132.2 +/- 1.2 (jitter = 9.2)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 140	images/sec: 132.6 +/- 1.2 (jitter = 8.8)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 140	images/sec: 132.3 +/- 1.1 (jitter = 8.8)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 140	images/sec: 132.3 +/- 1.1 (jitter = 11.0)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 140	images/sec: 132.3 +/- 1.1 (jitter = 9.2)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 150	images/sec: 132.8 +/- 1.1 (jitter = 8.3)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 150	images/sec: 132.5 +/- 1.0 (jitter = 9.0)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 150	images/sec: 132.6 +/- 1.1 (jitter = 11.0)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 150	images/sec: 132.6 +/- 1.1 (jitter = 9.5)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 160	images/sec: 132.5 +/- 1.0 (jitter = 8.9)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 160	images/sec: 132.7 +/- 1.0 (jitter = 9.4)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 160	images/sec: 132.7 +/- 1.0 (jitter = 8.4)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 160	images/sec: 132.6 +/- 1.0 (jitter = 10.8)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 170	images/sec: 132.8 +/- 1.0 (jitter = 10.6)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 170	images/sec: 132.8 +/- 1.0 (jitter = 9.5)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 170	images/sec: 132.6 +/- 0.9 (jitter = 8.7)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 170	images/sec: 132.8 +/- 1.0 (jitter = 7.9)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 180	images/sec: 133.0 +/- 0.9 (jitter = 8.1)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 180	images/sec: 132.9 +/- 0.9 (jitter = 9.7)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 180	images/sec: 132.9 +/- 0.9 (jitter = 10.6)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 180	images/sec: 132.7 +/- 0.9 (jitter = 8.0)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 190	images/sec: 133.0 +/- 0.8 (jitter = 8.0)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 190	images/sec: 133.1 +/- 0.9 (jitter = 8.2)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 190	images/sec: 133.1 +/- 0.9 (jitter = 9.8)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 190	images/sec: 133.0 +/- 0.9 (jitter = 10.2)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] 200	images/sec: 133.0 +/- 0.8 (jitter = 7.9)	nan
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] ----------------------------------------------------------------
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] total images/sec: 531.95
+[[1;33m127.0.0.1/02/02-of-04[m::stdout] ----------------------------------------------------------------
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] 200	images/sec: 133.2 +/- 0.9 (jitter = 8.2)	nan
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] ----------------------------------------------------------------
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] total images/sec: 532.54
+[[1;34m127.0.0.1/01/01-of-04[m::stdout] ----------------------------------------------------------------
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] 200	images/sec: 133.1 +/- 0.9 (jitter = 9.5)	nan
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] ----------------------------------------------------------------
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] total images/sec: 532.28
+[[1;32m127.0.0.1/00/00-of-04[m::stdout] ----------------------------------------------------------------
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] 200	images/sec: 133.1 +/- 0.8 (jitter = 10.1)	nan
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] ----------------------------------------------------------------
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] total images/sec: 531.99
+[[1;36m127.0.0.1/03/03-of-04[m::stdout] ----------------------------------------------------------------
+[kungfu-prun] 2019/04/05 16:05:24 [1;32m[I][m #127.0.0.1/03/03-of-04 finished successfully
+[kungfu-prun] 2019/04/05 16:05:24 [1;32m[I][m #127.0.0.1/02/02-of-04 finished successfully
+[kungfu-prun] 2019/04/05 16:05:24 [1;32m[I][m #127.0.0.1/00/00-of-04 finished successfully
+[kungfu-prun] 2019/04/05 16:05:25 [1;32m[I][m #127.0.0.1/01/01-of-04 finished successfully
+[kungfu-prun] 2019/04/05 16:05:25 all 4/4 local peers finished, took 1m8.571914747s
