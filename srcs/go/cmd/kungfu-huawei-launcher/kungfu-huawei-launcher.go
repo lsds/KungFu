@@ -46,6 +46,7 @@ func main() {
 		utils.ExitErr(err)
 	}
 	hosts := createHostSpec(env)
+	log.Printf("using hostspec: %s", plan.FormatHostSpec(hosts))
 	jc := sch.JobConfig{
 		PeerCount: plan.TotalCap(hosts),
 		HostList:  plan.FormatHostSpec(hosts),
