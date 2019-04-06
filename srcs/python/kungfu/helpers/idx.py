@@ -56,7 +56,7 @@ def read_idx_header(f):
     _, _, dtype, rank = magic
     if sys.version_info.major == 2:
         dtype = ord(dtype)
-        rank = ord(dtype)
+        rank = ord(rank)
     # https://docs.python.org/3/library/struct.html#format-characters
     dims = [unpack('>I', f.read(4))[0] for _ in range(rank)]
     return dtype, dims
