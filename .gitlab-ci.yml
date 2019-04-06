@@ -49,6 +49,7 @@ job4:
 
   before_script:
   - apt install -y python python-pip
+  - pip install tensorflow
   - |
     DATA_DIR=$HOME/var/data \
     ./scripts/download-mnist.sh
