@@ -15,16 +15,16 @@ type ConnectionPool struct {
 	sync.Mutex
 	conns map[string]Connection
 
-	connRetryCount  int
-	connRetryPeriod time.Duration
+	connRetryDuration time.Duration
+	connRetryPeriod   time.Duration
 }
 
 func newConnectionPool() *ConnectionPool {
 	return &ConnectionPool{
 		conns: make(map[string]Connection),
 
-		connRetryCount:  40,
-		connRetryPeriod: 500 * time.Millisecond,
+		connRetryDuration: 120 * time.Second,
+		connRetryPeriod:   500 * time.Millisecond,
 	}
 }
 
@@ -33,7 +33,8 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
 	defer p.Unlock()
 	tk := time.NewTicker(p.connRetryPeriod)
 	defer tk.Stop()
-	for i := 0; i <= p.connRetryCount; i++ {
+	t0 := time.Now()
+	for i := 0; ; i++ {
 		if conn, ok := p.conns[remote.String()]; !ok {
 			log.Printf("%d-th attempt to connect to %s", i, remote.String())
 			conn, err := newConnection(remote, local)
@@ -44,6 +45,9 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
 			}
 		} else {
 			return conn, nil
+		}
+		if time.Since(t0) > p.connRetryDuration {
+			return nil, errCantEstablishConnection
 		}
 		<-tk.C
 	}
