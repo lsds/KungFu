@@ -2,6 +2,7 @@ package rchannel
 
 import (
 	"errors"
+	"log"
 	"sync"
 	"time"
 
@@ -34,9 +35,12 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
 	defer tk.Stop()
 	for i := 0; i <= p.connRetryCount; i++ {
 		if conn, ok := p.conns[remote.String()]; !ok {
+			log.Printf("%d-th attempt to connect to %s", i, remote.String())
 			conn, err := newConnection(remote, local)
 			if err == nil {
 				p.conns[remote.String()] = conn
+			} else {
+				log.Printf("newConnection failed: %v", err)
 			}
 		} else {
 			return conn, nil

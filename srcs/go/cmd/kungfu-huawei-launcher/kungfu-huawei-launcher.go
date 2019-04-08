@@ -48,6 +48,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
+
 	myPs := sch.ForHost(env.SelfIPv4, ps)
 	if len(myPs) <= 0 {
 		log.Print("No task to run on this node")

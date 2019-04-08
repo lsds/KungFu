@@ -3,6 +3,7 @@ package huawei
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -77,6 +78,7 @@ func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
 			},
 			MonitoringPort: uint16(20001),
 		}
+		log.Printf("peer: %d: %#v", i, peer)
 		peers = append(peers, peer)
 	}
 	return &plan.ClusterSpec{Peers: peers}, nil
