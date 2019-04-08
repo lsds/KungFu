@@ -11,9 +11,6 @@ BUILD_TESTS=0 # build unit tests
 BUILD_TENSORFLOW_OPS=0
 BUILD_TOOLS=0
 VERBOSE=0
-if [ -z "${PYTHON}" ]; then
-    PYTHON=$(which python3)
-fi
 
 NCCL_HOME=$HOME/local/nccl
 if [ -f $NCCL_HOME/include/nccl.h ]; then
@@ -79,6 +76,9 @@ add_cmake_flags() {
     fi
 
     if [ ${BUILD_TENSORFLOW_OPS} = 1 ]; then
+        if [ -z "${PYTHON}" ]; then
+            PYTHON=$(which python3)
+        fi
         add_cmake_flag PYTHON $PYTHON
     fi
 
