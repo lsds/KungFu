@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	verboseLog = flag.Bool("v", true, "show task log")
-	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
-	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
+	verboseLog  = flag.Bool("v", true, "show task log")
+	timeout     = flag.Duration("timeout", 10*time.Second, "timeout")
+	algo        = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
+	disableNCCL = flag.Bool("disable-nccl", true, "disable NCCL")
 )
 
 func init() {
@@ -44,7 +45,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	ps, err := sch.CreateProcs(prog, args, env.ClusterSpec, kb.ParseAlgo(*algo))
+	ps, err := sch.CreateProcs(prog, args, env.ClusterSpec, kb.ParseAlgo(*algo), *disableNCCL)
 	if err != nil {
 		utils.ExitErr(err)
 	}

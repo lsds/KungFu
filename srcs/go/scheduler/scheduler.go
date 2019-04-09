@@ -55,7 +55,7 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 	return ps, nil
 }
 
-func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
+func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungFu_AllReduceAlgo, disableNCCL bool) ([]Proc, error) {
 	configEnvs := getConfigEnvs()
 	var ps []Proc
 	for i, self := range cs.Peers {
@@ -68,6 +68,9 @@ func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungF
 			`PYTHONUNBUFFERED`:     `1`,
 			// TODO: add LD_PRELOAD to tcmalloc path
 			// `LD_PRELOAD`:``,
+		}
+		if disableNCCL {
+			envs[`KUNGFU_DISABLE_NCCL`] = `1`
 		}
 		ps = append(ps, Proc{
 			Name:    name,

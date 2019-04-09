@@ -26,6 +26,11 @@ def _load_and_init_op_lib():
     _init_lib = _load_init_lib('libkungfu_tensorflow_init')
     _init_lib.kungfu_tensorflow_init()
     has_gpu = False
+
+    disable_nccl = os.getenv('KUNGFU_DISABLE_NCCL')
+    if disable_nccl:
+        return _op_lib, has_gpu
+
     try:
         # FIXME: auto detect GPU support
         _init_lib.kungfu_tensorflow_init_gpu()
