@@ -8,6 +8,13 @@ CMAKE_SOURCE_DIR=$(pwd)
 export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
 export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
 
+reset_go_mod() {
+    echo 'module github.com/lsds/KungFu' >go.mod
+    if [ -f go.sum ]; then
+        rm go.sum
+    fi
+}
+
 get_go_source() {
     local URL=$1
     local DIR=$2
@@ -38,6 +45,10 @@ go_install_old() {
         go install -v ./srcs/go/cmd/...
 }
 
+go_clean() {
+    go clean -cache ./...
+}
+
 go_install() {
     ./configure --no-tests && make
     env \
@@ -46,4 +57,6 @@ go_install() {
         go install -v ./srcs/go/cmd/...
 }
 
+go_clean
 go_install
+reset_go_mod

@@ -13,7 +13,8 @@ EXECUTE_PROCESS(COMMAND ${PYTHON} -c
 
 EXECUTE_PROCESS(
     COMMAND ${PYTHON} -c
-            "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"
+            # sysconfig.get_config_var('EXT_SUFFIX')  does't work for python2
+            "import sysconfig; print(sysconfig.get_config_var('SO'))"
     OUTPUT_STRIP_TRAILING_WHITESPACE
     OUTPUT_VARIABLE PY_EXT_SUFFIX)
 
