@@ -109,7 +109,7 @@ class AkoNegotiator : public AsyncOpKernel
         }
         
         if (tensorWindow.size() > 0) {
-            outGrad_flt = outGrad_flt / outGrad_flt.constant(tensorWindow.size());
+            outGrad_flt = outGrad_flt / outGrad_flt.constant(tensorWindow.size()    );
         } else {
             std::cout << "Ako accumulation window empty!" << std::endl;
         }
@@ -120,17 +120,8 @@ class AkoNegotiator : public AsyncOpKernel
             std::function<void()> func = [&, done]() {
                 std::lock_guard<std::mutex> l(allMutex);
                 
-                //Tensor prevInGrad = inGrad;
-
                 // subract gradients from inGrad to not apply them twice
                 inGrad.flat<float>() = inGrad.flat<float>() - gradients.flat<float>();
-                // for(int i = 0; i < inGrad.flat<float>().size(); i++) {
-                //     float v = inGrad.flat<float>()(i);
-                //     if(std::isnan(v)) {
-                //         std::cout << "The value is NaN: obtained from " << 
-                //                      prevInGrad.flat<float>()(i) << " and " << gradients.flat<float>()(i) << std::endl;
-                //     }
-                // }
                 hasInGrad = true;
                 done();
             };
