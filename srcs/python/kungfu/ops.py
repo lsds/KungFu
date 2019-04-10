@@ -40,36 +40,6 @@ _op_lib, _has_gpu = _load_and_init_op_lib()
 
 from kungfu.helpers.ako_partitioner import AkoPartitioner
 
-# Benchmark negotiator
-def kungfu_strategy_negotiate(gradient_tensors, strategy='parallel', device='cpu', num_partitions=1):
-    if strategy == 'parallel':
-        if device == 'cpu':
-           return cpu_group_all_reduce(gradient_tensors)
-        elif device == 'gpu':
-           return gpu_group_all_reduce(gradient_tensors)
-        else:
-           raise Exception('KungFu does not support the specified device type: ' + device)
-    elif strategy == 'ako':
-        partitioner      = AkoPartitioner(num_partitions)
-        grads_and_vars_to_negotiate = [(grad, grad.name[:-2]) for grad in gradient_tensors]
-        partitionIndices = partitioner.partition_positions(grads_and_vars_to_negotiate)
-        partitions       = partitioner.reconstruct_partition(grads_and_vars_to_negotiate, partitionIndices)
-        
-        negotiated_grads = []
-        for partition_id in range(len(partitions)):
-            for grad, var in partitions[partition_id]:
-                with tf.variable_scope('AkoMaybeNegotiatedGrad'):
-                    # careful, ako_all_reduce may return a grad and a variable tuple
-                    negotiated_grad = ako_all_reduce(
-                                                      grad,
-                                                      tf.constant([partition_id], dtype=tf.int32),
-                                                      tf.constant([num_partitions], dtype=tf.int32))
-                    # negotiated_grad = tf.clip_by_global_norm(negotiated_grad, 0.002)
-                negotiated_grads.append(negotiated_grad)
-        return negotiated_grads
-    else:
-        raise Exception('KungFu does not support the specified synchronization strategy: ' + strategy)
-
 def broadcast(t):
     return _op_lib.broadcast(t)
 
@@ -84,7 +54,6 @@ def all_reduce_gpu(t):
 
 def ako_all_reduce(t, partition_id, num_partitions):
     return _op_lib.ako_negotiator(t, partition_id, num_partitions)
-
 
 def global_variance(t):
     return _op_lib.global_variance(t)
@@ -101,6 +70,20 @@ def set_num_gradients(n):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
+def ako_group_all_reduce(gradient_tensors, partition_id, num_partitions):
+    partitioner      = AkoPartitioner(num_partitions)
+    grads_and_vars_to_negotiate = [(grad, grad.name[:-2]) for grad in gradient_tensors]
+    partitionIndices = partitioner.partition_positions(grads_and_vars_to_negotiate)
+    partitions       = partitioner.reconstruct_partition(grads_and_vars_to_negotiate, partitionIndices)
+    
+    negotiated_grads = []
+    for partition_id in range(len(partitions)):
+        for grad, var in partitions[partition_id]:
+            with tf.variable_scope('AkoMaybeNegotiatedGrad'):
+                negotiated_grad = ako_all_reduce(grad,tf.constant([partition_id], dtype=tf.int32),
+                                                 tf.constant([num_partitions], dtype=tf.int32))
+            negotiated_grads.append(negotiated_grad)
+    return negotiated_grads
 
 def cpu_group_all_reduce(ts):
     return [all_reduce(t) for t in ts]
