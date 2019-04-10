@@ -70,7 +70,7 @@ def set_num_gradients(n):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
-def ako_group_all_reduce(gradient_tensors, num_partitions):
+def ako_group_all_reduce(gradient_tensors, num_partitions=1):
     partitioner      = AkoPartitioner(num_partitions)
     grads_and_vars_to_negotiate = [(grad, grad.name[:-2]) for grad in gradient_tensors]
     partitionIndices = partitioner.partition_positions(grads_and_vars_to_negotiate)
