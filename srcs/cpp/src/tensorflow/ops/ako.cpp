@@ -79,8 +79,11 @@ class AkoNegotiator : public AsyncOpKernel
             auto zeros_flt = zeros.flat<float>();
             zeros_flt.setZero();
             outGrad = zeros;
-            inGrad  = zeros;
-            isInit  = true;
+
+            outGrad.flat<float>().setZero();
+            inGrad = zeros;
+            inGrad.flat<float>().setZero();
+            isInit = true;
         }
 
         // Create snapshots right before you use the tensors
@@ -104,17 +107,30 @@ class AkoNegotiator : public AsyncOpKernel
         } else {
             outGrad_flt = grads_flt + outGrad_flt;
         }
+        
+        if (tensorWindow.size() > 0) {
+            outGrad_flt = outGrad_flt / outGrad_flt.constant(tensorWindow.size());
+        } else {
+            std::cout << "Ako accumulation window empty!" << std::endl;
+        }
 
         if (_kungfu_world->GetGlobalStep() % numberPartitions ==
             partitionIndex) {
             // Create a callback to accumulate gradients from other peers
             std::function<void()> func = [&, done]() {
                 std::lock_guard<std::mutex> l(allMutex);
+                
+                //Tensor prevInGrad = inGrad;
 
                 // subract gradients from inGrad to not apply them twice
-                inGrad.flat<float>() =
-                    inGrad.flat<float>() - gradients.flat<float>();
-
+                inGrad.flat<float>() = inGrad.flat<float>() - gradients.flat<float>();
+                // for(int i = 0; i < inGrad.flat<float>().size(); i++) {
+                //     float v = inGrad.flat<float>()(i);
+                //     if(std::isnan(v)) {
+                //         std::cout << "The value is NaN: obtained from " << 
+                //                      prevInGrad.flat<float>()(i) << " and " << gradients.flat<float>()(i) << std::endl;
+                //     }
+                // }
                 hasInGrad = true;
                 done();
             };

@@ -64,6 +64,7 @@ def kungfu_strategy_negotiate(gradient_tensors, strategy='parallel', device='cpu
                                                       grad,
                                                       tf.constant([partition_id], dtype=tf.int32),
                                                       tf.constant([num_partitions], dtype=tf.int32))
+                    # negotiated_grad = tf.clip_by_global_norm(negotiated_grad, 0.002)
                 negotiated_grads.append(negotiated_grad)
         return negotiated_grads
     else:
