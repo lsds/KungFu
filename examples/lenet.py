@@ -224,7 +224,7 @@ def main():
     x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions)
     show_trainable_variables_info()
     
-    mnist = measure(lambda: load_datasets('var/data/mnist', normalize=True, one_hot=True, padded=True), 'load data')
+    mnist = measure(lambda: load_datasets('/data/mnist', normalize=True, one_hot=True, padded=True), 'load data')
 
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, 

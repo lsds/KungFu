@@ -3,7 +3,7 @@ import sys
 import tensorflow as tf
 
 from kungfu.ops import global_step_modifier, ako_all_reduce, set_num_gradients
-from kungfu.ako_partitioner import AkoPartitioner
+from kungfu.helpers.ako_partitioner import AkoPartitioner
 from .core import KungFuOptimizer
 
 
