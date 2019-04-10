@@ -34,7 +34,6 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
 	tk := time.NewTicker(p.connRetryPeriod)
 	defer tk.Stop()
 	t0 := time.Now()
-	log.Printf("Start connecting to peers ...")
 	for i := 0; ; i++ {
 		if conn, ok := p.conns[remote.String()]; !ok {
 			log.Printf("%d-th attempt to connect to %s", i, remote.String())
@@ -45,7 +44,7 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
 				log.Printf("newConnection failed: %v", err)
 			}
 		} else {
-			log.Printf("Connection to %s complete.", remote.String())
+			log.Printf("Return connection to %s.", remote.String())
 			return conn, nil
 		}
 		if time.Since(t0) > p.connRetryDuration {
@@ -54,6 +53,6 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
 		<-tk.C
 	}
 
-	log.Printf("Connection retry timeout.")
+	log.Printf("Fail to get connection.")
 	return nil, errCantEstablishConnection
 }
