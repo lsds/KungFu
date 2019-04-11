@@ -75,7 +75,7 @@ IF(KUNGFU_BUILD_TOOLS)
     ENDFUNCTION()
 
     FUNCTION(ADD_KUNGFU_GO_BINARY target)
-        ADD_GO_BINARY(${target} ./srcs/go/cmd/${target})
+        ADD_GO_BINARY(${target} ${CMAKE_SOURCE_DIR}/srcs/go/cmd/${target})
         ADD_DEPENDENCIES(${target} kungfu-base)
     ENDFUNCTION()
 

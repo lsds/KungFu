@@ -31,12 +31,15 @@ class CMakeBuild(build_ext):
             os.makedirs(extdir)
 
         install_prefix = os.path.abspath(os.path.dirname(extdir))
+        executable_dir = os.path.abspath(os.path.dirname(sys.executable))
 
         cmake_args = [
             # FIXME: use CMAKE_LIBRARY_OUTPUT_DIRECTORY
             cmake_flag('LIBRARY_OUTPUT_PATH',
                        os.path.join(install_prefix, 'kungfu')),
             cmake_flag('KUNGFU_BUILD_TF_OPS', 1),
+            cmake_flag('KUNGFU_BUILD_TOOLS', 1),
+            cmake_flag('CMAKE_RUNTIME_OUTPUT_DIRECTORY', executable_dir),
             cmake_flag('PYTHON', sys.executable),
 
             # uncomment to debug
