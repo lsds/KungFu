@@ -1,3 +1,7 @@
+#include <algorithm>
+#include <numeric>
+#include <vector>
+
 #include <kungfu_base.h>
 
 #include "testing.hpp"
