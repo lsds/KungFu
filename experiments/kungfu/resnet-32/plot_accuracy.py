@@ -84,9 +84,6 @@ def plot_log_files(log_files):
 def main():
     names = [('Ako ' + str(parts) + ' parts', './ako-span/resnet32-ako-' + str(parts) + '-partitions-span-experiment.log') for parts in [6, 10, 20, 30]] # range(1, 33)]
     plot_log_files([('Parallel SGD', 'resnet32-parallel-batch-32.log'), ('Replicated', 'resnet32-default.log')] + names[::])
-    #plot_log_files([('Parallel SGD', 'resnet32-parallel-batch-32.log'), ('Replicated', 'resnet32-default.log'), ('Ako 15 Parts', 'resnet32-ako-15.log')])
-    #plot_log_files([('Parallel SGD', 'resnet32-parallel.log'), ('Ako 15 Parts', 'resnet32-ako-15.log')])
-    #plot_log_files(['resnet32-parallel.log'])
 
     
 
