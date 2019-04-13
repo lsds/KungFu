@@ -3,11 +3,11 @@ package huawei
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strconv"
 
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -38,6 +38,7 @@ func ParseEnv() (*ContainerInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Infof("cluster size: %d, idx: %d", num, idx)
 	return &ContainerInfo{
 		ContainerIndex: idx,
 		ClusterSize:    num,
@@ -59,6 +60,18 @@ func requireInt(key string) (int, error) {
 }
 
 func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
+	if n == 1 {
+		peer := plan.PeerSpec{
+			DeviceID: 0,
+			NetAddr: plan.NetAddr{
+				Host: "127.0.0.1",
+				Port: uint16(8888),
+			},
+			MonitoringPort: uint16(20001),
+		}
+		return &plan.ClusterSpec{Peers: []plan.PeerSpec{peer}}, nil
+	}
+
 	var peers []plan.PeerSpec
 	for i := 0; i < n; i++ {
 		key := fmt.Sprintf(PeerAddrFormat, i)
@@ -70,6 +83,7 @@ func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
 		if err != nil {
 			return nil, err
 		}
+		log.Infof("%s resolved as %s:%d", val, ipv4, port)
 		peer := plan.PeerSpec{
 			DeviceID: 0,
 			NetAddr: plan.NetAddr{
@@ -78,7 +92,7 @@ func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
 			},
 			MonitoringPort: uint16(20001),
 		}
-		log.Printf("peer: %d: %#v", i, peer)
+		log.Infof("peer: %d: %#v", i, peer)
 		peers = append(peers, peer)
 	}
 	return &plan.ClusterSpec{Peers: peers}, nil

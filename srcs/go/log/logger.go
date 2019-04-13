@@ -19,7 +19,12 @@ type Logger struct {
 }
 
 func New() *Logger {
-	l := &Logger{w: os.Stdout, t0: time.Now()}
+	l := &Logger{
+		w:  os.Stdout,
+		t0: time.Now(),
+		// debug: true,
+	}
+	l.Infof("t0 is %s", l.t0)
 	return l
 }
 

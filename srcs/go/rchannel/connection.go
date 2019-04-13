@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/shmpool"
 )
@@ -16,18 +17,33 @@ type Connection interface {
 	Send(name string, m Message) error
 }
 
+func parseIPv4(host string) uint32 {
+	ip := net.ParseIP(host).To4()
+	a := uint32(ip[0]) << 24
+	b := uint32(ip[1]) << 16
+	c := uint32(ip[2]) << 8
+	d := uint32(ip[3])
+	return a | b | c | d
+}
+
 func newConnection(remote, local plan.NetAddr) (Connection, error) {
 	conn, err := func() (net.Conn, error) {
 		if remote.Host == local.Host {
 			addr := net.UnixAddr{remote.SockFile(), "unix"}
 			return net.DialUnix(addr.Net, nil, &addr)
 		}
-		return net.Dial("tcp", remote.String())
+		log.Debugf("begin dial TCP to : %s", remote)
+		conn, err := net.Dial("tcp", remote.String())
+		log.Debugf("end dial TCP to : %s, err is %v", remote, err)
+		return conn, err
 	}()
 	if err != nil {
 		return nil, err
 	}
-	h := connectionHeader{Port: local.Port}
+	h := connectionHeader{
+		IPv4: parseIPv4(local.Host), // parseIPv4 :: str -> uint32
+		Port: local.Port,
+	}
 	if err := h.WriteTo(conn); err != nil {
 		return nil, err
 	}

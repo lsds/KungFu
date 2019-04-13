@@ -3,28 +3,49 @@ package utils
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
 
 func LogArgs() {
 	for i, a := range os.Args {
-		log.Printf("args[%d]=%s", i, a)
+		fmt.Printf("[arg] [%d]=%s\n", i, a)
 	}
 }
 
 func LogKungfuEnv() {
 	for _, kv := range os.Environ() {
 		if strings.HasPrefix(kv, `KUNGFU_`) {
-			log.Printf("env: %s", kv)
+			fmt.Printf("[kf-env]: %s\n", kv)
 		}
 	}
 }
 
+func LogNICInfo() error {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return err
+	}
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			return err
+		}
+		for _, a := range addrs {
+			fmt.Printf("[nic] %s :: %s\n", i.Name, a)
+		}
+	}
+	return nil
+}
+
 func LogAllEnvs() {
-	for _, e := range os.Environ() {
-		fmt.Printf("%s\n", e)
+	envs := os.Environ()
+	sort.Strings(envs)
+	for _, e := range envs {
+		fmt.Printf("[env] %s\n", e)
 	}
 }
 

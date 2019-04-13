@@ -2,10 +2,10 @@ package rchannel
 
 import (
 	"errors"
-	"log"
 	"sync"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -24,7 +24,7 @@ func newConnectionPool() *ConnectionPool {
 		conns: make(map[string]Connection),
 
 		connRetryDuration: 120 * time.Second,
-		connRetryPeriod:   500 * time.Millisecond,
+		connRetryPeriod:   1500 * time.Millisecond,
 	}
 }
 
@@ -36,15 +36,15 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
 	t0 := time.Now()
 	for i := 0; ; i++ {
 		if conn, ok := p.conns[remote.String()]; !ok {
-			log.Printf("%d-th attempt to connect to %s", i, remote.String())
+			log.Debugf("%d-th attempt to connect to %s", i, remote.String())
 			conn, err := newConnection(remote, local)
 			if err == nil {
 				p.conns[remote.String()] = conn
 			} else {
-				log.Printf("newConnection failed: %v", err)
+				log.Debugf("newConnection failed: %v", err)
 			}
 		} else {
-			log.Printf("Return connection to %s.", remote.String())
+			// log.Infof("Return connection to %s.", remote.String())
 			return conn, nil
 		}
 		if time.Since(t0) > p.connRetryDuration {
@@ -53,6 +53,6 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
 		<-tk.C
 	}
 
-	log.Printf("Fail to get connection.")
+	log.Warnf("Fail to get connection.")
 	return nil, errCantEstablishConnection
 }
