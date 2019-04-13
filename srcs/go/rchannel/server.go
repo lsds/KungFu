@@ -85,8 +85,8 @@ func (s *Server) handle(conn net.Conn) error {
 		return err
 	}
 	remoteNetAddr := plan.NetAddr{
-		Host: formatIPv4(ch.IPv4), // formatIPv4 :: uint32 -> str
-		Port: ch.Port,
+		Host: formatIPv4(ch.SrcIPv4), // formatIPv4 :: uint32 -> str
+		Port: ch.SrcPort,
 	}
 	log.Debugf("got new connection from: %s", remoteNetAddr)
 	if n, err := s.router.stream(conn, remoteNetAddr); err != nil && err != io.EOF {
