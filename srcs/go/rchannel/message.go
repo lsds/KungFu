@@ -12,15 +12,28 @@ var endian = binary.LittleEndian
 var errUnexpectedEnd = errors.New("Unexpected End")
 
 type connectionHeader struct {
+	IPv4 uint32
 	Port uint16
 }
 
 func (h connectionHeader) WriteTo(w io.Writer) error {
-	return binary.Write(w, endian, h.Port)
+	if err := binary.Write(w, endian, h.IPv4); err != nil {
+		return err
+	}
+	if err := binary.Write(w, endian, h.Port); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *connectionHeader) ReadFrom(r io.Reader) error {
-	return binary.Read(r, endian, &h.Port)
+	if err := binary.Read(r, endian, &h.IPv4); err != nil {
+		return err
+	}
+	if err := binary.Read(r, endian, &h.Port); err != nil {
+		return err
+	}
+	return nil
 }
 
 type messageHeader struct {

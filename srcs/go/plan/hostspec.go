@@ -51,6 +51,14 @@ func parseHostSpec(spec string) (*HostSpec, error) {
 	return nil, errInvalidHostSpec
 }
 
+func FormatHostSpec(hosts []HostSpec) string {
+	var ss []string
+	for _, h := range hosts {
+		ss = append(ss, h.String())
+	}
+	return strings.Join(ss, ",")
+}
+
 func ParseHostSpec(h string) ([]HostSpec, error) {
 	var hostSpecs []HostSpec
 	for _, h := range strings.Split(h, ",") {
