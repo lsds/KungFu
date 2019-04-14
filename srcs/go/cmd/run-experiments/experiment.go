@@ -50,14 +50,6 @@ func parseResult(line string, r *Result) {
 	fmt.Sscanf(line, `Img/sec per /gpu:0: %f +-%f`, &r.Mean, &r.Conf)
 }
 
-func fmtHostSpecs(hosts []plan.HostSpec) string {
-	var ss []string
-	for _, h := range hosts {
-		ss = append(ss, h.String())
-	}
-	return strings.Join(ss, ",")
-}
-
 func humanizeHostSpecs(hosts []plan.HostSpec) string {
 	var ss []string
 	for _, h := range hosts {
@@ -95,7 +87,7 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 
 	jc := sch.JobConfig{
 		PeerCount: plan.TotalCap(hosts),
-		HostList:  fmtHostSpecs(hosts),
+		HostList:  plan.FormatHostSpec(hosts),
 		Prog:      prog,
 		Args:      args,
 	}

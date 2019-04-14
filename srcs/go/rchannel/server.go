@@ -21,6 +21,7 @@ type Server struct {
 // NewServer creates a new Server
 func NewServer(router *Router) (*Server, error) {
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(int(router.localAddr.Port)))
+	log.Debugf("listening: %s", addr)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -77,14 +78,6 @@ func (s *Server) Close() {
 	}
 }
 
-func (s *Server) getRemoteHost(conn net.Conn) string {
-	h, _, err := net.SplitHostPort(conn.RemoteAddr().String())
-	if err == nil {
-		return h
-	}
-	return s.router.localAddr.Host
-}
-
 func (s *Server) handle(conn net.Conn) error {
 	defer conn.Close()
 	var ch connectionHeader
@@ -92,8 +85,8 @@ func (s *Server) handle(conn net.Conn) error {
 		return err
 	}
 	remoteNetAddr := plan.NetAddr{
-		Host: s.getRemoteHost(conn),
-		Port: ch.Port,
+		Host: formatIPv4(ch.SrcIPv4), // formatIPv4 :: uint32 -> str
+		Port: ch.SrcPort,
 	}
 	log.Debugf("got new connection from: %s", remoteNetAddr)
 	if n, err := s.router.stream(conn, remoteNetAddr); err != nil && err != io.EOF {
@@ -111,4 +104,9 @@ func isNetClosingErr(err error) bool {
 		return msg == e.Err.Error()
 	}
 	return false
+}
+
+func formatIPv4(ipv4 uint32) string {
+	ip := net.IPv4(byte(ipv4>>24), byte(ipv4>>16), byte(ipv4>>8), byte(ipv4))
+	return ip.String()
 }
