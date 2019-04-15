@@ -107,8 +107,9 @@ class AkoNegotiator : public AsyncOpKernel
             outGrad_flt = grads_flt + outGrad_flt;
         }
         
+        // FIXME(andrei): operation degrades training throughput
         if (tensorWindow.size() > 0) {
-            outGrad_flt = outGrad_flt / outGrad_flt.constant(tensorWindow.size()    );
+            outGrad_flt = outGrad_flt / outGrad_flt.constant(tensorWindow.size());
         } else {
             std::cout << "Ako accumulation window empty!" << std::endl;
         }
