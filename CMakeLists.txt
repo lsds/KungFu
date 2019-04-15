@@ -9,6 +9,7 @@ ADD_COMPILE_OPTIONS(-fPIC)
 
 OPTION(KUNGFU_BUILD_TESTS "Build tests." OFF)
 OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
+OPTION(KUNGFU_BUILD_TOOLS "Build kungfu tools." OFF)
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
@@ -57,6 +58,28 @@ IF(KUNGFU_BUILD_TF_OPS)
     SET_TF_CXX11_ABI(kungfu_tensorflow_init)
     SET_INSTALL_RPATH(kungfu_tensorflow_init)
     SET_INSTALL_RPATH(kungfu_tensorflow_ops)
+ENDIF()
+
+IF(KUNGFU_BUILD_TOOLS)
+    FUNCTION(ADD_GO_BINARY target)
+        FILE(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+        ADD_CUSTOM_TARGET(${target} ALL
+                          COMMAND env #
+                                  GOBIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+                                  CGO_CFLAGS=${CGO_CFLAGS}
+                                  CGO_LDFLAGS=${CGO_LDFLAGS}
+                                  go
+                                  install
+                                  -v
+                                  ${ARGN})
+    ENDFUNCTION()
+
+    FUNCTION(ADD_KUNGFU_GO_BINARY target)
+        ADD_GO_BINARY(${target} ${CMAKE_SOURCE_DIR}/srcs/go/cmd/${target})
+        ADD_DEPENDENCIES(${target} kungfu-base)
+    ENDFUNCTION()
+
+    ADD_KUNGFU_GO_BINARY(kungfu-prun)
 ENDIF()
 
 IF(KUNGFU_BUILD_TESTS)

@@ -1,5 +1,5 @@
 # https://cmake.org/cmake/help/v3.9/policy/CMP0068.html
-CMAKE_POLICY(SET CMP0068 OLD)
+# CMAKE_POLICY(SET CMP0068 OLD)
 
 FUNCTION(SET_INSTALL_RPATH target)
     IF(UNIX)

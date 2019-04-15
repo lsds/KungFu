@@ -25,6 +25,7 @@ __pycache__
 /gopath
 /lib
 /logs
+/release
 ansible_hosts.txt
 cmake_install.cmake
 CMakeCache.txt

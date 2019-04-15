@@ -7,16 +7,33 @@ SCRIPT_NAME=$(dirname $0)
 cd ../..
 ROOT=$(pwd)
 
-. ./scripts/utils/measure.sh
-
-export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
-KUNGFU_PRUN=${ROOT}/bin/kungfu-prun
-if [ ! -f ${KUNGFU_PRUN} ]; then
-    ${ROOT}/scripts/go-install.sh
+if [ -z "${PYTHON}" ]; then
+    PYTHON=$(which python3)
 fi
 
+. ./scripts/utils/measure.sh
+
+reset_go_mod() {
+    echo 'module github.com/lsds/KungFu' >go.mod
+    if [ -f go.sum ]; then
+        rm go.sum
+    fi
+}
+
+KUNGFU_PRUN=${ROOT}/bin/kungfu-prun
+
+ensure_kungfu_prun() {
+    if [ ! -f ${KUNGFU_PRUN} ]; then
+        reset_go_mod
+        ./configure --no-tests --build-tools && make
+    fi
+}
+
+ensure_kungfu_prun
+export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
+
 if [ $(uname -s) = "Darwin" ]; then
-    export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
+    export DYLD_LIBRARY_PATH=$(${PYTHON} -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
 
 SCRIPT=${ROOT}/tests/python/test_mnist_slp.py
@@ -25,7 +42,7 @@ epochs=2
 
 run_single_train_test() {
     local total_batch_size=$1
-    python3 ${SCRIPT} \
+    ${PYTHON} ${SCRIPT} \
         --no-kungfu=1 \
         --n-epochs $epochs \
         --batch-size $total_batch_size
@@ -44,7 +61,7 @@ run_parallel_train_test() {
         -timeout $timeout \
         -np $np \
         -H $hosts \
-        python3 \
+        ${PYTHON} \
         ${SCRIPT} \
         --n-epochs $epochs \
         --batch-size $batch_size
