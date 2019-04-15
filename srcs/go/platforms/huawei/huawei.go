@@ -40,10 +40,10 @@ func ParseEnv() (*ContainerInfo, error) {
 	}
 	log.Infof("cluster size: %d, idx: %d", num, idx)
 	if idx < 0 || num <= idx {
-		log.Warningf("invalid idx, 0 <= idx < cluster size is required")
+		log.Warnf("invalid idx, 0 <= idx < cluster size is required")
 	}
 	if num == 1 && idx == 1 {
-		log.Warningf("changing idx=1 to idx=0 when cluster size=1", num, idx)
+		log.Warnf("changing idx=1 to idx=0 when cluster size=1", num, idx)
 		idx = 0
 	}
 	return &ContainerInfo{
