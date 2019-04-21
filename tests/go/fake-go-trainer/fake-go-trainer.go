@@ -65,7 +65,7 @@ func fakeTrain(kungfu *kf.Kungfu, model *fakeModel) {
 	t0 := time.Now()
 	trainStep := model.trainStep
 	if *enableControl {
-		trainStep = withControl(trainStep)
+		trainStep = withControl(trainStep, model.control)
 	}
 	for i := 0; i < *nIters; i++ {
 		for j := 0; j < *stepPerIter; j++ {
@@ -80,15 +80,16 @@ func fakeTrain(kungfu *kf.Kungfu, model *fakeModel) {
 }
 
 type TrainStep func(kungfu *kf.Kungfu)
+type ControlFunc func(kungfu *kf.Kungfu)
 
-func withControl(trainStep TrainStep) TrainStep {
+func withControl(trainStep TrainStep, controlFunc ControlFunc) TrainStep {
 	return func(kungfu *kf.Kungfu) {
 		trainStep(kungfu)
-		fakeControl(kungfu)
+		controlFunc(kungfu)
 	}
 }
 
-func fakeControl(kungfu *kf.Kungfu) {
+func (m *fakeModel) control(kungfu *kf.Kungfu) {
 	// TODO: change cluster size
 	log.Printf("TODO: control cluster size")
 }
