@@ -29,3 +29,13 @@ var resnet50GradSizes = []int{
 	16384, 16384, 64, 64, 64, 36864, 64, 64,
 	64, 4096, 64, 64, 64, 9408,
 }
+
+var mnistSLPSizes = []int{
+	28 * 28 * 10,
+	10,
+}
+
+var models = map[string][]int{
+	"resnet50":  resnet50GradSizes,
+	"mnist-slp": mnistSLPSizes,
+}
