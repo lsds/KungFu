@@ -47,10 +47,21 @@ def broadcast(t):
 def all_reduce(t):
     return _op_lib.all_reduce(t, input_tensor_name=t.name[:-2])
 
+def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average):
+    # Take full gradient name for unicity
+    tensor_size = t.shape.num_elements() * t.dtype.size
+    if accumulate:
+        import json, os
+        cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
+        num_peers = len(cluster_spec['Peers'])
+        return _op_lib.partial_accumulating_negotiator(t, input_tensor_name=t.name, budget=budget, 
+                                         tensor_size=tensor_size, count_gradients=count_gradients, num_peers=num_peers, average=average)
+    else:
+        return _op_lib.partial_negotiator(t, input_tensor_name=t.name, budget=budget, 
+                                          tensor_size=tensor_size, count_gradients=count_gradients)
 
 def all_reduce_gpu(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name[:-2])
-
 
 def ako_all_reduce(t, partition_id, num_partitions):
     return _op_lib.ako_negotiator(t, partition_id, num_partitions)
@@ -70,11 +81,21 @@ def set_num_gradients(n):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
+def partial_exchange_group_all_reduce(ts, fraction=0.3, accumulate=False, average="none"):
+    import math
+    total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
+    budget = int(math.floor(fraction * total_size))
+    return [partial_exchange_all_reduce(t, budget, len(ts), accumulate, average) for t in ts]
+
 def ako_group_all_reduce(gradient_tensors, num_partitions=1):
     partitioner      = AkoPartitioner(num_partitions)
     grads_and_vars_to_negotiate = [(grad, grad.name[:-2]) for grad in gradient_tensors]
     partitionIndices = partitioner.partition_positions(grads_and_vars_to_negotiate)
     partitions       = partitioner.reconstruct_partition(grads_and_vars_to_negotiate, partitionIndices)
+    
+    # Print info
+    partitioner.print_gradient_info(grads_and_vars_to_negotiate)
+    partitioner.print_partition_info(num_partitions, partitions)
     
     negotiated_grads = []
     for partition_id in range(len(partitions)):

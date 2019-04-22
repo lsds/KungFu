@@ -37,9 +37,12 @@ class AkoOptimizer(KungFuOptimizer):
                 if self.partitionIndices is None:
                     # Get partition indices by size (runs once)
                     self.partitionIndices = self.partitioner.partition_positions(grads_and_vars_to_negotiate)
-
                 # pair tensor name bucket id
                 partitions = self.partitioner.reconstruct_partition(grads_and_vars_to_negotiate, self.partitionIndices)
+                
+                self.partitioner.print_gradient_info(grads_and_vars_to_negotiate)
+                self.partitioner.print_partition_info(self.akoPartitions, partitions)
+            
                 negotiated_grad_and_vars = []
                 for partition_id in range(len(partitions)):
                     for grad, var in partitions[partition_id]:

@@ -7,12 +7,16 @@
 #include <kungfu.h>
 #include <kungfu_gpu_collective.hpp>
 
+#include <partial_exchange_manager.h>
+
 extern "C" {
 extern void kungfu_tensorflow_init();
 extern void kungfu_tensorflow_init_gpu();
 }
 
 extern std::unique_ptr<kungfu_world> _kungfu_world;
+extern std::unique_ptr<partial_exchange_manager> _partial_exchange_manager;
+
 
 namespace kungfu
 {

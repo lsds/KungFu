@@ -59,3 +59,19 @@ class AkoPartitioner:
                 M[i][j] = current_min
                 D[i - 1][j - 1] = min_separator_pos
         return D
+
+    def print_gradient_info(self, grads_and_vars):
+        print("AkoLog> Current Model has {:d} gradients to be negotiated".format(len(grads_and_vars)))
+        print("AkoLog> The size of each gradient is:")
+        for grad, var in grads_and_vars:
+            grad_size = grad.shape.num_elements() * grad.dtype.size
+            print("AkoLog> Gradient: {:d} bytes".format(grad_size)) 
+
+    def print_partition_info(self, num_partitions, partitions):
+        print("AkoLog> Number of Ako Partitions: " + str(num_partitions))
+        print("AkoLog> Length of partitions list: " + str(len(partitions)))
+        print("AkoLog> The partition sizes are: ")
+        for partition_id in range(len(partitions)):
+            curr_partition = partitions[partition_id]
+            part_size = sum(map(lambda grad_var: grad_var[0].shape.num_elements() * grad_var[0].dtype.size, curr_partition))
+            print("AkoLog> Partition {:d}: {:d} bytes".format(partition_id, part_size))
