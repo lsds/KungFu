@@ -36,7 +36,7 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
 		envs := Envs{
 			kb.ClusterSpecEnvKey:   cs.String(),
-			kb.SelfRankEnvKey:      strconv.Itoa(i),
+			kb.SelfSpecEnvKey:      self.String(),
 			kb.AllReduceAlgoEnvKey: algo.String(),
 			`CUDA_VISIBLE_DEVICES`: strconv.Itoa(self.DeviceID),
 			`PYTHONUNBUFFERED`:     `1`,

@@ -1,6 +1,8 @@
 package kungfu
 
 import (
+	"sync"
+
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -21,6 +23,8 @@ func (c Config) complete() Config {
 }
 
 type Kungfu struct {
+	sync.Mutex
+
 	self           plan.PeerSpec
 	currentSession *session
 	server         *rch.Server
@@ -36,7 +40,6 @@ func New(config Config) (*Kungfu, error) {
 	}
 	self := ps.Self()
 	router := rch.NewRouter(self)
-	session := newSession(config, ps, router)
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
@@ -45,6 +48,7 @@ func New(config Config) (*Kungfu, error) {
 	if err != nil {
 		return nil, err
 	}
+	session := newSession(config, ps, router)
 	return &Kungfu{
 		self:           self,
 		currentSession: session,
@@ -81,5 +85,14 @@ func (kf *Kungfu) Close() int {
 }
 
 func (kf *Kungfu) CurrentSession() *session {
+	kf.Lock()
+	defer kf.Unlock()
 	return kf.currentSession
+}
+
+func (kf *Kungfu) updateSession() {
+	kf.Lock()
+	defer kf.Unlock()
+	// TODO:
+	// kf.currentSession = newSession()
 }

@@ -39,3 +39,11 @@ var models = map[string][]int{
 	"resnet50":  resnet50GradSizes,
 	"mnist-slp": mnistSLPSizes,
 }
+
+var modelNames = func(m map[string][]int) []string {
+	var ks []string
+	for k := range m {
+		ks = append(ks, k)
+	}
+	return ks
+}(models)

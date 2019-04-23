@@ -96,7 +96,11 @@ func (sess *session) ClusterSize() int {
 }
 
 func (sess *session) Rank() int {
-	return sess.cluster.SelfRank
+	rank, err := sess.cluster.MyRank()
+	if err != nil {
+		panic(err) // FIXME: don't panic
+	}
+	return rank
 }
 
 func (sess *session) Warmup() int {
@@ -182,7 +186,10 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		}
 	}
 
-	myRank := sess.cluster.MyRank()
+	myRank, err := sess.cluster.MyRank()
+	if err != nil {
+		panic(err) // FIXME: don't panic
+	}
 	for _, g := range graphs {
 		prevs := g.Prevs(myRank)
 		if g.IsSelfLoop(myRank) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
@@ -17,7 +18,7 @@ var (
 	imgPerSec     = flag.Int("img-per-sec", 185, "")
 	nIters        = flag.Int("n-iters", 11, "")
 	stepPerIter   = flag.Int("step-per-iter", 10, "")
-	model         = flag.String("model", "resnet50", "resnet50 | mnist-slp")
+	model         = flag.String("model", modelNames[0], strings.Join(modelNames, " | "))
 	enableControl = flag.Bool("control", false, "mock control cluster size")
 )
 

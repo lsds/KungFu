@@ -1,11 +1,9 @@
 package plan
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
@@ -14,37 +12,41 @@ import (
 
 type ProcSpec struct {
 	ClusterSpec
-	SelfRank int
+	self PeerSpec
 }
 
 func (ps ProcSpec) Self() PeerSpec {
-	return ps.Peers[ps.SelfRank]
+	return ps.self
+}
+
+func defaultProcSpec() (*ProcSpec, error) {
+	cs, err := GenClusterSpec(1, []HostSpec{DefaultHostSpec()})
+	if err != nil {
+		return nil, err
+	}
+	return &ProcSpec{
+		ClusterSpec: *cs,
+		self:        cs.Peers[0],
+	}, nil
 }
 
 func NewProcSpecFromEnv() (*ProcSpec, error) {
-	clusterSpecConfig := os.Getenv(kb.ClusterSpecEnvKey)
-	selfRankConfig := os.Getenv(kb.SelfRankEnvKey)
-	if len(clusterSpecConfig) == 0 && len(selfRankConfig) == 0 {
-		cs, err := GenClusterSpec(1, []HostSpec{DefaultHostSpec()})
-		if err != nil {
-			return nil, err
-		}
-		ps := cs.ToProcSpec(0)
-		return &ps, nil
-	}
-
-	var cs ClusterSpec
-	if err := json.Unmarshal([]byte(clusterSpecConfig), &cs); err != nil {
-		return nil, errors.New(kb.ClusterSpecEnvKey + " is invalid")
-	}
-	selfRank, err := strconv.Atoi(selfRankConfig)
+	self, err := GetSelfFromEnv()
 	if err != nil {
-		return nil, errors.New(kb.SelfRankEnvKey + " is invalid")
+		return defaultProcSpec()
 	}
-	if selfRank < 0 || len(cs.Peers) <= selfRank {
-		return nil, errors.New(kb.SelfRankEnvKey + " is invalid")
+	clusterSpecConfig := os.Getenv(kb.ClusterSpecEnvKey)
+	var cs ClusterSpec
+	if err := fromString(clusterSpecConfig, &cs); err != nil {
+		return nil, err
 	}
-	ps := cs.ToProcSpec(selfRank)
+	ps := ProcSpec{
+		ClusterSpec: cs,
+		self:        *self,
+	}
+	if _, err := ps.MyRank(); err != nil {
+		return nil, err
+	}
 	return &ps, nil
 }
 
@@ -60,8 +62,13 @@ func (ps ProcSpec) AllPeers() []PeerSpec {
 	return ps.Peers
 }
 
-func (ps ProcSpec) MyRank() int {
-	return ps.SelfRank
+func (ps ProcSpec) MyRank() (int, error) {
+	for i, p := range ps.Peers {
+		if p == ps.self {
+			return i, nil
+		}
+	}
+	return -1, errors.New("self not in cluster")
 }
 
 func GenClusterSpec(k int, hostSpecs []HostSpec) (*ClusterSpec, error) {
