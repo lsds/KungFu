@@ -92,7 +92,8 @@ func (kf *Kungfu) CurrentSession() *session {
 	if kf.currentSession == nil {
 		var cs plan.ClusterSpec
 		if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
-			utils.ExitErr(err)
+			cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
+			// utils.ExitErr(err)
 		}
 		sess, err := newSession(kf.config, kf.self, &cs, kf.router)
 		if err != nil {
