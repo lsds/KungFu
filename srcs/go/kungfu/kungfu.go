@@ -9,6 +9,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type Config struct {
@@ -27,19 +28,18 @@ type Kungfu struct {
 
 	self           plan.PeerSpec
 	currentSession *session
+	router         *rch.Router
 	server         *rch.Server
 	localServer    *rch.Server
 	config         Config
 }
 
 func New(config Config) (*Kungfu, error) {
-	config = config.complete()
-	ps, err := plan.NewProcSpecFromEnv()
+	self, err := plan.GetSelfFromEnv()
 	if err != nil {
 		return nil, err
 	}
-	self := ps.Self()
-	router := rch.NewRouter(self)
+	router := rch.NewRouter(*self)
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
@@ -48,13 +48,12 @@ func New(config Config) (*Kungfu, error) {
 	if err != nil {
 		return nil, err
 	}
-	session := newSession(config, ps, router)
 	return &Kungfu{
-		self:           self,
-		currentSession: session,
-		server:         server,
-		localServer:    localServer,
-		config:         config,
+		self:        *self,
+		router:      router,
+		server:      server,
+		localServer: localServer,
+		config:      config.complete(),
 	}, nil
 }
 
@@ -87,6 +86,13 @@ func (kf *Kungfu) Close() int {
 func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
+	if kf.currentSession == nil {
+		ps, err := plan.NewProcSpecFromEnv()
+		if err != nil {
+			utils.ExitErr(err)
+		}
+		kf.currentSession = newSession(kf.config, ps, kf.router)
+	}
 	return kf.currentSession
 }
 

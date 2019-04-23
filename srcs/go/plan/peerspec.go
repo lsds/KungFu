@@ -17,7 +17,7 @@ func (ps PeerSpec) String() string {
 	return toString(ps)
 }
 
-func GetSelfFromEnv() (*PeerSpec, error) {
+func getSelfFromEnv() (*PeerSpec, error) {
 	var ps PeerSpec
 	selfSpecConfig := os.Getenv(kb.SelfSpecEnvKey)
 	if err := fromString(selfSpecConfig, &ps); err != nil {

@@ -30,8 +30,20 @@ func defaultProcSpec() (*ProcSpec, error) {
 	}, nil
 }
 
+func GetSelfFromEnv() (*PeerSpec, error) {
+	self, err := getSelfFromEnv()
+	if err != nil {
+		ps, err := defaultProcSpec()
+		if err != nil {
+			return nil, err
+		}
+		return &ps.self, nil
+	}
+	return self, nil
+}
+
 func NewProcSpecFromEnv() (*ProcSpec, error) {
-	self, err := GetSelfFromEnv()
+	self, err := getSelfFromEnv()
 	if err != nil {
 		return defaultProcSpec()
 	}
