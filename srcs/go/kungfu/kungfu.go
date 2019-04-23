@@ -26,7 +26,7 @@ func (c Config) complete() Config {
 type Kungfu struct {
 	sync.Mutex
 
-	self           plan.PeerSpec
+	self           *plan.PeerSpec
 	currentSession *session
 	router         *rch.Router
 	server         *rch.Server
@@ -49,7 +49,7 @@ func New(config Config) (*Kungfu, error) {
 		return nil, err
 	}
 	return &Kungfu{
-		self:        *self,
+		self:        self,
 		router:      router,
 		server:      server,
 		localServer: localServer,
@@ -84,11 +84,11 @@ func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
-		ps, err := plan.NewProcSpecFromEnv()
+		cs, err := plan.GetClusterSpecFromEnv()
 		if err != nil {
 			utils.ExitErr(err)
 		}
-		kf.currentSession = newSession(kf.config, ps, kf.router)
+		kf.currentSession = newSession(kf.config, kf.self, cs, kf.router)
 	}
 	return kf.currentSession
 }

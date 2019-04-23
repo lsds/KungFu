@@ -14,6 +14,7 @@ const (
 	UseShmEnvKey           = `KUNGFU_CONFIG_USE_SHM`
 	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
+	ConfigServerEnvKey     = `KUNGFU_CONFIG_SERVER`
 )
 
 var ConfigEnvKeys = []string{
@@ -22,6 +23,7 @@ var ConfigEnvKeys = []string{
 	UseShmEnvKey,
 	EnableMonitoringEnvKey,
 	MonitoringPeriodEnvKey,
+	ConfigServerEnvKey,
 }
 
 var (

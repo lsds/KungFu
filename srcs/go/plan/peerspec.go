@@ -17,11 +17,36 @@ func (ps PeerSpec) String() string {
 	return toString(ps)
 }
 
-func getSelfFromEnv() (*PeerSpec, error) {
+func GetSelfFromEnv() (*PeerSpec, error) {
+	config := os.Getenv(kb.SelfSpecEnvKey)
+	if len(config) == 0 {
+		ps := genPeerSpecs(1, []HostSpec{DefaultHostSpec()})
+		return &ps[0], nil
+	}
 	var ps PeerSpec
-	selfSpecConfig := os.Getenv(kb.SelfSpecEnvKey)
-	if err := fromString(selfSpecConfig, &ps); err != nil {
+	if err := fromString(config, &ps); err != nil {
 		return nil, err
 	}
 	return &ps, nil
+}
+
+func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
+	var peers []PeerSpec
+	for _, host := range hostSpecs {
+		for j := 0; j < host.Slots; j++ {
+			peer := PeerSpec{
+				DeviceID: j,
+				NetAddr: NetAddr{
+					Host: host.Hostname,
+					Port: uint16(10001 + j),
+				},
+				MonitoringPort: uint16(20001 + j),
+			}
+			peers = append(peers, peer)
+			if len(peers) >= k {
+				return peers
+			}
+		}
+	}
+	return peers
 }

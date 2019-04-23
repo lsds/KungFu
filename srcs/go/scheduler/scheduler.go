@@ -35,7 +35,7 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 	for i, self := range cs.Peers {
 		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
 		envs := Envs{
-			kb.ClusterSpecEnvKey:    cs.String(),
+			kb.ClusterSpecEnvKey:    cs.String(),     // TODO: remove it
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
 			kb.AllReduceAlgoEnvKey:  algo.String(),

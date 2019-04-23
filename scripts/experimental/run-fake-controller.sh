@@ -21,7 +21,11 @@ export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
 GOBIN=$(pwd)/bin go install -v ./tests/go/...
 # reset_go_mod
 
-./bin/fake-controller \
+CONFIG_SERVER=127.0.0.1:30001
+
+env \
+    KUNGFU_CONFIG_SERVER=$CONFIG_SERVER \
+    ./bin/fake-controller \
     -timeout=120s \
     -np=3 \
     ./bin/fake-go-trainer \

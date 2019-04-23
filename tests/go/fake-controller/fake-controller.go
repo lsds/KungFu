@@ -72,6 +72,7 @@ func main() {
 	}
 	log.Printf("will parallel run %d instances of %s with %q", len(myPs), prog, args)
 
+	go runConfigServer()
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
@@ -109,4 +110,8 @@ func inferIP(nicName string) string {
 		}
 	}
 	return "127.0.0.1"
+}
+
+func runConfigServer() {
+	// server := http.Server{}
 }
