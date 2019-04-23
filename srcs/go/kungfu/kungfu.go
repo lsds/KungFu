@@ -87,19 +87,8 @@ func (kf *Kungfu) Close() int {
 }
 
 func (kf *Kungfu) CurrentSession() *session {
-	kf.Lock()
-	defer kf.Unlock()
 	if kf.currentSession == nil {
-		var cs plan.ClusterSpec
-		if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
-			cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
-			// utils.ExitErr(err)
-		}
-		sess, err := newSession(kf.config, kf.self, &cs, kf.router)
-		if err != nil {
-			utils.ExitErr(err)
-		}
-		kf.currentSession = sess
+		kf.updateSession()
 	}
 	return kf.currentSession
 }
@@ -107,6 +96,15 @@ func (kf *Kungfu) CurrentSession() *session {
 func (kf *Kungfu) updateSession() {
 	kf.Lock()
 	defer kf.Unlock()
-	// TODO:
-	// kf.currentSession = newSession()
+	var cs plan.ClusterSpec
+	if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
+		log.Warnf("failed to get config: %v, running in single mode", err)
+		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
+		// utils.ExitErr(err)
+	}
+	sess, err := newSession(kf.config, kf.self, &cs, kf.router)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	kf.currentSession = sess
 }

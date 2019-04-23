@@ -17,14 +17,14 @@ type JobConfig struct {
 	Args      []string
 }
 
-func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
+func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, *plan.ClusterSpec, error) {
 	hostSpecs, err := plan.ParseHostSpec(jc.HostList)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cs, err := plan.GenClusterSpec(jc.PeerCount, hostSpecs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	pubAddr := make(map[string]string)
 	for _, h := range hostSpecs {
@@ -53,7 +53,7 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 			PubAddr: pubAddr[self.NetAddr.Host],
 		})
 	}
-	return ps, nil
+	return ps, cs, nil
 }
 
 func ForHost(myHost string, ps []Proc) []Proc {

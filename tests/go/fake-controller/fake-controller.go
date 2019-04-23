@@ -3,16 +3,20 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
+	"os"
 	"runtime"
 	"strings"
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/runner"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
@@ -61,7 +65,7 @@ func main() {
 		Args:      args,
 	}
 
-	ps, err := jc.CreateProcs(kb.ParseAlgo(*algo))
+	ps, cs, err := jc.CreateProcs(kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}
@@ -72,7 +76,7 @@ func main() {
 	}
 	log.Printf("will parallel run %d instances of %s with %q", len(myPs), prog, args)
 
-	go runConfigServer()
+	go runConfigServer(cs)
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
@@ -112,6 +116,17 @@ func inferIP(nicName string) string {
 	return "127.0.0.1"
 }
 
-func runConfigServer() {
-	// server := http.Server{}
+func runConfigServer(cs *plan.ClusterSpec) {
+	configs := map[string]interface{}{
+		kb.ClusterSpecEnvKey: cs,
+	}
+	server := http.Server{
+		Addr: os.Getenv(kc.ConfigServerEnvKey),
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			log.Printf("%s %s %s", req.Method, req.URL.Path, req.URL.RawQuery)
+			val := configs[req.FormValue("name")]
+			json.NewEncoder(w).Encode(val)
+		}),
+	}
+	server.ListenAndServe()
 }
