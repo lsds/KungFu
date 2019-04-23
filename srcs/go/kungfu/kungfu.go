@@ -60,9 +60,6 @@ func New(config Config) (*Kungfu, error) {
 func (kf *Kungfu) Start() int {
 	go kf.server.Serve()
 	go kf.localServer.Serve()
-	if kc.RunWarmup {
-		return kf.currentSession.Warmup()
-	}
 	if kc.EnableMonitoring {
 		monitor.StartServer(int(kf.self.MonitoringPort))
 		monitorAddr := plan.NetAddr{

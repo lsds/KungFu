@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
@@ -38,11 +39,15 @@ func newSession(c Config, ps *plan.ProcSpec, router *rch.Router) *session {
 		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
 		f = createStarStrategies
 	}
-	return &session{
+	sess := &session{
 		strategies: f(ps.Peers),
 		cluster:    ps,
 		router:     router,
 	}
+	if kc.RunWarmup {
+		sess.Warmup()
+	}
+	return sess
 }
 
 func createStarStrategies(peers []plan.PeerSpec) []strategy {
