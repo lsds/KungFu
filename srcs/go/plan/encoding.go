@@ -10,6 +10,6 @@ func toString(i interface{}) string {
 	return string(bs)
 }
 
-func fromString(s string, i interface{}) error {
+func FromString(s string, i interface{}) error {
 	return json.Unmarshal([]byte(s), i)
 }

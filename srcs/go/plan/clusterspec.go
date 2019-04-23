@@ -30,7 +30,7 @@ func GetClusterSpecFromEnv() (*ClusterSpec, error) {
 		return GenClusterSpec(1, []HostSpec{DefaultHostSpec()})
 	}
 	var cs ClusterSpec
-	if err := fromString(config, &cs); err != nil {
+	if err := FromString(config, &cs); err != nil {
 		return nil, err
 	}
 	return &cs, nil

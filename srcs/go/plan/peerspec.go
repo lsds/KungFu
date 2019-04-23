@@ -24,7 +24,7 @@ func GetSelfFromEnv() (*PeerSpec, error) {
 		return &ps[0], nil
 	}
 	var ps PeerSpec
-	if err := fromString(config, &ps); err != nil {
+	if err := FromString(config, &ps); err != nil {
 		return nil, err
 	}
 	return &ps, nil

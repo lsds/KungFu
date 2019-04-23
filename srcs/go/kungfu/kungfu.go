@@ -26,6 +26,7 @@ func (c Config) complete() Config {
 type Kungfu struct {
 	sync.Mutex
 
+	configClient   *configClient
 	self           *plan.PeerSpec
 	currentSession *session
 	router         *rch.Router
@@ -35,6 +36,10 @@ type Kungfu struct {
 }
 
 func New(config Config) (*Kungfu, error) {
+	configClient, err := newConfigClient()
+	if err != nil {
+		return nil, err
+	}
 	self, err := plan.GetSelfFromEnv()
 	if err != nil {
 		return nil, err
@@ -49,11 +54,12 @@ func New(config Config) (*Kungfu, error) {
 		return nil, err
 	}
 	return &Kungfu{
-		self:        self,
-		router:      router,
-		server:      server,
-		localServer: localServer,
-		config:      config.complete(),
+		configClient: configClient,
+		self:         self,
+		router:       router,
+		server:       server,
+		localServer:  localServer,
+		config:       config.complete(),
 	}, nil
 }
 
@@ -84,11 +90,11 @@ func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
-		cs, err := plan.GetClusterSpecFromEnv()
-		if err != nil {
+		var cs plan.ClusterSpec
+		if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
 			utils.ExitErr(err)
 		}
-		sess, err := newSession(kf.config, kf.self, cs, kf.router)
+		sess, err := newSession(kf.config, kf.self, &cs, kf.router)
 		if err != nil {
 			utils.ExitErr(err)
 		}
