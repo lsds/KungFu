@@ -1,6 +1,7 @@
 package kungfu
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -35,7 +36,7 @@ var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
 	kb.KungFu_Tree:   createTreeStrategies,
 }
 
-func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch.Router) *session {
+func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch.Router) (*session, error) {
 	f := partitionStrategies[c.Algo]
 	if f == nil {
 		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
@@ -43,7 +44,7 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 	}
 	myRank, ok := cs.Lookup(*self)
 	if !ok {
-		panic("self not in cluster") // TODO: don't panic
+		return nil, errors.New("self not in cluster")
 	}
 	sess := &session{
 		strategies: f(cs.Peers),
@@ -53,9 +54,9 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 		router:     router,
 	}
 	if kc.RunWarmup {
-		sess.Warmup()
+		sess.Warmup() // TODO: check error
 	}
-	return sess
+	return sess, nil
 }
 
 func createStarStrategies(peers []plan.PeerSpec) []strategy {

@@ -88,7 +88,11 @@ func (kf *Kungfu) CurrentSession() *session {
 		if err != nil {
 			utils.ExitErr(err)
 		}
-		kf.currentSession = newSession(kf.config, kf.self, cs, kf.router)
+		sess, err := newSession(kf.config, kf.self, cs, kf.router)
+		if err != nil {
+			utils.ExitErr(err)
+		}
+		kf.currentSession = sess
 	}
 	return kf.currentSession
 }
