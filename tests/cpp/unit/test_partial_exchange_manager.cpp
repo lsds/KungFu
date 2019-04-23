@@ -107,7 +107,7 @@ TEST(partial_exchange_manager_test_3, test_bin_packing)
     ASSERT_EQ(partitions[1]->index, 2);
     // 8, 2
     ASSERT_TRUE(partitions[1]->tensorNames.find("eight:1") != partitions[1]->tensorNames.end());   
-    ASSERT_TRUE(partitions[1]->tensorNames.find("two:1") != partitions[1]->tensorNames.end());   
+    ASSERT_TRUE(partitions[1]->tensorNames.find("two:2") != partitions[1]->tensorNames.end());   
 
 
     ASSERT_EQ(partitions[2]->index, 3);
@@ -118,7 +118,7 @@ TEST(partial_exchange_manager_test_3, test_bin_packing)
 
     ASSERT_EQ(partitions[3]->index, 4);
     // 4, 5
-    ASSERT_TRUE(partitions[3]->tensorNames.find("two:2") != partitions[3]->tensorNames.end());   
+    ASSERT_TRUE(partitions[3]->tensorNames.find("two:1") != partitions[3]->tensorNames.end());   
   
 }
 
