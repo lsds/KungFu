@@ -114,6 +114,7 @@ func (sess *session) Rank() int {
 }
 
 func (sess *session) Warmup() int {
+	log.Debugf("session is warming up")
 	k := len(sess.cluster.Peers)
 	count := k * 4
 	dtype := kb.KungFu_INT32

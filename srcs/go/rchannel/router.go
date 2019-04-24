@@ -66,10 +66,11 @@ func (r *Router) send(a plan.Addr, msg Message) error {
 
 // Recv recevies a message from given Addr
 func (r *Router) Recv(a plan.Addr) Message {
-	// log.Infof("%s::%s(%s)", "Router", "Recv", a)
+	log.Debugf("Router::Recv is waiting %s", a)
 	// TODO: reduce memory copy
 	msg := *<-r.bufferPool.require(a)
 	// TODO: add timeout
+	log.Debugf("Router::Recv got msg from %s", a)
 	return msg
 }
 

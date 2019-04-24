@@ -15,6 +15,16 @@ const (
 	ConnPeerToPeer ConnType = 2
 )
 
+var connTypeNames = map[ConnType]string{
+	ConnControl:    "control",
+	ConnCollective: "collective",
+	ConnPeerToPeer: "peer-to-peer",
+}
+
+func (ct ConnType) String() string {
+	return connTypeNames[ct]
+}
+
 var endian = binary.LittleEndian
 
 var errUnexpectedEnd = errors.New("Unexpected End")
