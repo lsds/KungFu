@@ -25,6 +25,7 @@ var (
 
 func init() {
 	// utils.LogAllEnvs()
+	utils.LogCudaEnv()
 	utils.LogKungfuEnv()
 	utils.LogNICInfo()
 	log.SetPrefix("[kungfu-huawei-launcher] ")

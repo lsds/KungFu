@@ -16,12 +16,20 @@ func LogArgs() {
 	}
 }
 
-func LogKungfuEnv() {
+func LogEnvWithPrefix(prefix string, logPrefix string) {
 	for _, kv := range os.Environ() {
-		if strings.HasPrefix(kv, `KUNGFU_`) {
-			fmt.Printf("[kf-env]: %s\n", kv)
+		if strings.HasPrefix(kv, prefix) {
+			fmt.Printf("[%s]: %s\n", logPrefix, kv)
 		}
 	}
+}
+
+func LogCudaEnv() {
+	LogEnvWithPrefix(`CUDA_`, `cuda-env`)
+}
+
+func LogKungfuEnv() {
+	LogEnvWithPrefix(`KUNGFU_`, `kf-env`)
 }
 
 func LogNICInfo() error {
