@@ -3,13 +3,10 @@
 image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
 stages:
-- unit test
-- integration test
-- system test
-- python 2 test
+- test
 
-job1:
-  stage: unit test
+unit test:
+  stage: test
 
   script:
   - | # C++ test
@@ -20,8 +17,8 @@ job1:
   - | # Go test
     ./scripts/tests/run-go-tests.sh
 
-job2:
-  stage: integration test
+integration test:
+  stage: test
   script:
   - |
     ./configure --build-tests
@@ -29,8 +26,8 @@ job2:
   - |
     ./scripts/tests/run-integration-tests.sh
 
-job3:
-  stage: system test
+system test:
+  stage: test
 
   before_script:
   - |
@@ -44,8 +41,8 @@ job3:
   - |
     ./scripts/tests/run-train-tests.sh
 
-job4:
-  stage: python 2 test
+python2 test:
+  stage: test
 
   before_script:
   - apt install -y python python-pip

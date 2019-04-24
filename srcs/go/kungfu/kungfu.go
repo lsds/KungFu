@@ -1,12 +1,15 @@
 package kungfu
 
 import (
+	"sync"
+
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type Config struct {
@@ -21,22 +24,27 @@ func (c Config) complete() Config {
 }
 
 type Kungfu struct {
-	self           plan.PeerSpec
+	sync.Mutex
+
+	configClient   *configClient
+	self           *plan.PeerSpec
 	currentSession *session
+	router         *rch.Router
 	server         *rch.Server
 	localServer    *rch.Server
 	config         Config
 }
 
 func New(config Config) (*Kungfu, error) {
-	config = config.complete()
-	ps, err := plan.NewProcSpecFromEnv()
+	configClient, err := newConfigClient()
 	if err != nil {
 		return nil, err
 	}
-	self := ps.Self()
-	router := rch.NewRouter(self)
-	session := newSession(config, ps, router)
+	self, err := plan.GetSelfFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	router := rch.NewRouter(*self)
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
@@ -46,20 +54,18 @@ func New(config Config) (*Kungfu, error) {
 		return nil, err
 	}
 	return &Kungfu{
-		self:           self,
-		currentSession: session,
-		server:         server,
-		localServer:    localServer,
-		config:         config,
+		configClient: configClient,
+		self:         self,
+		router:       router,
+		server:       server,
+		localServer:  localServer,
+		config:       config.complete(),
 	}, nil
 }
 
 func (kf *Kungfu) Start() int {
 	go kf.server.Serve()
 	go kf.localServer.Serve()
-	if kc.RunWarmup {
-		return kf.currentSession.Warmup()
-	}
 	if kc.EnableMonitoring {
 		monitor.StartServer(int(kf.self.MonitoringPort))
 		monitorAddr := plan.NetAddr{
@@ -81,5 +87,24 @@ func (kf *Kungfu) Close() int {
 }
 
 func (kf *Kungfu) CurrentSession() *session {
+	if kf.currentSession == nil {
+		kf.updateSession()
+	}
 	return kf.currentSession
+}
+
+func (kf *Kungfu) updateSession() {
+	kf.Lock()
+	defer kf.Unlock()
+	var cs plan.ClusterSpec
+	if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
+		log.Warnf("failed to get config: %v, running in single mode", err)
+		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
+		// utils.ExitErr(err)
+	}
+	sess, err := newSession(kf.config, kf.self, &cs, kf.router)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	kf.currentSession = sess
 }

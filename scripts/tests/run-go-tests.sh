@@ -15,7 +15,7 @@ reset_go_mod() {
 }
 
 rebuild() {
-    ./scripts/go-install.sh --no-tests
+    ./configure --no-tests && make
     env \
         GOBIN=$(pwd)/bin \
         go install -v ./tests/go/...

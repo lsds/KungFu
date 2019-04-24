@@ -17,14 +17,14 @@ type JobConfig struct {
 	Args      []string
 }
 
-func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
+func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, *plan.ClusterSpec, error) {
 	hostSpecs, err := plan.ParseHostSpec(jc.HostList)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	cs, err := plan.GenClusterSpec(jc.PeerCount, hostSpecs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	pubAddr := make(map[string]string)
 	for _, h := range hostSpecs {
@@ -35,11 +35,12 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 	for i, self := range cs.Peers {
 		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
 		envs := Envs{
-			kb.ClusterSpecEnvKey:   cs.String(),
-			kb.SelfRankEnvKey:      strconv.Itoa(i),
-			kb.AllReduceAlgoEnvKey: algo.String(),
-			`CUDA_VISIBLE_DEVICES`: strconv.Itoa(self.DeviceID),
-			`PYTHONUNBUFFERED`:     `1`,
+			kb.ClusterSpecEnvKey:    cs.String(),     // TODO: remove it
+			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
+			kb.SelfSpecEnvKey:       self.String(),
+			kb.AllReduceAlgoEnvKey:  algo.String(),
+			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(self.DeviceID),
+			`PYTHONUNBUFFERED`:      `1`,
 			// TODO: add LD_PRELOAD to tcmalloc path
 			// `LD_PRELOAD`:``,
 		}
@@ -52,7 +53,7 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, error) {
 			PubAddr: pubAddr[self.NetAddr.Host],
 		})
 	}
-	return ps, nil
+	return ps, cs, nil
 }
 
 func ForHost(myHost string, ps []Proc) []Proc {

@@ -60,7 +60,7 @@ func main() {
 		Args:      args,
 	}
 
-	ps, err := jc.CreateProcs(kb.ParseAlgo(*algo))
+	ps, _, err := jc.CreateProcs(kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}
