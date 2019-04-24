@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	np          = flag.Int("np", 8, "number of peers")
 	verboseLog  = flag.Bool("v", true, "show task log")
 	timeout     = flag.Duration("timeout", 10*time.Second, "timeout")
 	algo        = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
@@ -41,8 +42,7 @@ func main() {
 	}
 	prog := restArgs[0]
 	args := restArgs[1:]
-
-	env, err := huawei.ParseEnv()
+	env, err := huawei.ParseEnv(*np)
 	if err != nil {
 		utils.ExitErr(err)
 	}

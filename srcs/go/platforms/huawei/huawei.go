@@ -20,14 +20,14 @@ const (
 )
 
 type ContainerInfo struct {
-	ContainerIndex int
-	ClusterSize    int
-	SelfIPv4       string
-	GPUs           []string
-	ClusterSpec    *plan.ClusterSpec
+	// ContainerIndex int
+	// ClusterSize    int
+	SelfIPv4    string
+	GPUs        []string
+	ClusterSpec *plan.ClusterSpec
 }
 
-func ParseEnv() (*ContainerInfo, error) {
+func ParseEnv(np int) (*ContainerInfo, error) {
 	idx, err := requireInt(TaskIndexEnvKey)
 	if err != nil {
 		return nil, err
@@ -35,6 +35,10 @@ func ParseEnv() (*ContainerInfo, error) {
 	num, err := requireInt(TaskNumEnvKey)
 	if err != nil {
 		return nil, err
+	}
+	gpus := utils.ListNvidiaGPUNames()
+	if len(gpus) > 0 {
+		return ParseEnvV100(np)
 	}
 	clusterSpec, err := parseClusterSpec(num)
 	if err != nil {
@@ -49,11 +53,11 @@ func ParseEnv() (*ContainerInfo, error) {
 		idx = 0
 	}
 	return &ContainerInfo{
-		ContainerIndex: idx,
-		ClusterSize:    num,
-		SelfIPv4:       clusterSpec.Peers[idx].NetAddr.Host,
-		GPUs:           utils.ListNvidiaGPUNames(),
-		ClusterSpec:    clusterSpec,
+		// ContainerIndex: idx,
+		// ClusterSize:    num,
+		SelfIPv4:    clusterSpec.Peers[idx].NetAddr.Host,
+		GPUs:        gpus,
+		ClusterSpec: clusterSpec,
 	}, nil
 }
 
