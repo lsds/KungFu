@@ -46,6 +46,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
+	log.Printf("GPUs: %s", strings.Join(env.GPUs, ","))
 	// if err := utils.TestConnectivity(env.ClusterSpec, env.ContainerIndex); err != nil {
 	// 	utils.ExitErr(err)
 	// }

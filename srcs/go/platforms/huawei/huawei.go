@@ -9,6 +9,7 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 // https://github.com/huawei-clouds/modelarts-example/blob/master/CustomImage/自定义镜像训练功能操作指南.md
@@ -22,6 +23,7 @@ type ContainerInfo struct {
 	ContainerIndex int
 	ClusterSize    int
 	SelfIPv4       string
+	GPUs           []string
 	ClusterSpec    *plan.ClusterSpec
 }
 
@@ -50,6 +52,7 @@ func ParseEnv() (*ContainerInfo, error) {
 		ContainerIndex: idx,
 		ClusterSize:    num,
 		SelfIPv4:       clusterSpec.Peers[idx].NetAddr.Host,
+		GPUs:           utils.ListNvidiaGPUNames(),
 		ClusterSpec:    clusterSpec,
 	}, nil
 }
