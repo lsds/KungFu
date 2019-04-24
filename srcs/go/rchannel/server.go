@@ -1,6 +1,7 @@
 package rchannel
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -78,6 +79,11 @@ func (s *Server) Close() {
 	}
 }
 
+var (
+	errNotImplemented          = errors.New("Not Implemented")
+	errInvalidConnectionHeader = errors.New("Invalid connection header")
+)
+
 func (s *Server) handle(conn net.Conn) error {
 	defer conn.Close()
 	var ch connectionHeader
@@ -88,11 +94,32 @@ func (s *Server) handle(conn net.Conn) error {
 		Host: formatIPv4(ch.SrcIPv4), // formatIPv4 :: uint32 -> str
 		Port: ch.SrcPort,
 	}
-	log.Debugf("got new connection from: %s", remoteNetAddr)
+	log.Debugf("got new connection of type %d from: %s", ch.Type, remoteNetAddr)
+	switch ConnType(ch.Type) {
+	case ConnControl:
+		return s.handleControl(remoteNetAddr, conn)
+	case ConnCollective:
+		return s.handleCollective(remoteNetAddr, conn)
+	case ConnPeerToPeer:
+		return s.handlePeerToPeer(remoteNetAddr, conn)
+	default:
+		return errInvalidConnectionHeader
+	}
+}
+
+func (s *Server) handleControl(remoteNetAddr plan.NetAddr, conn net.Conn) error {
+	return errNotImplemented
+}
+
+func (s *Server) handleCollective(remoteNetAddr plan.NetAddr, conn net.Conn) error {
 	if n, err := s.router.stream(conn, remoteNetAddr); err != nil && err != io.EOF {
 		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
 	}
 	return nil
+}
+
+func (s *Server) handlePeerToPeer(remoteNetAddr plan.NetAddr, conn net.Conn) error {
+	return errNotImplemented
 }
 
 // check if error is internal/poll.ErrNetClosing

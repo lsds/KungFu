@@ -91,7 +91,7 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 		Prog:      prog,
 		Args:      args,
 	}
-	ps, err := jc.CreateProcs(algo)
+	ps, _, err := jc.CreateProcs(algo)
 	if err != nil {
 		return nil, err
 	}

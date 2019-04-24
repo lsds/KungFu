@@ -44,7 +44,7 @@ func main() {
 		Prog:      restArgs[0],
 		Args:      restArgs[1:],
 	}
-	ps, err := jc.CreateProcs(kb.ParseAlgo(*algo))
+	ps, _, err := jc.CreateProcs(kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}

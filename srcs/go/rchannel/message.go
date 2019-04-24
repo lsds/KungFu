@@ -7,33 +7,30 @@ import (
 	"io"
 )
 
+type ConnType uint16
+
+const (
+	ConnControl    ConnType = 0
+	ConnCollective ConnType = 1
+	ConnPeerToPeer ConnType = 2
+)
+
 var endian = binary.LittleEndian
 
 var errUnexpectedEnd = errors.New("Unexpected End")
 
 type connectionHeader struct {
-	SrcIPv4 uint32
+	Type    uint16
 	SrcPort uint16
+	SrcIPv4 uint32
 }
 
 func (h connectionHeader) WriteTo(w io.Writer) error {
-	if err := binary.Write(w, endian, h.SrcIPv4); err != nil {
-		return err
-	}
-	if err := binary.Write(w, endian, h.SrcPort); err != nil {
-		return err
-	}
-	return nil
+	return binary.Write(w, endian, &h)
 }
 
 func (h *connectionHeader) ReadFrom(r io.Reader) error {
-	if err := binary.Read(r, endian, &h.SrcIPv4); err != nil {
-		return err
-	}
-	if err := binary.Read(r, endian, &h.SrcPort); err != nil {
-		return err
-	}
-	return nil
+	return binary.Read(r, endian, h)
 }
 
 type messageHeader struct {

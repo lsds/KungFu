@@ -32,8 +32,6 @@ All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 
 * ClusterSpec: ClusterSpec is the list of **PeerSpec** from all peers in the cluster. It is a common constant shared among all peers in the cluster.
 
-* ProcSpec: ProcSpec is the the pair of (**ClusterSpec**, **SelfRank**).
-
 * HostSpec: HostSpec is the metadata that describes a host machine.
 
 * Graph: A directed graph, which may contain self loops. The vertices are numbered from 0 to n - 1.

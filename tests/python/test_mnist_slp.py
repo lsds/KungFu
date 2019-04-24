@@ -33,7 +33,7 @@ def dense(x, logits, act):
 def fake_get_shard_info(use_kungfu):
     if use_kungfu:
         cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-        rank = int(os.getenv('KUNGFU_SELF_RANK'))
+        rank = int(os.getenv('KUNGFU_TEST_SELF_RANK'))
         cluster_size = len(cluster_spec['Peers'])
         return rank, cluster_size
     return 0, 1
@@ -129,17 +129,23 @@ class MnistTrainer(object):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument(
-        '--n-epochs', type=int, default=1, help='number of epochs')
-    parser.add_argument(
-        '--batch-size', type=int, default=500, help='batch size')
-    parser.add_argument(
-        '--data-dir',
-        type=str,
-        default=os.path.join(os.getenv('HOME'), 'var/data/mnist'),
-        help='Path to the MNIST dataset directory.')
-    parser.add_argument(
-        '--no-kungfu', type=bool, default=False, help='disable kungfu')
+    parser.add_argument('--n-epochs',
+                        type=int,
+                        default=1,
+                        help='number of epochs')
+    parser.add_argument('--batch-size',
+                        type=int,
+                        default=500,
+                        help='batch size')
+    parser.add_argument('--data-dir',
+                        type=str,
+                        default=os.path.join(os.getenv('HOME'),
+                                             'var/data/mnist'),
+                        help='Path to the MNIST dataset directory.')
+    parser.add_argument('--no-kungfu',
+                        type=bool,
+                        default=False,
+                        help='disable kungfu')
     return parser.parse_args()
 
 

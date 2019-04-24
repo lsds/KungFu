@@ -41,6 +41,7 @@ func newConnection(remote, local plan.NetAddr) (Connection, error) {
 		return nil, err
 	}
 	h := connectionHeader{
+		Type:    uint16(ConnCollective),
 		SrcIPv4: parseIPv4(local.Host), // parseIPv4 :: str -> uint32
 		SrcPort: local.Port,
 	}
