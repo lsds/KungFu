@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -16,12 +17,20 @@ func LogArgs() {
 	}
 }
 
-func LogKungfuEnv() {
+func LogEnvWithPrefix(prefix string, logPrefix string) {
 	for _, kv := range os.Environ() {
-		if strings.HasPrefix(kv, `KUNGFU_`) {
-			fmt.Printf("[kf-env]: %s\n", kv)
+		if strings.HasPrefix(kv, prefix) {
+			fmt.Printf("[%s]: %s\n", logPrefix, kv)
 		}
 	}
+}
+
+func LogCudaEnv() {
+	LogEnvWithPrefix(`CUDA_`, `cuda-env`)
+}
+
+func LogKungfuEnv() {
+	LogEnvWithPrefix(`KUNGFU_`, `kf-env`)
 }
 
 func LogNICInfo() error {
@@ -79,4 +88,23 @@ func ShowRate(r float64) string {
 	default:
 		return fmt.Sprintf("%.2f B/s", r)
 	}
+}
+
+func ListNvidiaGPUNames() []string {
+	const prefix = `/dev/`
+	files, err := filepath.Glob(prefix + `nvidia*`)
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, file := range files {
+		name := strings.TrimPrefix(file, prefix)
+		var x int
+		n, err := fmt.Sscanf(name, "nvidia%d", &x)
+		if n == 1 && err == nil && fmt.Sprintf("nvidia%d", x) == name {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names) // FIXME: use numeric sort
+	return names
 }
