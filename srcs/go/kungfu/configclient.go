@@ -26,7 +26,7 @@ func newConfigClient() (*configClient, error) {
 func (c *configClient) getConfig(name string, i interface{}) error {
 	if len(c.endpoint) == 0 {
 		val := os.Getenv(name)
-		log.Warnf("TODO: get %s from config server %s", name, c.endpoint)
+		log.Warnf("TODO: get %s from config server %s, using env ${%s}=%s", name, c.endpoint, name, val)
 		return plan.FromString(val, i)
 	}
 	q := url.Values{}
