@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/lsds/KungFu/srcs/go/kungfuconfig"
 )
 
 var std = New()
@@ -19,7 +21,11 @@ type Logger struct {
 }
 
 func New() *Logger {
-	l := &Logger{w: os.Stdout, t0: time.Now()}
+	l := &Logger{
+		w:     os.Stdout,
+		t0:    time.Now(),
+		debug: kungfuconfig.ShowDebugLog,
+	}
 	return l
 }
 

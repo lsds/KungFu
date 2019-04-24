@@ -11,7 +11,7 @@ from resnet50 import grad_sizes
 
 def fake_get_shard_info():
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    rank = int(os.getenv('KUNGFU_SELF_RANK'))
+    rank = int(os.getenv('KUNGFU_TEST_SELF_RANK'))
     cluster_size = len(cluster_spec['Peers'])
     return rank, cluster_size
 

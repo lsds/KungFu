@@ -5,7 +5,7 @@ import "C"
 
 const (
 	ClusterSpecEnvKey   = `KUNGFU_CLUSTER_SPEC`
-	SelfRankEnvKey      = `KUNGFU_SELF_RANK`
+	SelfSpecEnvKey      = `KUNGFU_SELF_SPEC` // self spec should never change during the life of a process
 	AllReduceAlgoEnvKey = `KUNGFU_ALLREDUCE_ALGO`
 )
 
