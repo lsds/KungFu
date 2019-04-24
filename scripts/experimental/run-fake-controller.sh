@@ -24,6 +24,8 @@ GOBIN=$(pwd)/bin go install -v ./tests/go/...
 CONFIG_SERVER=127.0.0.1:30001
 
 env \
+    KUNGFU_CONFIG_SHOW_DEBUG_LOG=true \
+    KUNGFU_CONFIG_RUN_WARMUP=true \
     KUNGFU_CONFIG_SERVER=$CONFIG_SERVER \
     ./bin/fake-controller \
     -timeout=120s \

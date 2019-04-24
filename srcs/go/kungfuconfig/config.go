@@ -14,6 +14,7 @@ const (
 	UseShmEnvKey           = `KUNGFU_CONFIG_USE_SHM`
 	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
+	ShowDebugLogEnvKey     = `KUNGFU_CONFIG_SHOW_DEBUG_LOG`
 	ConfigServerEnvKey     = `KUNGFU_CONFIG_SERVER`
 )
 
@@ -23,6 +24,7 @@ var ConfigEnvKeys = []string{
 	UseShmEnvKey,
 	EnableMonitoringEnvKey,
 	MonitoringPeriodEnvKey,
+	ShowDebugLogEnvKey,
 	ConfigServerEnvKey,
 }
 
@@ -31,6 +33,7 @@ var (
 	UseShm           = false
 	LogConfigVars    = false
 	EnableMonitoring = false
+	ShowDebugLog     = false
 	MonitoringPeriod = 1 * time.Second
 )
 
@@ -46,6 +49,9 @@ func init() {
 	}
 	if val := os.Getenv(MonitoringPeriodEnvKey); len(val) > 0 {
 		MonitoringPeriod = parseDuration(val)
+	}
+	if val := os.Getenv(ShowDebugLogEnvKey); len(val) > 0 {
+		ShowDebugLog = isTrue(val)
 	}
 	if val := os.Getenv(LogConfigVarsEnvKey); len(val) > 0 {
 		LogConfigVars = isTrue(val)
