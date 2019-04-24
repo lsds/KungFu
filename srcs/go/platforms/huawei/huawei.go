@@ -72,7 +72,7 @@ func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
 			DeviceID: 0,
 			NetAddr: plan.NetAddr{
 				Host: "127.0.0.1",
-				Port: uint16(8888),
+				Port: uint16(38888),
 			},
 			MonitoringPort: uint16(20001),
 		}
