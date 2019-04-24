@@ -62,11 +62,12 @@ func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungF
 	for i, self := range cs.Peers {
 		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
 		envs := Envs{
-			kb.ClusterSpecEnvKey:   cs.String(),
-			kb.SelfRankEnvKey:      strconv.Itoa(i),
-			kb.AllReduceAlgoEnvKey: algo.String(),
-			`CUDA_VISIBLE_DEVICES`: strconv.Itoa(self.DeviceID),
-			`PYTHONUNBUFFERED`:     `1`,
+			kb.ClusterSpecEnvKey:    cs.String(),
+			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
+			kb.SelfSpecEnvKey:       self.String(),
+			kb.AllReduceAlgoEnvKey:  algo.String(),
+			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(self.DeviceID),
+			`PYTHONUNBUFFERED`:      `1`,
 			// TODO: add LD_PRELOAD to tcmalloc path
 			// `LD_PRELOAD`:``,
 		}
