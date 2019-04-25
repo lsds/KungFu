@@ -87,15 +87,20 @@ func (kf *Kungfu) Close() int {
 }
 
 func (kf *Kungfu) CurrentSession() *session {
+	kf.Lock()
+	defer kf.Unlock()
 	if kf.currentSession == nil {
 		kf.updateSession()
 	}
 	return kf.currentSession
 }
-
-func (kf *Kungfu) updateSession() {
+func (kf *Kungfu) UpdateSession() {
 	kf.Lock()
 	defer kf.Unlock()
+	kf.updateSession()
+}
+
+func (kf *Kungfu) updateSession() {
 	var cs plan.ClusterSpec
 	if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
