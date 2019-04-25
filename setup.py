@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import sysconfig
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -19,6 +20,16 @@ def ensure_absent(filepath):
 
 def cmake_flag(k, v):
     return '-D%s=%s' % (k, str(v))
+
+
+def cmake_tf_ext_flags():
+    import tensorflow as tf
+    return [
+        cmake_flag('TF_INCLUDE', '%s' % tf.sysconfig.get_include()),
+        cmake_flag('TF_LIB', '%s' % tf.sysconfig.get_lib()),
+        # sysconfig.get_config_var('EXT_SUFFIX')  does't work for python2
+        cmake_flag('PY_EXT_SUFFIX', '%s' % sysconfig.get_config_var('SO')),
+    ]
 
 
 class CMakeBuild(build_ext):
@@ -45,7 +56,7 @@ class CMakeBuild(build_ext):
             # uncomment to debug
             # cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
             # cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
-        ]
+        ] + cmake_tf_ext_flags()
 
         use_nccl = os.getenv('KUNGFU_USE_NCCL')
         if use_nccl:
