@@ -84,7 +84,10 @@ def start_gpu_group(*args, **kwargs):
 def partial_exchange_group_all_reduce(ts, fraction=0.3, accumulate=False, average="none"):
     import math
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
+    print("Total Size of All Gradients: " + str(total_size))
+    print("The fraction is: " + str(fraction))
     budget = int(math.floor(fraction * total_size))
+    print("After the calculation, the budget is: " + str(budget))
     return [partial_exchange_all_reduce(t, budget, len(ts), accumulate, average) for t in ts]
 
 def ako_group_all_reduce(gradient_tensors, num_partitions=1):
