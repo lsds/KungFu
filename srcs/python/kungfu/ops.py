@@ -55,7 +55,7 @@ def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average)
         cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
         num_peers = len(cluster_spec['Peers'])
         return _op_lib.partial_accumulating_negotiator(t, input_tensor_name=t.name, budget=budget, 
-                                         tensor_size=tensor_size, count_gradients=count_gradients, num_peers=num_peers, average=average)
+                                                       tensor_size=tensor_size, count_gradients=count_gradients, num_peers=num_peers, average=average)
     else:
         return _op_lib.partial_negotiator(t, input_tensor_name=t.name, budget=budget, 
                                           tensor_size=tensor_size, count_gradients=count_gradients)

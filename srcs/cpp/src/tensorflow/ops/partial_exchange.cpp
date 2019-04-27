@@ -25,7 +25,8 @@ REGISTER_OP("PartialNegotiator")
 // 1. Multi-level feedback queue scheduling
 // 2. LRU cache
 // 3. Clock
-// 4. Simply establish a budget and mark all the values that have recently been negotiated
+// 4. Simply establish a budget and mark all the values that have recently been
+// negotiated
 class PartialNegotiator : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
@@ -37,7 +38,8 @@ class PartialNegotiator : public AsyncOpKernel
     int32_t count_gradients_;
     int32_t budget;
 
-    explicit PartialNegotiator(OpKernelConstruction *context) : AsyncOpKernel(context)
+    explicit PartialNegotiator(OpKernelConstruction *context)
+        : AsyncOpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
@@ -45,27 +47,25 @@ class PartialNegotiator : public AsyncOpKernel
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
 
-        OP_REQUIRES_OK(context, context->GetAttr("budget",
-                                                 &budget));
-        OP_REQUIRES(
-            context, budget > 0,
-            errors::InvalidArgument("budget must be greater than 0"));
+        OP_REQUIRES_OK(context, context->GetAttr("budget", &budget));
+        OP_REQUIRES(context, budget > 0,
+                    errors::InvalidArgument("budget must be greater than 0"));
 
-        OP_REQUIRES_OK(context, context->GetAttr("tensor_size",
-                                                 &tensorSize_));
+        OP_REQUIRES_OK(context, context->GetAttr("tensor_size", &tensorSize_));
         OP_REQUIRES(
             context, tensorSize_ > 0,
             errors::InvalidArgument("tensor size must be greater than 0"));
 
-        OP_REQUIRES_OK(context, context->GetAttr("count_gradients",
-                                                 &count_gradients_));
+        OP_REQUIRES_OK(context,
+                       context->GetAttr("count_gradients", &count_gradients_));
         OP_REQUIRES(
             context, count_gradients_ > 0,
             errors::InvalidArgument("gradient count must be greater than 0"));
 
         _partial_exchange_manager->setCountGradients(count_gradients_);
         _partial_exchange_manager->setBudget(budget);
-        _partial_exchange_manager->addTensorInfo(input_tensor_name_, tensorSize_);
+        _partial_exchange_manager->addTensorInfo(input_tensor_name_,
+                                                 tensorSize_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -78,13 +78,15 @@ class PartialNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        if (_partial_exchange_manager->isReadyForNegotiation(input_tensor_name_, _kungfu_world->GetGlobalStep())) {
-             _kungfu_world->AllReduce(gradients.tensor_data().data(), 
+        if (_partial_exchange_manager->isReadyForNegotiation(
+                input_tensor_name_, _kungfu_world->GetGlobalStep())) {
+            _kungfu_world->AllReduce(gradients.tensor_data().data(),
                                      (void *)(output->tensor_data().data()),
-                                     gradients.NumElements(), 
-                                     to_kungfu_type(gradients.dtype()), KungFu_SUM,
-                                     name().c_str(), done);
-            // Because it is synchronous, the done callback will signal when the value held
+                                     gradients.NumElements(),
+                                     to_kungfu_type(gradients.dtype()),
+                                     KungFu_SUM, name().c_str(), done);
+            // Because it is synchronous, the done callback will signal when the
+            // value held
             // in the memory where output points to is ready to be used.
         } else {
             *output = gradients;
