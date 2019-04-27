@@ -99,8 +99,11 @@ def plot_ako(current_partition, current_partition_index, data_ako, partitions, p
 
     if current_partition == -1:
         label = 'Parallel SGD'
+        print(ako_dict)
     elif current_partition == -2:
         label = 'TensorFlow Replicated'
+    elif current_partition == -3:
+        label = 'Horovod'
     else:
         label = "Bucket Budget " + "{0:.0%}".format(current_partition)
 
@@ -143,11 +146,41 @@ def correlate_checkpoint_with_physical_time(from_worker, at_iteration, log_file)
         time  = float(match.group("time"))
         return time
 
-
     time = get_experiment_results(log_file, extract_checkpoint_moments)
     if len(time) == 0:
         return []
     return np.average(time)
+
+
+def correlate_checkpoint_with_physical_time_horovod(from_worker, at_iteration, log_file):
+    # from_worker is unused for Horovod
+    def extract_checkpoint_moments(s):
+        pattern = re.compile(r".*\[\s*(?P<time>\d+\.\d+)\].*" +
+                             str(at_iteration) + r"\simages/sec:\s.*", re.VERBOSE)
+        match = pattern.match(s)
+        if match is None:
+            return None
+        time  = float(match.group("time"))
+        return time
+        
+    time = get_experiment_results(log_file, extract_checkpoint_moments)
+    if len(time) == 0:
+        return []
+    return np.average(time)
+
+
+def get_horovod_results(parts, log_file_prefix_train, log_file_prefix_validation):
+    workers_data = []
+    for worker in range(0, 4):
+        data = get_experiment_results(log_file_prefix_validation + str(worker), extract_val_acc)
+        for i in range(len(data)):
+            d = data[i]
+            time = correlate_checkpoint_with_physical_time_horovod(worker, d[3], log_file_prefix_train)
+            data[i] = (parts, worker, time, d[3], d[4], d[5])
+        data  = data[:-1] # Remove the last iteration
+        workers_data.append(data)
+    return workers_data
+
 
 def get_ako_results(parts, log_file_prefix_train, log_file_prefix_validation):
     workers_data = []
@@ -163,7 +196,7 @@ def get_ako_results(parts, log_file_prefix_train, log_file_prefix_validation):
 
 def get_files(partial_exchange_type, partitions):
     ako_files = []
-    for parts in partitions[:-2]:
+    for parts in partitions[:-3]:
         ako_files.append(("training/kungfu-logs-" + partial_exchange_type + "/resnet-32-b-32-g-1-"+ 
                            partial_exchange_type + "-" + 
                            str(parts) + "-fraction.out",
@@ -176,20 +209,22 @@ def get_files(partial_exchange_type, partitions):
                       "../exhaustive/validation/validation-parallel-worker-"))
     # Replicated
     ako_files.append(("./../kungfu-logs-validation/resnet-32-b-32-g-4-replicated-correct.out",
-                      "./../kungfu-logs-validation/resnet-32-replicated-validation-correct.out"))                       
+                      "./../kungfu-logs-validation/resnet-32-replicated-validation-correct.out"))       
+
+    ako_files.append(("./horovod/training/resnet-32-b-32-g-1-horovod.out",
+                      "./horovod/validation/validation-horovod-output-worker-"))
+                    
     return ako_files
 
 
 def plot_by_iterations():
-    # -1 means KungFu Parallel SGD, -2 means TensorFlow Replicated
-    partitions = [0.1, 0.2, 0.3, -1, -2] # 0.4, 0.5, 0.6, 0.7, 0.8, -1, -2]  # [0.4, 0.7, -1, -2] # 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, -1, -2] # 0.9  TODO!!!!
+    # -1 means KungFu Parallel SGD, -2 means TensorFlow Replicated, -3 means Horovod
+    partitions = [0.1, 0.2, 0.3, -1, -2, -3] # 0.4, 0.5, 0.6, 0.7, 0.8, -1, -2]  # [0.4, 0.7, -1, -2] # 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, -1, -2] # 0.9  TODO!!!!
 
     # ako_files = get_files("partial_exchange", partitions)
     # ako_files = get_files("partial_exchange_accumulation", partitions)
     # ako_files = get_files("partial_exchange_accumulation_avg_peers", partitions)
     ako_files = get_files("partial_exchange_accumulation_avg_window", partitions)
-
-    print(ako_files)
 
     for current_partition_index, current_partition in enumerate(partitions):
         log_train = ako_files[current_partition_index][0]
@@ -198,6 +233,8 @@ def plot_by_iterations():
             # data for all experiments where multiple workers checkpoint
             data_ako = get_replicated_results(log_train, log_valid) 
             # print(data_ako)
+        elif current_partition == -3:
+            data_ako = get_horovod_results(current_partition, log_train, log_valid)
         else:
             # data for all experiments where multiple workers checkpoint   
             data_ako = get_ako_results(current_partition, log_train, log_valid)    

@@ -94,6 +94,8 @@ def plot_ako(current_partition, current_partition_index, data_ako, partitions, p
         epochsToValAccs[epoch].append(val_acc[i])
     if current_partition == -1:
         label = 'Parallel SGD'
+    elif current_partition == -2:
+        label = "Horovod"
     else:
         label = "Bucket Budget " + "{0:.0%}".format(current_partition)
 
@@ -155,7 +157,7 @@ def get_ako_results(parts, log_file_prefix_train, log_file_prefix_validation):
 
 def get_files(partial_exchange_type, partitions):
     ako_files = []
-    for parts in partitions[:-1]:
+    for parts in partitions[:-2]:
         ako_files.append(("training/kungfu-logs-" + partial_exchange_type + "/resnet-32-b-32-g-1-"+ 
                            partial_exchange_type + "-" + 
                            str(parts) + "-fraction.out",
@@ -166,12 +168,15 @@ def get_files(partial_exchange_type, partitions):
     # Parallel
     ako_files.append(("../exhaustive/training/resnet-32-b-32-g-1-parallel.out",
                       "../exhaustive/validation/validation-parallel-worker-"))
+    ako_files.append(("./horovod/training/resnet-32-b-32-g-1-horovod.out",
+                      "./horovod/validation/validation-horovod-output-worker-"))
     return ako_files
 
 
 def plot_by_iterations():
     # -1 means KungFu Parallel SGD
-    partitions = [0.1, 0.2, 0.3, -1] # [0.4, 0.7, -1] #  # 0.9  TODO!!!!
+    # -2 means Horovod
+    partitions = [0.1, 0.2, 0.3, -1, -2]
 
     # ako_files = get_files("partial_exchange", partitions)
     # ako_files = get_files("partial_exchange_accumulation", partitions)
