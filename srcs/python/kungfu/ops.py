@@ -90,3 +90,37 @@ def group_all_reduce(ts):
         return gpu_group_all_reduce(ts)
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
+
+
+def cpu_group_all_reduce_variance_monitor(grads, batch_small):
+    import json, os
+    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
+    num_workers = len(cluster_spec['Peers'])
+
+    import tensorflow as tf
+    batch_big = batch_small * num_workers
+
+    negotiated_grads = [all_reduce(t) for t in grads]
+
+    global_variance_ops = []
+
+    for i in range(len(grads)):
+        G_big   = negotiated_grads[i]
+        G_small = grads[i]       
+
+        G_sq_small = tf.norm(G_small)
+        G_sq_small = tf.square(G_sq_small)
+        score_big  = batch_big * G_sq_small
+
+        G_sq_big    = tf.norm(G_big)
+        G_sq_big    = tf.square(G_sq_big)
+        score_small = batch_small * G_sq_small
+
+        G_biased = 1/(batch_big - batch_small) * (score_big - score_small)
+        S_biased = 1/(1/batch_small - 1/batch_big) * (G_sq_small - G_sq_big)
+
+        global_var_op = _op_lib.global_variance(G_biased, S_biased, input_tensor_name=grads[i].name)
+        global_variance_ops.append(global_var_op)
+
+    with tf.control_dependencies(global_variance_ops):
+         return negotiated_grads

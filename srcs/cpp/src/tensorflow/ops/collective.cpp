@@ -78,17 +78,32 @@ class Broadcast : public AsyncOpKernel
 
 REGISTER_KERNEL_BUILDER(Name("Broadcast").Device(DEVICE_CPU), Broadcast);
 
-REGISTER_OP("GlobalVariance").Input("input: float32");
+REGISTER_OP("GlobalVariance")
+    .Attr("input_tensor_name: string")
+    .Input("g_biased: float32")
+    .Input("s_biased: float32");
 
 class GlobalVariance : public OpKernel
 {
     using OpKernel::OpKernel;
 
-  public:
+public:
+    std::string input_tensor_name_;
+
+    explicit GlobalVariance(OpKernelConstruction *context) : OpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
+                                                 &input_tensor_name_));
+        OP_REQUIRES(
+            context, input_tensor_name_.size() >= 0,
+            errors::InvalidArgument("input_tensor_name must not be empty"));
+    }
     void Compute(OpKernelContext *context) override
     {
-        // const Tensor &input = context->input(0);
-        // TODO
+        DCHECK_EQ(2, context->num_inputs());
+
+        Tensor &g_biased = (Tensor &)context->input(0);
+        Tensor &s_biased = (Tensor &)context->input(1);
     }
 };
 
