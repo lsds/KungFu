@@ -1,6 +1,6 @@
 FROM swr.cn-north-1.myhuaweicloud.com/mailuo/kungfu-docker:v.12 as base
 
-ADD . /kungfu
+ADD . /KungFu
 
 # Install KungFu
 RUN cd KungFu && \
