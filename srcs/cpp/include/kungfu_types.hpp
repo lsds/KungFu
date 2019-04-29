@@ -3,6 +3,10 @@
 
 namespace kungfu
 {
+struct float16 {
+    std::uint16_t value
+};
+
 namespace internal
 {
 namespace types
@@ -23,17 +27,19 @@ template <> struct data_type_t<int64_t> {
     static constexpr V value = 3;
 };
 
-template <> struct data_type_t<float> {
+template <> struct data_type_t<float16> {
     static constexpr V value = 4;
 };
 
-template <> struct data_type_t<double> {
+template <> struct data_type_t<float> {
     static constexpr V value = 5;
 };
 
-struct encoding {
-    using types = std::tuple<int, float, double>;
+template <> struct data_type_t<double> {
+    static constexpr V value = 6;
+};
 
+struct encoding {
     using value_type = V;
     template <typename R> static constexpr value_type value()
     {
@@ -68,8 +74,6 @@ template <> struct op_type_t<op_sum> {
 };
 
 struct encoding {
-    using types = std::tuple<op_max, op_min, op_sum>;
-
     using value_type = V;
     template <typename R> static constexpr value_type value()
     {
