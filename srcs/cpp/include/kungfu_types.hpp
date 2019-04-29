@@ -4,7 +4,7 @@
 namespace kungfu
 {
 struct float16 {
-    std::uint16_t value
+    std::uint16_t value;
 };
 
 namespace internal
