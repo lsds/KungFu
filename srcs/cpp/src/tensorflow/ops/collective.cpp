@@ -97,6 +97,8 @@ public:
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
+
+            std::cout << "Constructing global var op" << std::endl;
     }
     void Compute(OpKernelContext *context) override
     {
@@ -104,9 +106,46 @@ public:
 
         Tensor &g_biased = (Tensor &)context->input(0);
         Tensor &s_biased = (Tensor &)context->input(1);
+
+        std::cout << "Inside global var op" << std::endl;
+
     }
 };
 
 REGISTER_KERNEL_BUILDER(Name("GlobalVariance").Device(DEVICE_CPU),
                         GlobalVariance);
+
+
+
+REGISTER_OP("Controller")
+    .Input("negotiated_gradients: float32")
+    .Output("output: float32")
+    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    });
+
+class Controller : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+public:
+
+    void Compute(OpKernelContext *context) override
+    {
+        DCHECK_EQ(1, context->num_inputs());
+
+        Tensor &negotiated_gradients = (Tensor &)context->input(0);
+
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, negotiated_gradients.shape(), &output));
+
+        *output = negotiated_gradients;
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("Controller").Device(DEVICE_CPU),
+                        Controller);
+
 }  // namespace tensorflow
