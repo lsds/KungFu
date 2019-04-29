@@ -28,7 +28,6 @@ class tensor_meta
     }
 };
 
-// https://www.youtube.com/watch?v=uDdMuUWf6h4
 class partition
 {
 
@@ -137,6 +136,8 @@ class partial_exchange_manager
     std::mutex constructionMutex;
     std::mutex partitionAccessMutex;
 
+    // Bin packing algorithm based on:
+    // https://www.youtube.com/watch?v=uDdMuUWf6h4
     void bin_pack()
     {
         std::cout << "Total budget per bin: " << budget << std::endl;

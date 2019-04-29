@@ -9,7 +9,7 @@
 
 namespace tensorflow
 {
-REGISTER_OP("PartialNegotiator")
+REGISTER_OP("PartialNegotiatorFrontEndPartitioning")
     .Attr("input_tensor_name: string")
     .Attr("budget: int")
     .Attr("tensor_size: int")
@@ -21,45 +21,22 @@ REGISTER_OP("PartialNegotiator")
         return Status::OK();
     });
 
-class PartialNegotiator : public AsyncOpKernel
+class PartialNegotiatorFrontEndPartitioning : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
     using CPUDevice = Eigen::ThreadPoolDevice;
 
   public:
-    std::string input_tensor_name_;
-    int32_t tensorSize_;
-    int32_t count_gradients_;
-    int32_t budget;
+    int32_t index_;
 
-    explicit PartialNegotiator(OpKernelConstruction *context)
+    explicit PartialNegotiatorFrontEndPartitioning(OpKernelConstruction *context)
         : AsyncOpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
-                                                 &input_tensor_name_));
+        OP_REQUIRES_OK(context, context->GetAttr("index",
+                                                 &index_));
         OP_REQUIRES(
-            context, input_tensor_name_.size() >= 0,
-            errors::InvalidArgument("input_tensor_name must not be empty"));
-
-        OP_REQUIRES_OK(context, context->GetAttr("budget", &budget));
-        OP_REQUIRES(context, budget > 0,
-                    errors::InvalidArgument("budget must be greater than 0"));
-
-        OP_REQUIRES_OK(context, context->GetAttr("tensor_size", &tensorSize_));
-        OP_REQUIRES(
-            context, tensorSize_ > 0,
-            errors::InvalidArgument("tensor size must be greater than 0"));
-
-        OP_REQUIRES_OK(context,
-                       context->GetAttr("count_gradients", &count_gradients_));
-        OP_REQUIRES(
-            context, count_gradients_ > 0,
-            errors::InvalidArgument("gradient count must be greater than 0"));
-
-        _partial_exchange_manager->setCountGradients(count_gradients_);
-        _partial_exchange_manager->setBudget(budget);
-        _partial_exchange_manager->addTensorInfo(input_tensor_name_,
-                                                 tensorSize_);
+            context, index_ >= 0,
+            errors::InvalidArgument("invalid partition index"));
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -72,8 +49,7 @@ class PartialNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        if (_partial_exchange_manager->isReadyForNegotiation(
-                input_tensor_name_, _kungfu_world->GetGlobalStep())) {
+        if (_kungfu_world->GetGlobalStep() % (index + 1) == 0) {
             _kungfu_world->AllReduce(gradients.tensor_data().data(),
                                      (void *)(output->tensor_data().data()),
                                      gradients.NumElements(),
@@ -89,7 +65,7 @@ class PartialNegotiator : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("PartialNegotiator").Device(DEVICE_CPU),
-                        PartialNegotiator);
+REGISTER_KERNEL_BUILDER(Name("PartialNegotiatorFrontEndPartitioning").Device(DEVICE_CPU),
+                        PartialNegotiatorFrontEndPartitioning);
 
 }  // namespace tensorflow
