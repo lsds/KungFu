@@ -54,10 +54,6 @@ parser.add_argument('--no-kungfu',
                     action='store_true',
                     default=False,
                     help='disables kungfu')
-parser.add_argument('--no-kungfu',
-                    action='store_true',
-                    default=False,
-                    help='disables kungfu')
 # FIXME: rename this file
 parser.add_argument('--dataset',
                     type=str,
