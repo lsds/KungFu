@@ -36,7 +36,7 @@ def _parse(record):
     bbox = tf.concat([ymin, xmin, ymax, xmax], 0)
     bbox = tf.expand_dims(bbox, 0)
     bbox = tf.transpose(bbox, [0, 2, 1])
-    return features['image/encoded'], label[0], bbox, features[
+    return features['image/encoded'], label[0] - 1, bbox, features[
         'image/class/text']
 
 
