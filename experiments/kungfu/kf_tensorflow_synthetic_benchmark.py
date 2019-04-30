@@ -60,6 +60,10 @@ parser.add_argument('--dataset',
                     default='synthetic',
                     help='synthetic | imagenet')
 parser.add_argument('--data-dir', type=str, default='', help='dir to dataset')
+parser.add_argument('--data-records',
+                    type=int,
+                    default=1024,
+                    help='number of TFRecord files')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -92,7 +96,8 @@ init = tf.global_variables_initializer()
 
 if args.dataset == 'imagenet':
     from kungfu.helpers import imagenet
-    data, target = imagenet.create_dataset(args.data_dir, args.batch_size)
+    data, target = imagenet.create_dataset(args.data_dir, args.batch_size,
+                                           args.data_records)
 else:
     data = tf.random_uniform([args.batch_size, 224, 224, 3])
     target = tf.random_uniform([args.batch_size, 1],
