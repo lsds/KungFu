@@ -59,7 +59,7 @@ parser.add_argument('--dataset',
                     type=str,
                     default='synthetic',
                     help='synthetic | imagenet')
-parser.add_argument('--data_dir', type=str, default='', help='dir to dataset')
+parser.add_argument('--data-dir', type=str, default='', help='dir to dataset')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
