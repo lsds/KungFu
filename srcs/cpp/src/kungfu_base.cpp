@@ -71,6 +71,9 @@ void std_transform_2(const void *input_1, const void *input_2, void *output,
     case kungfu::type_encoder::value<int64_t>():
         _call_std_transform_2_tpl<int64_t>(args);
         return;
+    case kungfu::type_encoder::value<_Float16>():
+        _call_std_transform_2_tpl<_Float16>(args);
+        return;
     case kungfu::type_encoder::value<float>():
         _call_std_transform_2_tpl<float>(args);
         return;

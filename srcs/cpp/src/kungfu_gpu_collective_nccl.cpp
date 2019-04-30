@@ -18,7 +18,7 @@ template <typename T> struct nccl_type;
 template <> struct nccl_type<int32_t> {
     static ncclDataType_t value() { return ncclInt32; }
 };
-template <> struct nccl_type<kungfu::float16> {
+template <> struct nccl_type<_Float16> {
     static ncclDataType_t value() { return ncclFloat16; }
 };
 template <> struct nccl_type<float> {
@@ -33,8 +33,8 @@ ncclDataType_t to_nccl_type(const KungFu_Datatype dtype)
     switch (dtype) {
     case type_encoder::value<int32_t>():
         return nccl_type<int32_t>::value();
-    case type_encoder::value<kungfu::float16>():
-        return nccl_type<kungfu::float16>::value();
+    case type_encoder::value<_Float16>():
+        return nccl_type<_Float16>::value();
     case type_encoder::value<float>():
         return nccl_type<float>::value();
     default:
