@@ -126,7 +126,7 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
          return negotiated_grads
 
 
-def get_global_variance_operators(batch_small, grads, negotiated_grads):
+def get_gradient_noise_operators(batch_small, grads, negotiated_grads):
     import tensorflow as tf
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
@@ -149,10 +149,9 @@ def get_global_variance_operators(batch_small, grads, negotiated_grads):
         G_biased = 1/(batch_big - batch_small) * (score_big - score_small)
         S_biased = 1/(1/batch_small - 1/batch_big) * (G_sq_small - G_sq_big)
 
-        global_var_op = _op_lib.global_variance(G_biased, S_biased, input_tensor_name=grads[i].name)
+        global_var_op = _op_lib.gradient_noise(G_biased, S_biased, input_tensor_name=grads[i].name, alpha=0.8)
         global_variance_ops.append(global_var_op)
     return global_variance_ops
 
 def build_controller_op(negotiated_grads_and_vars):
-    print(negotiated_grads_and_vars)
     return [(_op_lib.controller(negotiated_grad), var) for negotiated_grad, var in negotiated_grads_and_vars]

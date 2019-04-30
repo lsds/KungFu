@@ -4,7 +4,7 @@ from kungfu.ops import group_all_reduce, set_num_gradients
 from .core import KungFuOptimizer
 
 
-from kungfu.ops import get_global_variance_operators
+from kungfu.ops import get_gradient_noise_operators
 from kungfu.ops import build_controller_op
 
 class ParallelOptimizer(KungFuOptimizer):
@@ -34,7 +34,7 @@ class ParallelOptimizer(KungFuOptimizer):
         if self.device_batch_size is None:
             return list(zip(negotiated_grads, variables_to_update))
         else:
-            with tf.control_dependencies(get_global_variance_operators(self.device_batch_size, grads_to_negotiate, negotiated_grads)):
+            with tf.control_dependencies(get_gradient_noise_operators(self.device_batch_size, grads_to_negotiate, negotiated_grads)):
                 return build_controller_op(list(zip(negotiated_grads, variables_to_update)))
 
     def _set_num_gradients(self, n):

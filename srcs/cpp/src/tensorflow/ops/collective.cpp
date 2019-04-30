@@ -78,42 +78,76 @@ class Broadcast : public AsyncOpKernel
 
 REGISTER_KERNEL_BUILDER(Name("Broadcast").Device(DEVICE_CPU), Broadcast);
 
-REGISTER_OP("GlobalVariance")
+REGISTER_OP("GradientNoise")
     .Attr("input_tensor_name: string")
+    .Attr("alpha: float")
     .Input("g_biased: float32")
     .Input("s_biased: float32");
 
-class GlobalVariance : public OpKernel
+class GradientNoise : public OpKernel
 {
     using OpKernel::OpKernel;
 
 public:
     std::string input_tensor_name_;
+    float alpha_;
+    float g_ema;
+    float s_ema;
 
-    explicit GlobalVariance(OpKernelConstruction *context) : OpKernel(context)
+    explicit GradientNoise(OpKernelConstruction *context) : OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
+        
+        OP_REQUIRES_OK(context, context->GetAttr("alpha",
+                                                 &alpha_));
+        OP_REQUIRES(
+            context, alpha_ > 0,
+            errors::InvalidArgument("input_tensor_name must not be empty"));
 
-            std::cout << "Constructing global var op" << std::endl;
+        g_ema = 0.0;
+        s_ema = 0.0;
+
+        std::cout << "Constructing global var op. alpha = " << alpha_ << std::endl;
     }
     void Compute(OpKernelContext *context) override
     {
         DCHECK_EQ(2, context->num_inputs());
 
-        Tensor &g_biased = (Tensor &)context->input(0);
-        Tensor &s_biased = (Tensor &)context->input(1);
+        Tensor &g_biased_tensor = (Tensor &)context->input(0);
+        Tensor &s_biased_tensor = (Tensor &)context->input(1);
 
-        std::cout << "Inside global var op" << std::endl;
+        auto g_biased_vec = g_biased_tensor.scalar<float>();
+        auto s_biased_vec = s_biased_tensor.scalar<float>();
+
+        float g_current = (float) g_biased_vec();
+        float s_current   = (float)s_biased_vec();
+
+        if (g_ema == 0.0) {
+            g_ema = g_current;
+        } else {
+            g_ema = alpha_ * g_current + (1 - alpha_) * g_ema;
+        }
+
+
+        if (s_ema == 0.0) {
+            s_ema = s_current;
+        } else {
+            s_ema = alpha_ * s_current + (1 - alpha_) * s_ema;
+        }
+
+        float gradient_noise = s_ema / g_ema;
+
+        std::cout << "Gradient noise: " << "(" << input_tensor_name_ << ", " << gradient_noise << ")" << std::endl;
 
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("GlobalVariance").Device(DEVICE_CPU),
-                        GlobalVariance);
+REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
+                        GradientNoise);
 
 
 
