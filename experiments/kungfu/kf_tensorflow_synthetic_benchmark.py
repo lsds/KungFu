@@ -106,9 +106,17 @@ else:
                                dtype=tf.int64)
 
 
-def loss_function():
+def loss_and_accuracy():
     logits = model(data, training=True)
-    return tf.losses.sparse_softmax_cross_entropy(target, logits)
+    loss = tf.losses.sparse_softmax_cross_entropy(target, logits)
+    correct_prediction = tf.equal(target, tf.argmax(logits, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    return loss, accuracy
+
+
+def loss_function():
+    loss, _ = loss_and_accuracy()
+    return loss
 
 
 def log(s, nl=True):
@@ -120,7 +128,7 @@ log('Batch size: %d' % args.batch_size)
 device = '/gpu:0' if args.cuda else 'CPU'
 
 
-def run(benchmark_step):
+def run(benchmark_step, eval_step=None):
     # Warm-up
     log('Running warmup...')
     timeit.timeit(benchmark_step, number=args.num_warmup_batches)
@@ -133,6 +141,9 @@ def run(benchmark_step):
         img_sec = args.batch_size * args.num_batches_per_iter / time
         log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
         img_secs.append(img_sec)
+        if eval_step:
+            loss, acc = eval_step()
+            print('loss: %f,accuracy: %s' % (loss, acc))
 
     # Results
     img_sec_mean = np.mean(img_secs)
@@ -148,6 +159,6 @@ else:
     with tf.Session(config=config) as session:
         init.run()
 
-        loss = loss_function()
+        loss, acc = loss_and_accuracy()
         train_opt = opt.minimize(loss)
-        run(lambda: session.run(train_opt))
+        run(lambda: session.run(train_opt), lambda: session.run([loss, acc]))
