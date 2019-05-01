@@ -3,6 +3,9 @@
 
 namespace kungfu
 {
+struct float16 {
+    uint16_t value;
+};
 
 namespace internal
 {
@@ -24,7 +27,7 @@ template <> struct data_type_t<int64_t> {
     static constexpr V value = 3;
 };
 
-template <> struct data_type_t<_Float16> {
+template <> struct data_type_t<float16> {
     static constexpr V value = 4;
 };
 
