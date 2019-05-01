@@ -4,7 +4,12 @@
 
 #include <immintrin.h>
 
-inline void batch_float16_sum(void *z, const void *x, const void *y)
+// FIXME: inline error when building TF extension
+//   Undefined symbols for architecture x86_64:
+//     "_batch_float16_sum", referenced from:
+//         _float16_sum in libkungfu-base.a(kungfu_half.c.o)
+// inline
+void batch_float16_sum(void *z, const void *x, const void *y)
 {
     __m256 x_m256   = _mm256_cvtph_ps(_mm_loadu_si128((__m128i *)x));
     __m256 y_m256   = _mm256_cvtph_ps(_mm_loadu_si128((__m128i *)y));
