@@ -16,6 +16,8 @@ inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
         return KungFu_INT32;
     case DT_INT64:
         return KungFu_INT64;
+    case DT_BFLOAT16:
+        return KungFu_FLOAT16;
     case DT_FLOAT:
         return KungFu_FLOAT;
     case DT_DOUBLE:

@@ -11,6 +11,8 @@ typedef struct CallbackWrapper callback_t;
 extern void invoke_callback(callback_t *);
 extern void delete_callback(callback_t *);
 
+extern void float16_sum(void *z, const void *x, const void *y, int len);
+
 #ifdef __cplusplus
 }
 #endif
