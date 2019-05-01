@@ -14,7 +14,7 @@ const KungFu_Datatype KungFu_DOUBLE = kungfu::type_encoder::value<double>();
 
 uint32_t kungfu_type_size(KungFu_Datatype dtype)
 {
-    static_assert(sizeof(_Float16) == 2, "");
+    static_assert(sizeof(kungfu::float16) == 2, "");
     switch (dtype) {
     case kungfu::type_encoder::value<uint8_t>():
         return sizeof(uint8_t);
@@ -23,7 +23,7 @@ uint32_t kungfu_type_size(KungFu_Datatype dtype)
     case kungfu::type_encoder::value<int64_t>():
         return sizeof(int64_t);
     case kungfu::type_encoder::value<kungfu::float16>():
-        return sizeof(_Float16);
+        return sizeof(kungfu::float16);
     case kungfu::type_encoder::value<float>():
         return sizeof(float);
     case kungfu::type_encoder::value<double>():
