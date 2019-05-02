@@ -10,10 +10,11 @@
 namespace tensorflow
 {
 REGISTER_OP("AkoNegotiator")
-    .Input("allgradients: float32")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Input("allgradients: T")
     .Input("partition: int32")
     .Input("partitioncount: int32")
-    .Output("output: float32")
+    .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
         return Status::OK();

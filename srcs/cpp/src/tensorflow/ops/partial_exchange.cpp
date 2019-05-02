@@ -10,12 +10,13 @@
 namespace tensorflow
 {
 REGISTER_OP("PartialNegotiator")
+    .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Attr("budget: int")
     .Attr("tensor_size: int")
     .Attr("count_gradients: int")
-    .Input("allgradients: float32")
-    .Output("output: float32")
+    .Input("allgradients: T")
+    .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
         return Status::OK();
