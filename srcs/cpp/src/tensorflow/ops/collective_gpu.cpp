@@ -31,7 +31,7 @@ REGISTER_KERNEL_BUILDER(Name("StartGpuGroup").Device(DEVICE_CPU),
                         StartGpuGroup);
 
 REGISTER_OP("AllReduceGpu")
-    .Attr("T: {int32, int64, float32, float64}")
+    .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
