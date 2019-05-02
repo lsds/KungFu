@@ -16,6 +16,7 @@ __pycache__
 *.tar.gz
 *.test
 *.whl
+.vscode
 /3rdparty
 /bin
 /checkpoints
