@@ -10,7 +10,7 @@ namespace tensorflow
 // and reduce (by taking sum) with the peers, and finally returns a tensor with
 // exactly the same shape.
 REGISTER_OP("AllReduce")
-    .Attr("T: {int32, int64, float32, float64}")
+    .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
@@ -50,7 +50,7 @@ class AllReduce : public AsyncOpKernel
 REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
 
 REGISTER_OP("Broadcast")
-    .Attr("T: {int32, int64, float32, float64}")
+    .Attr("T: {int32, int64, float16, float32, float64}")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
@@ -78,7 +78,9 @@ class Broadcast : public AsyncOpKernel
 
 REGISTER_KERNEL_BUILDER(Name("Broadcast").Device(DEVICE_CPU), Broadcast);
 
-REGISTER_OP("GlobalVariance").Input("input: float32");
+REGISTER_OP("GlobalVariance")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Input("input: T");
 
 class GlobalVariance : public OpKernel
 {
