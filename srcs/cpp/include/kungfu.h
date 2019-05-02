@@ -16,6 +16,7 @@ extern const KungFu_Datatype KungFu_INT32;
 // extern const KungFu_Datatype KungFu_UINT32;
 extern const KungFu_Datatype KungFu_INT64;
 // extern const KungFu_Datatype KungFu_UINT64;
+extern const KungFu_Datatype KungFu_FLOAT16;
 extern const KungFu_Datatype KungFu_FLOAT;
 extern const KungFu_Datatype KungFu_DOUBLE;
 // extern const KungFu_Datatype KungFu_LONG_DOUBLE;

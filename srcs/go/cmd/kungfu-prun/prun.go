@@ -13,7 +13,7 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	"github.com/lsds/KungFu/srcs/go/runner"
+	runner "github.com/lsds/KungFu/srcs/go/runner/local"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -33,6 +33,9 @@ func init() {
 	flag.Parse()
 	utils.LogArgs()
 	utils.LogKungfuEnv()
+	utils.LogNICInfo()
+	utils.LogCudaEnv()
+	utils.LogNCCLEnv()
 }
 
 func main() {
@@ -60,7 +63,7 @@ func main() {
 		Args:      args,
 	}
 
-	ps, err := jc.CreateProcs(kb.ParseAlgo(*algo))
+	ps, _, err := jc.CreateProcs(kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}

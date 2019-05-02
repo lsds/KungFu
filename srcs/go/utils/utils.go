@@ -3,22 +3,62 @@ package utils
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
 
 func LogArgs() {
 	for i, a := range os.Args {
-		log.Printf("args[%d]=%s", i, a)
+		fmt.Printf("[arg] [%d]=%s\n", i, a)
 	}
 }
 
-func LogKungfuEnv() {
+func LogEnvWithPrefix(prefix string, logPrefix string) {
 	for _, kv := range os.Environ() {
-		if strings.HasPrefix(kv, `KUNGFU_`) {
-			log.Printf("env: %s", kv)
+		if strings.HasPrefix(kv, prefix) {
+			fmt.Printf("[%s]: %s\n", logPrefix, kv)
 		}
+	}
+}
+
+func LogCudaEnv() {
+	LogEnvWithPrefix(`CUDA_`, `cuda-env`)
+}
+
+func LogNCCLEnv() {
+	LogEnvWithPrefix(`NCCL_`, `nccl-env`)
+}
+
+func LogKungfuEnv() {
+	LogEnvWithPrefix(`KUNGFU_`, `kf-env`)
+}
+
+func LogNICInfo() error {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return err
+	}
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			return err
+		}
+		for _, a := range addrs {
+			fmt.Printf("[nic] %s :: %s\n", i.Name, a)
+		}
+	}
+	return nil
+}
+
+func LogAllEnvs() {
+	envs := os.Environ()
+	sort.Strings(envs)
+	for _, e := range envs {
+		fmt.Printf("[env] %s\n", e)
 	}
 }
 
@@ -52,4 +92,23 @@ func ShowRate(r float64) string {
 	default:
 		return fmt.Sprintf("%.2f B/s", r)
 	}
+}
+
+func ListNvidiaGPUNames() []string {
+	const prefix = `/dev/`
+	files, err := filepath.Glob(prefix + `nvidia*`)
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, file := range files {
+		name := strings.TrimPrefix(file, prefix)
+		var x int
+		n, err := fmt.Sscanf(name, "nvidia%d", &x)
+		if n == 1 && err == nil && fmt.Sprintf("nvidia%d", x) == name {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names) // FIXME: use numeric sort
+	return names
 }

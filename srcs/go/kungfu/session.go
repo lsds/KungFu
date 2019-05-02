@@ -1,11 +1,13 @@
 package kungfu
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
@@ -19,7 +21,9 @@ type strategy struct {
 // session contains the immutable topology and strategies for a given period of logical duration
 type session struct {
 	strategies []strategy
-	cluster    *plan.ProcSpec
+	self       *plan.PeerSpec
+	cluster    *plan.ClusterSpec
+	myRank     int
 	router     *rch.Router
 }
 
@@ -32,17 +36,27 @@ var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
 	kb.KungFu_Tree:   createTreeStrategies,
 }
 
-func newSession(c Config, ps *plan.ProcSpec, router *rch.Router) *session {
+func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch.Router) (*session, error) {
 	f := partitionStrategies[c.Algo]
 	if f == nil {
 		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
 		f = createStarStrategies
 	}
-	return &session{
-		strategies: f(ps.Peers),
-		cluster:    ps,
+	myRank, ok := cs.Lookup(*self)
+	if !ok {
+		return nil, errors.New("self not in cluster")
+	}
+	sess := &session{
+		strategies: f(cs.Peers),
+		self:       self,
+		cluster:    cs,
+		myRank:     myRank,
 		router:     router,
 	}
+	if kc.RunWarmup {
+		sess.Warmup() // TODO: check error
+	}
+	return sess, nil
 }
 
 func createStarStrategies(peers []plan.PeerSpec) []strategy {
@@ -92,15 +106,15 @@ func createRingStrategies(peers []plan.PeerSpec) []strategy {
 }
 
 func (sess *session) ClusterSize() int {
-	return len(sess.cluster.AllPeers())
+	return len(sess.cluster.Peers)
 }
 
 func (sess *session) Rank() int {
-	return sess.cluster.SelfRank
+	return sess.myRank
 }
 
 func (sess *session) Warmup() int {
-	k := sess.cluster.Size()
+	k := len(sess.cluster.Peers)
 	count := k * 4
 	dtype := kb.KungFu_INT32
 	w := Workspace{
@@ -129,7 +143,7 @@ func (sess *session) Broadcast(w Workspace) int {
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
-	if sess.cluster.Size() == 1 {
+	if len(sess.cluster.Peers) == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)
 		return nil
 	}
@@ -169,7 +183,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		for _, rank := range ranks {
 			wg.Add(1)
 			go func(rank int) {
-				op(sess.cluster.GetPeer(rank))
+				op(sess.cluster.Peers[rank])
 				wg.Done()
 			}(rank)
 		}
@@ -178,11 +192,11 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 	seq := func(ranks []int, op func(plan.PeerSpec)) {
 		for _, rank := range ranks {
-			op(sess.cluster.GetPeer(rank))
+			op(sess.cluster.Peers[rank])
 		}
 	}
 
-	myRank := sess.cluster.MyRank()
+	myRank := sess.myRank
 	for _, g := range graphs {
 		prevs := g.Prevs(myRank)
 		if g.IsSelfLoop(myRank) {

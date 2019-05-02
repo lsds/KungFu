@@ -5,6 +5,25 @@ import (
 	"testing"
 )
 
+func Test_connectionHeader(t *testing.T) {
+	ch := connectionHeader{
+		Type:    uint16(ConnCollective),
+		SrcPort: 9999,
+		SrcIPv4: 0x7f080808,
+	}
+	b := &bytes.Buffer{}
+	if err := ch.WriteTo(b); err != nil {
+		t.Errorf("failed to write message header: %v", err)
+	}
+	var ch2 connectionHeader
+	if err := ch2.ReadFrom(b); err != nil {
+		t.Errorf("failed to read message header: %v", err)
+	}
+	if ch.Type != ch2.Type || ch.SrcPort != ch2.SrcPort || ch.SrcIPv4 != ch2.SrcIPv4 {
+		t.Error("connection header content not match")
+	}
+}
+
 func Test_Message(t *testing.T) {
 	b := &bytes.Buffer{}
 	{

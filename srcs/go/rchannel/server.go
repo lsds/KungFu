@@ -1,6 +1,7 @@
 package rchannel
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -21,6 +22,7 @@ type Server struct {
 // NewServer creates a new Server
 func NewServer(router *Router) (*Server, error) {
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(int(router.localAddr.Port)))
+	log.Debugf("listening: %s", addr)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -77,13 +79,10 @@ func (s *Server) Close() {
 	}
 }
 
-func (s *Server) getRemoteHost(conn net.Conn) string {
-	h, _, err := net.SplitHostPort(conn.RemoteAddr().String())
-	if err == nil {
-		return h
-	}
-	return s.router.localAddr.Host
-}
+var (
+	errNotImplemented          = errors.New("Not Implemented")
+	errInvalidConnectionHeader = errors.New("Invalid connection header")
+)
 
 func (s *Server) handle(conn net.Conn) error {
 	defer conn.Close()
@@ -92,14 +91,35 @@ func (s *Server) handle(conn net.Conn) error {
 		return err
 	}
 	remoteNetAddr := plan.NetAddr{
-		Host: s.getRemoteHost(conn),
-		Port: ch.Port,
+		Host: formatIPv4(ch.SrcIPv4), // formatIPv4 :: uint32 -> str
+		Port: ch.SrcPort,
 	}
-	log.Debugf("got new connection from: %s", remoteNetAddr)
+	log.Debugf("got new connection of type %d from: %s", ch.Type, remoteNetAddr)
+	switch ConnType(ch.Type) {
+	case ConnControl:
+		return s.handleControl(remoteNetAddr, conn)
+	case ConnCollective:
+		return s.handleCollective(remoteNetAddr, conn)
+	case ConnPeerToPeer:
+		return s.handlePeerToPeer(remoteNetAddr, conn)
+	default:
+		return errInvalidConnectionHeader
+	}
+}
+
+func (s *Server) handleControl(remoteNetAddr plan.NetAddr, conn net.Conn) error {
+	return errNotImplemented
+}
+
+func (s *Server) handleCollective(remoteNetAddr plan.NetAddr, conn net.Conn) error {
 	if n, err := s.router.stream(conn, remoteNetAddr); err != nil && err != io.EOF {
 		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
 	}
 	return nil
+}
+
+func (s *Server) handlePeerToPeer(remoteNetAddr plan.NetAddr, conn net.Conn) error {
+	return errNotImplemented
 }
 
 // check if error is internal/poll.ErrNetClosing
@@ -111,4 +131,9 @@ func isNetClosingErr(err error) bool {
 		return msg == e.Err.Error()
 	}
 	return false
+}
+
+func formatIPv4(ipv4 uint32) string {
+	ip := net.IPv4(byte(ipv4>>24), byte(ipv4>>16), byte(ipv4>>8), byte(ipv4))
+	return ip.String()
 }

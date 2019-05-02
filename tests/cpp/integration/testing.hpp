@@ -45,7 +45,7 @@ int getTestClusterSize()
     return std::stoi(safe_getenv("KUNGFU_TEST_CLUSTER_SIZE"));
 }
 
-int getSelfRank() { return std::stoi(safe_getenv("KUNGFU_SELF_RANK")); }
+int getSelfRank() { return std::stoi(safe_getenv("KUNGFU_TEST_SELF_RANK")); }
 
 namespace testing
 {

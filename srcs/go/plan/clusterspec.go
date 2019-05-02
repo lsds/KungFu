@@ -1,22 +1,29 @@
 package plan
 
-import "encoding/json"
+import (
+	"fmt"
+)
 
 type ClusterSpec struct {
 	Peers []PeerSpec
 }
 
 func (cs ClusterSpec) String() string {
-	bs, err := json.Marshal(cs)
-	if err != nil {
-		return ""
-	}
-	return string(bs)
+	return toString(cs)
 }
 
-func (cs ClusterSpec) ToProcSpec(rank int) ProcSpec {
-	return ProcSpec{
-		ClusterSpec: cs,
-		SelfRank:    rank,
+func (cs ClusterSpec) Lookup(ps PeerSpec) (int, bool) {
+	for i, p := range cs.Peers {
+		if p == ps {
+			return i, true
+		}
 	}
+	return -1, false
+}
+
+func GenClusterSpec(k int, hostSpecs []HostSpec) (*ClusterSpec, error) {
+	if cap := TotalCap(hostSpecs); cap < k {
+		return nil, fmt.Errorf("can run %d peers at most", cap)
+	}
+	return &ClusterSpec{Peers: genPeerSpecs(k, hostSpecs)}, nil
 }

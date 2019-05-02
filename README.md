@@ -8,6 +8,7 @@ Make sure you have `tensorflow` or `tensorflow-gpu` python library installed.
 
 ```bash
 # install
+export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) # 4 seconds faster
 pip3 install --no-index -U .
 
 # FIXME: For Mac users, the following is required after the install:

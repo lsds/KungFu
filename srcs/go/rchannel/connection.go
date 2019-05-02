@@ -16,6 +16,15 @@ type Connection interface {
 	Send(name string, m Message) error
 }
 
+func parseIPv4(host string) uint32 {
+	ip := net.ParseIP(host).To4()
+	a := uint32(ip[0]) << 24
+	b := uint32(ip[1]) << 16
+	c := uint32(ip[2]) << 8
+	d := uint32(ip[3])
+	return a | b | c | d
+}
+
 func newConnection(remote, local plan.NetAddr) (Connection, error) {
 	conn, err := func() (net.Conn, error) {
 		if remote.Host == local.Host {
@@ -27,7 +36,11 @@ func newConnection(remote, local plan.NetAddr) (Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	h := connectionHeader{Port: local.Port}
+	h := connectionHeader{
+		Type:    uint16(ConnCollective),
+		SrcIPv4: parseIPv4(local.Host), // parseIPv4 :: str -> uint32
+		SrcPort: local.Port,
+	}
 	if err := h.WriteTo(conn); err != nil {
 		return nil, err
 	}
