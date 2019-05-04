@@ -11,10 +11,7 @@ namespace tensorflow
 {
 REGISTER_OP("PartialNegotiatorFrontEndPartitioning")
     .Attr("T: {int32, int64, float16, float32, float64}")
-    .Attr("input_tensor_name: string")
-    .Attr("budget: int")
-    .Attr("tensor_size: int")
-    .Attr("count_gradients: int")
+    .Attr("index: int")
     .Input("allgradients: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
