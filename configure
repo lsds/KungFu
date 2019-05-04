@@ -8,9 +8,9 @@ if [ -z "${BUILD_GTEST}" ]; then
     BUILD_GTEST=0 # download and build gtest from source
 fi
 BUILD_TESTS=0 # build unit tests
-BUILD_TENSORFLOW_OPS=0
-BUILD_TOOLS=0
-VERBOSE=0
+BUILD_TENSORFLOW_OPS=1
+BUILD_TOOLS=1
+VERBOSE=1
 
 NCCL_HOME=$HOME/local/nccl
 if [ -f $NCCL_HOME/include/nccl.h ]; then

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import platform
 import sysconfig
@@ -93,49 +95,31 @@ def group_all_reduce(ts):
 
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
-    import json, os
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    num_workers = len(cluster_spec['Peers'])
-
-    import tensorflow as tf
-    batch_big = batch_small * num_workers
-
     negotiated_grads = [all_reduce(t) for t in grads]
 
-    global_variance_ops = []
-
-    for i in range(len(grads)):
-        G_big   = negotiated_grads[i]
-        G_small = grads[i]       
-
-        G_sq_small = tf.norm(G_small)
-        G_sq_small = tf.square(G_sq_small)
-        score_big  = batch_big * G_sq_small
-
-        G_sq_big    = tf.norm(G_big)
-        G_sq_big    = tf.square(G_sq_big)
-        score_small = batch_small * G_sq_small
-
-        G_biased = 1/(batch_big - batch_small) * (score_big - score_small)
-        S_biased = 1/(1/batch_small - 1/batch_big) * (G_sq_small - G_sq_big)
-
-        global_var_op = _op_lib.global_variance(G_biased, S_biased, input_tensor_name=grads[i].name)
-        global_variance_ops.append(global_var_op)
-
-    with tf.control_dependencies(global_variance_ops):
-         return negotiated_grads
-
+    import tensorflow as tf
+    noise_ops = get_gradient_noise_operators(batch_small, grads, negotiated_grads)
+    noise_ops = [tf.abs(op) for op in noise_ops]
+    total = tf.reduce_sum(noise_ops)
+    print_op = tf.Print(total, [total], message="Total Gradient Noise at current iteration")
+    with tf.control_dependencies(noise_ops + [print_op]):
+        return [_op_lib.controller(negotiated_grad) for negotiated_grad in negotiated_grads]
 
 def get_gradient_noise_operators(batch_small, grads, negotiated_grads):
     import tensorflow as tf
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
     num_workers = len(cluster_spec['Peers'])
+    if num_workers == 0:
+        raise "Cluster spec KUNGFU_CLUSTER_SPEC is invalid"
     batch_big = batch_small * num_workers
 
     global_variance_ops = []
     for i in range(len(grads)):
-        G_big   = negotiated_grads[i]
+        G_big = negotiated_grads[i]
+        #### Average between devices
+        G_big = tf.div(negotiated_grads[i], num_workers) 
+        ####
         G_small = grads[i]       
 
         G_sq_small = tf.norm(G_small)
@@ -149,9 +133,10 @@ def get_gradient_noise_operators(batch_small, grads, negotiated_grads):
         G_biased = 1/(batch_big - batch_small) * (score_big - score_small)
         S_biased = 1/(1/batch_small - 1/batch_big) * (G_sq_small - G_sq_big)
 
-        global_var_op = _op_lib.gradient_noise(G_biased, S_biased, input_tensor_name=grads[i].name, alpha=0.8)
+        global_var_op = _op_lib.gradient_noise(G_biased, S_biased, input_tensor_name=grads[i].name, alpha=0.9)
         global_variance_ops.append(global_var_op)
     return global_variance_ops
 
 def build_controller_op(negotiated_grads_and_vars):
     return [(_op_lib.controller(negotiated_grad), var) for negotiated_grad, var in negotiated_grads_and_vars]
+

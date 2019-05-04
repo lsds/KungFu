@@ -82,7 +82,12 @@ REGISTER_OP("GradientNoise")
     .Attr("input_tensor_name: string")
     .Attr("alpha: float")
     .Input("g_biased: float32")
-    .Input("s_biased: float32");
+    .Input("s_biased: float32")
+    .Output("output: float32")
+    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    });
 
 class GradientNoise : public OpKernel
 {
@@ -120,28 +125,36 @@ public:
         Tensor &g_biased_tensor = (Tensor &)context->input(0);
         Tensor &s_biased_tensor = (Tensor &)context->input(1);
 
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, g_biased_tensor.shape(), &output));
+
         auto g_biased_vec = g_biased_tensor.scalar<float>();
         auto s_biased_vec = s_biased_tensor.scalar<float>();
 
         float g_current = (float) g_biased_vec();
         float s_current   = (float)s_biased_vec();
 
+        //std::cout << "When G enters: " << g_current << std::endl;
+        //std::cout << "When S enters: " << s_current << std::endl;
+        
         if (g_ema == 0.0) {
             g_ema = g_current;
         } else {
             g_ema = alpha_ * g_current + (1 - alpha_) * g_ema;
         }
 
-
         if (s_ema == 0.0) {
             s_ema = s_current;
         } else {
             s_ema = alpha_ * s_current + (1 - alpha_) * s_ema;
         }
-
         float gradient_noise = s_ema / g_ema;
 
-        std::cout << "Gradient noise: " << "(" << input_tensor_name_ << ", " << gradient_noise << ")" << std::endl;
+        // std::cout << "Gradient noise: " << "(" << input_tensor_name_ << ", " << gradient_noise << ")" << std::endl;
+        float *y =
+            static_cast<float *>((void *)output->tensor_data().data());
+        y[0] = gradient_noise;
 
     }
 };
