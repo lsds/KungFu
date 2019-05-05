@@ -93,6 +93,20 @@ def group_all_reduce(ts):
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
 
+def global_noise_summaries(total, average):
+    """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
+    import tensorflow as tf
+    with tf.name_scope('summaries'):
+        tf.summary.scalar('total', total)
+        tf.summary.scalar('average', average)
+
+def gradient_noise_summaries(noise_ops, grads):
+    """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
+    import tensorflow as tf
+    with tf.name_scope('summaries'):
+        for i, noise_op in enumerate(noise_ops):
+            tf.summary.scalar(grads[i].name, noise_op)
+
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     negotiated_grads = [all_reduce(t) for t in grads]
@@ -101,8 +115,17 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     noise_ops = get_gradient_noise_operators(batch_small, grads, negotiated_grads)
     noise_ops = [tf.abs(op) for op in noise_ops]
     total = tf.reduce_sum(noise_ops)
-    print_op = tf.Print(total, [total], message="Total Gradient Noise at current iteration")
-    with tf.control_dependencies(noise_ops + [print_op]):
+    
+    global_noise_summaries(total, tf.div(total, len(negotiated_grads)))
+    gradient_noise_summaries(noise_ops, grads)
+
+    merged = tf.summary.merge_all()
+
+    print_op_total = tf.Print(total, [total], message="Total Gradient Noise at current iteration")
+    total = tf.div(total, len(negotiated_grads)) # Average noise scale over trainable variables
+    print_op_avg = tf.Print(total, [total], message="Average Gradient Noise at current iteration")
+
+    with tf.control_dependencies(noise_ops + [print_op_total, print_op_avg, merged]):
         return [_op_lib.controller(negotiated_grad) for negotiated_grad in negotiated_grads]
 
 def get_gradient_noise_operators(batch_small, grads, negotiated_grads):
