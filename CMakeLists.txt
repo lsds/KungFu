@@ -10,12 +10,20 @@ ADD_COMPILE_OPTIONS(-fPIC)
 OPTION(KUNGFU_BUILD_TESTS "Build tests." OFF)
 OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
 OPTION(KUNGFU_BUILD_TOOLS "Build kungfu tools." OFF)
+OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
 ADD_LIBRARY(kungfu-base srcs/cpp/src/kungfu_types.cpp
             srcs/cpp/src/kungfu_base.cpp)
+IF(KUNGFU_ENABLE_FLOAT16)
+    TARGET_SOURCES(kungfu-base PRIVATE srcs/cpp/src/kungfu_half.c)
+    TARGET_COMPILE_OPTIONS(kungfu-base
+                           PRIVATE -mavx # _mm256_add_ps
+                                   -mf16c # _mm256_cvtph_ps, _mm256_cvtps_ph
+                           )
+ENDIF()
 
 INCLUDE(cmake/cgo.cmake)
 SET(CGO_CFLAGS "-I${CMAKE_SOURCE_DIR}/srcs/cpp/include")

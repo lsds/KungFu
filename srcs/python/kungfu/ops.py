@@ -43,11 +43,11 @@ def broadcast(t):
 
 
 def all_reduce(t):
-    return _op_lib.all_reduce(t, input_tensor_name=t.name[:-2])
+    return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
 
 def all_reduce_gpu(t):
-    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name[:-2])
+    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
 
 
 def ako_all_reduce(t, partition_id, num_partitions):
@@ -75,7 +75,7 @@ def cpu_group_all_reduce(ts):
 
 
 def gpu_group_all_reduce(ts):
-    names = [t.name[:-2] for t in ts]
+    names = [t.name for t in ts]
     names = list(sorted(names))  # FIXME: use topsort
     import tensorflow as tf
     with tf.control_dependencies([
