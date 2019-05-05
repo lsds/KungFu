@@ -92,7 +92,28 @@ def group_all_reduce(ts):
         return gpu_group_all_reduce(ts)
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
+########################## Global Gradient Variance ################
+def cpu_group_all_reduce_global_variance(grads):
+    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
+    num_workers = len(cluster_spec['Peers'])
+    if num_workers == 0:
+        raise "Cluster spec KUNGFU_CLUSTER_SPEC is invalid"
 
+    negotiated_grads = [all_reduce(t) for t in grads]
+
+    # Compute negotiated_global_variances
+    # sum (grad - negotiated_grad/#num_workers)^2
+    for i in range(len(grads)):
+        g  = grads[i]
+        ng = negotiated_grads[i] 
+        ng = tf.div(ng, num_workers)
+        # TODO
+    # import tensorflow as tf
+    # TODO
+
+
+
+########################### Gradient Noise #########################
 def global_noise_summaries(total, average):
     """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
     import tensorflow as tf
@@ -106,7 +127,6 @@ def gradient_noise_summaries(noise_ops, grads):
     with tf.name_scope('summaries'):
         for i, noise_op in enumerate(noise_ops):
             tf.summary.scalar(grads[i].name, noise_op)
-
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     negotiated_grads = [all_reduce(t) for t in grads]
@@ -156,7 +176,7 @@ def get_gradient_noise_operators(batch_small, grads, negotiated_grads):
         G_biased = 1/(batch_big - batch_small) * (score_big - score_small)
         S_biased = 1/(1/batch_small - 1/batch_big) * (G_sq_small - G_sq_big)
 
-        global_var_op = _op_lib.gradient_noise(G_biased, S_biased, input_tensor_name=grads[i].name, alpha=0.9)
+        global_var_op = _op_lib.gradient_noise(G_biased, S_biased, input_tensor_name=grads[i].name, alpha=0.8)
         global_variance_ops.append(global_var_op)
     return global_variance_ops
 

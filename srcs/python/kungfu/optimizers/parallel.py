@@ -5,7 +5,7 @@ from .core import KungFuOptimizer
 
 
 from kungfu.ops import get_gradient_noise_operators
-from kungfu.ops import build_controller_op
+from kungfu.ops import build_controller_op, gradient_noise_summaries, global_noise_summaries
 
 class ParallelOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
@@ -34,7 +34,18 @@ class ParallelOptimizer(KungFuOptimizer):
         if self.device_batch_size is None:
             return list(zip(negotiated_grads, variables_to_update))
         else:
-            with tf.control_dependencies(get_gradient_noise_operators(self.device_batch_size, grads_to_negotiate, negotiated_grads)):
+            noise_ops = get_gradient_noise_operators(self.device_batch_size, grads_to_negotiate, negotiated_grads)
+            noise_ops = [tf.abs(op) for op in noise_ops]
+            total = tf.reduce_sum(noise_ops)
+            global_noise_summaries(total, tf.div(total, len(negotiated_grads)))
+
+            total = tf.div(total, len(grads_and_vars_to_negotiate)) # Average noise scale
+            print_op = tf.Print(total, [total], message="Total Gradient Noise at current iteration")
+
+            gradient_noise_summaries(noise_ops, grads)
+            merged = tf.summary.merge_all()
+
+            with tf.control_dependencies(noise_ops + [merged]):
                 return build_controller_op(list(zip(negotiated_grads, variables_to_update)))
 
     def _set_num_gradients(self, n):

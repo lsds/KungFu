@@ -151,7 +151,7 @@ public:
         }
         float gradient_noise = s_ema / g_ema;
 
-        // std::cout << "Gradient noise: " << "(" << input_tensor_name_ << ", " << gradient_noise << ")" << std::endl;
+        std::cout << "Noise {" << input_tensor_name_ << "} (" << gradient_noise << ")" << std::endl;
         float *y =
             static_cast<float *>((void *)output->tensor_data().data());
         y[0] = gradient_noise;
@@ -162,6 +162,40 @@ public:
 REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
                         GradientNoise);
 
+
+REGISTER_OP("GlobalVariance")
+    .Attr("input_tensor_name: string")
+    .Attr("alpha: float")
+    .Input("g_biased: float32")
+    .Input("s_biased: float32")
+    .Output("output: float32")
+    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    });
+
+class GlobalVariance : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+public:
+    std::string input_tensor_name_;
+    float alpha_;
+    float g_ema;
+    float s_ema;
+
+    explicit GlobalVariance(OpKernelConstruction *context) : OpKernel(context)
+    {
+       
+    }
+    void Compute(OpKernelContext *context) override
+    {
+      
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("GlobalVariance").Device(DEVICE_CPU),
+                        GlobalVariance);
 
 
 REGISTER_OP("Controller")
