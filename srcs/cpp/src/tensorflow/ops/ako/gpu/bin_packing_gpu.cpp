@@ -80,9 +80,10 @@ class PartialNegotiatorGpu : public AsyncOpKernel
                 [stream = context->op_device_context()->stream()]() {
                     stream->BlockHostUntilDone();
                 },
-                gradients.tensor_data().data(), (void *)(output->tensor_data().data()),
-                gradients.NumElements(), to_kungfu_type(gradients.dtype()), KungFu_SUM,
-                name().c_str(), done);
+                gradients.tensor_data().data(),
+                (void *)(output->tensor_data().data()), gradients.NumElements(),
+                to_kungfu_type(gradients.dtype()), KungFu_SUM, name().c_str(),
+                done);
             // Because it is synchronous, the done callback will signal when the
             // value held
             // in the memory where output points to is ready to be used.

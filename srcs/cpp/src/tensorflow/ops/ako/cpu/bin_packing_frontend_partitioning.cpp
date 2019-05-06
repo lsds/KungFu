@@ -12,6 +12,7 @@ namespace tensorflow
 REGISTER_OP("PartialNegotiatorFrontEndPartitioning")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("index: int")
+    .Attr("partitions: int")
     .Input("allgradients: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
@@ -26,15 +27,19 @@ class PartialNegotiatorFrontEndPartitioning : public AsyncOpKernel
 
   public:
     int32_t index_;
+    int32_t partitions_;
 
-    explicit PartialNegotiatorFrontEndPartitioning(OpKernelConstruction *context)
+    explicit PartialNegotiatorFrontEndPartitioning(
+        OpKernelConstruction *context)
         : AsyncOpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("index",
-                                                 &index_));
-        OP_REQUIRES(
-            context, index_ >= 0,
-            errors::InvalidArgument("invalid partition index"));
+        OP_REQUIRES_OK(context, context->GetAttr("index", &index_));
+        OP_REQUIRES(context, index_ >= 0,
+                    errors::InvalidArgument("invalid partition index"));
+
+        OP_REQUIRES_OK(context, context->GetAttr("partitions", &partitions_));
+        OP_REQUIRES(context, partitions_ > 0,
+                    errors::InvalidArgument("invalid number of partitions"));
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -47,7 +52,7 @@ class PartialNegotiatorFrontEndPartitioning : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        if (_kungfu_world->GetGlobalStep() % (index + 1) == 0) {
+        if (_kungfu_world->GetGlobalStep() % partitions_ == index_) {
             _kungfu_world->AllReduce(gradients.tensor_data().data(),
                                      (void *)(output->tensor_data().data()),
                                      gradients.NumElements(),
@@ -63,7 +68,8 @@ class PartialNegotiatorFrontEndPartitioning : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("PartialNegotiatorFrontEndPartitioning").Device(DEVICE_CPU),
-                        PartialNegotiatorFrontEndPartitioning);
+REGISTER_KERNEL_BUILDER(
+    Name("PartialNegotiatorFrontEndPartitioning").Device(DEVICE_CPU),
+    PartialNegotiatorFrontEndPartitioning);
 
 }  // namespace tensorflow

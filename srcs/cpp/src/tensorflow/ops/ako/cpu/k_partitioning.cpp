@@ -104,10 +104,11 @@ class AkoNegotiator : public AsyncOpKernel
         } else {
             outGrad_flt = grads_flt + outGrad_flt;
         }
-        
+
         // FIXME(andrei): operation degrades training throughput
         if (tensorWindow.size() > 0) {
-            outGrad_flt = outGrad_flt / outGrad_flt.constant(tensorWindow.size());
+            outGrad_flt =
+                outGrad_flt / outGrad_flt.constant(tensorWindow.size());
         } else {
             std::cout << "Ako accumulation window empty!" << std::endl;
         }
@@ -117,9 +118,10 @@ class AkoNegotiator : public AsyncOpKernel
             // Create a callback to accumulate gradients from other peers
             std::function<void()> func = [&, done]() {
                 std::lock_guard<std::mutex> l(allMutex);
-                
+
                 // subract gradients from inGrad to not apply them twice
-                inGrad.flat<float>() = inGrad.flat<float>() - gradients.flat<float>();
+                inGrad.flat<float>() =
+                    inGrad.flat<float>() - gradients.flat<float>();
                 hasInGrad = true;
                 // done();
             };
@@ -135,8 +137,9 @@ class AkoNegotiator : public AsyncOpKernel
             done();
         }
 
-       // TODO: to make it asynchrnous, call done() here instead of passing it in the callback function for all reduce.
-       // Also remove done() call in the else branch.
+        // TODO: to make it asynchrnous, call done() here instead of passing it
+        // in the callback function for all reduce.
+        // Also remove done() call in the else branch.
     }
 };
 

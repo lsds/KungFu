@@ -171,10 +171,11 @@ class PartialAccumulatingNegotiatorGpu : public AsyncOpKernel
                 [stream = context->op_device_context()->stream()]() {
                     stream->BlockHostUntilDone();
                 },
-                outGrad.tensor_data().data(), (void *)(inGrad.tensor_data().data()),
-                outGrad.NumElements(), to_kungfu_type(outGrad.dtype()), KungFu_SUM,
-                name().c_str(), func);
-            
+                outGrad.tensor_data().data(),
+                (void *)(inGrad.tensor_data().data()), outGrad.NumElements(),
+                to_kungfu_type(outGrad.dtype()), KungFu_SUM, name().c_str(),
+                func);
+
             *output = gradients;
         } else {
             *output = gradients;

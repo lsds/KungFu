@@ -7,8 +7,8 @@ class BinPackPartitioner:
     def __init__(self):
         pass
         
-    def bin_pack(sizes, budget):
-        lst = list(reversed(sorted((size, name) for name, size in sizes.items())))
+    def bin_pack(self, sizes, budget):
+        lst = list(reversed(sorted([(size, name) for name, size in sizes.items()])))
         budget = max(budget, lst[0][0])
         budgets = []
         indexes = dict()

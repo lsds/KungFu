@@ -64,17 +64,10 @@ def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average)
                                           tensor_size=tensor_size, count_gradients=count_gradients)
 
 # Based on Guo Li
-def partial_exchange_all_reduce_front_end_partitioning(t, index, count_gradients, accumulate, average):
+def partial_exchange_all_reduce_front_end_partitioning(t, index, partitions, accumulate=False, average=False):
     # Take full gradient name for unicity
     tensor_size = t.shape.num_elements() * t.dtype.size
-    if accumulate:
-        import json, os
-        cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-        num_peers = len(cluster_spec['Peers'])
-        return _op_lib.partial_accumulating_negotiator_front_end_partitioning(t, index=index,
-                                                       tensor_size=tensor_size, count_gradients=count_gradients, num_peers=num_peers, average=average)
-    else:
-        return _op_lib.partial_negotiator_front_end_partitioning(t, index=index)
+    return _op_lib.partial_negotiator_front_end_partitioning(t, index=index, partitions=partitions)
 
 def all_reduce_gpu(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name[:-2])
@@ -104,26 +97,23 @@ def partial_exchange_group_all_reduce(ts, fraction=0.3, accumulate=False, averag
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
     budget = int(math.floor(fraction * total_size))
-    print("After the calculation, the budget is: " + str(budget))
+    print("The bucket budget is: " + str(budget))
     return [partial_exchange_all_reduce(t, budget, len(ts), accumulate, average) for t in ts]
 
 # Based on Guo Li, Partitioning in python
 def partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
-    print("Do nothing. TODO: test code")
-    #import math
-    #total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
-    # print("Total Size of All Gradients: " + str(total_size))
-    # print("The fraction is: " + str(fraction))
-    # binpacker = BinPackPartitioner()
-    # budget = int(math.floor(fraction * total_size))
-    # indexes = binpacker.bin_pack(
-    #     (t.name, t.shape.num_elements() * t.dtype.size) for t in ts, budget)
-    # print("After the calculation, the budget is: " + str(budget))
-    # return [
-    #    # pass indexes[t.name] instead of budget
-    #     partial_exchange_all_reduce_front_end_partitioning(t, indexes[t.name], len(ts), accumulate,
-    #                                 average) for t in ts
-    # ]
+    import math
+    total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
+    print("Total Size of All Gradients: " + str(total_size))
+    print("The fraction is: " + str(fraction))
+    binpacker = BinPackPartitioner()
+    budget = int(math.floor(fraction * total_size))
+    indexes = binpacker.bin_pack(dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]), budget)
+    print("The bucket budget is: " + str(budget))
+    return [
+       # pass indexes[t.name] instead of budget
+        partial_exchange_all_reduce_front_end_partitioning(t, index=indexes[t.name], partitions=len(set(indexes.values()))) for t in ts
+    ]
 
 
 def ako_group_all_reduce(gradient_tensors, num_partitions=1):
