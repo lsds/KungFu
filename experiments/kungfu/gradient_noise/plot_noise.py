@@ -51,6 +51,9 @@ def get_noise(s):
 def plot(lines):
     losses = [get_loss(l) for l in lines[1::2]]
     noises = [get_noise(l) for l in lines[::2]]
+
+    print(noises)
+    print(np.average([x for x in noises if x is not None]))
     pairs = zip(losses, noises)
     pairs.sort(key=lambda x: x[0])
 
@@ -72,7 +75,7 @@ def main():
         worker = get_experiment_results('./variance.log', lambda x: extract_from_worker(x, worker))
         workers.append(worker)
 
-    for worker_logs in workers[:1]:
+    for worker_logs in workers:
         plot(worker_logs)
 
 if __name__ == "__main__":
