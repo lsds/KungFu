@@ -151,7 +151,7 @@ public:
         }
         float gradient_noise = s_ema / g_ema;
 
-        std::cout << "Noise {" << input_tensor_name_ << "} (" << gradient_noise << ")" << std::endl;
+        // std::cout << "Noise {" << input_tensor_name_ << "} (" << gradient_noise << ")" << std::endl;
         float *y =
             static_cast<float *>((void *)output->tensor_data().data());
         y[0] = gradient_noise;
