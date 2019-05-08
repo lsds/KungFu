@@ -3,10 +3,6 @@ import tensorflow as tf
 from kungfu.ops import group_all_reduce, set_num_gradients
 from .core import KungFuOptimizer
 
-
-from kungfu.ops import get_gradient_noise_operators
-from kungfu.ops import build_controller_op, gradient_noise_summaries, global_noise_summaries
-
 class ParallelOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
 
