@@ -92,25 +92,8 @@ def group_all_reduce(ts):
         return gpu_group_all_reduce(ts)
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
-########################## Global Gradient Variance ################
-def cpu_group_all_reduce_global_variance(grads):
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    num_workers = len(cluster_spec['Peers'])
-    if num_workers == 0:
-        raise "Cluster spec KUNGFU_CLUSTER_SPEC is invalid"
-
-    negotiated_grads = [all_reduce(t) for t in grads]
-
-    # Compute negotiated_global_variances
-    # sum (grad - negotiated_grad/#num_workers)^2
-    for i in range(len(grads)):
-        g  = grads[i]
-        ng = negotiated_grads[i] 
-        ng = tf.div(ng, num_workers)
-        # TODO
 
 ########################### Gradient Noise #########################
-
 def concat_gradients(grads):
     import tensorflow as tf
     reshaped_grads = []
@@ -120,16 +103,8 @@ def concat_gradients(grads):
     
     stacked = tf.concat(reshaped_grads, -1)
     flat_all = tf.reshape(stacked, [-1])
-    print(flat_all)
+
     return flat_all
-
-
-def global_noise_tensorboard(total):
-    """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
-    import tensorflow as tf
-    with tf.name_scope('summaries'):
-        tf.summary.scalar('total', total)
-
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     negotiated_grads = [all_reduce(t) for t in grads]
@@ -139,16 +114,10 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     concat_grad            = concat_gradients(grads)
     concat_negotiated_grad = concat_gradients(negotiated_grads)
 
-    print(concat_grad.shape)
-    print(concat_negotiate_grad.shape)
-
     noise_op = get_global_gradient_noise_operator(batch_small, concat_grad, concat_negotiated_grad)
     print_op_total = tf.Print(noise_op, [noise_op], message="Total Gradient Noise at current iteration") 
-    global_noise_tensorboard(noise_op)
 
-    #merged = tf.summary.merge_all() 
-
-    with tf.control_dependencies([noise_op, print_op_total]): # add merged
+    with tf.control_dependencies([noise_op, print_op_total]):
         return [_op_lib.controller(negotiated_grad) for negotiated_grad in negotiated_grads]
 
 def get_global_gradient_noise_operator(batch_small, concat_grad, concat_negotiated_grad):
