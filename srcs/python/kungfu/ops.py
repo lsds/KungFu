@@ -93,7 +93,6 @@ def group_all_reduce(ts):
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
 
-########################### Gradient Noise #########################
 def concat_gradients(grads):
     import tensorflow as tf
     reshaped_grads = []
@@ -107,9 +106,8 @@ def concat_gradients(grads):
     return flat_all
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
-    negotiated_grads = [all_reduce(t) for t in grads]
-
     import tensorflow as tf
+    negotiated_grads = [all_reduce(t) for t in grads]
 
     concat_grad            = concat_gradients(grads)
     concat_negotiated_grad = concat_gradients(negotiated_grads)
@@ -135,15 +133,10 @@ def get_global_gradient_noise_operator(batch_small, concat_grad, concat_negotiat
     
     G_small = concat_grad     
 
-    G_sq_small = tf.norm(G_small)
-    G_sq_small = tf.square(G_sq_small)
-    score_big  = batch_big * G_sq_small
+    G_sq_small = tf.square(tf.norm(G_small))
+    G_sq_big   = tf.square(tf.norm(G_big))
 
-    G_sq_big    = tf.norm(G_big)
-    G_sq_big    = tf.square(G_sq_big)
-    score_small = batch_small * G_sq_small
-
-    G_biased = 1/(batch_big - batch_small) * (score_big - score_small)
+    G_biased = 1/(batch_big - batch_small) * (batch_big * G_sq_big - batch_small * G_sq_small)
     S_biased = 1/(1/batch_small - 1/batch_big) * (G_sq_small - G_sq_big)
 
     global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, input_tensor_name="ConcatGradientNoise", alpha=0.6)
