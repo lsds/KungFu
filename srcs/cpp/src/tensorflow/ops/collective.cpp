@@ -129,15 +129,9 @@ public:
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, g_biased_tensor.shape(), &output));
 
-        auto g_biased_vec = g_biased_tensor.scalar<float>();
-        auto s_biased_vec = s_biased_tensor.scalar<float>();
+        float g_current = (float) g_biased_tensor.scalar<float>();
+        float s_current = (float) s_biased_tensor.scalar<float>();
 
-        float g_current = (float) g_biased_vec();
-        float s_current   = (float)s_biased_vec();
-
-        //std::cout << "When G enters: " << g_current << std::endl;
-        //std::cout << "When S enters: " << s_current << std::endl;
-        
         if (g_ema == 0.0) {
             g_ema = g_current;
         } else {
@@ -151,11 +145,8 @@ public:
         }
         float gradient_noise = s_ema / g_ema;
 
-        // std::cout << "Noise {" << input_tensor_name_ << "} (" << gradient_noise << ")" << std::endl;
-        float *y =
-            static_cast<float *>((void *)output->tensor_data().data());
+        float *y = static_cast<float *>((void *)output->tensor_data().data());
         y[0] = gradient_noise;
-
     }
 };
 
