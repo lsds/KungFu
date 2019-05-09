@@ -49,18 +49,19 @@ def get_noise(s):
     return float(match.group("noise"))  
 
 def plot(lines):
-    losses = [get_loss(l) for l in lines[1::2]]
-    noises = [get_noise(l) for l in lines[::2]]
+    losses = [get_loss(l) for l in lines]
+    losses = filter(None, losses)
 
-    print(noises)
-    print(np.average([x for x in noises if x is not None]))
+    noises = [get_noise(l) for l in lines]
+    noises = filter(None, noises)
+    
     pairs = zip(losses, noises)
     pairs.sort(key=lambda x: x[0])
 
     losses, noises = zip(*pairs)
 
     plt.ylim([1000, 200000])
-    plt.title('ResNet-50 1 epoch gradient noise scale')
+    plt.title('ResNet-32 gradient noise scale')
     plt.ylabel('Gradient Noise')
     plt.xlabel('Training Loss')
 
@@ -72,7 +73,7 @@ def main():
     num_workers = 4
     workers = []
     for worker in range(num_workers):
-        worker = get_experiment_results('./variance.log', lambda x: extract_from_worker(x, worker))
+        worker = get_experiment_results('./correctnoise-tensorboard.log', lambda x: extract_from_worker(x, worker))
         workers.append(worker)
 
     for worker_logs in workers:

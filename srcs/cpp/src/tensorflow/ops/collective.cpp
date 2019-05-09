@@ -129,8 +129,8 @@ public:
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, g_biased_tensor.shape(), &output));
 
-        float g_current = (float) g_biased_tensor.scalar<float>();
-        float s_current = (float) s_biased_tensor.scalar<float>();
+        float g_current = (float) g_biased_tensor.scalar<float>()();
+        float s_current = (float) s_biased_tensor.scalar<float>()();
 
         if (g_ema == 0.0) {
             g_ema = g_current;
