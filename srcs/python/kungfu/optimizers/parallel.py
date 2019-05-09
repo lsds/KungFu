@@ -3,6 +3,7 @@ import tensorflow as tf
 from kungfu.ops import group_all_reduce, set_num_gradients
 from .core import KungFuOptimizer
 
+
 class ParallelOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
 
@@ -26,7 +27,6 @@ class ParallelOptimizer(KungFuOptimizer):
             grads_to_negotiate.append(grad)
             variables_to_update.append(var)
         negotiated_grads = group_all_reduce(grads_to_negotiate)
-
         return list(zip(negotiated_grads, variables_to_update))
 
     def _set_num_gradients(self, n):

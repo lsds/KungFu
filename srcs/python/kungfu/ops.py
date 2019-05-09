@@ -92,13 +92,6 @@ def group_all_reduce(ts):
     return cpu_group_all_reduce(ts)
 
 
-def global_noise_tensorboard(total, worker):
-    """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
-    import tensorflow as tf
-    with tf.name_scope('summaries'):
-        tf.summary.scalar('total-worker-' + str(worker), total)
-
-
 def _concat(ts):
     import tensorflow as tf
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
