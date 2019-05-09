@@ -93,29 +93,30 @@ def group_all_reduce(ts):
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
 
-def concat_gradients(grads):
+def global_noise_tensorboard(total, worker):
+    """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
     import tensorflow as tf
-    reshaped_grads = []
-    for t in grads:
-        reshaped_grad = tf.reshape(t, [-1])
-        reshaped_grads.append(reshaped_grad)
-    
-    stacked = tf.concat(reshaped_grads, -1)
-    flat_all = tf.reshape(stacked, [-1])
+    with tf.name_scope('summaries'):
+        tf.summary.scalar('total-worker-' + str(worker), total)
 
-    return flat_all
+def _concat(ts):
+    import tensorflow as tf
+    return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     import tensorflow as tf
     negotiated_grads = [all_reduce(t) for t in grads]
 
-    concat_grad            = concat_gradients(grads)
-    concat_negotiated_grad = concat_gradients(negotiated_grads)
+    concat_grad            = _concat(grads)
+    concat_negotiated_grad = _concat(negotiated_grads)
 
     noise_op = get_global_gradient_noise_operator(batch_small, concat_grad, concat_negotiated_grad)
     print_op_total = tf.Print(noise_op, [noise_op], message="Total Gradient Noise at current iteration") 
+    
+    summary = global_noise_tensorboard(noise_op, int(os.getenv('KUNGFU_TEST_SELF_RANK')))
+    merged = tf.summary.merge_all()
 
-    with tf.control_dependencies([noise_op, print_op_total]):
+    with tf.control_dependencies([noise_op, print_op_total, merged]):
         return [_op_lib.controller(negotiated_grad) for negotiated_grad in negotiated_grads]
 
 def get_global_gradient_noise_operator(batch_small, concat_grad, concat_negotiated_grad):
@@ -127,10 +128,8 @@ def get_global_gradient_noise_operator(batch_small, concat_grad, concat_negotiat
         raise "Cluster spec KUNGFU_CLUSTER_SPEC is invalid"
     batch_big = batch_small * num_workers
 
-    G_big = concat_negotiated_grad
-    ## Take average over workers
+    # Take average over workers
     G_big = tf.div(concat_negotiated_grad, num_workers) 
-    
     G_small = concat_grad     
 
     G_sq_small = tf.square(tf.norm(G_small))
@@ -139,10 +138,6 @@ def get_global_gradient_noise_operator(batch_small, concat_grad, concat_negotiat
     G_biased = 1/(batch_big - batch_small) * (batch_big * G_sq_big - batch_small * G_sq_small)
     S_biased = 1/(1/batch_small - 1/batch_big) * (G_sq_small - G_sq_big)
 
-    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, input_tensor_name="ConcatGradientNoise", alpha=0.6)
+    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=0.6)
 
     return global_noise_op
-
-def build_controller_op(negotiated_grads_and_vars):
-    return [(_op_lib.controller(negotiated_grad), var) for negotiated_grad, var in negotiated_grads_and_vars]
-

@@ -34,6 +34,10 @@ def extract_from_worker(s, from_worker):
         return None
     return s
 
+def print_none_match(pattern, l):
+    print(pattern.pattern)
+    raise Exception(l)
+
 def get_loss(s):
     pattern = re.compile(r".*\)\t(?P<loss>\d+\.\d+)\t.*", re.VERBOSE)
     match = pattern.match(s)
@@ -42,7 +46,7 @@ def get_loss(s):
     return float(match.group("loss"))  
 
 def get_noise(s):
-    pattern = re.compile(r".*iteration\[(?P<noise>\d+\.\d+)\]\n", re.VERBOSE)
+    pattern = re.compile(r".*iteration\[(?P<noise>[\-\+]?\d+\.\d+)\]\n", re.VERBOSE)
     match = pattern.match(s)
     if match is None:
         return None
@@ -52,15 +56,20 @@ def plot(lines):
     losses = [get_loss(l) for l in lines]
     losses = filter(None, losses)
 
+
+
     noises = [get_noise(l) for l in lines]
     noises = filter(None, noises)
-    
+
+
     pairs = zip(losses, noises)
     pairs.sort(key=lambda x: x[0])
 
+    print(pairs)
+
     losses, noises = zip(*pairs)
 
-    plt.ylim([1000, 200000])
+    plt.ylim([-200000, 200000])
     plt.title('ResNet-32 gradient noise scale')
     plt.ylabel('Gradient Noise')
     plt.xlabel('Training Loss')
@@ -70,7 +79,7 @@ def plot(lines):
     plt.show()
 
 def main():
-    num_workers = 4
+    num_workers = 1
     workers = []
     for worker in range(num_workers):
         worker = get_experiment_results('./correctnoise-tensorboard.log', lambda x: extract_from_worker(x, worker))
