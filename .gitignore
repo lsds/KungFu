@@ -42,3 +42,6 @@ tensorflow-prefix
 tensorflow-repo-prefix
 Testing/
 venv
+.vscode
+*-worker-*
+*.pyc

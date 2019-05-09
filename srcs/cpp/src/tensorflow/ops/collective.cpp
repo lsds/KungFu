@@ -4,6 +4,8 @@
 
 #include <kungfu_tensorflow_ops.h>
 
+#include <queue>
+
 namespace tensorflow
 {
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
@@ -140,15 +142,101 @@ class GradientNoise : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
                         GradientNoise);
 
-REGISTER_OP("Controller")
+REGISTER_OP("ControllerRunningSum")
+    .Input("gradient_noise: float32");
+
+class ControllerRunningSum : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+    int gs;
+    int interval;
+    std::queue<float> noises;
+    float running_sum;
+  public:
+    explicit ControllerRunningSum(OpKernelConstruction *context)
+        : OpKernel(context), gs(0), interval(1000)
+    {
+
+    }
+
+    void Compute(OpKernelContext *context) override
+    {
+        gs++;
+        DCHECK_EQ(1, context->num_inputs());
+
+        Tensor &gradient_noise_tensor = (Tensor &)context->input(0);
+
+        float noise = (float)gradient_noise_tensor.scalar<float>()();
+        noises.push(abs(noise));
+        running_sum += abs(noise);
+
+        if(noises.size() >= interval) {
+            running_sum -= noises.front();
+            noises.pop();
+        }
+ 
+        float future_batch = running_sum / noises.size();
+        LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
+
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("ControllerRunningSum").Device(DEVICE_CPU), ControllerRunningSum);
+
+
+REGISTER_OP("ControllerEMA")
+    .Input("gradient_noise: float32");
+
+class ControllerEMA : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+    int gs;
+    float future_batch_ema;
+    float alpha;
+  public:
+    explicit ControllerEMA(OpKernelConstruction *context)
+        : OpKernel(context), gs(0), alpha(0.2), future_batch_ema(0.0)
+    {
+
+    }
+
+    void Compute(OpKernelContext *context) override
+    {
+        gs++;
+        DCHECK_EQ(1, context->num_inputs());
+
+        Tensor &gradient_noise_tensor = (Tensor &)context->input(0);
+
+        float noise = abs((float)gradient_noise_tensor.scalar<float>()());
+
+        if (future_batch_ema == 0.0) {
+            future_batch_ema = noise;    
+        } else {
+            future_batch_ema = alpha * noise + (1 - alpha) * future_batch_ema;
+        }
+
+        LOG(INFO) << "[EMA] Future batch " << future_batch_ema << "; Noise " << noise; 
+
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("ControllerEMA").Device(DEVICE_CPU), ControllerEMA);
+
+
+
+
+REGISTER_OP("NoOpGradients")
     .Input("negotiated_gradients: float32")
     .Output("output: float32")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
         return Status::OK();
-    });
+});
 
-class Controller : public OpKernel
+
+class NoOpGradients : public OpKernel
 {
     using OpKernel::OpKernel;
 
@@ -167,6 +255,7 @@ class Controller : public OpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("Controller").Device(DEVICE_CPU), Controller);
+REGISTER_KERNEL_BUILDER(Name("NoOpGradients").Device(DEVICE_CPU), NoOpGradients);
+
 
 }  // namespace tensorflow

@@ -102,9 +102,12 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     negotiated_grads = [all_reduce(t) for t in grads]
     noise_op = get_global_gradient_noise_operator(batch_small, _concat(grads),
                                                   _concat(negotiated_grads))
-    with tf.control_dependencies([noise_op]):
-        return [
-            _op_lib.controller(negotiated_grad)
+
+    controller_op = _op_lib.controller_ema(noise_op)
+
+    with tf.control_dependencies([noise_op, controller_op]):
+         return [
+            _op_lib.no_op_gradients(negotiated_grad)
             for negotiated_grad in negotiated_grads
         ]
 
@@ -130,6 +133,6 @@ def get_global_gradient_noise_operator(batch_small, concat_grad,
                                                 batch_small * G_sq_small)
     S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
 
-    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=0.6)
+    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=0.2)
 
     return global_noise_op
