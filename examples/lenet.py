@@ -77,7 +77,7 @@ def LeNet5(x):
     logits = tf.matmul(fc2, fc3_w) + fc3_b
     return logits
 
-def build_train_ops(kungfu_strategy, ako_partitions):
+def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     # Parameters
     learning_rate = 0.01
     training_epochs = 25
@@ -93,14 +93,15 @@ def build_train_ops(kungfu_strategy, ako_partitions):
     #Softmax with cost function implementation
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = y) #one_hot_y)
     loss = tf.reduce_mean(cross_entropy)
-    optimizer = tf.train.AdamOptimizer(learning_rate = 0.001)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate = 0.001)
 
     if kungfu_strategy == 'ako':
         from kungfu.optimizers import AkoOptimizer
         optimizer = AkoOptimizer(optimizer, ako_partitions=ako_partitions)
     else:
         from kungfu.optimizers import ParallelOptimizer
-        optimizer = ParallelOptimizer(optimizer)
+        print("Using parallel optimizer")
+        optimizer = ParallelOptimizer(optimizer, device_batch_size=device_batch_size)
 
     train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(y,1))
@@ -222,10 +223,10 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions)
+    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions, args.batch_size)
     show_trainable_variables_info()
     
-    mnist = measure(lambda: load_datasets('var/data/mnist', normalize=True, one_hot=True, padded=True), 'load data')
+    mnist = measure(lambda: load_datasets('/data/mnist', normalize=True, one_hot=True, padded=True), 'load data')
 
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, 

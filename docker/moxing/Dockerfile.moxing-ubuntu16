@@ -1,0 +1,12 @@
+FROM swr.cn-north-1.myhuaweicloud.com/mailuo/kungfu-docker:v.12 as base
+
+ADD . /KungFu
+
+# Install KungFu
+RUN cd KungFu && \
+        ldconfig /usr/local/cuda-9.0/targets/x86_64-linux/lib/stubs && \
+        env KUNGFU_USE_NCCL=1 pip install --no-index --user -U . && \
+        ldconfig && \
+        ./scripts/go-install.sh
+
+WORKDIR /

@@ -13,10 +13,11 @@ class ParallelOptimizer(KungFuOptimizer):
                  use_locking=False,
                  device_dense='',
                  device_sparse='',
-                 use_global_step=True):
+                 use_global_step=True,
+                 device_batch_size=None):
         super(ParallelOptimizer, self).__init__(optimizer, name, use_locking,
                                                 device_dense, device_sparse)
-        pass
+        self.device_batch_size = device_batch_size
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Negotiate grad with peers, following flexible strategy."""
