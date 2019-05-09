@@ -131,9 +131,3 @@ else:
         loss = loss_function()
         train_opt = opt.minimize(loss)
         run(lambda: session.run(train_opt))
-#  with tf.Session(config=config) as session:
-#       init.run()
-
-#       loss = loss_function()
-#       train_opt = opt.minimize(loss)
-#       run(lambda: session.run(train_opt))
