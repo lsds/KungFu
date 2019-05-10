@@ -22,10 +22,16 @@ class ParallelOptimizer(KungFuOptimizer):
         super(ParallelOptimizer, self).__init__(optimizer, name, use_locking,
                                                 device_dense, device_sparse)
         self.device_batch_size = device_batch_size
+        self.future_batch = None
 
     def _concat(self, ts):
         return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
+
+    def apply_gradients(self, *args, **kwargs):
+        """Calls this same method on the underlying optimizer."""
+        # return (self.future_batch, self._optimizer.apply_gradients(*args, **kwargs))
+        return (self.future_batch, self._optimizer.apply_gradients(*args, **kwargs))
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Negotiate grad with peers, following flexible strategy."""
@@ -39,13 +45,12 @@ class ParallelOptimizer(KungFuOptimizer):
         if self.device_batch_size is None:
             return list(zip(negotiated_grads, variables_to_update))
         else:
-            #print(self.device_batch_size)
             noise_op = get_global_gradient_noise_operator(self.device_batch_size, 
                                                          self._concat(grads_to_negotiate),
                                                          self._concat(negotiated_grads))
-            #printop = tf.Print(noise_op, [noise_op], message="Noise op")
-            controller_op = gradient_noise_controller(noise_op)
-            with tf.control_dependencies([noise_op, controller_op]):
+            controller_future_batch_op = gradient_noise_controller(noise_op)
+            with tf.control_dependencies([noise_op, controller_future_batch_op]):
+                self.future_batch = controller_future_batch_op
                 return list(zip([tf.identity(g) for g in negotiated_grads], variables_to_update))
         
     def _set_num_gradients(self, n):

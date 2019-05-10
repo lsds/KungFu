@@ -107,13 +107,13 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
         print("Using parallel optimizer")
         optimizer = ParallelOptimizer(optimizer, device_batch_size=device_batch_size)
 
-    train_step = optimizer.minimize(loss, name='train_step')
+    future_batch_op, train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(y,1))
     acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    return x, y, train_step, acc
+    return x, y, train_step, acc, future_batch_op
 
 
-def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy_target):
+def train_mnist(x, y, mnist, train_step, acc, n_epochs, local_batch, val_accuracy_target, future_batch_op, now):
     reached_target_accuracy = False
     with tf.Session() as sess:
         writer = tf.summary.FileWriter("/home/ab7515/tensorboard-logs-andrei", sess.graph)
@@ -127,57 +127,72 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
         window = []
         img_secs = []
         for epoch_i in range(n_epochs):
-
-            def feed_batches():
+            def feed_batches(batch_size):
                 mini_batch_indices = list(range(0, len(mnist.train.images), batch_size))
                 random.shuffle(mini_batch_indices)
-                for offset in mini_batch_indices:
+                interval = 10
+                examples_processed = 0
+                for iteration_id, offset in enumerate(mini_batch_indices):
                     batch_xs, batch_ys = mnist.train.images[offset:offset+batch_size], mnist.train.labels[offset:offset+batch_size]
-                    train_acc = sess.run(train_step, feed_dict={
+                    _, future_batch_size = sess.run([train_step, future_batch_op], feed_dict={
                         x: batch_xs,
                         y: batch_ys
                     })
-                    train_acc = sess.run(acc,
-                                        feed_dict={
-                                                x: mnist.train.images,
-                                                y: mnist.train.labels
+                    examples_processed += batch_size
+                    val_acc = sess.run(acc,
+                         feed_dict={
+                             x: mnist.test.images,
+                             y: mnist.test.labels
                     })
-                    print("Training accuracy: " + str(train_acc))
+                    print('[%10.3f] - validation accuracy: %f' % (time.time() - now, val_acc))
 
-            # Measure throughput
-            timeEpoch = timeit.timeit(feed_batches, number=1)
-            img_sec = len(mnist.train.images) / timeEpoch
-            print('Epoch #%d: %.1f img/sec per CPU' % (epoch_i, img_sec))
-            img_secs.append(img_sec)
+                    if iteration_id % interval == 0:
+                        if future_batch_size >= 10000:
+                            continue
+                        future_batch_size = int(future_batch_size)
+                        print("Changing batch size from %d to %d" % (batch_size, future_batch_size))
+                        return examples_processed, future_batch_size
+            examples_processed = 0
+            batch = local_batch
+            while examples_processed <= 50000:
+                examples, future_batch_size = feed_batches(batch)
+                examples_processed += examples
+                batch = future_batch_size
             
-            before_validation = time.time()
-            val_acc = sess.run(acc,
-                        feed_dict={
-                            x: mnist.test.images,
-                            y: mnist.test.labels
-                        })
-            after_validation = time.time()
-            total_val_duration += after_validation - before_validation
+        #     sMeasure throughput
+        #     timeEpoch = timeit.timeit(lambda: feed_batches(local_batch), number=1)
+        #     img_sec = len(mnist.train.images) / timeEpoch
+        #     print('Epoch #%d: %.1f img/sec per CPU' % (epoch_i, img_sec))
+        #     img_secs.append(img_sec)
+            
+        #     before_validation = time.time()
+        #     val_acc = sess.run(acc,
+        #                 feed_dict={
+        #                     x: mnist.test.images,
+        #                     y: mnist.test.labels
+        #                 })
+        #     after_validation = time.time()
+        #     total_val_duration += after_validation - before_validation
 
-            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print('%s - validation accuracy (epoch %d): %f' % (now, epoch_i, val_acc))
+        #     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        #     print('%s - validation accuracy (epoch %d): %f' % (now, epoch_i, val_acc))
 
-            window_val_acc_median = 0
-            if not reached_target_accuracy:
-                window.append(val_acc)
-                if len(window) > 1:
-                   window.pop(0)
+        #     window_val_acc_median = 0
+        #     if not reached_target_accuracy:
+        #         window.append(val_acc)
+        #         if len(window) > 1:
+        #            window.pop(0)
                 
-                window_val_acc_median = 0 if len(window) < 1 else np.median(window)
-                if window_val_acc_median * 100 >= val_accuracy_target:
-                   reached_target_accuracy = True
-                   print("reached validation accuracy target %.3f: %.4f (time %s)" % (val_accuracy_target, val_acc, str(time.time() - time_start - total_val_duration)))
+        #         window_val_acc_median = 0 if len(window) < 1 else np.median(window)
+        #         if window_val_acc_median * 100 >= val_accuracy_target:
+        #            reached_target_accuracy = True
+        #            print("reached validation accuracy target %.3f: %.4f (time %s)" % (val_accuracy_target, val_acc, str(time.time() - time_start - total_val_duration)))
 
-         # Results
-        img_sec_mean = np.mean(img_secs)
-        img_sec_conf = 1.96 * np.std(img_secs)
-        print('Img/sec per CPU: %.2f +- %.2f' % (img_sec_mean, img_sec_conf))
-        print('Total img/sec: %.2f +- %.2f' % (4 * img_sec_mean, 4 * img_sec_conf))
+        #  # Results
+        # img_sec_mean = np.mean(img_secs)
+        # img_sec_conf = 1.96 * np.std(img_secs)
+        # print('Img/sec per CPU: %.2f +- %.2f' % (img_sec_mean, img_sec_conf))
+        # print('Total img/sec: %.2f +- %.2f' % (4 * img_sec_mean, 4 * img_sec_conf))
 
 
         # %% Print final test accuracy:
@@ -239,7 +254,7 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions, args.batch_size)
+    x, y_, train_step, acc, future_batch_op = build_train_ops(args.kungfu_strategy, args.ako_partitions, args.batch_size)
     show_trainable_variables_info()
     
     mnist = measure(lambda: load_datasets(args.data_dir, normalize=True, one_hot=True, padded=True), 'load data')
@@ -247,8 +262,7 @@ def main():
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, 
                             args.n_epochs, args.batch_size,
-                            args.val_accuracy_target),
-        'train')
+                            args.val_accuracy_target, future_batch_op, time.time()), 'train')
 
 
 measure(main, 'main')

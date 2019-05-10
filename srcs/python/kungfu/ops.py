@@ -97,7 +97,7 @@ def _concat(ts):
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
 def gradient_noise_controller(noise_op):
-    return _op_lib.controller_ema(noise_op)
+    return _op_lib.controller_running_sum(noise_op)
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     import tensorflow as tf

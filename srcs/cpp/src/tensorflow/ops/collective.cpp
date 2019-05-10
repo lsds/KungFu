@@ -143,7 +143,13 @@ REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
                         GradientNoise);
 
 REGISTER_OP("ControllerRunningSum")
-    .Input("gradient_noise: float32");
+    .Input("gradient_noise: float32")
+    .Output("output: float32")
+    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    });
+;
 
 class ControllerRunningSum : public OpKernel
 {
@@ -155,7 +161,7 @@ class ControllerRunningSum : public OpKernel
     float running_sum;
   public:
     explicit ControllerRunningSum(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), interval(1000)
+        : OpKernel(context), gs(0), interval(100)
     {
 
     }
@@ -167,6 +173,10 @@ class ControllerRunningSum : public OpKernel
 
         Tensor &gradient_noise_tensor = (Tensor &)context->input(0);
 
+        Tensor *output = nullptr;
+        OP_REQUIRES_OK(context, context->allocate_output(
+                                    0, gradient_noise_tensor.shape(), &output));
+
         float noise = (float)gradient_noise_tensor.scalar<float>()();
         noises.push(abs(noise));
         running_sum += abs(noise);
@@ -175,10 +185,14 @@ class ControllerRunningSum : public OpKernel
             running_sum -= noises.front();
             noises.pop();
         }
- 
-        float future_batch = running_sum / noises.size();
-        LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
 
+        float future_batch = 0.0;
+        if (noises.size() > 0) {
+           future_batch = running_sum / noises.size();
+        }
+        LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
+        float *y = static_cast<float *>((void *)output->tensor_data().data());
+        y[0]     = future_batch;
     }
 };
 

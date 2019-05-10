@@ -54,15 +54,24 @@ def print_none_match(pattern, l):
     print(pattern.pattern)
     raise Exception(l)
 
-def get_accs(s):
+def get_accs_mnist(s):
+    pattern = re.compile(r".*Training\saccuracy\:\s(?P<trainacc>\d+\.\d+).*", re.VERBOSE)
+    match = pattern.match(s)
+    if match is None:
+        return None
+    return (-1, 1 - float(match.group("trainacc")), -1)
+
+
+def get_accs_resnet32(s):
     pattern = re.compile(r".*\)\t(?P<loss>\d+\.\d+)\t(?P<top1>\d+\.\d+)\t(?P<top5>\d+\.\d+).*", re.VERBOSE)
     match = pattern.match(s)
     if match is None:
         return None
     return (float(match.group("loss")), 1 -  float(match.group("top1")), 1- float(match.group("top5")))
 
+
 def get_batch_and_noise(s, type_of_averaging):
-    pattern = re.compile(r".*\[" + re.escape(type_of_averaging) + r"\]\sFuture\sbatch\s(?P<batch>\-?\d+\.\d+)\;\sNoise\s(?P<noise>\-?\d+\.\d+).*", re.VERBOSE)
+    pattern = re.compile(r".*\[" + re.escape(type_of_averaging) + r"\]\sFuture\sbatch\s(?P<batch>\-?\d+\.\d+)\;\sNoise\s(?P<noise>\-?\d+[\.\d+]?).*", re.VERBOSE)
     match = pattern.match(s)
     if match is None:
         return None
@@ -74,16 +83,23 @@ def plot(ax, lines, type_of_averaging, worker, decay=-1):
         pair = get_batch_and_noise(l, type_of_averaging)
         if pair is not None:
            batches_and_noises.append(pair)
+
+    ## With accuracies
     accs = []
     for l in lines:
-        pair = get_accs(l)
+        pair = get_accs_mnist(l)
         if pair is not None:
            accs.append(pair)
 
-    losses, top1errors, top5errors = zip(*accs[len(accs) - len(batches_and_noises):])
+
+    # With warmup
+    # losses, top1errors, top5errors = zip(*accs[len(accs) - len(batches_and_noises):])
+    losses, top1errors, top5errors = zip(*accs)
     batches, noises = zip(*batches_and_noises)
 
     s = zip(batches_and_noises, top1errors)
+    s.sort(key=lambda x: x[1])
+    #s.reverse()
     batches = []
     noises  = []
     top1errors   = []  
@@ -93,31 +109,36 @@ def plot(ax, lines, type_of_averaging, worker, decay=-1):
         top1errors.append(acc)
 
 
-    print(noises)
+
+    # Without accuracies
+    # batches, noises = zip(*batches_and_noises)
 
     ax.semilogy()
     ax.yaxis.set_major_formatter(MyLogFormatter())
 
     ax.semilogx()
 
-    ax.plot(range(len(batches)), batches, color='b', zorder=5)
-    ax.plot(range(len(noises)), noises, color='coral')
+    ax.plot(top1errors, batches, color='b', zorder=5, label="Estimated Batch Size")
+    ax.plot(top1errors, noises, color='coral', label="Gradient Noise")
 
     ax.set_ylabel('Gradient Noise Scale')
-    ax.set_xlabel('Iterations')
+    ax.set_xlabel('Train Error')
+
+    ax.legend()
 
     if type_of_averaging == "EMA":
-        ax.title.set_text('ResNet-32 Gradient Noise Scale Worker ' +  str(worker) +' (' + type_of_averaging + ' with Decay ' + str(decay) + ')')
+        ax.title.set_text('LeNet-5 Gradient Noise Scale Worker ' +  str(worker) +' (' + type_of_averaging + ' with Decay ' + str(decay) + ')')
     else:
-        ax.title.set_text('ResNet-32 Gradient Noise Scale Worker ' +  str(worker) +' (' + type_of_averaging + ')')
+        type_of_averaging = "Running Average"
+        ax.title.set_text('LeNet-5 Gradient Noise Scale Worker ' +  str(worker) +' (' + type_of_averaging + ')')
 
 
 def main():
     num_workers = 4
     workers = []
     for worker in range(num_workers):
-        worker_running_sum = get_experiment_results('./decay-0.2-batch-0.2/noise-running-sum-decay-0.2-batch-0.2.log', lambda x: extract_from_worker(x, worker))
-        worker_ema = get_experiment_results('./decay-0.2-batch-0.2/noise-ema-0.2-batch-0.2.log', lambda x: extract_from_worker(x, worker))
+        worker_running_sum = get_experiment_results('./mnist-decay-0.2-batch-0.2-accuracies/lenet-noise-running-sum.log', lambda x: extract_from_worker(x, worker))
+        worker_ema = get_experiment_results('./mnist-decay-0.2-batch-0.2-accuracies/lenet-noise-ema.log', lambda x: extract_from_worker(x, worker))
         workers.append((worker_running_sum, worker_ema))
 
     
@@ -135,9 +156,11 @@ def main():
         plot(axes[i, j], worker_logs_ema, "EMA", worker, decay=0.2) ##### HERE
         index += 1
 
-    fig.suptitle('ResNet-32 Gradient Noise Scale with Decay 0.2') ##### HERE
+    fig.suptitle('LeNet-5 Gradient Noise Scale with Decay 0.2') ##### HERE
 
     plt.subplots_adjust(hspace=0.5)
+
+    plt.gca().invert_xaxis()
 
     plt.show()
 
