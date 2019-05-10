@@ -96,6 +96,8 @@ def _concat(ts):
     import tensorflow as tf
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
+def gradient_noise_controller(noise_op):
+    return _op_lib.controller_ema(noise_op)
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     import tensorflow as tf
@@ -103,7 +105,7 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     noise_op = get_global_gradient_noise_operator(batch_small, _concat(grads),
                                                   _concat(negotiated_grads))
 
-    controller_op = _op_lib.controller_ema(noise_op)
+    controller_op = gradient_noise_controller(noise_op)
 
     with tf.control_dependencies([noise_op, controller_op]):
          return [
@@ -121,6 +123,7 @@ def get_global_gradient_noise_operator(batch_small, concat_grad,
     if num_workers == 0:
         raise "Cluster spec KUNGFU_CLUSTER_SPEC is invalid"
     batch_big = batch_small * num_workers
+
 
     # Take average over workers
     G_big = tf.div(concat_negotiated_grad, num_workers)

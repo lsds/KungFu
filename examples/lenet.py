@@ -1,8 +1,12 @@
+from __future__ import print_function
+
 import argparse
 import os
 import time
 import timeit
 import sys
+
+import random 
 
 import datetime
 import numpy as np
@@ -125,13 +129,20 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
         for epoch_i in range(n_epochs):
 
             def feed_batches():
-                for offset in range(0, len(mnist.train.images), batch_size):
+                mini_batch_indices = list(range(0, len(mnist.train.images), batch_size))
+                random.shuffle(mini_batch_indices)
+                for offset in mini_batch_indices:
                     batch_xs, batch_ys = mnist.train.images[offset:offset+batch_size], mnist.train.labels[offset:offset+batch_size]
-                    sess.run(train_step, feed_dict={
+                    train_acc = sess.run(train_step, feed_dict={
                         x: batch_xs,
                         y: batch_ys
                     })
-
+                    train_acc = sess.run(acc,
+                                        feed_dict={
+                                                x: mnist.train.images,
+                                                y: mnist.train.labels
+                    })
+                    print("Training accuracy: " + str(train_acc))
 
             # Measure throughput
             timeEpoch = timeit.timeit(feed_batches, number=1)
@@ -188,8 +199,13 @@ def parse_args():
     parser.add_argument(
         '--kungfu-strategy',
         type=str,
-        default='plain', # Plain SyncSGD
+        default='cpu_all_reduce', # KungFu Parallel SGD
         help='Specify KungFu strategy: \'plain\' or \'ako\' if --use-kungfu flag is set')
+    parser.add_argument(
+        '--data-dir',
+        type=str,
+        default='',
+        help='Specify mnist directory')
     parser.add_argument(
         '--ako-partitions', type=int, default=1, help='number of ako partitions')
     parser.add_argument(
@@ -226,7 +242,7 @@ def main():
     x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions, args.batch_size)
     show_trainable_variables_info()
     
-    mnist = measure(lambda: load_datasets('/data/mnist', normalize=True, one_hot=True, padded=True), 'load data')
+    mnist = measure(lambda: load_datasets(args.data_dir, normalize=True, one_hot=True, padded=True), 'load data')
 
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, 
