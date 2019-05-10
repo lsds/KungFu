@@ -127,6 +127,25 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, local_batch, val_accurac
         window = []
         img_secs = []
         for epoch_i in range(n_epochs):
+            # Static batch
+            def feed_batches_static(batch_size):
+                mini_batch_indices = list(range(0, len(mnist.train.images), batch_size))
+                random.shuffle(mini_batch_indices)
+
+                for iteration_id, offset in enumerate(mini_batch_indices):
+                    batch_xs, batch_ys = mnist.train.images[offset:offset+batch_size], mnist.train.labels[offset:offset+batch_size]
+                    _, _ = sess.run([train_step, future_batch_op], feed_dict={
+                        x: batch_xs,
+                        y: batch_ys
+                    })
+                    val_acc = sess.run(acc,
+                         feed_dict={
+                             x: mnist.test.images,
+                             y: mnist.test.labels
+                    })
+                    print('[%10.3f] - validation accuracy: %f' % (time.time() - now, val_acc))
+
+            # Adaptive batches    
             def feed_batches(batch_size):
                 mini_batch_indices = list(range(0, len(mnist.train.images), batch_size))
                 random.shuffle(mini_batch_indices)
@@ -152,47 +171,38 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, local_batch, val_accurac
                         future_batch_size = int(future_batch_size)
                         print("Changing batch size from %d to %d" % (batch_size, future_batch_size))
                         return examples_processed, future_batch_size
-            examples_processed = 0
-            batch = local_batch
-            while examples_processed <= 50000:
-                examples, future_batch_size = feed_batches(batch)
-                examples_processed += examples
-                batch = future_batch_size
-            
-        #     sMeasure throughput
-        #     timeEpoch = timeit.timeit(lambda: feed_batches(local_batch), number=1)
-        #     img_sec = len(mnist.train.images) / timeEpoch
-        #     print('Epoch #%d: %.1f img/sec per CPU' % (epoch_i, img_sec))
-        #     img_secs.append(img_sec)
-            
-        #     before_validation = time.time()
-        #     val_acc = sess.run(acc,
-        #                 feed_dict={
-        #                     x: mnist.test.images,
-        #                     y: mnist.test.labels
-        #                 })
-        #     after_validation = time.time()
-        #     total_val_duration += after_validation - before_validation
 
-        #     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        #     print('%s - validation accuracy (epoch %d): %f' % (now, epoch_i, val_acc))
-
-        #     window_val_acc_median = 0
-        #     if not reached_target_accuracy:
-        #         window.append(val_acc)
-        #         if len(window) > 1:
-        #            window.pop(0)
+            dynamic = False
+            if dynamic:
+                examples_processed = 0
+                batch = local_batch
+                while examples_processed <= 50000:
+                    examples, future_batch_size = feed_batches(batch)
+                    examples_processed += examples
+                    batch = future_batch_size
+            else:    
+                timeEpoch = timeit.timeit(lambda: feed_batches_static(local_batch), number=1)
+                img_sec = len(mnist.train.images) / timeEpoch
+                print('Epoch #%d: %.1f img/sec per CPU' % (epoch_i, img_sec))
+                img_secs.append(img_sec)
                 
-        #         window_val_acc_median = 0 if len(window) < 1 else np.median(window)
-        #         if window_val_acc_median * 100 >= val_accuracy_target:
-        #            reached_target_accuracy = True
-        #            print("reached validation accuracy target %.3f: %.4f (time %s)" % (val_accuracy_target, val_acc, str(time.time() - time_start - total_val_duration)))
+                before_validation = time.time()
+                val_acc = sess.run(acc,
+                            feed_dict={
+                                x: mnist.test.images,
+                                y: mnist.test.labels
+                            })
+                after_validation = time.time()
+                total_val_duration += after_validation - before_validation
 
-        #  # Results
-        # img_sec_mean = np.mean(img_secs)
-        # img_sec_conf = 1.96 * np.std(img_secs)
-        # print('Img/sec per CPU: %.2f +- %.2f' % (img_sec_mean, img_sec_conf))
-        # print('Total img/sec: %.2f +- %.2f' % (4 * img_sec_mean, 4 * img_sec_conf))
+                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print('%s - validation accuracy (epoch %d): %f' % (now, epoch_i, val_acc))
+
+            # Results
+            img_sec_mean = np.mean(img_secs)
+            img_sec_conf = 1.96 * np.std(img_secs)
+            print('Img/sec per CPU: %.2f +- %.2f' % (img_sec_mean, img_sec_conf))
+            print('Total img/sec: %.2f +- %.2f' % (4 * img_sec_mean, 4 * img_sec_conf))
 
 
         # %% Print final test accuracy:
