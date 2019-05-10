@@ -107,8 +107,8 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
 
     with tf.control_dependencies([noise_op, controller_op]):
          return [
-            _op_lib.no_op_gradients(negotiated_grad)
-            for negotiated_grad in negotiated_grads
+            tf.identity(g)
+            for g in negotiated_grads
         ]
 
 

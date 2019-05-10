@@ -224,38 +224,4 @@ class ControllerEMA : public OpKernel
 
 REGISTER_KERNEL_BUILDER(Name("ControllerEMA").Device(DEVICE_CPU), ControllerEMA);
 
-
-
-
-REGISTER_OP("NoOpGradients")
-    .Input("negotiated_gradients: float32")
-    .Output("output: float32")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-});
-
-
-class NoOpGradients : public OpKernel
-{
-    using OpKernel::OpKernel;
-
-  public:
-    void Compute(OpKernelContext *context) override
-    {
-        DCHECK_EQ(1, context->num_inputs());
-
-        Tensor &negotiated_gradients = (Tensor &)context->input(0);
-
-        Tensor *output = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(
-                                    0, negotiated_gradients.shape(), &output));
-
-        *output = negotiated_gradients;
-    }
-};
-
-REGISTER_KERNEL_BUILDER(Name("NoOpGradients").Device(DEVICE_CPU), NoOpGradients);
-
-
 }  // namespace tensorflow
