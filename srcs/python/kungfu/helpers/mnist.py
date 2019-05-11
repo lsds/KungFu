@@ -2,6 +2,7 @@ import os
 from collections import namedtuple
 
 import numpy as np
+import json
 
 from .idx import read_idx_file
 
@@ -35,10 +36,26 @@ def load_mnist_data(data_dir, prefix, normalize, one_hot, padded=False):
     if one_hot:
         labels = _to_onehot(10, labels)
 
-    return namedtuple('DataSet', 'images labels')(images, labels)
+    if prefix == 'train':
+        cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
+        num_workers = len(cluster_spec['Peers'])
+        if num_workers == 0:
+            raise "Cluster spec KUNGFU_CLUSTER_SPEC is invalid"
 
+
+        peer_rank = int(json.loads(os.getenv('KUNGFU_TEST_SELF_RANK')))
+        shard_size = int(len(images) / num_workers)
+
+        print("Peers: " + str(num_workers))
+        print("Peer Rank: " + str(shard_size))
+
+        return namedtuple('DataSet', 'images labels')(images[peer_rank * shard_size:(peer_rank + 1) * shard_size], 
+                                                      labels[peer_rank * shard_size:(peer_rank + 1) * shard_size])
+    else:
+        return namedtuple('DataSet', 'images labels')(images, labels)
 
 def load_datasets(data_dir, normalize=False, one_hot=False, padded=False):
+
     train = load_mnist_data(
         data_dir, 'train', normalize, one_hot, padded=padded)
     test = load_mnist_data(data_dir, 't10k', normalize, one_hot, padded=padded)

@@ -137,8 +137,10 @@ def main():
     num_workers = 4
     workers = []
     for worker in range(num_workers):
-        worker_running_sum = get_experiment_results('./mnist-decay-0.2-batch-0.2-accuracies/lenet-noise-running-sum.log', lambda x: extract_from_worker(x, worker))
-        worker_ema = get_experiment_results('./mnist-decay-0.2-batch-0.2-accuracies/lenet-noise-ema.log', lambda x: extract_from_worker(x, worker))
+        #worker_running_sum = get_experiment_results('./mnist-decay-0.2-batch-0.2-accuracies/lenet-noise-running-sum.log', lambda x: extract_from_worker(x, worker))
+        #worker_ema = get_experiment_results('./mnist-decay-0.2-batch-0.2-accuracies/lenet-noise-ema.log', lambda x: extract_from_worker(x, worker))
+        worker_running_sum = get_experiment_results('./mnist-decay-0.2-batch-0.2-accuracies-long-run/lenet-noise-running-sum.log', lambda x: extract_from_worker(x, worker))
+        worker_ema = get_experiment_results('./mnist-decay-0.2-batch-0.2-accuracies-long-run/lenet-noise-ema.log', lambda x: extract_from_worker(x, worker))
         workers.append((worker_running_sum, worker_ema))
 
     
