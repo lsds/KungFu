@@ -15,6 +15,8 @@ REGISTER_OP("PartialNegotiator")
     .Attr("budget: int")
     .Attr("tensor_size: int")
     .Attr("count_gradients: int")
+    .Attr("find_epoch_denominator: float")
+    .Attr("fraction: float")
     .Input("allgradients: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
@@ -32,6 +34,8 @@ class PartialNegotiator : public AsyncOpKernel
     int32_t tensorSize_;
     int32_t count_gradients_;
     int32_t budget;
+    float find_epoch_denominator_;
+    float initial_fraction_;
 
     explicit PartialNegotiator(OpKernelConstruction *context)
         : AsyncOpKernel(context)
@@ -51,6 +55,16 @@ class PartialNegotiator : public AsyncOpKernel
             context, tensorSize_ > 0,
             errors::InvalidArgument("tensor size must be greater than 0"));
 
+        OP_REQUIRES_OK(context, context->GetAttr("find_epoch_denominator", &find_epoch_denominator_));
+        OP_REQUIRES(
+            context, find_epoch_denominator_ > 0,
+            errors::InvalidArgument("find epoch denominator must be greater than 0"));
+
+        OP_REQUIRES_OK(context, context->GetAttr("fraction", &initial_fraction_));
+        OP_REQUIRES(
+            context, initial_fraction_ > 0,
+            errors::InvalidArgument("initial_fraction must be greater than 0"));
+
         OP_REQUIRES_OK(context,
                        context->GetAttr("count_gradients", &count_gradients_));
         OP_REQUIRES(
@@ -61,6 +75,7 @@ class PartialNegotiator : public AsyncOpKernel
         _partial_exchange_manager->setBudget(budget);
         _partial_exchange_manager->addTensorInfo(input_tensor_name_,
                                                  tensorSize_);
+        _partial_exchange_manager->setFraction(initial_fraction_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -73,13 +88,20 @@ class PartialNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
+        int32_t epoch = 1 + (int32_t) _kungfu_world->GetGlobalStep() / find_epoch_denominator_;
+        if(epoch == 80) { // count epochs from 0
+           _partial_exchange_manager->repartition(0.4, 1); 
+        } else if (epoch == 120) {
+            _partial_exchange_manager->repartition(1, 2); 
+        }
+
         if (_partial_exchange_manager->isReadyForNegotiation(
                 input_tensor_name_, _kungfu_world->GetGlobalStep())) {
             _kungfu_world->AllReduce(gradients.tensor_data().data(),
                                      (void *)(output->tensor_data().data()),
                                      gradients.NumElements(),
                                      to_kungfu_type(gradients.dtype()),
-                                     KungFu_SUM, name().c_str(), done);
+                                     KungFu_SUM, input_tensor_name_.c_str(), done);
             // Because it is synchronous, the done callback will signal when the
             // value held
             // in the memory where output points to is ready to be used.

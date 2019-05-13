@@ -76,17 +76,25 @@ class partial_exchange_manager
 
     // Indicates the number of partitions
     int32_t bin_counter;
+    float current_fraction;
 
-    partial_exchange_manager() : budget(0), countGradients(0), bin_counter(1) {}
+    partial_exchange_manager() : 
+            budget(0), countGradients(0), bin_counter(1), 
+            current_fraction(0), total_size_gradients(0) {}
 
     ~partial_exchange_manager()
     {
+
+        std::cout << "Between here" << std::endl;
         for (tensor_meta *t_m : tensors) {
             delete t_m;
         }
+
+        std::cout << "HERE" << std::endl;
         for (partition *p : partitions) {
             delete p;
         }
+        std::cout << "And HERE" << std::endl;
     }
 
     void setCountGradients(int32_t count)
@@ -105,6 +113,13 @@ class partial_exchange_manager
         }
     }
 
+    void setFraction(float fraction) {
+        std::lock_guard<std::mutex> lock(constructionMutex);
+        if (this->current_fraction == 0) {
+            this->current_fraction = fraction;
+        }
+    }
+
     void addTensorInfo(std::string name, int32_t size)
     {
         std::lock_guard<std::mutex> lock(constructionMutex);
@@ -115,7 +130,7 @@ class partial_exchange_manager
         // Begin bin packing when all operators constructed
         if (tensors.size() == countGradients) {
             std::cout << "The budget is: " << this->budget << std::endl;
-            bin_pack();
+            bin_pack(true);
             print_partition_info();
         }
     }
@@ -130,15 +145,52 @@ class partial_exchange_manager
                partitionSet.end();  // is present
     }
 
+
+    void repartition(float new_fraction, int repartition_id) {
+        std::lock_guard<std::mutex> partitionAccessLock(partitionAccessMutex);
+        std::lock_guard<std::mutex> constructionLock(constructionMutex);
+
+        if(repartition_ids.find(repartition_id) != repartition_ids.end()) {
+            // present
+            return;
+        }
+
+        repartition_ids.insert(repartition_id);
+
+        this->total_size_gradients = this->budget / this->current_fraction;
+        
+        std::cout << "Repartitioning with new fraction: " << new_fraction << "." << std::endl;
+        std::cout << "Old budget is: " << this->budget << ". ";
+        std::cout << "Old fraction is: " << this->current_fraction << std::endl;
+        this->budget = new_fraction * this->total_size_gradients;
+        this->current_fraction = new_fraction;
+        std::cout << "New budget is: " << this->budget << ". ";
+        std::cout << "New fraction is: " << this->current_fraction << std::endl;
+
+        // Free old partitions
+        for (partition *p : partitions) {
+            delete p;
+        }
+        partitions.clear();
+        
+        // Restore bin counter
+        this->bin_counter = 1;
+        bin_pack(false);
+        print_partition_info();
+    }
+
   private:
     int32_t countGradients;
 
     std::mutex constructionMutex;
     std::mutex partitionAccessMutex;
 
+    int32_t total_size_gradients;
+    std::unordered_set<int> repartition_ids;
+
     // Bin packing algorithm based on:
     // https://www.youtube.com/watch?v=uDdMuUWf6h4
-    void bin_pack()
+    void bin_pack(bool should_sort)
     {
         std::cout << "Total budget per bin: " << budget << std::endl;
         std::cout << "When starting bin packing, the tensors are: "
@@ -147,19 +199,22 @@ class partial_exchange_manager
             std::cout << *t << std::endl;
         }
 
-        // Comparator affects the ordering on each peer.
-        auto grt = [](tensor_meta *t1, tensor_meta *t2) {
-            return t1->size > t2->size ||
-                   (t1->size == t2->size && t1->name > t2->name);
-        };
-        std::sort(tensors.begin(), tensors.end(), grt);
+        if (should_sort) {
+            // Sort only once
+            // Comparator affects the ordering on each peer.
+            auto grt = [](tensor_meta *t1, tensor_meta *t2) {
+                return t1->size > t2->size ||
+                    (t1->size == t2->size && t1->name > t2->name);
+            };
+            std::sort(tensors.begin(), tensors.end(), grt);
+        }
 
         if (tensors[0]->size > budget) {
             std::cout << "Infeasible to bin-pack the tensors with small "
-                         "budget. Provide higher fraction."
-                      << std::endl;
+                        "budget. Provide higher fraction."
+                    << std::endl;
             throw "Infeasible to bin-pack the tensors with small budget. "
-                  "Provide higher fraction.";
+                "Provide higher fraction.";
             return;
         }
 
