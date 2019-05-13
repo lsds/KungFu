@@ -190,7 +190,7 @@ class ControllerRunningSum : public OpKernel
         if (noises.size() > 0) {
            future_batch = running_sum / noises.size();
         }
-        LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
+        // LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
         float *y = static_cast<float *>((void *)output->tensor_data().data());
         y[0]     = future_batch;
     }
@@ -231,7 +231,7 @@ class ControllerEMA : public OpKernel
             future_batch_ema = alpha * noise + (1 - alpha) * future_batch_ema;
         }
 
-        LOG(INFO) << "[EMA] Future batch " << future_batch_ema << "; Noise " << noise; 
+        //LOG(INFO) << "[EMA] Future batch " << future_batch_ema << "; Noise " << noise; 
 
     }
 };
