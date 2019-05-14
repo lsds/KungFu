@@ -43,3 +43,4 @@ tensorflow-prefix
 tensorflow-repo-prefix
 Testing/
 venv
+*.pyc
