@@ -92,10 +92,13 @@ def group_all_reduce(ts):
     return cpu_group_all_reduce(ts)
 
 
-def _bin_pack(sizes, budget):
+def _bin_pack(sizes, budget, adjust_budget=False):
     lst = list(reversed(sorted([(size, name)
                                 for name, size in sizes.items()])))
-    budget = max(budget, lst[0][0])
+    if adjust_budget:
+        budget = max(budget, lst[0][0])
+    else:
+        raise RuntimeError("Budget is too small.")
     budgets = []
     indexes = dict()
     for size, name in lst:
