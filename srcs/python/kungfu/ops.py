@@ -112,24 +112,26 @@ def _bin_pack(sizes, budget):
     return indexes
 
 
+def _tensor_size(t):
+    return t.shape.num_elements() * t.dtype.size
+
+
 def gpu_partial_exchange_group_all_reduce_front_end_partitioning(
         ts, fraction=0.3, accumulate=False, average="none"):
     import math
     import tensorflow as tf
-    total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
+    total_size = sum([_tensor_size(t) for t in ts])
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
     budget = int(math.floor(fraction * total_size))
-    indexes = _bin_pack(
-        dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]),
-        budget)
+    indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts), budget)
     print("The bucket budget is: " + str(budget))
 
     gs = tf.Variable(tf.zeros([], dtype=tf.int64))
     advance_gs = tf.assign(gs, gs + 1)
     num_partitions = len(set(indexes.values()))
 
-    name_order = dict([(t.name, i) for i, t in enumerate(ts)])
+    name_order = dict((t.name, i) for i, t in enumerate(ts))
 
     # Construct groups
     groups = [[] for _ in range(num_partitions)]
