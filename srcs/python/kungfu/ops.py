@@ -45,7 +45,6 @@ def broadcast(t):
 def all_reduce(t):
     return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
-# Based on Andrei - Octavian Brabete
 def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average):
     # Take full gradient name for unicity
     tensor_size = t.shape.num_elements() * t.dtype.size
@@ -59,7 +58,6 @@ def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average)
         return _op_lib.partial_negotiator(t, input_tensor_name=t.name, budget=budget, 
                                           tensor_size=tensor_size, count_gradients=count_gradients)
 
-# Based on Guo Li
 def partial_exchange_all_reduce_front_end_partitioning(t, index, partitions, accumulate=False, average=False):
     # Take full gradient name for unicity
     tensor_size = t.shape.num_elements() * t.dtype.size
@@ -88,7 +86,6 @@ def set_num_gradients(n):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
-# Based on Andrei-Octavian Brabete, Partitioning done within C++ operator
 def partial_exchange_group_all_reduce(ts, fraction=0.3, accumulate=False, average="none"):
     import math
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
@@ -98,24 +95,8 @@ def partial_exchange_group_all_reduce(ts, fraction=0.3, accumulate=False, averag
     print("The bucket budget is: " + str(budget))
     return [partial_exchange_all_reduce(t, budget, len(ts), accumulate, average) for t in ts]
 
-# Based on Guo Li, Partitioning in python
-def cpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
-    import math
-    total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
-    print("Total Size of All Gradients: " + str(total_size))
-    print("The fraction is: " + str(fraction))
-    # binpacker = BinPackPartitioner()
-    budget = int(math.floor(fraction * total_size))
-    indexes =  bin_pack(dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]), budget)
-    print("The bucket budget is: " + str(budget))
-    return [
-       # pass indexes[t.name] instead of budget
-        partial_exchange_all_reduce_front_end_partitioning(t, index=indexes[t.name], partitions=len(set(indexes.values()))) for t in ts
-    ]
-
 def cpu_group_all_reduce(ts):
     return [all_reduce(t) for t in ts]
-
 
 def gpu_group_all_reduce(ts):
     names = [t.name for t in ts]
@@ -134,7 +115,7 @@ def group_all_reduce(ts):
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
 
-def bin_pack(sizes, budget):
+def _bin_pack(sizes, budget):
     lst = list(reversed(sorted([(size, name) for name, size in sizes.items()])))
     budget = max(budget, lst[0][0])
     budgets = []
@@ -160,7 +141,7 @@ def gpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
     budget = int(math.floor(fraction * total_size))
-    indexes =  bin_pack(dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]), budget)
+    indexes =  _bin_pack(dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]), budget)
     print("The bucket budget is: " + str(budget))
 
     gs = tf.Variable(tf.zeros([], dtype=tf.int64))
@@ -208,7 +189,6 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
             _op_lib.controller(negotiated_grad)
             for negotiated_grad in negotiated_grads
         ]
-
 
 def get_global_gradient_noise_operator(batch_small, concat_grad,
                                        concat_negotiated_grad):
