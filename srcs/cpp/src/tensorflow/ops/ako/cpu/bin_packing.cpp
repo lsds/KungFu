@@ -90,8 +90,10 @@ class PartialNegotiator : public AsyncOpKernel
 
         int32_t epoch = 1 + (int32_t) _kungfu_world->GetGlobalStep() / find_epoch_denominator_;
         if(epoch == 80) { // count epochs from 0
+            std::cout << "First repartition" << std::endl;
            _partial_exchange_manager->repartition(0.4, 1); 
         } else if (epoch == 120) {
+            std::cout << "Second repartition" << std::endl;
             _partial_exchange_manager->repartition(1, 2); 
         }
 

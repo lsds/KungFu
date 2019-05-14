@@ -71,8 +71,8 @@ class partial_exchange_manager
   public:
     int32_t budget;
 
-    std::vector<tensor_meta *> tensors;
-    std::vector<partition *> partitions;
+    std::vector<tensor_meta> tensors;
+    std::vector<partition> partitions;
 
     // Indicates the number of partitions
     int32_t bin_counter;
@@ -84,20 +84,9 @@ class partial_exchange_manager
 
     ~partial_exchange_manager()
     {
-
-        std::cout << "Between here" << std::endl;
-        for (tensor_meta *t_m : tensors) {
-            delete t_m;
-        }
-
-        std::cout << "HERE" << std::endl;
-        for (partition *p : partitions) {
-            delete p;
-        }
-        std::cout << "And HERE" << std::endl;
     }
 
-    void setCountGradients(int32_t count)
+    void setCountGradients(const int32_t count)
     {
         std::lock_guard<std::mutex> lock(constructionMutex);
         if (this->countGradients == 0) {
@@ -105,7 +94,7 @@ class partial_exchange_manager
         }
     }
 
-    void setBudget(int32_t budget)
+    void setBudget(const int32_t budget)
     {
         std::lock_guard<std::mutex> lock(constructionMutex);
         if (this->budget == 0) {
@@ -113,17 +102,17 @@ class partial_exchange_manager
         }
     }
 
-    void setFraction(float fraction) {
+    void setFraction(const float fraction) {
         std::lock_guard<std::mutex> lock(constructionMutex);
         if (this->current_fraction == 0) {
             this->current_fraction = fraction;
         }
     }
 
-    void addTensorInfo(std::string name, int32_t size)
+    void addTensorInfo(std::string name, const int32_t size)
     {
         std::lock_guard<std::mutex> lock(constructionMutex);
-        tensor_meta *t_m = new tensor_meta(name, size);
+        tensor_meta t_m(name, size);
 
         tensors.push_back(t_m);
 
@@ -135,12 +124,12 @@ class partial_exchange_manager
         }
     }
 
-    bool isReadyForNegotiation(std::string tensor_name, int32_t global_step)
+    bool isReadyForNegotiation(const std::string tensor_name, int32_t global_step)
     {
         // No need to lock because the partitioning is done.
         std::lock_guard<std::mutex> lock(partitionAccessMutex);
         auto partitionSet =
-            partitions[global_step % partitions.size()]->tensorNames;
+            partitions[global_step % partitions.size()].tensorNames;
         return partitionSet.find(tensor_name) !=
                partitionSet.end();  // is present
     }
@@ -167,10 +156,7 @@ class partial_exchange_manager
         std::cout << "New budget is: " << this->budget << ". ";
         std::cout << "New fraction is: " << this->current_fraction << std::endl;
 
-        // Free old partitions
-        for (partition *p : partitions) {
-            delete p;
-        }
+        // Clear old partitions
         partitions.clear();
         
         // Restore bin counter
@@ -195,21 +181,21 @@ class partial_exchange_manager
         std::cout << "Total budget per bin: " << budget << std::endl;
         std::cout << "When starting bin packing, the tensors are: "
                   << std::endl;
-        for (tensor_meta *t : tensors) {
-            std::cout << *t << std::endl;
+        for (tensor_meta t : tensors) {
+            std::cout << t << std::endl;
         }
 
         if (should_sort) {
             // Sort only once
             // Comparator affects the ordering on each peer.
-            auto grt = [](tensor_meta *t1, tensor_meta *t2) {
-                return t1->size > t2->size ||
-                    (t1->size == t2->size && t1->name > t2->name);
+            auto grt = [](tensor_meta& t1, tensor_meta& t2) {
+                return t1.size > t2.size ||
+                    (t1.size == t2.size && t1.name > t2.name);
             };
             std::sort(tensors.begin(), tensors.end(), grt);
         }
 
-        if (tensors[0]->size > budget) {
+        if (tensors[0].size > budget) {
             std::cout << "Infeasible to bin-pack the tensors with small "
                         "budget. Provide higher fraction."
                     << std::endl;
@@ -218,23 +204,22 @@ class partial_exchange_manager
             return;
         }
 
-        partitions.push_back(new partition(this->bin_counter, budget));
+        partitions.push_back(partition(this->bin_counter, budget));
 
-        for (tensor_meta *t : tensors) {
+        for (const tensor_meta t : tensors) {
             bool currPartitionFilled   = false;
             int32_t currPartitionIndex = 0;
 
             while (!currPartitionFilled) {
                 if (currPartitionIndex == partitions.size()) {
-                    partition *newPartition =
-                        new partition(++this->bin_counter, budget);
-                    newPartition->put(*t);
+                    partition newPartition(++this->bin_counter, budget);
+                    newPartition.put(t);
                     partitions.push_back(newPartition);
                     currPartitionFilled = true;
-                } else if (partitions[currPartitionIndex]->put(*t)) {
+                } else if (partitions[currPartitionIndex].put(t)) {
                     currPartitionFilled = true;
                 } else {
-                    currPartitionIndex++;  // move on to the next partition
+                    currPartitionIndex++;
                 }
             }
         }
@@ -248,8 +233,8 @@ class partial_exchange_manager
         std::cout << "Total number of partitions: " << bin_counter << std::endl;
         for (int i = 0; i < bin_counter; i++) {
             std::cout << "Partition: " << std::endl;
-            std::cout << *partitions[i] << std::endl;
-            countTensorsFromParts += partitions[i]->tensorNames.size();
+            std::cout << partitions[i] << std::endl;
+            countTensorsFromParts += partitions[i].tensorNames.size();
         }
         std::cout << "Total number of tensors in partitions: "
                   << countTensorsFromParts << std::endl;
