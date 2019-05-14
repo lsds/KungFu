@@ -30,7 +30,7 @@ class AkoOptimizer(KungFuOptimizer):
     def __get_size(self, tensor):
         return tensor.shape.num_elements() * tensor.dtype.size
 
-     # https://www8.cs.umu.se/kurser/TDBA77/VT06/algorithms/BOOK/BOOK2/NODE45.HTM
+    # https://www8.cs.umu.se/kurser/TDBA77/VT06/algorithms/BOOK/BOOK2/NODE45.HTM
     def __reconstruct_partition(self, grads_and_vars, k, D):
         result = []
         n = len(D)
@@ -86,21 +86,26 @@ class AkoOptimizer(KungFuOptimizer):
             with tf.variable_scope('NegotiateGradients'):
                 if self.partitionIndices is None:
                     # Get partition indices by size (runs once)
-                    sizes = [self.__get_size(g) for g, _v in grads_and_vars_to_negotiate]
-                    self.partitionIndices = self.__partition_positions(sizes, self.akoPartitions)
+                    sizes = [
+                        self.__get_size(g)
+                        for g, _v in grads_and_vars_to_negotiate
+                    ]
+                    self.partitionIndices = self.__partition_positions(
+                        sizes, self.akoPartitions)
 
                 # pair tensor name bucket id
-                partitions = self.__reconstruct_partition(grads_and_vars_to_negotiate,  self.akoPartitions, self.partitionIndices)
+                partitions = self.__reconstruct_partition(
+                    grads_and_vars_to_negotiate, self.akoPartitions,
+                    self.partitionIndices)
                 negotiated_grad_and_vars = []
                 for partition_id in range(len(partitions)):
                     for grad, var in partitions[partition_id]:
                         with tf.variable_scope('AkoMaybeNegotiatedGrad'):
                             negotiated_grad_var = (ako_all_reduce(
-                                                                grad,
-                                                                tf.constant([partition_id], dtype=tf.int32),
-                                                                tf.constant([self.akoPartitions], dtype=tf.int32)),
-                                                    var
-                                                    )
+                                grad,
+                                tf.constant([partition_id], dtype=tf.int32),
+                                tf.constant([self.akoPartitions],
+                                            dtype=tf.int32)), var)
                         negotiated_grad_and_vars.append(negotiated_grad_var)
                 return negotiated_grad_and_vars
 
@@ -109,6 +114,3 @@ class AkoOptimizer(KungFuOptimizer):
                 return build_op()
         else:
             return build_op()
-
-    def _set_num_gradients(self, n):
-        return set_num_gradients(tf.constant(n, tf.int32))

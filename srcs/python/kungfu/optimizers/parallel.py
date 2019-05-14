@@ -23,6 +23,3 @@ class ParallelOptimizer(KungFuOptimizer):
         """Negotiate grads with peers, using plain allreduce."""
         gradients, variables = list(zip(*grads_and_vars_to_negotiate))
         return list(zip(group_all_reduce(gradients), variables))
-
-    def _set_num_gradients(self, n):
-        return set_num_gradients(tf.constant(n, tf.int32))

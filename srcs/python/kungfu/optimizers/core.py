@@ -19,13 +19,8 @@ class KungFuOptimizer(tf.train.Optimizer):
         self._device_dense = device_dense
         self._device_sparse = device_sparse
 
-        self._enable_set_num_gradients = True
-
     # The subclass should implement this with its own negotiation strategy
     def _negotiate_grads_by_strategy(self, grads_and_vars):
-        raise RuntimeError('Not implemented')
-
-    def _set_num_gradients(self, n):
         raise RuntimeError('Not implemented')
 
     def compute_gradients(self, *args, **kwargs):
@@ -33,18 +28,7 @@ class KungFuOptimizer(tf.train.Optimizer):
         grads_and_vars = self._optimizer.compute_gradients(*args, **kwargs)
         grads_and_vars_to_negotiate = [(g, v) for g, v in grads_and_vars
                                        if g is not None]
-
-        def build_op():
-            # returns negotiated (gradient, variable) pairs
-            return self._negotiate_grads_by_strategy(
-                grads_and_vars_to_negotiate)
-
-        if self._enable_set_num_gradients:
-            n_grads = len(grads_and_vars_to_negotiate)
-            with tf.control_dependencies([self._set_num_gradients(n_grads)]):
-                return build_op()
-        else:
-            return build_op()
+        return self._negotiate_grads_by_strategy(grads_and_vars_to_negotiate)
 
     def apply_gradients(self, *args, **kwargs):
         """Calls this same method on the underlying optimizer."""
