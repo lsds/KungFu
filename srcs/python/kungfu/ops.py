@@ -70,22 +70,6 @@ def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
 
-def partial_exchange_group_all_reduce(ts,
-                                      fraction=0.3,
-                                      accumulate=False,
-                                      average="none"):
-    import math
-    total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
-    print("Total Size of All Gradients: " + str(total_size))
-    print("The fraction is: " + str(fraction))
-    budget = int(math.floor(fraction * total_size))
-    print("The bucket budget is: " + str(budget))
-    return [
-        partial_exchange_all_reduce(t, budget, len(ts), accumulate, average)
-        for t in ts
-    ]
-
-
 def cpu_group_all_reduce(ts):
     return [all_reduce(t) for t in ts]
 
@@ -153,8 +137,7 @@ def gpu_partial_exchange_group_all_reduce_front_end_partitioning(
         groups[indexes[t.name]].append(t)
 
     # Start all groups
-    c_to_t_map = dict()
-    reordered_cond_ops = [0] * len(ts)
+    reordered_cond_ops = [None] * len(ts)
     for i, g in enumerate(groups):
         cond_op = tf.cond(
             tf.equal(tf.mod(gs, num_partitions),
