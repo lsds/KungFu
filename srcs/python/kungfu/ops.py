@@ -112,27 +112,7 @@ def partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, a
        # pass indexes[t.name] instead of budget
         partial_exchange_all_reduce_front_end_partitioning(t, index=indexes[t.name], partitions=len(set(indexes.values()))) for t in ts
     ]
-
-
-def ako_group_all_reduce(gradient_tensors, num_partitions=1):
-    partitioner      = AkoPartitioner(num_partitions)
-    grads_and_vars_to_negotiate = [(grad, grad.name[:-2]) for grad in gradient_tensors]
-    partitionIndices = partitioner.partition_positions(grads_and_vars_to_negotiate)
-    partitions       = partitioner.reconstruct_partition(grads_and_vars_to_negotiate, partitionIndices)
     
-    # Print info
-    partitioner.print_gradient_info(grads_and_vars_to_negotiate)
-    partitioner.print_partition_info(num_partitions, partitions)
-    
-    negotiated_grads = []
-    for partition_id in range(len(partitions)):
-        for grad, var in partitions[partition_id]:
-            with tf.variable_scope('AkoMaybeNegotiatedGrad'):
-                negotiated_grad = ako_all_reduce(grad,tf.constant([partition_id], dtype=tf.int32),
-                                                 tf.constant([num_partitions], dtype=tf.int32))
-            negotiated_grads.append(negotiated_grad)
-    return negotiated_grads
-
 def cpu_group_all_reduce(ts):
     return [all_reduce(t) for t in ts]
 
