@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import platform
 import sysconfig
@@ -54,12 +56,15 @@ def broadcast(t):
     return _op_lib.broadcast(t)
 
 
-def all_reduce(t):
-    return _op_lib.all_reduce(t, input_tensor_name=t.name[:-2])
+def all_reduce(t, fraction, num_partitions):
+    return _op_lib.all_reduce(t,
+                              input_tensor_name=t.name,
+                              fraction=fraction,
+                              num_partitions=num_partitions)
 
 
 def all_reduce_gpu(t):
-    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name[:-2])
+    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
 
 
 def ako_all_reduce(t, partition_id, num_partitions):
@@ -85,33 +90,14 @@ def start_gpu_group(*args, **kwargs):
 def _bin_pack(sizes, budget, adjust_budget=False):
     lst = list(reversed(sorted([(size, name)
                                 for name, size in sizes.items()])))
-    if adjust_budget:
-        budget = max(budget, lst[0][0])
-    else:
-        raise RuntimeError("Budget is too small.")
-    budgets = []
-    indexes = dict()
-    for size, name in lst:
-        ok = False
-        for i, b in enumerate(budgets):
-            if b >= size:
-                budgets[i] -= size
-                indexes[name] = i
-                ok = True
-                break
-        if not ok:
-            budgets.append(budget - size)
-            indexes[name] = len(budgets) - 1
-    return indexes
 
-
-def _bin_pack(sizes, budget, adjust_budget=False):
-    lst = list(reversed(sorted([(size, name)
-                                for name, size in sizes.items()])))
+    max_size = lst[0][0]
     if adjust_budget:
-        budget = max(budget, lst[0][0])
+        budget = max(budget, max_size)
     else:
-        raise RuntimeError("Budget is too small.")
+        if budget < max_size:
+            raise RuntimeError("Budget is too small.")
+
     budgets = []
     indexes = dict()
     for size, name in lst:
@@ -132,22 +118,27 @@ def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
 
-def _parse_schedule(schdule):
-    # schedule is of the form
-    # f1;e1;f2;e2;f3;e3
-    tokens = schedule.split(";")
-    epochs = [0] + [int(t) for t in tokens[1::2]]
-    pairs = []
-    for i in range(len(epochs) - 1):
-        pairs.append((epochs[i], epochs[i + 1]))
-    fractions = [float(t) for t in tokens[::2]]
-    return zip(pairs, fractions)
-
-
-def print_info(fraction, total_size, budget):
+def _print_info(fraction, total_size, budget):
     print("The fraction is: " + str(fraction))
     print("Total Size of All Gradients: " + str(total_size))
     print("The bucket budget is: " + str(budget))
+
+
+def _parse_schedule(schedule, batch_size, num_train):
+    # schedule is of the form
+    # f1;e1;f2;e2;f3;e3
+    tokens = schedule.split(",")
+    print("Num train: " + str(num_train))
+    print("Batch size: " + str(batch_size))
+    to_gs = lambda epoch: int(epoch * num_train / (batch_size * get_num_peers(
+    )))
+    pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
+             for t in tokens]
+    steps, fractions = zip(*pairs)
+
+    print("Steps: " + str(steps))
+    print("Fractions: " + str(fractions))
+    return steps, fractions
 
 
 def adaptive_partial_exchange_with_cpu_allreduce(ts,
@@ -157,19 +148,23 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
                                                  accumulate=False,
                                                  average="none"):
     print("Using piecewise partitioning schedule: " + schedule)
-    parsed_schedule = _parse_schedule(schedule)
+    steps, fractions = _parse_schedule(schedule, int(batch_size),
+                                       int(num_train))
     import math
     import tensorflow as tf
     total_size = sum([_tensor_size(t) for t in ts])
+
+    gs = tf.Variable(tf.zeros([], dtype=tf.int64))
+    advance_gs = tf.assign(gs, gs + 1)
+    print_gs = tf.Print(advance_gs, [advance_gs], message="Global step")
+
+    name_order = dict((t.name, i) for i, t in enumerate(ts))
 
     def build_partial_exchange_ops(fraction):
         budget = int(math.floor(fraction * total_size))
         indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts),
                             budget)
-        print_info(fraction, total_size, budget)
-
-        gs = tf.Variable(tf.zeros([], dtype=tf.int64))
-        advance_gs = tf.assign(gs, gs + 1)
+        _print_info(fraction, total_size, budget)
 
         num_partitions = len(set(indexes.values()))
 
@@ -182,34 +177,46 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
         reordered_cond_ops = [None] * len(ts)
         for i, partition in enumerate(groups):
             negotiated_partition = tf.cond(
-                tf.equal(tf.mod(gs - 1, num_partitions), i), lambda:
-                cpu_group_all_reduce(partition), lambda: partition)
+                tf.equal(tf.mod(gs - 1, num_partitions),
+                         i), lambda: cpu_group_all_reduce(
+                             partition, fraction, num_partitions), lambda:
+                partition)
             for negotiated_grad, grad in zip(negotiated_partition, partition):
                 reordered_cond_ops[name_order[grad.name]] = negotiated_grad
+
         return reordered_cond_ops
 
+    # x in [left, right)
     def tf_is_between_closed_open(x, left, right):
-        l = tf.math.logical_or(tf.greater(x, left), tf.equal(x, left))
-        r = tf.less(x, right)
-        return tf.math.logical_and(l, r)
+        l = tf.math.greater_equal(x, left)
+        print_l = tf.Print(l, [l], message="left")
+        r = tf.math.less(x, right)
+        print_r = tf.Print(r, [r], message="right")
 
-    with tf.control_dependencies([advance_gs]):
-        initial_partitioning_ops = build_partial_exchange_ops(fraction)
+        a = tf.Variable([], dtype=bool)
+        and_op = tf.math.logical_and(l, r)
+        assing_op = tf.assign(a, and_op)
+        with tf.control_dependencies([assing_op, print_l, print_r]):
+            return a
 
-        epoch = tf.div(gs, num_train / (batch_size * get_num_peers()))
+    with tf.control_dependencies([advance_gs, print_gs]):
+        cases = dict()
+        for i in range(len(steps) - 1):
+            cases[tf_is_between_closed_open(
+                gs - 1, steps[i],
+                steps[i +
+                      1])] = lambda: build_partial_exchange_ops(fractions[i])
 
-        cond_ops = []
-        for (pivot_epoch_l, pivot_epoch_r), pivot_fraction in parsed_schedule:
-            cond = tf.cond(
-                tf_is_between_closed_open(epoch, pivot_epoch_l, pivot_epoch_r),
-                lambda: build_partial_exchange_ops(pivot_fraction), lambda: tf.
-                no_op(name="No Op Dynamic Partitioning"))
-            cond_ops.append(cond)
+        cond_ops = tf.case(
+            cases,
+            default=lambda: build_partial_exchange_ops(fractions[-1]),
+            exclusive=True)
+
         return cond_ops
 
 
-def cpu_group_all_reduce(ts):
-    return [all_reduce(t) for t in ts]
+def cpu_group_all_reduce(ts, fraction, num_partitions):
+    return [all_reduce(t, fraction, num_partitions) for t in ts]
 
 
 def gpu_group_all_reduce(ts):
