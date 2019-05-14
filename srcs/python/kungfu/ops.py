@@ -119,8 +119,10 @@ def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
 
-def gpu_partial_exchange_group_all_reduce_front_end_partitioning(
-        ts, fraction=0.3, accumulate=False, average="none"):
+def partial_exchange_with_gpu_allreduce(ts,
+                                        fraction=0.3,
+                                        accumulate=False,
+                                        average="none"):
     import math
     import tensorflow as tf
     total_size = sum([_tensor_size(t) for t in ts])
