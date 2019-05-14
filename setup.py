@@ -49,7 +49,7 @@ class CMakeBuild(build_ext):
             cmake_flag('LIBRARY_OUTPUT_PATH',
                        os.path.join(install_prefix, 'kungfu')),
             cmake_flag('KUNGFU_BUILD_TF_OPS', 1),
-            cmake_flag('KUNGFU_BUILD_TOOLS', 1),
+            #cmake_flag('KUNGFU_BUILD_TOOLS', 1),
             cmake_flag('CMAKE_RUNTIME_OUTPUT_DIRECTORY', executable_dir),
             cmake_flag('PYTHON', sys.executable),
 

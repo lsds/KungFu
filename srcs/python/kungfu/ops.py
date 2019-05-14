@@ -155,6 +155,7 @@ def bin_pack(sizes, budget):
 
 def gpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
     import math
+    import tensorflow as tf
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
@@ -166,13 +167,16 @@ def gpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.
     advance_gs = tf.assign(gs, gs + 1)
     num_partitions = len(set(indexes.values()))
 
+    name_order = [(i, t.name) for i, t in enumerate(ts)]
+
     # Construct groups
     groups = [[] for _ in range(num_partitions)] 
     for t in ts:
-        groups[indexes[t.name]].append(t)
+        groups[indexes[t.name]].append(t)    
 
     # Start all groups
-    cond_ops = []
+    c_to_t_map = dict()
+    reordered_cond_ops = [0] * len(ts)
     for i, g in enumerate(groups):
         cond_op = tf.cond(
                     tf.equal(tf.mod(gs, num_partitions), 
@@ -180,10 +184,13 @@ def gpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.
                             lambda: gpu_group_all_reduce(g), 
                             lambda: g
                    )
-        cond_ops.append(cond_op)
-    
+        for c, t in zip(cond_op, g):
+            for j, t_init_name in name_order:
+                if t_init_name == t.name:
+                    reordered_cond_ops[j] = c
+
     with tf.control_dependencies([advance_gs]):
-        return cond_ops
+        return reordered_cond_ops
 
 
 def _concat(ts):
