@@ -200,7 +200,10 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
 
         cond_ops = []
         for (pivot_epoch_l, pivot_epoch_r), pivot_fraction in parsed_schedule:
-            cond = tf.cond(tf_is_between_closed_open(epoch, pivot_epoch_l, pivot_epoch_r), lambda: build_partial_exchange_ops(pivot_fraction), lambda: tf.no_op(name="No Op Dynamic Partitioning"))
+            cond = tf.cond(
+                tf_is_between_closed_open(epoch, pivot_epoch_l, pivot_epoch_r),
+                lambda: build_partial_exchange_ops(pivot_fraction), lambda: tf.
+                no_op(name="No Op Dynamic Partitioning"))
             cond_ops.append(cond)
         return cond_ops
 
