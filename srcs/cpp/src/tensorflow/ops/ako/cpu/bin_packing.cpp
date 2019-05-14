@@ -7,6 +7,9 @@
 #include <mutex>
 #include <queue>
 
+
+#include <bin_packing_helpers.hpp> 
+
 namespace tensorflow
 {
 REGISTER_OP("PartialNegotiator")
@@ -33,8 +36,10 @@ class PartialNegotiator : public AsyncOpKernel
     int32_t count_gradients_;
     int32_t budget;
 
+    int32_t global_step;
+
     explicit PartialNegotiator(OpKernelConstruction *context)
-        : AsyncOpKernel(context)
+        : AsyncOpKernel(context), global_step(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
@@ -65,6 +70,7 @@ class PartialNegotiator : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
+        global_step++;
         DCHECK_EQ(1, context->num_inputs());
 
         Tensor &gradients = (Tensor &)context->input(0);
@@ -73,20 +79,7 @@ class PartialNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        if (_partial_exchange_manager->isReadyForNegotiation(
-                input_tensor_name_, _kungfu_world->GetGlobalStep())) {
-            _kungfu_world->AllReduce(gradients.tensor_data().data(),
-                                     (void *)(output->tensor_data().data()),
-                                     gradients.NumElements(),
-                                     to_kungfu_type(gradients.dtype()),
-                                     KungFu_SUM, name().c_str(), done);
-            // Because it is synchronous, the done callback will signal when the
-            // value held
-            // in the memory where output points to is ready to be used.
-        } else {
-            *output = gradients;
-            done();
-        }
+        bin_packing_simple(_partial_exchange_manager, _kungfu_world, input_tensor_name_,
     }
 };
 

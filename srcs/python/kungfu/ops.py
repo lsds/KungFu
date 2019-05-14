@@ -43,7 +43,7 @@ def broadcast(t):
 
 
 def all_reduce(t):
-    return _op_lib.all_reduce(t, input_tensor_name=t.name[:-2])
+    return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
 # Based on Andrei - Octavian Brabete
 def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average):
@@ -99,20 +99,20 @@ def partial_exchange_group_all_reduce(ts, fraction=0.3, accumulate=False, averag
     return [partial_exchange_all_reduce(t, budget, len(ts), accumulate, average) for t in ts]
 
 # Based on Guo Li, Partitioning in python
-def partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
+def cpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
     import math
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
-    binpacker = BinPackPartitioner()
+    # binpacker = BinPackPartitioner()
     budget = int(math.floor(fraction * total_size))
-    indexes = binpacker.bin_pack(dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]), budget)
+    indexes =  bin_pack(dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]), budget)
     print("The bucket budget is: " + str(budget))
     return [
        # pass indexes[t.name] instead of budget
         partial_exchange_all_reduce_front_end_partitioning(t, index=indexes[t.name], partitions=len(set(indexes.values()))) for t in ts
     ]
-    
+
 def cpu_group_all_reduce(ts):
     return [all_reduce(t) for t in ts]
 
@@ -133,6 +133,38 @@ def group_all_reduce(ts):
         return gpu_group_all_reduce(ts)
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
+
+def gpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
+    import math
+    total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
+    print("Total Size of All Gradients: " + str(total_size))
+    print("The fraction is: " + str(fraction))
+    budget = int(math.floor(fraction * total_size))
+    indexes =  bin_pack(dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]), budget)
+    print("The bucket budget is: " + str(budget))
+
+    gs = tf.Variable(tf.zeros([], dtype=tf.int64))
+    advance_gs = tf.assign(gs, gs + 1)
+    num_partitions = len(set(indexes.values()))
+
+    # Construct groups
+    groups = [[] for _ in range(num_partitions)] 
+    for t in ts:
+        groups[indexes[t.name]].append(t)
+
+    # Start all groups
+    cond_ops = []
+    for i, g in enumerate(groups):
+        cond_op = tf.cond(
+                    tf.equal(tf.mod(gs, num_partitions), 
+                            i), 
+                            lambda: gpu_group_all_reduce(g), 
+                            lambda: g
+                   )
+        cond_ops.append(cond_op)
+    
+    with tf.control_dependencies([advance_gs]):
+        return cond_ops
 
 
 def _concat(ts):

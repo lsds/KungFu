@@ -28,10 +28,11 @@ class PartialNegotiatorFrontEndPartitioning : public AsyncOpKernel
   public:
     int32_t index_;
     int32_t partitions_;
+    int32_t global_step;
 
     explicit PartialNegotiatorFrontEndPartitioning(
         OpKernelConstruction *context)
-        : AsyncOpKernel(context)
+        : AsyncOpKernel(context), global_step(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("index", &index_));
         OP_REQUIRES(context, index_ >= 0,
@@ -44,6 +45,7 @@ class PartialNegotiatorFrontEndPartitioning : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
+        global_step++;
         DCHECK_EQ(1, context->num_inputs());
 
         Tensor &gradients = (Tensor &)context->input(0);
@@ -52,19 +54,8 @@ class PartialNegotiatorFrontEndPartitioning : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        if (_kungfu_world->GetGlobalStep() % partitions_ == index_) {
-            _kungfu_world->AllReduce(gradients.tensor_data().data(),
-                                     (void *)(output->tensor_data().data()),
-                                     gradients.NumElements(),
-                                     to_kungfu_type(gradients.dtype()),
-                                     KungFu_SUM, name().c_str(), done);
-            // Because it is synchronous, the done callback will signal when the
-            // value held
-            // in the memory where output points to is ready to be used.
-        } else {
-            *output = gradients;
-            done();
-        }
+        bin_packing_frontend_partitioning(global_step, input_tensor_name_, gradients, output, 
+                                          done, partitions_, index_);
     }
 };
 
