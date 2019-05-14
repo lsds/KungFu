@@ -31,7 +31,8 @@ class KungFuOptimizer(tf.train.Optimizer):
     def compute_gradients(self, *args, **kwargs):
         """Compute gradients and negotiate with peers."""
         grads_and_vars = self._optimizer.compute_gradients(*args, **kwargs)
-        grads_and_vars_to_negotiate = [(g, v) for g, v in grads_and_vars if g]
+        grads_and_vars_to_negotiate = [(g, v) for g, v in grads_and_vars
+                                       if g is not None]
 
         def build_op():
             # returns negotiated (gradient, variable) pairs

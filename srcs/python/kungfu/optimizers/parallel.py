@@ -21,8 +21,8 @@ class ParallelOptimizer(KungFuOptimizer):
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Negotiate grads with peers, using plain allreduce."""
-        grads, variables = list(zip(*grads_and_vars_to_negotiate))
-        return list(zip(group_all_reduce(grads), variables))
+        gradients, variables = list(zip(*grads_and_vars_to_negotiate))
+        return list(zip(group_all_reduce(gradients), variables))
 
     def _set_num_gradients(self, n):
         return set_num_gradients(tf.constant(n, tf.int32))
