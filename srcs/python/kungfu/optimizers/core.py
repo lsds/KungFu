@@ -12,8 +12,8 @@ class KungFuOptimizer(tf.train.Optimizer):
                  device_sparse=''):
         if name is None:
             name = "KungFuOptimizer{}".format(type(optimizer).__name__)
-        super(KungFuOptimizer, self).__init__(
-            name=name, use_locking=use_locking)
+        super(KungFuOptimizer, self).__init__(name=name,
+                                              use_locking=use_locking)
 
         self._optimizer = optimizer
         self._device_dense = device_dense
@@ -31,10 +31,7 @@ class KungFuOptimizer(tf.train.Optimizer):
     def compute_gradients(self, *args, **kwargs):
         """Compute gradients and negotiate with peers."""
         grads_and_vars = self._optimizer.compute_gradients(*args, **kwargs)
-        grads_and_vars_to_negotiate = []
-        for grad, var in grads_and_vars:
-            if grad is not None:
-                grads_and_vars_to_negotiate.append((grad, var))
+        grads_and_vars_to_negotiate = [(g, v) for g, v in grads_and_vars if g]
 
         def build_op():
             # returns negotiated (gradient, variable) pairs
@@ -46,8 +43,7 @@ class KungFuOptimizer(tf.train.Optimizer):
             with tf.control_dependencies([self._set_num_gradients(n_grads)]):
                 return build_op()
         else:
-                return build_op()
-
+            return build_op()
 
     def apply_gradients(self, *args, **kwargs):
         """Calls this same method on the underlying optimizer."""
