@@ -129,7 +129,7 @@ def gpu_partial_exchange_group_all_reduce_front_end_partitioning(
     advance_gs = tf.assign(gs, gs + 1)
     num_partitions = len(set(indexes.values()))
 
-    name_order = [(i, t.name) for i, t in enumerate(ts)]
+    name_order = dict([(t.name, i) for i, t in enumerate(ts)])
 
     # Construct groups
     groups = [[] for _ in range(num_partitions)]
@@ -138,14 +138,13 @@ def gpu_partial_exchange_group_all_reduce_front_end_partitioning(
 
     # Start all groups
     reordered_cond_ops = [None] * len(ts)
-    for i, g in enumerate(groups):
-        cond_op = tf.cond(
-            tf.equal(tf.mod(gs, num_partitions),
-                     i), lambda: gpu_group_all_reduce(g), lambda: g)
-        for c, t in zip(cond_op, g):
-            for j, t_init_name in name_order:
-                if t_init_name == t.name:
-                    reordered_cond_ops[j] = c
+    for i, partition in enumerate(groups):
+        negotiated_partition = tf.cond(
+            tf.equal(
+                tf.mod(gs - 1, num_partitions),
+                i), lambda: gpu_group_all_reduce(partition), lambda: partition)
+        for negotiated_grad, grad in zip(negotiated_partition, partition):
+            reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 
     with tf.control_dependencies([advance_gs]):
         return reordered_cond_ops
