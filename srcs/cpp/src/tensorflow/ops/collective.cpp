@@ -78,7 +78,10 @@ REGISTER_OP("GradientNoise")
     .Input("g_biased: float32")
     .Input("s_biased: float32")
     .Output("output: float32")
-    .SetShapeFn(shape_inference::UnchangedShape);
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    });
 
 class GradientNoise : public OpKernel
 {
