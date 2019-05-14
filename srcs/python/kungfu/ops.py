@@ -45,23 +45,6 @@ def broadcast(t):
 def all_reduce(t):
     return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
-def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average):
-    # Take full gradient name for unicity
-    tensor_size = t.shape.num_elements() * t.dtype.size
-    if accumulate:
-        import json, os
-        cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-        num_peers = len(cluster_spec['Peers'])
-        return _op_lib.partial_accumulating_negotiator(t, input_tensor_name=t.name, budget=budget, 
-                                                       tensor_size=tensor_size, count_gradients=count_gradients, num_peers=num_peers, average=average)
-    else:
-        return _op_lib.partial_negotiator(t, input_tensor_name=t.name, budget=budget, 
-                                          tensor_size=tensor_size, count_gradients=count_gradients)
-
-def partial_exchange_all_reduce_front_end_partitioning(t, index, partitions, accumulate=False, average=False):
-    # Take full gradient name for unicity
-    tensor_size = t.shape.num_elements() * t.dtype.size
-    return _op_lib.partial_negotiator_front_end_partitioning(t, index=index, partitions=partitions)
 
 def all_reduce_gpu(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
@@ -86,17 +69,26 @@ def set_num_gradients(n):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
-def partial_exchange_group_all_reduce(ts, fraction=0.3, accumulate=False, average="none"):
+
+def partial_exchange_group_all_reduce(ts,
+                                      fraction=0.3,
+                                      accumulate=False,
+                                      average="none"):
     import math
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
     budget = int(math.floor(fraction * total_size))
     print("The bucket budget is: " + str(budget))
-    return [partial_exchange_all_reduce(t, budget, len(ts), accumulate, average) for t in ts]
+    return [
+        partial_exchange_all_reduce(t, budget, len(ts), accumulate, average)
+        for t in ts
+    ]
+
 
 def cpu_group_all_reduce(ts):
     return [all_reduce(t) for t in ts]
+
 
 def gpu_group_all_reduce(ts):
     names = [t.name for t in ts]
@@ -115,8 +107,10 @@ def group_all_reduce(ts):
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
 
+
 def _bin_pack(sizes, budget):
-    lst = list(reversed(sorted([(size, name) for name, size in sizes.items()])))
+    lst = list(reversed(sorted([(size, name)
+                                for name, size in sizes.items()])))
     budget = max(budget, lst[0][0])
     budgets = []
     indexes = dict()
@@ -134,14 +128,17 @@ def _bin_pack(sizes, budget):
     return indexes
 
 
-def gpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
+def gpu_partial_exchange_group_all_reduce_front_end_partitioning(
+        ts, fraction=0.3, accumulate=False, average="none"):
     import math
     import tensorflow as tf
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
     budget = int(math.floor(fraction * total_size))
-    indexes =  _bin_pack(dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]), budget)
+    indexes = _bin_pack(
+        dict([(t.name, t.shape.num_elements() * t.dtype.size) for t in ts]),
+        budget)
     print("The bucket budget is: " + str(budget))
 
     gs = tf.Variable(tf.zeros([], dtype=tf.int64))
@@ -151,20 +148,17 @@ def gpu_partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.
     name_order = [(i, t.name) for i, t in enumerate(ts)]
 
     # Construct groups
-    groups = [[] for _ in range(num_partitions)] 
+    groups = [[] for _ in range(num_partitions)]
     for t in ts:
-        groups[indexes[t.name]].append(t)    
+        groups[indexes[t.name]].append(t)
 
     # Start all groups
     c_to_t_map = dict()
     reordered_cond_ops = [0] * len(ts)
     for i, g in enumerate(groups):
         cond_op = tf.cond(
-                    tf.equal(tf.mod(gs, num_partitions), 
-                            i), 
-                            lambda: gpu_group_all_reduce(g), 
-                            lambda: g
-                   )
+            tf.equal(tf.mod(gs, num_partitions),
+                     i), lambda: gpu_group_all_reduce(g), lambda: g)
         for c, t in zip(cond_op, g):
             for j, t_init_name in name_order:
                 if t_init_name == t.name:
@@ -189,6 +183,7 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
             _op_lib.controller(negotiated_grad)
             for negotiated_grad in negotiated_grads
         ]
+
 
 def get_global_gradient_noise_operator(batch_small, concat_grad,
                                        concat_negotiated_grad):
