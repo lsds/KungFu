@@ -49,10 +49,8 @@ IF(KUNGFU_BUILD_TF_OPS)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops #
                   srcs/cpp/src/tensorflow/ops/common.cpp
-                  srcs/cpp/src/tensorflow/ops/collective.cpp
-                  srcs/cpp/src/tensorflow/ops/ako/cpu/k_partitioning.cpp
-                  srcs/cpp/src/tensorflow/ops/ako/cpu/bin_packing.cpp
-                  srcs/cpp/src/tensorflow/ops/ako/cpu/bin_packing_accumulation.cpp)
+                  srcs/cpp/src/tensorflow/ops/collective.cpp)
+                  
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
     IF(KUNGFU_USE_NCCL)
@@ -62,9 +60,7 @@ IF(KUNGFU_BUILD_TF_OPS)
                        srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
         USE_NCCL(kungfu_tensorflow_init)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE
-                       srcs/cpp/src/tensorflow/ops/collective_gpu.cpp
-                       srcs/cpp/src/tensorflow/ops/ako/gpu/bin_packing_gpu.cpp
-                       srcs/cpp/src/tensorflow/ops/ako/gpu/bin_packing_accumulation_gpu.cpp)
+                       srcs/cpp/src/tensorflow/ops/collective_gpu.cpp)
     ENDIF()
 
     SET_TF_CXX11_ABI(kungfu_tensorflow_init)

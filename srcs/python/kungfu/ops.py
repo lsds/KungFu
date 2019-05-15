@@ -5,6 +5,8 @@ import platform
 import sysconfig
 from ctypes import cdll
 
+import sys
+
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
 import tensorflow as tf
@@ -56,11 +58,8 @@ def broadcast(t):
     return _op_lib.broadcast(t)
 
 
-def all_reduce(t, fraction, num_partitions):
-    return _op_lib.all_reduce(t,
-                              input_tensor_name=t.name,
-                              fraction=fraction,
-                              num_partitions=num_partitions)
+def all_reduce(t, partition_id_var, num_partitions_var):
+    return _op_lib.all_reduce(t, partition_id_var, num_partitions_var, input_tensor_name=t.name)
 
 
 def all_reduce_gpu(t):
@@ -152,67 +151,59 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
                                        int(num_train))
     import math
     import tensorflow as tf
+
     total_size = sum([_tensor_size(t) for t in ts])
+    global_step = tf.Variable(tf.zeros([], dtype=tf.int64)) #  tf.train.get_or_create_global_step(graph=tf.get_default_graph())
+    increment_global_step_op = tf.assign(global_step, global_step + 1)
 
-    gs = tf.Variable(tf.zeros([], dtype=tf.int64))
-    advance_gs = tf.assign(gs, gs + 1)
-    print_gs = tf.Print(advance_gs, [advance_gs], message="Global step")
+    print_global_step = tf.Print(global_step, [global_step], message="Global step")
 
-    name_order = dict((t.name, i) for i, t in enumerate(ts))
+    tensor_partition_idx_vars = dict(
+        (t.name, tf.Variable(tf.ones([], dtype=tf.int64))) for t in ts)
+    num_partitions_var = tf.Variable(tf.ones([], dtype=tf.int64))
 
-    def build_partial_exchange_ops(fraction):
+    def compute_partitions(fraction, tensor_partition_idx_vars,
+                           num_partitions_var):
         budget = int(math.floor(fraction * total_size))
         indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts),
                             budget)
-        _print_info(fraction, total_size, budget)
+        print("Fraction: " + str(fraction))
+        print("Size indices: " + str(len(indexes.values())))
+        new_num_partitions = len(indexes.values())
 
-        num_partitions = len(set(indexes.values()))
+        assign_partitions = tf.assign(num_partitions_var, new_num_partitions)
 
-        # Construct groups
-        groups = [[] for _ in range(num_partitions)]
-        for t in ts:
-            groups[indexes[t.name]].append(t)
+        with tf.control_dependencies([num_partitions_var, assign_partitions]):
+            for k in indexes.keys():
+                assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
+                with tf.control_dependencies([tensor_partition_idx_vars[k], assign_idx_var]):
+                     pass
+        return tf.constant(True, dtype=tf.bool)
 
-        # Start all groups
-        reordered_cond_ops = [None] * len(ts)
-        for i, partition in enumerate(groups):
-            negotiated_partition = tf.cond(
-                tf.equal(tf.mod(gs - 1, num_partitions),
-                         i), lambda: cpu_group_all_reduce(
-                             partition, fraction, num_partitions), lambda:
-                partition)
-            for negotiated_grad, grad in zip(negotiated_partition, partition):
-                reordered_cond_ops[name_order[grad.name]] = negotiated_grad
+    cases = []
+    for i in range(len(steps)):
+        cases.append((tf.equal(global_step, steps[i]), 
+        lambda frac=fractions[i]: compute_partitions(frac, tensor_partition_idx_vars, num_partitions_var)
+                    ))
+    bin_pack_case = tf.case(cases, exclusive=False, default=lambda: tf.constant(True, dtype=tf.bool))
 
-        return reordered_cond_ops
+    print_partitions = tf.Print(num_partitions_var, [num_partitions_var], message="Partition print: ")
 
-    # x in [left, right)
-    def tf_is_between_closed_open(x, left, right):
-        l = tf.math.greater_equal(x, left)
-        r = tf.math.less(x, right)
+    with tf.control_dependencies([bin_pack_case] + [global_step, increment_global_step_op, print_global_step] + [print_partitions]):
+        partial_negotiated_ts = []
+        for tensor in ts:
+            partition_idx_var = tensor_partition_idx_vars[tensor.name]
+            negotiated_grad = tf.cond(
+                tf.equal(tf.mod(global_step, num_partitions_var), partition_idx_var),
+                lambda: all_reduce(tensor, partition_idx_var, num_partitions_var), lambda: tensor)
+            partial_negotiated_ts.append(negotiated_grad)
 
-        with tf.control_dependencies([l, r]):
-             and_op = tf.math.logical_and(l, r)
-             return and_op
-
-    with tf.control_dependencies([advance_gs, print_gs]):
-        cases = dict()
-        for i in range(len(steps) - 1):
-            cases[tf_is_between_closed_open(
-                gs - 1, tf.constant(steps[i], dtype=tf.int64),
-                tf.constant(steps[i + 1], dtype=tf.int64)
-            )] = lambda: build_partial_exchange_ops(fractions[i])
-
-        cond_ops = tf.case(
-            cases,
-            default=lambda: build_partial_exchange_ops(fractions[-1]),
-            exclusive=True)
-
-        return cond_ops
+    with tf.control_dependencies(partial_negotiated_ts):
+        return partial_negotiated_ts
 
 
-def cpu_group_all_reduce(ts, fraction, num_partitions):
-    return [all_reduce(t, fraction, num_partitions) for t in ts]
+def cpu_group_all_reduce(ts):
+    return [all_reduce(t) for t in ts]
 
 
 def gpu_group_all_reduce(ts):

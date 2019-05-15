@@ -4,6 +4,11 @@
 
 #include <kungfu_tensorflow_ops.h>
 
+#include <queue>
+
+
+#include <fstream>
+
 namespace tensorflow
 {
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
@@ -13,6 +18,8 @@ REGISTER_OP("AllReduce")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Input("input: T")
+    .Input("part_id_var: int64")
+    .Input("num_partitions_var: int64")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
@@ -31,12 +38,21 @@ class AllReduce : public AsyncOpKernel
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
+                
     }
 
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
+
+        const Tensor &partition_id = context->input(1);
+        const Tensor &num_partitions = context->input(2);
+        std::cout << "[" << input_tensor_name_ << "] Partition id:" << partition_id.flat<int>() << std::endl;
+        std::cout << "[" << input_tensor_name_ << "] Num Partitions:" << num_partitions.flat<int>() << std::endl;
+
+        std::cout << "Here........." << std::endl; 
+
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
@@ -44,6 +60,7 @@ class AllReduce : public AsyncOpKernel
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
             input_tensor_name_.c_str(), done);
+        
     }
 };
 
@@ -81,7 +98,6 @@ REGISTER_KERNEL_BUILDER(Name("Broadcast").Device(DEVICE_CPU), Broadcast);
 REGISTER_OP("GlobalVariance")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Input("input: T");
-
 class GlobalVariance : public OpKernel
 {
     using OpKernel::OpKernel;
