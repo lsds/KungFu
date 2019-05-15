@@ -189,23 +189,19 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
     # x in [left, right)
     def tf_is_between_closed_open(x, left, right):
         l = tf.math.greater_equal(x, left)
-        print_l = tf.Print(l, [l], message="left")
         r = tf.math.less(x, right)
-        print_r = tf.Print(r, [r], message="right")
 
-        a = tf.Variable([], dtype=bool)
-        and_op = tf.math.logical_and(l, r)
-        assing_op = tf.assign(a, and_op)
-        with tf.control_dependencies([assing_op, print_l, print_r]):
-            return a
+        with tf.control_dependencies([l, r]):
+             and_op = tf.math.logical_and(l, r)
+             return and_op
 
     with tf.control_dependencies([advance_gs, print_gs]):
         cases = dict()
         for i in range(len(steps) - 1):
             cases[tf_is_between_closed_open(
-                gs - 1, steps[i],
-                steps[i +
-                      1])] = lambda: build_partial_exchange_ops(fractions[i])
+                gs - 1, tf.constant(steps[i], dtype=tf.int64),
+                tf.constant(steps[i + 1], dtype=tf.int64)
+            )] = lambda: build_partial_exchange_ops(fractions[i])
 
         cond_ops = tf.case(
             cases,
