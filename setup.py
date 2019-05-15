@@ -59,11 +59,12 @@ class CMakeBuild(build_ext):
             cmake_flag('KUNGFU_BUILD_TF_OPS', 1),
             cmake_flag('CMAKE_RUNTIME_OUTPUT_DIRECTORY', executable_dir),
             cmake_flag('PYTHON', sys.executable),
-        ] + cmake_tf_ext_flags() + pass_env([
-            'KUNGFU_BUILD_TOOLS',
-            'CMAKE_VERBOSE_MAKEFILE',
-            'CMAKE_EXPORT_COMPILE_COMMANDS',
-        ])
+        ] + cmake_tf_ext_flags() + list(
+            pass_env([
+                'KUNGFU_BUILD_TOOLS',
+                'CMAKE_VERBOSE_MAKEFILE',
+                'CMAKE_EXPORT_COMPILE_COMMANDS',
+            ]))
 
         use_nccl = os.getenv('KUNGFU_USE_NCCL')
         if use_nccl:
