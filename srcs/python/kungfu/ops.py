@@ -50,10 +50,6 @@ def all_reduce_gpu(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
 
 
-def ako_all_reduce(t, partition_id, num_partitions):
-    return _op_lib.ako_negotiator(t, partition_id, num_partitions)
-
-
 def global_variance(t):
     return _op_lib.global_variance(t)
 
@@ -90,6 +86,71 @@ def group_all_reduce(ts):
         return gpu_group_all_reduce(ts)
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
+
+
+def _bin_pack(sizes, budget, adjust_budget=False):
+    lst = list(reversed(sorted([(size, name)
+                                for name, size in sizes.items()])))
+    if adjust_budget:
+        budget = max(budget, lst[0][0])
+    else:
+        raise RuntimeError("Budget is too small.")
+    budgets = []
+    indexes = dict()
+    for size, name in lst:
+        ok = False
+        for i, b in enumerate(budgets):
+            if b >= size:
+                budgets[i] -= size
+                indexes[name] = i
+                ok = True
+                break
+        if not ok:
+            budgets.append(budget - size)
+            indexes[name] = len(budgets) - 1
+    return indexes
+
+
+def _tensor_size(t):
+    return t.shape.num_elements() * t.dtype.size
+
+
+def partial_exchange_with_gpu_allreduce(ts,
+                                        fraction=0.3,
+                                        accumulate=False,
+                                        average="none"):
+    import math
+    import tensorflow as tf
+    total_size = sum([_tensor_size(t) for t in ts])
+    print("Total Size of All Gradients: " + str(total_size))
+    print("The fraction is: " + str(fraction))
+    budget = int(math.floor(fraction * total_size))
+    indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts), budget)
+    print("The bucket budget is: " + str(budget))
+
+    gs = tf.Variable(tf.zeros([], dtype=tf.int64))
+    advance_gs = tf.assign(gs, gs + 1)
+    num_partitions = len(set(indexes.values()))
+
+    name_order = dict((t.name, i) for i, t in enumerate(ts))
+
+    # Construct groups
+    groups = [[] for _ in range(num_partitions)]
+    for t in ts:
+        groups[indexes[t.name]].append(t)
+
+    # Start all groups
+    reordered_cond_ops = [None] * len(ts)
+    for i, partition in enumerate(groups):
+        negotiated_partition = tf.cond(
+            tf.equal(
+                tf.mod(gs - 1, num_partitions),
+                i), lambda: gpu_group_all_reduce(partition), lambda: partition)
+        for negotiated_grad, grad in zip(negotiated_partition, partition):
+            reordered_cond_ops[name_order[grad.name]] = negotiated_grad
+
+    with tf.control_dependencies([advance_gs]):
+        return reordered_cond_ops
 
 
 def _concat(ts):
