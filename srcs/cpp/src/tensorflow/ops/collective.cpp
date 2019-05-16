@@ -1,3 +1,4 @@
+#include <tensorflow/core/framework/common_shape_fns.h>
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
@@ -14,10 +15,7 @@ REGISTER_OP("AllReduce")
     .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
+    .SetShapeFn(shape_inference::UnchangedShape);
 
 class AllReduce : public AsyncOpKernel
 {
@@ -53,10 +51,7 @@ REGISTER_OP("Broadcast")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Input("input: T")
     .Output("output: T")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
+    .SetShapeFn(shape_inference::UnchangedShape);
 
 class Broadcast : public AsyncOpKernel
 {
@@ -83,7 +78,7 @@ REGISTER_OP("GradientNoise")
     .Input("g_biased: float32")
     .Input("s_biased: float32")
     .Output("output: float32")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
         return Status::OK();
     });
@@ -143,10 +138,7 @@ REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
 REGISTER_OP("Controller")
     .Input("negotiated_gradients: float32")
     .Output("output: float32")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
+    .SetShapeFn(shape_inference::UnchangedShape);
 
 class Controller : public OpKernel
 {
