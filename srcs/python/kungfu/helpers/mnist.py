@@ -16,7 +16,7 @@ def _to_onehot(k, a):
     return np.array(vs)
 
 
-def load_mnist_data(data_dir, prefix, normalize, one_hot, padded=False):
+def load_mnist_data(data_dir, prefix, normalize, one_hot, padded=False, shard=False):
     prefixes = ['train', 't10k']
     if not prefix in prefixes:
         raise ValueError('prefix must be %s' % ' | '.join(prefixes))
@@ -36,7 +36,7 @@ def load_mnist_data(data_dir, prefix, normalize, one_hot, padded=False):
     if one_hot:
         labels = _to_onehot(10, labels)
 
-    if prefix == 'train':
+    if shard and prefix == 'train': 
         cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
         num_workers = len(cluster_spec['Peers'])
         if num_workers == 0:
@@ -50,7 +50,7 @@ def load_mnist_data(data_dir, prefix, normalize, one_hot, padded=False):
         print("Peer Rank: " + str(shard_size))
 
         return namedtuple('DataSet', 'images labels')(images[peer_rank * shard_size:(peer_rank + 1) * shard_size], 
-                                                      labels[peer_rank * shard_size:(peer_rank + 1) * shard_size])
+                                                    labels[peer_rank * shard_size:(peer_rank + 1) * shard_size])
     else:
         return namedtuple('DataSet', 'images labels')(images, labels)
 
