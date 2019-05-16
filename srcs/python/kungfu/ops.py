@@ -55,10 +55,12 @@ def global_variance(t):
 
 
 def global_step_modifier(step):
+    print('global_step_modifier is deprecated and will be removed soon')
     return _op_lib.global_step_modifier(step)
 
 
 def set_num_gradients(n):
+    print('set_num_gradients is deprecated and will be removed soon')
     return _op_lib.set_num_gradients(n)
 
 
