@@ -96,16 +96,16 @@ def _concat(ts):
     import tensorflow as tf
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
-def gradient_noise_controller(noise_op, worker_id):
-    return _op_lib.controller_running_sum(noise_op, worker_id=worker_id)
+def gradient_noise_controller(noise_op, worker_id, running_sum_interval):
+    return _op_lib.controller_running_sum(noise_op, worker_id=worker_id, interval=running_sum_interval)
 
-def cpu_group_all_reduce_variance_monitor(grads, batch_small):
+def cpu_group_all_reduce_variance_monitor(grads, batch_small, noise_decay_factor, running_sum_interval):
     import tensorflow as tf
     negotiated_grads = [all_reduce(t) for t in grads]
     noise_op = get_global_gradient_noise_operator(batch_small, _concat(grads),
-                                                  _concat(negotiated_grads))
+                                                  _concat(negotiated_grads), noise_decay_factor)
 
-    controller_op = gradient_noise_controller(noise_op, int(os.getenv('KUNGFU_TEST_SELF_RANK')))
+    controller_op = gradient_noise_controller(noise_op, int(os.getenv('KUNGFU_TEST_SELF_RANK')), running_sum_interval)
 
     with tf.control_dependencies([noise_op, controller_op]):
          return [
@@ -115,7 +115,7 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
 
 
 def get_global_gradient_noise_operator(batch_small, concat_grad,
-                                       concat_negotiated_grad):
+                                       concat_negotiated_grad, noise_decay_factor):
     import tensorflow as tf
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
@@ -136,6 +136,6 @@ def get_global_gradient_noise_operator(batch_small, concat_grad,
                                                 batch_small * G_sq_small)
     S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
 
-    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=0.2)
+    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=noise_decay_factor)
 
     return global_noise_op

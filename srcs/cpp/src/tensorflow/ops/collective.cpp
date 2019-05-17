@@ -134,7 +134,11 @@ class GradientNoise : public OpKernel
         } else {
             s_ema = alpha_ * s_current + (1 - alpha_) * s_ema;
         }
+
         float gradient_noise = s_ema / g_ema;
+        if (gradient_noise > 10000) {
+            std::cout << "s_ema = " << s_ema << "; g_ema = " << g_ema << std::endl;
+        }
 
         float *y = static_cast<float *>((void *)output->tensor_data().data());
         y[0]     = gradient_noise;
@@ -146,6 +150,7 @@ REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
 
 REGISTER_OP("ControllerRunningSum")
     .Attr("worker_id: int")
+    .Attr("interval: int")
     .Input("gradient_noise: float32");
 // It does not work if you forward the input to output
 //     .Output("output: float32")
@@ -169,9 +174,16 @@ class ControllerRunningSum : public OpKernel
 
   public:
     explicit ControllerRunningSum(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), interval(100)
+        : OpKernel(context), gs(0)
     {   
         OP_REQUIRES_OK(context, context->GetAttr("worker_id", &worker_id));
+        OP_REQUIRES(context, worker_id >= 0,
+            errors::InvalidArgument("worker id must be non-negative"));
+        
+        OP_REQUIRES_OK(context, context->GetAttr("interval", &interval));
+        OP_REQUIRES(context, interval >= 0,
+            errors::InvalidArgument("interval must be greater than zero"));
+
         std::string worker_file_name = "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) + ".txt";
         noise_file.open(worker_file_name);
     }
@@ -201,7 +213,7 @@ class ControllerRunningSum : public OpKernel
            future_batch = running_sum / noises.size();
         }
 
-        if (future_batch <= 4000) {
+        if (future_batch <= 8000) {
             LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
             noise_file << future_batch << std::endl;
         }
@@ -213,6 +225,8 @@ class ControllerRunningSum : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("ControllerRunningSum").Device(DEVICE_CPU), ControllerRunningSum);
 
 
+
+// Unused. Experiments show that this is not effective
 REGISTER_OP("ControllerEMA")
     .Input("gradient_noise: float32");
 
@@ -225,9 +239,9 @@ class ControllerEMA : public OpKernel
     float alpha;
   public:
     explicit ControllerEMA(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), alpha(0.2), future_batch_ema(0.0)
+        : OpKernel(context), gs(0), alpha(0.01), future_batch_ema(0.0)
     {
-
+        
     }
 
     void Compute(OpKernelContext *context) override

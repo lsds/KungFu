@@ -25,7 +25,7 @@ line_regex = re.compile(r".*$")
 
 font = {'family' : 'normal',
         'weight' : '300',
-        'size'   : 11}
+        'size'   : 12}
 
 matplotlib.rc('font', **font)
 
@@ -87,7 +87,6 @@ def get_accs_resnet32(s):
 def get_batch_and_noise(s, type_of_averaging):
     pattern = re.compile(r".*\[" + re.escape(type_of_averaging) + r"\]\sFuture\sbatch\s(?P<batch>\-?\d+\.\d+)\;\sNoise\s(?P<noise>\-?\d+[\.\d+]?).*", re.VERBOSE)
     match = pattern.match(s)
-
     if match is None:
         return None
     return (float(match.group("batch")), float(match.group("noise"))) 
@@ -126,12 +125,16 @@ def plot(ax, lines, type_of_averaging, worker, decay=-1):
     # Without accuracies
     batches, noises = zip(*batches_and_noises)
 
-    batches = batches[:1200]
-    noises  = noises[:1200]
+    batches = batches
+    noises  = noises
+
+    for n in noises:
+        if n > 10000:
+            print(n)
 
     ax.semilogy()
     ax.yaxis.set_major_formatter(MyLogFormatter())  
-    ax.semilogx()
+    #ax.semilogx()
 
 
     ax_twin = ax.twinx()
@@ -166,9 +169,9 @@ def plot(ax, lines, type_of_averaging, worker, decay=-1):
 def paper_figure():
     num_workers = 1
     workers = []
-    for worker in [3]:
-        worker_running_sum = get_experiment_results('./decay-0.2-batch-0.2/noise-running-sum-decay-0.2-batch-0.2.log', lambda x: extract_from_worker(x, worker))
-        worker_ema = get_experiment_results('./decay-0.2-batch-0.2/noise-ema-0.2-batch-0.2.log', lambda x: extract_from_worker(x, worker))
+    for worker in [0]:
+        worker_running_sum = get_experiment_results('./PAPER_ADAPTIVE_BATCH_NOISE.log', lambda x: extract_from_worker(x, worker))
+        worker_ema = [] # get_experiment_results('./decay-0.2-batch-0.2/noise-ema-0.2-batch-0.2.log', lambda x: extract_from_worker(x, worker))
         workers.append((worker_running_sum, worker_ema))
 
     ax = plt.gca() 
