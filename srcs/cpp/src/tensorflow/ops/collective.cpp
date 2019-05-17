@@ -172,7 +172,7 @@ class ControllerRunningSum : public OpKernel
         : OpKernel(context), gs(0), interval(100)
     {   
         OP_REQUIRES_OK(context, context->GetAttr("worker_id", &worker_id));
-        std::string worker_file_name = "/home/ab7515/noise-worker-" + std::to_string(worker_id) + ".txt";
+        std::string worker_file_name = "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) + ".txt";
         noise_file.open(worker_file_name);
     }
 
