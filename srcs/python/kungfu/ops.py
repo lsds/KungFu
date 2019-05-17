@@ -96,8 +96,8 @@ def _concat(ts):
     import tensorflow as tf
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
-def gradient_noise_controller(noise_op):
-    return _op_lib.controller_running_sum(noise_op)
+def gradient_noise_controller(noise_op, worker_id):
+    return _op_lib.controller_running_sum(noise_op, worker_id=worker_id)
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     import tensorflow as tf
@@ -105,7 +105,7 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     noise_op = get_global_gradient_noise_operator(batch_small, _concat(grads),
                                                   _concat(negotiated_grads))
 
-    controller_op = gradient_noise_controller(noise_op)
+    controller_op = gradient_noise_controller(noise_op, int(os.getenv('KUNGFU_TEST_SELF_RANK')))
 
     with tf.control_dependencies([noise_op, controller_op]):
          return [

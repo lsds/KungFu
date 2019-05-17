@@ -6,6 +6,8 @@
 
 #include <queue>
 
+#include <fstream>
+
 namespace tensorflow
 {
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
@@ -143,13 +145,15 @@ REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
                         GradientNoise);
 
 REGISTER_OP("ControllerRunningSum")
-    .Input("gradient_noise: float32")
-    .Output("output: float32")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
-;
+    .Attr("worker_id: int")
+    .Input("gradient_noise: float32");
+// It does not work if you forward the input to output
+//     .Output("output: float32")
+//     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
+//         c->set_output(0, c->input(0));
+//         return Status::OK();
+//     });
+// ;
 
 class ControllerRunningSum : public OpKernel
 {
@@ -158,12 +162,18 @@ class ControllerRunningSum : public OpKernel
     int gs;
     int interval;
     std::queue<float> noises;
-    float running_sum;
+    float running_sum;  
+
+    int worker_id;
+    std::ofstream noise_file;
+
   public:
     explicit ControllerRunningSum(OpKernelConstruction *context)
         : OpKernel(context), gs(0), interval(100)
-    {
-
+    {   
+        OP_REQUIRES_OK(context, context->GetAttr("worker_id", &worker_id));
+        std::string worker_file_name = "/home/ab7515/noise-worker-" + std::to_string(worker_id) + ".txt";
+        noise_file.open(worker_file_name);
     }
 
     void Compute(OpKernelContext *context) override
@@ -173,9 +183,9 @@ class ControllerRunningSum : public OpKernel
 
         Tensor &gradient_noise_tensor = (Tensor &)context->input(0);
 
-        Tensor *output = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(
-                                    0, gradient_noise_tensor.shape(), &output));
+        // Tensor *output = nullptr;
+        // OP_REQUIRES_OK(context, context->allocate_output(
+        //                             0, gradient_noise_tensor.shape(), &output));
 
         float noise = (float)gradient_noise_tensor.scalar<float>()();
         noises.push(abs(noise));
@@ -190,9 +200,13 @@ class ControllerRunningSum : public OpKernel
         if (noises.size() > 0) {
            future_batch = running_sum / noises.size();
         }
-        // LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
-        float *y = static_cast<float *>((void *)output->tensor_data().data());
-        y[0]     = future_batch;
+
+        if (future_batch <= 4000) {
+            LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
+            noise_file << future_batch << std::endl;
+        }
+        // float *y = static_cast<float *>((void *)output->tensor_data().data());
+        // y[0]     = future_batch;
     }
 };
 
