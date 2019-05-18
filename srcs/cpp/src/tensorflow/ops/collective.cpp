@@ -151,6 +151,7 @@ REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
 REGISTER_OP("ControllerRunningSum")
     .Attr("worker_id: int")
     .Attr("interval: int")
+    .Attr("future_batch_limit: int")
     .Input("gradient_noise: float32");
 // It does not work if you forward the input to output
 //     .Output("output: float32")
