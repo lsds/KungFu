@@ -96,16 +96,16 @@ def _concat(ts):
     import tensorflow as tf
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
-def gradient_noise_controller(noise_op, worker_id, running_sum_interval):
-    return _op_lib.controller_running_sum(noise_op, worker_id=worker_id, interval=running_sum_interval)
+def gradient_noise_controller(noise_op, worker_id, running_sum_interval, future_batch_limit):
+    return _op_lib.controller_running_sum(noise_op, worker_id=worker_id, interval=running_sum_interval, future_batch_limit=future_batch_limit)
 
-def cpu_group_all_reduce_variance_monitor(grads, batch_small, noise_decay_factor, running_sum_interval):
+def cpu_group_all_reduce_variance_monitor(grads, batch_small, noise_decay_factor, running_sum_interval, future_batch_limit):
     import tensorflow as tf
     negotiated_grads = [all_reduce(t) for t in grads]
     noise_op = get_global_gradient_noise_operator(batch_small, _concat(grads),
                                                   _concat(negotiated_grads), noise_decay_factor)
 
-    controller_op = gradient_noise_controller(noise_op, int(os.getenv('KUNGFU_TEST_SELF_RANK')), running_sum_interval)
+    controller_op = gradient_noise_controller(noise_op, int(os.getenv('KUNGFU_TEST_SELF_RANK')), running_sum_interval, future_batch_limit)
 
     with tf.control_dependencies([noise_op, controller_op]):
          return [
