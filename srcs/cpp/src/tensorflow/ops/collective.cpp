@@ -166,6 +166,7 @@ class ControllerRunningSum : public OpKernel
 
     int gs;
     int interval;
+    int future_batch_limit;
     std::queue<float> noises;
     float running_sum;  
 
@@ -183,8 +184,12 @@ class ControllerRunningSum : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("interval", &interval));
         OP_REQUIRES(context, interval >= 0,
             errors::InvalidArgument("interval must be greater than zero"));
+        OP_REQUIRES_OK(context, context->GetAttr("future_batch_limit", &future_batch_limit));
+        OP_REQUIRES(context, future_batch_limit > 0,
+            errors::InvalidArgument("future batch limit must be greater than zero"));
 
-        std::string worker_file_name = "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) + ".txt";
+        // "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) + ".txt";
+        std::string worker_file_name = "/home/ab7515/noise-worker-" + std::to_string(worker_id) + ".txt";
         noise_file.open(worker_file_name);
     }
 
@@ -213,9 +218,13 @@ class ControllerRunningSum : public OpKernel
            future_batch = running_sum / noises.size();
         }
 
-        if (future_batch <= 8000) {
+        if (future_batch <= future_batch_limit) {
             LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
             noise_file << future_batch << std::endl;
+        } else {
+            LOG(INFO) << "Future batch limit exceeded. Capping to " << future_batch_limit; 
+            LOG(INFO) << "[Running Sum] Future batch " << future_batch_limit << "; Noise " << noise; 
+            noise_file << future_batch_limit << std::endl;
         }
         // float *y = static_cast<float *>((void *)output->tensor_data().data());
         // y[0]     = future_batch;
