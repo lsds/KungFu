@@ -189,8 +189,8 @@ class ControllerRunningSum : public OpKernel
         OP_REQUIRES(context, future_batch_limit > 0,
             errors::InvalidArgument("future batch limit must be greater than zero"));
 
-        // "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) + ".txt";
-        std::string worker_file_name = "/home/ab7515/noise-worker-" + std::to_string(worker_id) + ".txt";
+        // "/home/ab7515/noise-worker-" + std::to_string(worker_id) + ".txt";
+        std::string worker_file_name = "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) + ".txt";
         noise_file.open(worker_file_name);
     }
 
