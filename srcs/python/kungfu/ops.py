@@ -58,7 +58,7 @@ def all_reduce_debug(t, partition_id_var, num_partitions_var):
     return _op_lib.all_reduce_debug(t, partition_id_var, num_partitions_var, input_tensor_name=t.name)
 
 def all_reduce(t):
-    return _op_lib.all_reduce(t)
+    return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
 
 def all_reduce_gpu(t):
@@ -133,6 +133,26 @@ def _parse_schedule(schedule, batch_size, num_train):
     print("Fractions: " + str(fractions))
     return steps, fractions
 
+def compute_partitions(fraction, ts, total_size, tensor_partition_idx_vars,
+                           num_partitions_var):
+    import math
+    import tensorflow as tf
+    budget = int(math.floor(fraction * total_size))
+    indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts),
+                        budget)
+    print("Fraction: " + str(fraction))
+    print("Size indices: " + str(len(indexes.values())))
+    new_num_partitions = len(set(indexes.values()))
+
+    assign_partitions = tf.assign(num_partitions_var, new_num_partitions)
+
+    with tf.control_dependencies([assign_partitions]):
+        assign_idx_vars = []
+        for k in indexes.keys():
+            assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
+            assign_idx_vars.append(assign_idx_var)
+        with tf.control_dependencies(assign_idx_vars):
+             return tf.identity(tf.constant(True, dtype=tf.bool))
 
 def adaptive_partial_exchange_with_cpu_allreduce(ts,
                                                  batch_size,
@@ -140,59 +160,46 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
                                                  schedule,
                                                  accumulate=False,
                                                  average="none"):
-    print("Using piecewise partitioning schedule: " + schedule)
-    steps, fractions = _parse_schedule(schedule, int(batch_size),
-                                       int(num_train))
-    import math
     import tensorflow as tf
+    print("Using piecewise partitioning schedule: " + schedule)
+    steps, fractions = _parse_schedule(schedule, int(batch_size), int(num_train))
+    
 
     total_size = sum([_tensor_size(t) for t in ts])
-    global_step = tf.Variable(tf.zeros([], dtype=tf.int64)) #  tf.train.get_or_create_global_step(graph=tf.get_default_graph())
+    global_step = tf.Variable(tf.zeros([],dtype=tf.int64)) # tf.train.get_or_create_global_step(graph=tf.get_default_graph())
     increment_global_step_op = tf.assign(global_step, global_step + 1)
 
     print_global_step = tf.Print(global_step, [global_step], message="Global step")
 
-    tensor_partition_idx_vars = dict(
-        (t.name, tf.Variable(tf.ones([], dtype=tf.int64))) for t in ts)
+    # Dynamic partition info
+    tensor_partition_idx_vars = dict((t.name, tf.Variable(tf.ones([], dtype=tf.int64))) for t in ts)
     num_partitions_var = tf.Variable(tf.ones([], dtype=tf.int64))
-
-    def compute_partitions(fraction, tensor_partition_idx_vars,
-                           num_partitions_var):
-        budget = int(math.floor(fraction * total_size))
-        indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts),
-                            budget)
-        print("Fraction: " + str(fraction))
-        print("Size indices: " + str(len(indexes.values())))
-        new_num_partitions = len(indexes.values())
-
-        assign_partitions = tf.assign(num_partitions_var, new_num_partitions)
-
-        with tf.control_dependencies([num_partitions_var, assign_partitions]):
-            for k in indexes.keys():
-                assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
-                with tf.control_dependencies([tensor_partition_idx_vars[k], assign_idx_var]):
-                     return tf.constant(True, dtype=tf.bool)
+  
+    # Reverse both
+    steps = steps[::-1]
+    fractions = fractions[::-1]
 
     cases = []
     for i in range(len(steps)):
-        cases.append((tf.equal(global_step, steps[i]), 
-        lambda frac=fractions[i]: compute_partitions(frac, tensor_partition_idx_vars, num_partitions_var)
-                    ))
+        cases.append((tf.greater_equal(global_step - 1, steps[i]), 
+        lambda frac=fractions[i]: compute_partitions(frac, ts, total_size, tensor_partition_idx_vars, num_partitions_var)))
+
+
     bin_pack_case = tf.case(cases, exclusive=False, default=lambda: tf.constant(True, dtype=tf.bool))
+    print_partitions = tf.Print(num_partitions_var, [num_partitions_var], message="Num partitions: ")
 
-    print_partitions = tf.Print(num_partitions_var, [num_partitions_var], message="Partition print: ")
-
-    with tf.control_dependencies([bin_pack_case] + [global_step, increment_global_step_op, print_global_step] + [print_partitions]):
+    with tf.control_dependencies([print_global_step] + [bin_pack_case] + [print_partitions]):
         partial_negotiated_ts = []
         for tensor in ts:
             partition_idx_var = tensor_partition_idx_vars[tensor.name]
             negotiated_grad = tf.cond(
-                tf.equal(tf.mod(global_step, num_partitions_var), partition_idx_var),
-                lambda: all_reduce(tensor, partition_idx_var, num_partitions_var), lambda: tensor)
+                tf.equal(tf.mod(global_step - 1, num_partitions_var), partition_idx_var),
+                lambda tensor=tensor: all_reduce_debug(tensor, partition_idx_var, num_partitions_var), lambda: tensor)
             partial_negotiated_ts.append(negotiated_grad)
 
-    with tf.control_dependencies(partial_negotiated_ts):
-        return partial_negotiated_ts
+        
+        with tf.control_dependencies([increment_global_step_op]):
+            return [tf.identity(pnt) for pnt in partial_negotiated_ts]
 
 
 def cpu_group_all_reduce(ts):
