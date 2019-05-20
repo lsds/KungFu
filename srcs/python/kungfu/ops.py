@@ -11,10 +11,6 @@ EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
 import tensorflow as tf
 
-from kungfu.helpers.ako_partitioner import AkoPartitioner
-from kungfu.helpers.bin_pack_partitioner import BinPackPartitioner
-
-
 def get_num_peers():
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
