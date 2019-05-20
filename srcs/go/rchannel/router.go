@@ -16,7 +16,6 @@ type Router struct {
 	bufferPool *BufferPool
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
-	handle     func()
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -102,6 +101,10 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 
 var newShm = shm.New
 
+func (r *Router) handle(name string, msg *Message) {
+	log.Infof("handling message with name %s", name)
+}
+
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
 	var shm shm.Shm
 	if kc.UseShm && remote.Host == r.localAddr.Host {
@@ -122,7 +125,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 			r.bufferPool.require(remote.WithName(name)) <- msg
 		case ConnPeerToPeer:
 			log.Infof("got p2p from %s named %s length %d", remote, name, msg.Length)
-			// TODO: call r.handle
+			r.handle(name, msg)
 		default:
 			log.Infof("no handler for type %s", t)
 		}

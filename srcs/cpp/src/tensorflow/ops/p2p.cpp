@@ -9,14 +9,25 @@ namespace tensorflow
 {
 REGISTER_OP("SendTo")
     .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("input_tensor_name: string")
     .Input("rank: int32")
     .Input("input: T");
 
 class SendTo : public OpKernel
 {
     using OpKernel::OpKernel;
+    std::string input_tensor_name_;
 
   public:
+    explicit SendTo(OpKernelConstruction *context) : OpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
+                                                 &input_tensor_name_));
+        OP_REQUIRES(
+            context, input_tensor_name_.size() >= 0,
+            errors::InvalidArgument("input_tensor_name must not be empty"));
+    }
+
     void Compute(OpKernelContext *context) override
     {
         const Tensor &rank_tensor = context->input(0);
@@ -28,7 +39,7 @@ class SendTo : public OpKernel
                   << " to peer rank " << rank;
         _kungfu_world->SendTo(
             rank, input.tensor_data().data(), input.NumElements(),
-            to_kungfu_type(input.dtype()), name().c_str(), [] {});
+            to_kungfu_type(input.dtype()), input_tensor_name_.c_str(), [] {});
     }
 };
 

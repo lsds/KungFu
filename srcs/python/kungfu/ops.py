@@ -39,7 +39,7 @@ _op_lib, _has_gpu = _load_and_init_op_lib()
 
 
 def send_to(rank, t):
-    return _op_lib.send_to(rank, t)
+    return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
 
 def broadcast(t):
@@ -100,7 +100,9 @@ def _bin_pack(sizes, budget, adjust_budget=False):
     if adjust_budget:
         budget = max(budget, lst[0][0])
     else:
-        raise RuntimeError("Budget is too small.")
+        if lst[0][0] > budget:
+            raise RuntimeError("Budget is too small:" + str(budget))
+
     budgets = []
     indexes = dict()
     for size, name in lst:
@@ -114,7 +116,7 @@ def _bin_pack(sizes, budget, adjust_budget=False):
         if not ok:
             budgets.append(budget - size)
             indexes[name] = len(budgets) - 1
-    return indexes
+    return indexes, len(budgets)
 
 
 def _tensor_size(t):
@@ -131,12 +133,12 @@ def partial_exchange_with_gpu_allreduce(ts,
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
     budget = int(math.floor(fraction * total_size))
-    indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts), budget)
+    indexes, num_partitions = _bin_pack(
+        dict((t.name, _tensor_size(t)) for t in ts), budget)
     print("The bucket budget is: " + str(budget))
 
     gs = tf.Variable(tf.zeros([], dtype=tf.int64))
     advance_gs = tf.assign(gs, gs + 1)
-    num_partitions = len(set(indexes.values()))
 
     name_order = dict((t.name, i) for i, t in enumerate(ts))
 
