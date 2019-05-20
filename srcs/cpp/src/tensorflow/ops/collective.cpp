@@ -32,7 +32,6 @@ class AllReduce : public AsyncOpKernel
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));           
 
-        std::cout << "CONSTRUCTING THE ALL REDUCE OPERATOR" << std::endl;
     }
 
   public:
@@ -78,8 +77,6 @@ class AllReduceDebug : public AsyncOpKernel
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
-        
-        std::cout << "AM I CONSTRUCTING THIS?" << std::endl;
     }
 
   public:
@@ -89,10 +86,6 @@ class AllReduceDebug : public AsyncOpKernel
 
         const Tensor &partition_id = context->input(1);
         const Tensor &num_partitions = context->input(2);
-
-        LOG(INFO) << "AM I EVER GOING HERE?";
-        std::cout << "[" << input_tensor_name_ << "] Partition id:" << partition_id.scalar<int>()() << std::endl;
-        std::cout << "[" << input_tensor_name_ << "] Num Partitions:" << num_partitions.scalar<int>()() << std::endl;
 
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
