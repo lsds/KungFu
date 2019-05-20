@@ -110,7 +110,7 @@ install_local() {
 }
 
 run_experiments() {
-    ./bin/run-experiments -H $H -u ${RUNNER} -timeout 120000s \
+    ./bin/run-experiments -H $H -u ${RUNNER} -timeout 120s \
         env \
         TF_CPP_MIN_LOG_LEVEL=1 \
         python3 \

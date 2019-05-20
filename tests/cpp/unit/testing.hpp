@@ -9,8 +9,6 @@
 #include <kungfu_base.h>
 #include <kungfu_types.hpp>
 
-#include <iostream>
-
 class Waiter
 {
     std::mutex mu;

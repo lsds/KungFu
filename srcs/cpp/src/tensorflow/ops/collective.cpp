@@ -51,8 +51,6 @@ class AllReduce : public AsyncOpKernel
         std::cout << "[" << input_tensor_name_ << "] Partition id:" << partition_id.flat<int>() << std::endl;
         std::cout << "[" << input_tensor_name_ << "] Num Partitions:" << num_partitions.flat<int>() << std::endl;
 
-        std::cout << "Here........." << std::endl; 
-
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
@@ -98,6 +96,7 @@ REGISTER_KERNEL_BUILDER(Name("Broadcast").Device(DEVICE_CPU), Broadcast);
 REGISTER_OP("GlobalVariance")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Input("input: T");
+
 class GlobalVariance : public OpKernel
 {
     using OpKernel::OpKernel;

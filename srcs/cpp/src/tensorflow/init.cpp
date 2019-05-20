@@ -5,9 +5,7 @@
 
 std::unique_ptr<kungfu_world> _kungfu_world;
 
-void kungfu_tensorflow_init() { 
-    _kungfu_world.reset(new kungfu_world); 
-}
+void kungfu_tensorflow_init() { _kungfu_world.reset(new kungfu_world); }
 
 namespace kungfu
 {
