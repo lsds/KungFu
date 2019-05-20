@@ -153,13 +153,6 @@ REGISTER_OP("ControllerRunningSum")
     .Attr("interval: int")
     .Attr("future_batch_limit: int")
     .Input("gradient_noise: float32");
-// It does not work if you forward the input to output
-//     .Output("output: float32")
-//     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-//         c->set_output(0, c->input(0));
-//         return Status::OK();
-//     });
-// ;
 
 class ControllerRunningSum : public OpKernel
 {
@@ -189,9 +182,10 @@ class ControllerRunningSum : public OpKernel
         OP_REQUIRES(context, future_batch_limit > 0,
             errors::InvalidArgument("future batch limit must be greater than zero"));
 
+        // Write noise to file
         // "/home/ab7515/noise-worker-" + std::to_string(worker_id) + ".txt";
-        std::string worker_file_name = "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) + ".txt";
-        noise_file.open(worker_file_name);
+        // std::string worker_file_name = "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) + ".txt";
+        // noise_file.open(worker_file_name);
     }
 
     void Compute(OpKernelContext *context) override
@@ -200,10 +194,6 @@ class ControllerRunningSum : public OpKernel
         DCHECK_EQ(1, context->num_inputs());
 
         Tensor &gradient_noise_tensor = (Tensor &)context->input(0);
-
-        // Tensor *output = nullptr;
-        // OP_REQUIRES_OK(context, context->allocate_output(
-        //                             0, gradient_noise_tensor.shape(), &output));
 
         float noise = (float)gradient_noise_tensor.scalar<float>()();
         noises.push(abs(noise));
@@ -227,8 +217,6 @@ class ControllerRunningSum : public OpKernel
             LOG(INFO) << "[Running Sum] Future batch " << future_batch_limit << "; Noise " << noise; 
             noise_file << future_batch_limit << std::endl;
         }
-        // float *y = static_cast<float *>((void *)output->tensor_data().data());
-        // y[0]     = future_batch;
     }
 };
 
@@ -248,12 +236,6 @@ class ControllerEMA : public OpKernel
     float future_batch_ema;
     float alpha;
   public:
-    explicit ControllerEMA(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), alpha(0.01), future_batch_ema(0.0)
-    {
-        
-    }
-
     void Compute(OpKernelContext *context) override
     {
         gs++;
@@ -269,8 +251,7 @@ class ControllerEMA : public OpKernel
             future_batch_ema = alpha * noise + (1 - alpha) * future_batch_ema;
         }
 
-        //LOG(INFO) << "[EMA] Future batch " << future_batch_ema << "; Noise " << noise; 
-
+        LOG(INFO) << "[EMA] Future batch " << future_batch_ema << "; Noise " << noise; 
     }
 };
 

@@ -50,7 +50,8 @@ class KungFuOptimizer(tf.train.Optimizer):
 
 
     def apply_gradients(self, *args, **kwargs):
-        raise RuntimeError('Not implemented')
+         """Calls this same method on the underlying optimizer."""
+        return self._optimizer.apply_gradients(*args, **kwargs)
 
     def get_slot(self, *args, **kwargs):
         """Calls this same method on the underlying optimizer."""
