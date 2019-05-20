@@ -8,7 +8,6 @@
 #include <kungfu.h>
 #include <kungfu_base.h>
 #include <kungfu_types.hpp>
-#include <partial_exchange_manager.h>
 
 #include <iostream>
 

@@ -4,11 +4,9 @@
 #include <kungfu_tensorflow_init.h>
 
 std::unique_ptr<kungfu_world> _kungfu_world;
-// std::unique_ptr<partial_exchange_manager> _partial_exchange_manager;
 
 void kungfu_tensorflow_init() { 
     _kungfu_world.reset(new kungfu_world); 
-   // _partial_exchange_manager.reset(new partial_exchange_manager); 
 }
 
 namespace kungfu

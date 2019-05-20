@@ -65,11 +65,6 @@ def all_reduce(t, partition_id_var, num_partitions_var):
 def all_reduce_gpu(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
 
-
-def ako_all_reduce(t, partition_id, num_partitions):
-    return _op_lib.ako_negotiator(t, partition_id, num_partitions)
-
-
 def global_variance(t):
     return _op_lib.global_variance(t)
 

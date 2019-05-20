@@ -30,6 +30,7 @@ def measure(f, name=None):
 
 
 
+# Source: https://www.kaggle.com/danyfang/mnist-competition
 def LeNet5(x):    
     # Hyperparameters
     mu = 0
