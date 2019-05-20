@@ -6,8 +6,6 @@
 
 #include <queue>
 
-#include <fstream>
-
 namespace tensorflow
 {
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
@@ -165,7 +163,8 @@ class ControllerRunningSum : public OpKernel
     float running_sum;  
 
     int worker_id;
-    std::ofstream noise_file;
+    // Write noise to file for adaptive batch training 
+    // std::ofstream noise_file;
 
   public:
     explicit ControllerRunningSum(OpKernelConstruction *context)
