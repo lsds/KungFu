@@ -35,8 +35,6 @@ class SendTo : public OpKernel
 
         const Tensor &input = context->input(1);
 
-        LOG(INFO) << "Sending tensor " << input.DebugString()
-                  << " to peer rank " << rank;
         _kungfu_world->SendTo(
             rank, input.tensor_data().data(), input.NumElements(),
             to_kungfu_type(input.dtype()), input_tensor_name_.c_str(), [] {});

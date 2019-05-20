@@ -40,7 +40,7 @@ system test:
     pip3 install -vvv -U .
   - |
     ./scripts/tests/run-train-tests.sh
-    ./bin/kungfu-prun -np=4 -H 127.0.0.1:4 python3 ./tests/python/test_p2p.py
+    ./bin/kungfu-prun -np=4 -H 127.0.0.1:4 -timeout 20s python3 ./tests/python/test_p2p.py
 
 python2 test:
   stage: test

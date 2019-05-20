@@ -101,7 +101,10 @@ def _bin_pack(sizes, budget, adjust_budget=False):
         budget = max(budget, lst[0][0])
     else:
         if lst[0][0] > budget:
-            raise RuntimeError("Budget is too small:" + str(budget))
+            print("Suggested budget fraction is %f" %
+                  (lst[0][0] / sum([s[1] for s in sizes.items()])))
+            raise RuntimeError("Budget is too small %f. Largest tensor is %f" %
+                               (budget, lst[0][0]))
 
     budgets = []
     indexes = dict()
@@ -151,9 +154,9 @@ def partial_exchange_with_gpu_allreduce(ts,
     reordered_cond_ops = [None] * len(ts)
     for i, partition in enumerate(groups):
         negotiated_partition = tf.cond(
-            tf.equal(
-                tf.mod(gs - 1, num_partitions),
-                i), lambda: gpu_group_all_reduce(partition), lambda: partition)
+            tf.equal(tf.mod(gs - 1, num_partitions), i),
+            lambda partition=partition: gpu_group_all_reduce(partition),
+            lambda partition=partition: partition)
         for negotiated_grad, grad in zip(negotiated_partition, partition):
             reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 
