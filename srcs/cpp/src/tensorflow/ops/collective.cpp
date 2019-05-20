@@ -210,11 +210,11 @@ class ControllerRunningSum : public OpKernel
 
         if (future_batch <= future_batch_limit) {
             LOG(INFO) << "[Running Sum] Future batch " << future_batch << "; Noise " << noise; 
-            noise_file << future_batch << std::endl;
+            //noise_file << future_batch << std::endl;
         } else {
             LOG(INFO) << "Future batch limit exceeded. Capping to " << future_batch_limit; 
             LOG(INFO) << "[Running Sum] Future batch " << future_batch_limit << "; Noise " << noise; 
-            noise_file << future_batch_limit << std::endl;
+            //noise_file << future_batch_limit << std::endl;
         }
     }
 };
