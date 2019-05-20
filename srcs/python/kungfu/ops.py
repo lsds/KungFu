@@ -169,7 +169,6 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
     global_step = tf.Variable(tf.zeros([],dtype=tf.int64)) # tf.train.get_or_create_global_step(graph=tf.get_default_graph())
     increment_global_step_op = tf.assign(global_step, global_step + 1)
 
-    print_global_step = tf.Print(global_step, [global_step], message="Global step")
 
     # Dynamic partition info
     tensor_partition_idx_vars = dict((t.name, tf.Variable(tf.ones([], dtype=tf.int64))) for t in ts)
@@ -187,21 +186,19 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
 
     bin_pack_case = tf.case(cases, exclusive=False, default=lambda: tf.constant(True, dtype=tf.bool))
 
-    with tf.control_dependencies([print_global_step] + [bin_pack_case]):
+    with tf.control_dependencies([bin_pack_case]):
         partial_negotiated_ts = []
         for tensor in ts:
             partition_idx_var = tensor_partition_idx_vars[tensor.name]
-
             mod_op = tf.mod(global_step - 1, num_partitions_var)
             equal_op = tf.equal(mod_op, partition_idx_var)
 
-            with tf.control_dependencies([num_parts_op]):
-                negotiated_grad = tf.cond(
-                    equal_op,
-                    lambda tensor=tensor,partition_idx_var=partition_idx_var,num_partitions_var=num_partitions_var: 
-                    all_reduce_debug(tensor, partition_idx_var, num_partitions_var), lambda tensor=tensor: tf.identity(tensor))
-                partial_negotiated_ts.append(negotiated_grad)
-        
+            negotiated_grad = tf.cond(
+                equal_op,
+                lambda tensor=tensor,partition_idx_var=partition_idx_var,num_partitions_var=num_partitions_var: 
+                all_reduce_debug(tensor, partition_idx_var, num_partitions_var), lambda tensor=tensor: tf.identity(tensor))
+            partial_negotiated_ts.append(negotiated_grad)
+    
         with tf.control_dependencies([increment_global_step_op]):
             return [tf.identity(pnt) for pnt in partial_negotiated_ts]
 
