@@ -13,8 +13,6 @@ REGISTER_OP("AllReduce")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Input("input: T")
-    .Input("part_id_var: int64")
-    .Input("num_partitions_var: int64")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
@@ -27,6 +25,50 @@ class AllReduce : public AsyncOpKernel
 
   public:
     explicit AllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
+                                                 &input_tensor_name_));
+        OP_REQUIRES(
+            context, input_tensor_name_.size() >= 0,
+            errors::InvalidArgument("input_tensor_name must not be empty"));           
+    }
+
+  public:
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        const Tensor &input = context->input(0);
+
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, input.shape(), &output));
+        _kungfu_world->AllReduce(
+            input.tensor_data().data(), (void *)(output->tensor_data().data()),
+            input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
+            input_tensor_name_.c_str(), done);
+        
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
+
+REGISTER_OP("AllReduce")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("input_tensor_name: string")
+    .Input("input: T")
+    .Input("part_id_var: int64")
+    .Input("num_partitions_var: int64")
+    .Output("output: T")
+    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        return Status::OK();
+    });
+
+class AllReduceDebug : public AsyncOpKernel
+{
+    std::string input_tensor_name_;
+
+  public:
+    explicit AllReduceDebug(OpKernelConstruction *context) : AsyncOpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
@@ -57,7 +99,8 @@ class AllReduce : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
+REGISTER_KERNEL_BUILDER(Name("AllReduceDebug").Device(DEVICE_CPU), AllReduce);
+
 
 REGISTER_OP("Broadcast")
     .Attr("T: {int32, int64, float16, float32, float64}")
