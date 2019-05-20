@@ -171,8 +171,7 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
             for k in indexes.keys():
                 assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
                 with tf.control_dependencies([tensor_partition_idx_vars[k], assign_idx_var]):
-                     pass
-        return tf.constant(True, dtype=tf.bool)
+                     return tf.constant(True, dtype=tf.bool)
 
     cases = []
     for i in range(len(steps)):
