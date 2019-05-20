@@ -4,11 +4,6 @@
 
 #include <kungfu_tensorflow_ops.h>
 
-#include <queue>
-
-
-#include <fstream>
-
 namespace tensorflow
 {
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
