@@ -31,6 +31,8 @@ class AllReduce : public AsyncOpKernel
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));           
+
+        std::cout << "CONSTRUCTING THE ALL REDUCE OPERATOR" << std::endl;
     }
 
   public:
@@ -41,6 +43,7 @@ class AllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
+        
         _kungfu_world->AllReduce(
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
@@ -75,7 +78,8 @@ class AllReduceDebug : public AsyncOpKernel
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
-                
+        
+        std::cout << "AM I CONSTRUCTING THIS?" << std::endl;
     }
 
   public:
@@ -85,8 +89,10 @@ class AllReduceDebug : public AsyncOpKernel
 
         const Tensor &partition_id = context->input(1);
         const Tensor &num_partitions = context->input(2);
-        std::cout << "[" << input_tensor_name_ << "] Partition id:" << partition_id.flat<int>() << std::endl;
-        std::cout << "[" << input_tensor_name_ << "] Num Partitions:" << num_partitions.flat<int>() << std::endl;
+
+        LOG(INFO) << "AM I EVER GOING HERE?";
+        std::cout << "[" << input_tensor_name_ << "] Partition id:" << partition_id.scalar<int>()() << std::endl;
+        std::cout << "[" << input_tensor_name_ << "] Num Partitions:" << num_partitions.scalar<int>()() << std::endl;
 
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
@@ -99,7 +105,7 @@ class AllReduceDebug : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("AllReduceDebug").Device(DEVICE_CPU), AllReduce);
+REGISTER_KERNEL_BUILDER(Name("AllReduceDebug").Device(DEVICE_CPU), AllReduceDebug);
 
 
 REGISTER_OP("Broadcast")

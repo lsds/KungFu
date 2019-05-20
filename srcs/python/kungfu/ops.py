@@ -146,13 +146,13 @@ def compute_partitions(fraction, ts, total_size, tensor_partition_idx_vars,
 
     assign_partitions = tf.assign(num_partitions_var, new_num_partitions)
 
-    with tf.control_dependencies([assign_partitions]):
-        assign_idx_vars = []
-        for k in indexes.keys():
-            assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
-            assign_idx_vars.append(assign_idx_var)
-        with tf.control_dependencies(assign_idx_vars):
-             return tf.identity(tf.constant(True, dtype=tf.bool))
+    assign_idx_vars = []
+    for k in indexes.keys():
+        # k is tensor name
+        assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
+        assign_idx_vars.append(assign_idx_var)
+    with tf.control_dependencies(assign_idx_vars + [assign_partitions]):
+            return tf.identity(tf.constant(True, dtype=tf.bool))
 
 def adaptive_partial_exchange_with_cpu_allreduce(ts,
                                                  batch_size,
@@ -186,17 +186,21 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
 
 
     bin_pack_case = tf.case(cases, exclusive=False, default=lambda: tf.constant(True, dtype=tf.bool))
-    print_partitions = tf.Print(num_partitions_var, [num_partitions_var], message="Num partitions: ")
 
-    with tf.control_dependencies([print_global_step] + [bin_pack_case] + [print_partitions]):
+    with tf.control_dependencies([print_global_step] + [bin_pack_case]):
         partial_negotiated_ts = []
         for tensor in ts:
             partition_idx_var = tensor_partition_idx_vars[tensor.name]
-            negotiated_grad = tf.cond(
-                tf.equal(tf.mod(global_step - 1, num_partitions_var), partition_idx_var),
-                lambda tensor=tensor: all_reduce_debug(tensor, partition_idx_var, num_partitions_var), lambda: tensor)
-            partial_negotiated_ts.append(negotiated_grad)
 
+            mod_op = tf.mod(global_step - 1, num_partitions_var)
+            equal_op = tf.equal(mod_op, partition_idx_var)
+
+            with tf.control_dependencies([num_parts_op]):
+                negotiated_grad = tf.cond(
+                    equal_op,
+                    lambda tensor=tensor,partition_idx_var=partition_idx_var,num_partitions_var=num_partitions_var: 
+                    all_reduce_debug(tensor, partition_idx_var, num_partitions_var), lambda tensor=tensor: tf.identity(tensor))
+                partial_negotiated_ts.append(negotiated_grad)
         
         with tf.control_dependencies([increment_global_step_op]):
             return [tf.identity(pnt) for pnt in partial_negotiated_ts]
