@@ -38,6 +38,10 @@ def _load_and_init_op_lib():
 _op_lib, _has_gpu = _load_and_init_op_lib()
 
 
+def send_to(rank, t):
+    return _op_lib.send_to(rank, t)
+
+
 def broadcast(t):
     return _op_lib.broadcast(t)
 

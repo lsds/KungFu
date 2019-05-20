@@ -70,6 +70,10 @@ extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, const char *name,
                            DoneCallback done);
 
+extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
+                        KungFu_Datatype dtype, const char *name,
+                        DoneCallback done);
+
 extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
                            const char *name);
@@ -98,6 +102,13 @@ class kungfu_world
     int32_t GetGlobalStep() { return _global_step; }
 
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
+
+    int SendTo(int32_t rank, const void *sendbuf, int count,
+                KungFu_Datatype dtype, const char *name,
+                DoneCallback done)
+    {
+        return KungfuSendTo(rank, sendbuf, count, dtype, name, done);
+    }
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name)

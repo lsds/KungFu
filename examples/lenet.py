@@ -97,7 +97,7 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
 
     if kungfu_strategy == 'ako':
         from kungfu.optimizers import AkoOptimizer
-        optimizer = AkoOptimizer(optimizer, ako_partitions=ako_partitions)
+        optimizer = AkoOptimizer(optimizer, fraction=0.1)
     else:
         from kungfu.optimizers import ParallelOptimizer
         print("Using parallel optimizer")
