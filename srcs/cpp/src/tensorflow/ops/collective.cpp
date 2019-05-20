@@ -51,7 +51,7 @@ class AllReduce : public AsyncOpKernel
 
 REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
 
-REGISTER_OP("AllReduce")
+REGISTER_OP("AllReduceDebug")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Input("input: T")
