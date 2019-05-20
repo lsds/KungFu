@@ -54,8 +54,11 @@ def broadcast(t):
     return _op_lib.broadcast(t)
 
 
-def all_reduce(t, partition_id_var, num_partitions_var):
+def all_reduce_dubug(t, partition_id_var, num_partitions_var):
     return _op_lib.all_reduce(t, partition_id_var, num_partitions_var, input_tensor_name=t.name)
+
+def all_reduce(t):
+    return _op_lib.all_reduce(t)
 
 
 def all_reduce_gpu(t):
