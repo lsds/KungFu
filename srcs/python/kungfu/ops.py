@@ -38,8 +38,18 @@ def _load_and_init_op_lib():
 _op_lib, _has_gpu = _load_and_init_op_lib()
 
 
+def _tensor_size(t):
+    return t.shape.num_elements() * t.dtype.size
+
+
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
+
+
+def merge_received(t):
+    return _op_lib.merge_received(t,
+                                  input_tensor_name=t.name,
+                                  tensor_size=_tensor_size(t))
 
 
 def broadcast(t):
@@ -120,10 +130,6 @@ def _bin_pack(sizes, budget, adjust_budget=False):
             budgets.append(budget - size)
             indexes[name] = len(budgets) - 1
     return indexes, len(budgets)
-
-
-def _tensor_size(t):
-    return t.shape.num_elements() * t.dtype.size
 
 
 def partial_exchange_with_gpu_allreduce(ts,

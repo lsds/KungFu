@@ -3,6 +3,7 @@ package rchannel
 import (
 	"net"
 	"os"
+	"unsafe"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -11,11 +12,16 @@ import (
 	"github.com/lsds/KungFu/srcs/go/shm"
 )
 
+type Callback func(unsafe.Pointer)
+
 type Router struct {
 	localAddr  plan.NetAddr
 	bufferPool *BufferPool
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
+
+	callbacks map[string]Callback // TODO: mutex
+	// TODO: delele callbacks on exit
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -24,6 +30,7 @@ func NewRouter(self plan.PeerSpec) *Router {
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
+		callbacks:  make(map[string]Callback),
 	}
 }
 
@@ -101,8 +108,25 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 
 var newShm = shm.New
 
+func (r *Router) RegisterDataCallback(name string, f Callback) {
+	log.Infof("Router::RegisterDataCallback %s %p", name, f)
+	// TODO: lock
+	r.callbacks[name] = f
+}
+
 func (r *Router) handle(name string, msg *Message) {
+	// TODO: lock
+	f, ok := r.callbacks[name]
+	if !ok {
+		log.Warnf("%s has no callback registered", name)
+		return
+	}
+	if f == nil {
+		log.Warnf("%s has nil callback", name)
+		return
+	}
 	log.Infof("handling message with name %s", name)
+	f(unsafe.Pointer(&msg.Data[0]))
 }
 
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
@@ -124,7 +148,6 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 		case ConnCollective:
 			r.bufferPool.require(remote.WithName(name)) <- msg
 		case ConnPeerToPeer:
-			log.Infof("got p2p from %s named %s length %d", remote, name, msg.Length)
 			r.handle(name, msg)
 		default:
 			log.Infof("no handler for type %s", t)

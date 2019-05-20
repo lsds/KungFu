@@ -57,6 +57,7 @@ extern void order_group_wait(order_group_t *);
 
 #include <functional>
 typedef std::function<void()> DoneCallback;
+typedef std::function<void(void *)> DataCallback;
 
 extern int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
                         KungFu_Datatype dtype, KungFu_Op op, const char *name,
@@ -73,6 +74,8 @@ extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
 extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
                         KungFu_Datatype dtype, const char *name,
                         DoneCallback done);
+
+extern int KungfuRegisterDataCallback(const char *name, DataCallback handle);
 
 extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
@@ -104,10 +107,14 @@ class kungfu_world
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
 
     int SendTo(int32_t rank, const void *sendbuf, int count,
-                KungFu_Datatype dtype, const char *name,
-                DoneCallback done)
+               KungFu_Datatype dtype, const char *name, DoneCallback done)
     {
         return KungfuSendTo(rank, sendbuf, count, dtype, name, done);
+    }
+
+    int RegisterDataCallback(const char *name, DataCallback handle)
+    {
+        return KungfuRegisterDataCallback(name, handle);
     }
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,

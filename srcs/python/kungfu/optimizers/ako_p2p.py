@@ -1,11 +1,8 @@
 import tensorflow as tf
 
-from kungfu.ops import send_to, _tensor_size, _bin_pack
+from kungfu.ops import send_to, _tensor_size, _bin_pack, merge_received
 from .core import KungFuOptimizer
 
-def _send_with_return(rank, t):
-    with tf.control_dependencies([send_to(rank, t)]):
-        return tf.identity(t)
 
 def _get_self_rank():
     import os
@@ -16,6 +13,7 @@ def _get_num_peers():
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
     return len(cluster_spec['Peers'])
+
 
 class AkoP2P(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
@@ -28,7 +26,7 @@ class AkoP2P(KungFuOptimizer):
                  device_sparse='',
                  fraction=0.1):
         super(AkoP2P, self).__init__(optimizer, name, use_locking,
-                                                device_dense, device_sparse)
+                                     device_dense, device_sparse)
         self.fraction = fraction
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
@@ -48,9 +46,9 @@ class AkoP2P(KungFuOptimizer):
             k = dest_rank % num_partitions
             group_k = groups[k]
             for g in group_k:
-                print("Gradient name: " + str(g.name))
                 send_op = send_to(dest_rank, g)
                 send_ops.append(send_op)
+
         with tf.control_dependencies(send_ops):
-            id_grads = [tf.identity(g) for g in gradients]
-            return list(zip(id_grads, variables))
+            merged_grads = [merge_received(g) for g in gradients]
+            return list(zip(merged_grads, variables))

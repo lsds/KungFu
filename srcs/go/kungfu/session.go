@@ -126,6 +126,11 @@ func (sess *session) Warmup() int {
 	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
 }
 
+func (sess *session) RegisterDataCallback(name string, f rch.Callback) int {
+	sess.router.RegisterDataCallback(name, f)
+	return 0
+}
+
 func (sess *session) AllReduce(w Workspace) int {
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
