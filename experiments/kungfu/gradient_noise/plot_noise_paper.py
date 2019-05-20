@@ -17,7 +17,7 @@ from matplotlib.pyplot import figure
 
 
 # Set size of figure
-figure(num=None, figsize=(6, 4), dpi=80, facecolor='w', edgecolor='k')
+figure(num=None, figsize=(8, 6), dpi=300, facecolor='w', edgecolor='k')
 
 
 # Regex used to match relevant loglines (in this case, a specific IP address)
@@ -25,7 +25,7 @@ line_regex = re.compile(r".*$")
 
 font = {'family' : 'normal',
         'weight' : '300',
-        'size'   : 12}
+        'size'   : 18}
 
 matplotlib.rc('font', **font)
 
@@ -45,6 +45,18 @@ class MyLogFormatter(matplotlib.ticker.LogFormatterMathtext):
 
         return rv
 
+class MyLogFormatterSecond(matplotlib.ticker.LogFormatterMathtext):
+    def __call__(self, x, pos=None):
+        # call the original LogFormatter
+        rv = matplotlib.ticker.LogFormatterMathtext.__call__(self, x, pos)
+
+        # check if we really use TeX
+        if matplotlib.rcParams["text.usetex"]:
+            # if we have the string ^{- there is a negative exponent
+            # where the minus sign is replaced by the short hyphen
+            rv = re.sub(r'\^\{-', r'^{\mhyphen', rv)
+
+        return rv
 
 def get_experiment_results(log_file, match_function):
     results = []
@@ -139,7 +151,7 @@ def plot(ax, lines, type_of_averaging, worker, decay=-1):
 
     ax_twin = ax.twinx()
     ax_twin.semilogy()
-    ax_twin.yaxis.set_major_formatter(MyLogFormatter())
+    ax_twin.yaxis.set_major_formatter(MyLogFormatterSecond())
 
 
     ## Accuracies on the x axis
@@ -153,10 +165,15 @@ def plot(ax, lines, type_of_averaging, worker, decay=-1):
     ax_twin.plot(range(len(batches)), noises, color='coral', label="Gradient Noise")
 
 
+    # its = np.arange(len(batches))
+    # its_epochs = np.arange(min(its), max(its)+195, 195)
+    # its_epochs = its_epochs[::5]
+    # x = [i / 195 for i in its_epochs]
+    # plt.xticks(its_epochs, x)
 
     ax.set_ylabel('Gradient Noise Scale')
     ax.set_xlabel('Iterations')
-
+    ax_twin.set_ylabel('Estimated Batch Size')
 
     ax.legend()
 
@@ -169,6 +186,8 @@ def plot(ax, lines, type_of_averaging, worker, decay=-1):
 def paper_figure():
     num_workers = 1
     workers = []
+
+    f = plt.figure()
     for worker in [0]:
         worker_running_sum = get_experiment_results('./PAPER_ADAPTIVE_BATCH_NOISE.log', lambda x: extract_from_worker(x, worker))
         worker_ema = [] # get_experiment_results('./decay-0.2-batch-0.2/noise-ema-0.2-batch-0.2.log', lambda x: extract_from_worker(x, worker))
@@ -185,10 +204,13 @@ def paper_figure():
 
     plt.show()
 
+    f.savefig("OverIterations.pdf", bbox_inches='tight')
+
 
 
 def main():
     paper_figure()
+
 
 if __name__ == "__main__":
     main()
