@@ -12,8 +12,8 @@ class KungFuOptimizer(tf.train.Optimizer):
                  device_sparse=''):
         if name is None:
             name = "KungFuOptimizer{}".format(type(optimizer).__name__)
-        super(KungFuOptimizer, self).__init__(
-            name=name, use_locking=use_locking)
+        super(KungFuOptimizer, self).__init__(name=name,
+                                              use_locking=use_locking)
 
         self._optimizer = optimizer
         self._device_dense = device_dense
@@ -46,11 +46,10 @@ class KungFuOptimizer(tf.train.Optimizer):
             with tf.control_dependencies([self._set_num_gradients(n_grads)]):
                 return build_op()
         else:
-                return build_op()
-
+            return build_op()
 
     def apply_gradients(self, *args, **kwargs):
-         """Calls this same method on the underlying optimizer."""
+        """Calls this same method on the underlying optimizer."""
         return self._optimizer.apply_gradients(*args, **kwargs)
 
     def get_slot(self, *args, **kwargs):
