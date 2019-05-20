@@ -49,7 +49,8 @@ def send_to(rank, t):
 def merge_received(t):
     return _op_lib.merge_received(t,
                                   input_tensor_name=t.name,
-                                  tensor_size=_tensor_size(t))
+                                  shape=t.shape,
+                                  dtype=t.dtype)
 
 
 def broadcast(t):

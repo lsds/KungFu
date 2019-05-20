@@ -9,6 +9,18 @@
 
 namespace tensorflow
 {
+inline int64_t shape_size(const TensorShapeProto &shape)
+{
+    int64_t s      = 1;
+    const int rank = shape.dim_size();
+    for (int i = 0; i < rank; ++i) {
+        const auto dim = shape.dim(i).size();
+        if (dim < 0) { return -1; }
+        s *= dim.size();
+    }
+    return s;
+}
+
 inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
 {
     switch (dtype) {

@@ -46,7 +46,8 @@ REGISTER_KERNEL_BUILDER(Name("SendTo").Device(DEVICE_CPU), SendTo);
 REGISTER_OP("MergeReceived")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
-    .Attr("tensor_size: int")
+    .Attr("shape: shape")
+    .Attr("dtype: type")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
@@ -56,7 +57,9 @@ class MergeReceived : public OpKernel
     using OpKernel::OpKernel;
 
     std::string input_tensor_name_;
-    int64_t tensor_size_;
+    TensorShapeProto shape_;
+    DataType dtype_;
+
     std::vector<char> data_;
     std::mutex mu_;
 
@@ -69,9 +72,12 @@ class MergeReceived : public OpKernel
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
 
-        OP_REQUIRES_OK(context, context->GetAttr("tensor_size", &tensor_size_));
-        data_.resize(tensor_size_);
-        std::fill(data_.begin(), data_.end(), 0);
+        OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
+        const int64_t ss = shape_size(shape_);
+        OP_REQUIRES(context, ss >= 0,
+                    errors::InvalidArgument("all dim of shape must be known"));
+        OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtype_));
+        data_.resize(DataTypeSize(dtype_) * ss);
 
         _kungfu_world->RegisterDataCallback(
             input_tensor_name_.c_str(), [&](void *data) {
