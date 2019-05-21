@@ -11,6 +11,7 @@ EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
 import tensorflow as tf
 
+
 def get_num_peers():
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
@@ -68,12 +69,14 @@ def merge_received(t):
 def broadcast(t):
     return _op_lib.broadcast(t)
 
+
 def all_reduce(t):
     return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
 
 def all_reduce_gpu(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
+
 
 def global_variance(t):
     return _op_lib.global_variance(t)
@@ -92,43 +95,10 @@ def set_num_gradients(n):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
-
-def _bin_pack(sizes, budget, adjust_budget=False):
-    lst = list(reversed(sorted([(size, name)
-                                for name, size in sizes.items()])))
-
-    max_size = lst[0][0]
-    if adjust_budget:
-        budget = max(budget, max_size)
-    else:
-        if budget < max_size:
-            raise RuntimeError("Budget is too small.")
-
-    budgets = []
-    indexes = dict()
-    for size, name in lst:
-        ok = False
-        for i, b in enumerate(budgets):
-            if b >= size:
-                budgets[i] -= size
-                indexes[name] = i
-                ok = True
-                break
-        if not ok:
-            budgets.append(budget - size)
-            indexes[name] = len(budgets) - 1
-    return indexes
-
-
-def _tensor_size(t):
-    return t.shape.num_elements() * t.dtype.size
-
-
 def _print_info(fraction, total_size, budget):
     print("The fraction is: " + str(fraction))
     print("Total Size of All Gradients: " + str(total_size))
     print("The bucket budget is: " + str(budget))
-
 
 def _parse_schedule(schedule, batch_size, num_train):
     # schedule is of the form
@@ -147,15 +117,14 @@ def _parse_schedule(schedule, batch_size, num_train):
     return steps, fractions
 
 def compute_partitions(fraction, ts, total_size, tensor_partition_idx_vars,
-                           num_partitions_var):
+                       num_partitions_var):
     import math
     import tensorflow as tf
     budget = int(math.floor(fraction * total_size))
-    indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts),
-                        budget)
+    indexes, new_num_partitions = _bin_pack(
+        dict((t.name, _tensor_size(t)) for t in ts), budget)
     print("Fraction: " + str(fraction))
     print("Size indices: " + str(len(indexes.values())))
-    new_num_partitions = len(set(indexes.values()))
 
     assign_partitions = tf.assign(num_partitions_var, new_num_partitions)
 
@@ -165,7 +134,8 @@ def compute_partitions(fraction, ts, total_size, tensor_partition_idx_vars,
         assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
         assign_idx_vars.append(assign_idx_var)
     with tf.control_dependencies(assign_idx_vars + [assign_partitions]):
-            return tf.identity(tf.constant(True, dtype=tf.bool))
+        return tf.identity(tf.constant(True, dtype=tf.bool))
+
 
 def adaptive_partial_exchange_with_cpu_allreduce(ts,
                                                  batch_size,
@@ -175,29 +145,34 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
                                                  average="none"):
     import tensorflow as tf
     print("Using piecewise partitioning schedule: " + schedule)
-    steps, fractions = _parse_schedule(schedule, int(batch_size), int(num_train))
-    
+    steps, fractions = _parse_schedule(schedule, int(batch_size),
+                                       int(num_train))
 
     total_size = sum([_tensor_size(t) for t in ts])
-    global_step = tf.Variable(tf.zeros([],dtype=tf.int64)) # tf.train.get_or_create_global_step(graph=tf.get_default_graph())
+    global_step = tf.Variable(
+        tf.zeros([], dtype=tf.int64)
+    )  # tf.train.get_or_create_global_step(graph=tf.get_default_graph())
     increment_global_step_op = tf.assign(global_step, global_step + 1)
 
-
     # Dynamic partition info
-    tensor_partition_idx_vars = dict((t.name, tf.Variable(tf.ones([], dtype=tf.int64))) for t in ts)
+    tensor_partition_idx_vars = dict(
+        (t.name, tf.Variable(tf.ones([], dtype=tf.int64))) for t in ts)
     num_partitions_var = tf.Variable(tf.ones([], dtype=tf.int64))
-  
+
     # Reverse both
     steps = steps[::-1]
     fractions = fractions[::-1]
 
     cases = []
     for i in range(len(steps)):
-        cases.append((tf.greater_equal(global_step - 1, steps[i]), 
-        lambda frac=fractions[i]: compute_partitions(frac, ts, total_size, tensor_partition_idx_vars, num_partitions_var)))
+        cases.append((tf.greater_equal(global_step - 1, steps[i]),
+                      lambda frac=fractions[i]: compute_partitions(
+                          frac, ts, total_size, tensor_partition_idx_vars,
+                          num_partitions_var)))
 
-
-    bin_pack_case = tf.case(cases, exclusive=False, default=lambda: tf.constant(True, dtype=tf.bool))
+    bin_pack_case = tf.case(cases,
+                            exclusive=False,
+                            default=lambda: tf.constant(True, dtype=tf.bool))
 
     with tf.control_dependencies([bin_pack_case]):
         partial_negotiated_ts = []
@@ -208,10 +183,11 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
 
             negotiated_grad = tf.cond(
                 equal_op,
-                lambda tensor=tensor,partition_idx_var=partition_idx_var,num_partitions_var=num_partitions_var: 
-                all_reduce(tensor), lambda tensor=tensor: tf.identity(tensor))
+                lambda tensor=tensor, partition_idx_var=partition_idx_var,
+                num_partitions_var=num_partitions_var: all_reduce(tensor),
+                lambda tensor=tensor: tf.identity(tensor))
             partial_negotiated_ts.append(negotiated_grad)
-    
+
         with tf.control_dependencies([increment_global_step_op]):
             return [tf.identity(pnt) for pnt in partial_negotiated_ts]
 
