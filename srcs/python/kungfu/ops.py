@@ -147,7 +147,7 @@ def partial_exchange_with_gpu_allreduce(ts,
         negotiated_partition = tf.cond(
             tf.equal(
                 tf.mod(gs - 1, num_partitions),
-                i), lambda: gpu_group_all_reduce(partition), lambda: partition)
+                i), lambda partition=partition: gpu_group_all_reduce(partition), lambda: partition)
         for negotiated_grad, grad in zip(negotiated_partition, partition):
             reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 
