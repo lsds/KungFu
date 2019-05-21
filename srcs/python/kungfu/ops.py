@@ -68,10 +68,6 @@ def merge_received(t):
 def broadcast(t):
     return _op_lib.broadcast(t)
 
-
-def all_reduce_debug(t, partition_id_var, num_partitions_var):
-    return _op_lib.all_reduce_debug(t, partition_id_var, num_partitions_var, input_tensor_name=t.name)
-
 def all_reduce(t):
     return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
@@ -213,7 +209,7 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
             negotiated_grad = tf.cond(
                 equal_op,
                 lambda tensor=tensor,partition_idx_var=partition_idx_var,num_partitions_var=num_partitions_var: 
-                all_reduce_debug(tensor, partition_idx_var, num_partitions_var), lambda tensor=tensor: tf.identity(tensor))
+                all_reduce(tensor), lambda tensor=tensor: tf.identity(tensor))
             partial_negotiated_ts.append(negotiated_grad)
     
         with tf.control_dependencies([increment_global_step_op]):
