@@ -11,7 +11,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/shm"
 )
 
-type Callback func([]byte)
+type Callback func(*Message)
 
 type Router struct {
 	localAddr  plan.NetAddr
@@ -130,8 +130,8 @@ func (r *Router) handle(name string, msg *Message) {
 		log.Errorf("%s has nil callback", name)
 		return
 	}
-	// log.Infof("handling message with name %s", name)
-	f(msg.Data)
+	//log.Infof("handling message with name %+v", msg)
+	f(msg)
 }
 
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {

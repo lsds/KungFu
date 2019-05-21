@@ -13,7 +13,7 @@ extern void invoke_callback(callback_t *);
 extern void delete_callback(callback_t *);
 
 typedef struct data_callback_s data_callback_t;
-extern void invoke_data_callback(data_callback_t *, void *);
+extern void invoke_data_callback(data_callback_t *, void *, int len);
 extern void delete_data_callback(data_callback_t *);
 
 extern void float16_sum(void *z, const void *x, const void *y, int len);
@@ -37,12 +37,12 @@ struct CallbackWrapper {
 };
 
 struct data_callback_s {
-    using func_t = std::function<void(void *)>;
+    using func_t = std::function<void(void *, int)>;
 
   public:
     explicit data_callback_s(const func_t &f) : f_(f) {}
 
-    void operator()(void *data) { f_(data); }
+    void operator()(void *data, int len) { f_(data, len); }
 
   private:
     func_t f_;

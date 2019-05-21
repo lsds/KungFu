@@ -20,6 +20,14 @@ int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
                           (char *)name, new CallbackWrapper(done));
 }
 
+int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
+                 KungFu_Datatype dtype, const char *name)
+{
+    return GoKungfuSendTo(rank, (void *)sendbuf, GoInt(count), GoInt(dtype),
+                          (char *)name, nullptr);
+}
+
+
 int KungfuRegisterDataCallback(const char *name, DataCallback handle)
 {
     return GoKungfuRegisterDataCallback((char *)name,

@@ -5,6 +5,8 @@
 
 #include <kungfu_tensorflow_ops.h>
 
+#include <limits>
+
 namespace tensorflow
 {
 REGISTER_OP("SendTo")
@@ -37,7 +39,7 @@ class SendTo : public OpKernel
 
         _kungfu_world->SendTo(
             rank, input.tensor_data().data(), input.NumElements(),
-            to_kungfu_type(input.dtype()), input_tensor_name_.c_str(), [] {});
+            to_kungfu_type(input.dtype()), input_tensor_name_.c_str());
     }
 };
 
@@ -63,9 +65,36 @@ class MergeReceived : public OpKernel
     int merged_;
     std::mutex mu_;
 
+    int32_t empty_merge_count;
+
   public:
+
+    float get_min(Tensor& t) {
+        auto t_flat = t.flat<float>();
+        float min = std::numeric_limits<float>::max();;
+        for(int i = 0; i < t.NumElements(); i++) {
+            if(t_flat(i) < min) {
+                min = t_flat(i);
+            }
+        }
+        return min;
+    }
+
+
+    float get_max(Tensor& t) {
+        auto t_flat = t.flat<float>();
+        float max = std::numeric_limits<float>::lowest();;
+        for(int i = 0; i < t.NumElements(); i++) {
+            if(t_flat(i) > max) {
+                max = t_flat(i);
+            }
+        }
+        return max;
+    }
+
+
     explicit MergeReceived(OpKernelConstruction *context)
-        : OpKernel(context), to_merge_(0), merged_(0)
+        : OpKernel(context), to_merge_(0), merged_(0), empty_merge_count(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
@@ -78,14 +107,17 @@ class MergeReceived : public OpKernel
         DataType dtype_;
         OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtype_));
         acc_ = Tensor(dtype_, shape_);
+        acc_.flat<float>().setZero();
 
         _kungfu_world->RegisterDataCallback(
-            input_tensor_name_.c_str(), [&](void *data) {
+            input_tensor_name_.c_str(), [&](void *data, int len) {
                 // TODO: give priority to callback or it always lose to Compute
                 std::lock_guard<std::mutex> _lk(mu_);
                 to_merge_++;
+
                 add_tensor(acc_, acc_.tensor_data().data(), data);
-            });
+                //std::cout << "["<< to_merge_ << "] " << "Acc min: " << get_min(acc_) << "Acc max: " << get_max(acc_) << std::endl;
+        });
     }
 
     ~MergeReceived()
@@ -104,13 +136,16 @@ class MergeReceived : public OpKernel
         {
             std::lock_guard<std::mutex> _lk(mu_);
             if (to_merge_ > 0) {
+                empty_merge_count = 0;
                 merged_ += to_merge_;
                 to_merge_ = 0;
                 add_tensor(*output, input.tensor_data().data(),
                            acc_.tensor_data().data());
             } else {
+                empty_merge_count++;
                 output->CopyFrom(input, input.shape());
             }
+            std::cout << "["  << input_tensor_name_ << "] EMPTY MERGE: " << empty_merge_count << std::endl;
         }
     }
 };

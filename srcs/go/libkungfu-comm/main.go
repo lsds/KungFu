@@ -8,6 +8,7 @@ import (
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
 // #include <kungfu.h>
@@ -47,8 +48,8 @@ func GoKungfuRank() int {
 //export GoKungfuRegisterDataCallback
 func GoKungfuRegisterDataCallback(name *C.char, handle *C.data_callback_t) int {
 	sess := kungfu.CurrentSession()
-	return sess.RegisterDataCallback(C.GoString(name), func(data []byte) {
-		C.invoke_data_callback(handle, unsafe.Pointer(&data[0]))
+	return sess.RegisterDataCallback(C.GoString(name), func(msg *rch.Message) {
+		C.invoke_data_callback(handle, unsafe.Pointer(&msg.Data[0]), C.int(msg.Length))
 	})
 }
 
