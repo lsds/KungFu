@@ -5,6 +5,7 @@ from ctypes import cdll
 
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
+
 def get_num_peers():
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
@@ -88,6 +89,7 @@ def set_num_gradients(n):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
+
 def _parse_schedule(schedule, batch_size, num_train):
     # schedule is of the form
     # f1;e1;f2;e2;f3;e3
@@ -103,6 +105,7 @@ def _parse_schedule(schedule, batch_size, num_train):
     print("Steps: " + str(steps))
     print("Fractions: " + str(fractions))
     return steps, fractions
+
 
 def compute_partitions(fraction, ts, total_size, tensor_partition_idx_vars,
                        num_partitions_var):
