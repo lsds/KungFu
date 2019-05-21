@@ -28,23 +28,20 @@ class AllReduce : public AsyncOpKernel
                                                  &input_tensor_name_));
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
-            errors::InvalidArgument("input_tensor_name must not be empty"));           
+            errors::InvalidArgument("input_tensor_name must not be empty"));
     }
 
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
-
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
-        
         _kungfu_world->AllReduce(
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
             input_tensor_name_.c_str(), done);
-        
     }
 };
 
