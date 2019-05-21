@@ -32,6 +32,14 @@ def cmake_tf_ext_flags():
     ]
 
 
+def pass_env(keys):
+    for key in keys:
+        val = os.getenv(key)
+        if val:
+            print('Using %s=%s from env' % (key, val))
+            yield cmake_flag(key, val)
+
+
 class CMakeBuild(build_ext):
     def build_extension(self, ext):
         if not os.path.exists(self.build_temp):
@@ -49,14 +57,14 @@ class CMakeBuild(build_ext):
             cmake_flag('LIBRARY_OUTPUT_PATH',
                        os.path.join(install_prefix, 'kungfu')),
             cmake_flag('KUNGFU_BUILD_TF_OPS', 1),
-            cmake_flag('KUNGFU_BUILD_TOOLS', 1),
             cmake_flag('CMAKE_RUNTIME_OUTPUT_DIRECTORY', executable_dir),
             cmake_flag('PYTHON', sys.executable),
-
-            # uncomment to debug
-            # cmake_flag('CMAKE_VERBOSE_MAKEFILE', 1),
-            # cmake_flag('CMAKE_EXPORT_COMPILE_COMMANDS', 1),
-        ] + cmake_tf_ext_flags()
+        ] + cmake_tf_ext_flags() + list(
+            pass_env([
+                'KUNGFU_BUILD_TOOLS',
+                'CMAKE_VERBOSE_MAKEFILE',
+                'CMAKE_EXPORT_COMPILE_COMMANDS',
+            ]))
 
         use_nccl = os.getenv('KUNGFU_USE_NCCL')
         if use_nccl:

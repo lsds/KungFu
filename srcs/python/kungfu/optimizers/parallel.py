@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from kungfu.ops import group_all_reduce, set_num_gradients 
+from kungfu.ops import group_all_reduce
 from .core import KungFuOptimizer
 
 
@@ -18,14 +18,6 @@ class ParallelOptimizer(KungFuOptimizer):
                                                 device_dense, device_sparse)
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
-        """Negotiate grad with peers, following flexible strategy."""
-        grads_to_negotiate = []
-        variables_to_update = []
-        for grad, var in grads_and_vars_to_negotiate:
-            grads_to_negotiate.append(grad)
-            variables_to_update.append(var)
-        negotiated_grads = group_all_reduce(grads_to_negotiate)
-        return list(zip(negotiated_grads, variables_to_update))
-        
-    def _set_num_gradients(self, n):
-        return set_num_gradients(tf.constant(n, tf.int32))
+        """Negotiate grads with peers, using plain allreduce."""
+        gradients, variables = list(zip(*grads_and_vars_to_negotiate))
+        return list(zip(group_all_reduce(gradients), variables))

@@ -1,0 +1,1 @@
+# Ako Optimizer based on k-partitioning is deprecated
