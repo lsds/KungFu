@@ -143,7 +143,6 @@ func (sess *session) Broadcast(w Workspace) int {
 }
 
 func (sess *session) SendTo(rank int, w Workspace) int {
-	log.Infof("session::SendTo(%d, w) from %d", rank, sess.myRank)
 	if rank < 0 || len(sess.cluster.Peers) <= rank {
 		return code(errInvalidRank)
 	}

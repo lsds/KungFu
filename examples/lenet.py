@@ -96,8 +96,8 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     optimizer = tf.train.GradientDescentOptimizer(learning_rate = 0.001)
 
     if kungfu_strategy == 'ako':
-        from kungfu.optimizers import AkoOptimizer
-        optimizer = AkoOptimizer(optimizer, ako_partitions=ako_partitions)
+        from kungfu.optimizers import AkoP2P
+        optimizer = AkoP2P(optimizer, fraction=0.8)
     else:
         from kungfu.optimizers import ParallelOptimizer
         print("Using parallel optimizer")
@@ -226,7 +226,7 @@ def main():
     x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions, args.batch_size)
     show_trainable_variables_info()
     
-    mnist = measure(lambda: load_datasets('/data/mnist', normalize=True, one_hot=True, padded=True), 'load data')
+    mnist = measure(lambda: load_datasets('./mnist', normalize=True, one_hot=True, padded=True), 'load data')
 
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, 

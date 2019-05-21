@@ -38,6 +38,10 @@ def _load_and_init_op_lib():
 _op_lib, _has_gpu = _load_and_init_op_lib()
 
 
+def send_to(rank, t):
+    return _op_lib.send_to(rank, t, input_tensor_name=t.name)
+
+
 def broadcast(t):
     return _op_lib.broadcast(t)
 
@@ -96,7 +100,12 @@ def _bin_pack(sizes, budget, adjust_budget=False):
     if adjust_budget:
         budget = max(budget, lst[0][0])
     else:
-        raise RuntimeError("Budget is too small.")
+        if lst[0][0] > budget:
+            print("Suggested budget fraction is %f" %
+                  (lst[0][0] / sum([s[1] for s in sizes.items()])))
+            raise RuntimeError("Budget is too small %f. Largest tensor is %f" %
+                               (budget, lst[0][0]))
+
     budgets = []
     indexes = dict()
     for size, name in lst:
@@ -110,7 +119,7 @@ def _bin_pack(sizes, budget, adjust_budget=False):
         if not ok:
             budgets.append(budget - size)
             indexes[name] = len(budgets) - 1
-    return indexes
+    return indexes, len(budgets)
 
 
 def _tensor_size(t):
@@ -127,12 +136,12 @@ def partial_exchange_with_gpu_allreduce(ts,
     print("Total Size of All Gradients: " + str(total_size))
     print("The fraction is: " + str(fraction))
     budget = int(math.floor(fraction * total_size))
-    indexes = _bin_pack(dict((t.name, _tensor_size(t)) for t in ts), budget)
+    indexes, num_partitions = _bin_pack(
+        dict((t.name, _tensor_size(t)) for t in ts), budget)
     print("The bucket budget is: " + str(budget))
 
     gs = tf.Variable(tf.zeros([], dtype=tf.int64))
     advance_gs = tf.assign(gs, gs + 1)
-    num_partitions = len(set(indexes.values()))
 
     name_order = dict((t.name, i) for i, t in enumerate(ts))
 
@@ -145,9 +154,9 @@ def partial_exchange_with_gpu_allreduce(ts,
     reordered_cond_ops = [None] * len(ts)
     for i, partition in enumerate(groups):
         negotiated_partition = tf.cond(
-            tf.equal(
-                tf.mod(gs - 1, num_partitions),
-                i), lambda partition=partition: gpu_group_all_reduce(partition), lambda: partition)
+            tf.equal(tf.mod(gs - 1, num_partitions), i),
+            lambda partition=partition: gpu_group_all_reduce(partition),
+            lambda partition=partition: partition)
         for negotiated_grad, grad in zip(negotiated_partition, partition):
             reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 

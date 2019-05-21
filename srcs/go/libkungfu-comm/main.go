@@ -44,6 +44,27 @@ func GoKungfuRank() int {
 	return sess.Rank()
 }
 
+//export GoKungfuSendTo
+func GoKungfuSendTo(rank int, sendBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, name *C.char, done *C.callback_t) int {
+	w := kf.Workspace{
+		SendBuf: toBuffer(sendBuf, count, dtype),
+		Name:    C.GoString(name),
+	}
+	sess := kungfu.CurrentSession()
+
+	if done == nil {
+		// Synchronous case
+		return sess.SendTo(rank, w)
+	}
+	go func() {
+		// Asynchronous case
+		sess.SendTo(rank, w)
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
 //export GoKungfuAllReduce
 func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
