@@ -16,7 +16,7 @@ inline int64_t shape_size(const TensorShapeProto &shape)
     for (int i = 0; i < rank; ++i) {
         const auto dim = shape.dim(i).size();
         if (dim < 0) { return -1; }
-        s *= dim.size();
+        s *= dim;
     }
     return s;
 }

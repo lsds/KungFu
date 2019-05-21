@@ -57,10 +57,8 @@ class MergeReceived : public OpKernel
     using OpKernel::OpKernel;
 
     std::string input_tensor_name_;
-    TensorShapeProto shape_;
-    DataType dtype_;
 
-    std::vector<char> data_;
+    Tensor acc_;
     std::mutex mu_;
 
   public:
@@ -72,12 +70,15 @@ class MergeReceived : public OpKernel
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
 
+        TensorShapeProto shape_;
         OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
         const int64_t ss = shape_size(shape_);
         OP_REQUIRES(context, ss >= 0,
                     errors::InvalidArgument("all dim of shape must be known"));
+        DataType dtype_;
         OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtype_));
-        data_.resize(DataTypeSize(dtype_) * ss);
+
+        acc_ = Tensor(dtype_, shape_);
 
         _kungfu_world->RegisterDataCallback(
             input_tensor_name_.c_str(), [&](void *data) {
