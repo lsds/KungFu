@@ -75,21 +75,16 @@ class MergeReceived : public OpKernel
 
         TensorShapeProto shape_;
         OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
-        const int64_t ss = shape_size(shape_);
-        OP_REQUIRES(context, ss >= 0,
-                    errors::InvalidArgument("all dim of shape must be known"));
         DataType dtype_;
         OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtype_));
-
         acc_ = Tensor(dtype_, shape_);
 
         _kungfu_world->RegisterDataCallback(
             input_tensor_name_.c_str(), [&](void *data) {
                 // TODO: give priority to callback or it always lose to Compute
                 std::lock_guard<std::mutex> _lk(mu_);
-                // LOG(INFO) << "MergeReceived::callback";
                 to_merge_++;
-                // TODO: add data to this->data_;
+                add_tensor(acc_, acc_.tensor_data().data(), data);
             });
     }
 
@@ -108,10 +103,14 @@ class MergeReceived : public OpKernel
                        context->allocate_output(0, input.shape(), &output));
         {
             std::lock_guard<std::mutex> _lk(mu_);
-            merged_ += to_merge_;
-            to_merge_ = 0;
-            // TODO
-            // output = input + data_
+            if (to_merge_ > 0) {
+                merged_ += to_merge_;
+                to_merge_ = 0;
+                add_tensor(*output, input.tensor_data().data(),
+                           acc_.tensor_data().data());
+            } else {
+                output->CopyFrom(input, input.shape());
+            }
         }
     }
 };
