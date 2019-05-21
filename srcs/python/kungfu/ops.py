@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os
 import platform
 import sysconfig
@@ -8,9 +6,6 @@ from ctypes import cdll
 import sys
 
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
-
-import tensorflow as tf
-
 
 def get_num_peers():
     import json, os
@@ -94,11 +89,6 @@ def set_num_gradients(n):
 
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
-
-def _print_info(fraction, total_size, budget):
-    print("The fraction is: " + str(fraction))
-    print("Total Size of All Gradients: " + str(total_size))
-    print("The bucket budget is: " + str(budget))
 
 def _parse_schedule(schedule, batch_size, num_train):
     # schedule is of the form
