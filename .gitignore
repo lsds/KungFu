@@ -16,6 +16,7 @@ __pycache__
 *.tar.gz
 *.test
 *.whl
+.vscode
 /3rdparty
 /bin
 /checkpoints
@@ -42,5 +43,6 @@ tensorflow-prefix
 tensorflow-repo-prefix
 Testing/
 venv
-experiments
+*.pyc
+go.sum
 .vscode

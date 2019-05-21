@@ -6,6 +6,13 @@ from ctypes import cdll
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
 
+def get_num_peers():
+    import json, os
+    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
+    num_peers = len(cluster_spec['Peers'])
+    return num_peers
+
+
 def _load_op_lib(name):
     module_path = os.path.dirname(__file__)
     suffix = sysconfig.get_config_var(EXT_SUFFIX_KEY)
@@ -81,6 +88,99 @@ def set_num_gradients(n):
 
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
+
+
+def _parse_schedule(schedule, batch_size, num_train):
+    # schedule is of the form
+    # f1;e1;f2;e2;f3;e3
+    tokens = schedule.split(",")
+    print("Num train: " + str(num_train))
+    print("Batch size: " + str(batch_size))
+    to_gs = lambda epoch: int(epoch * num_train / (batch_size * get_num_peers(
+    )))
+    pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
+             for t in tokens]
+    steps, fractions = zip(*pairs)
+
+    print("Steps: " + str(steps))
+    print("Fractions: " + str(fractions))
+    return steps, fractions
+
+
+def compute_partitions(fraction, ts, total_size, tensor_partition_idx_vars,
+                       num_partitions_var):
+    import math
+    import tensorflow as tf
+    budget = int(math.floor(fraction * total_size))
+    indexes, new_num_partitions = _bin_pack(
+        dict((t.name, _tensor_size(t)) for t in ts), budget)
+    print("Fraction: " + str(fraction))
+    print("Size indices: " + str(len(indexes.values())))
+
+    assign_partitions = tf.assign(num_partitions_var, new_num_partitions)
+
+    assign_idx_vars = []
+    for k in indexes.keys():
+        # k is tensor name
+        assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
+        assign_idx_vars.append(assign_idx_var)
+    with tf.control_dependencies(assign_idx_vars + [assign_partitions]):
+        return tf.identity(tf.constant(True, dtype=tf.bool))
+
+
+def adaptive_partial_exchange_with_cpu_allreduce(ts,
+                                                 batch_size,
+                                                 num_train,
+                                                 schedule,
+                                                 accumulate=False,
+                                                 average="none"):
+    import tensorflow as tf
+    print("Using piecewise partitioning schedule: " + schedule)
+    steps, fractions = _parse_schedule(schedule, int(batch_size),
+                                       int(num_train))
+
+    total_size = sum([_tensor_size(t) for t in ts])
+    global_step = tf.Variable(
+        tf.zeros([], dtype=tf.int64)
+    )  # tf.train.get_or_create_global_step(graph=tf.get_default_graph())
+    increment_global_step_op = tf.assign(global_step, global_step + 1)
+
+    # Dynamic partition info
+    tensor_partition_idx_vars = dict(
+        (t.name, tf.Variable(tf.ones([], dtype=tf.int64))) for t in ts)
+    num_partitions_var = tf.Variable(tf.ones([], dtype=tf.int64))
+
+    # Reverse both
+    steps = steps[::-1]
+    fractions = fractions[::-1]
+
+    cases = []
+    for i in range(len(steps)):
+        cases.append((tf.greater_equal(global_step - 1, steps[i]),
+                      lambda frac=fractions[i]: compute_partitions(
+                          frac, ts, total_size, tensor_partition_idx_vars,
+                          num_partitions_var)))
+
+    bin_pack_case = tf.case(cases,
+                            exclusive=False,
+                            default=lambda: tf.constant(True, dtype=tf.bool))
+
+    with tf.control_dependencies([bin_pack_case]):
+        partial_negotiated_ts = []
+        for tensor in ts:
+            partition_idx_var = tensor_partition_idx_vars[tensor.name]
+            mod_op = tf.mod(global_step - 1, num_partitions_var)
+            equal_op = tf.equal(mod_op, partition_idx_var)
+
+            negotiated_grad = tf.cond(
+                equal_op,
+                lambda tensor=tensor, partition_idx_var=partition_idx_var,
+                num_partitions_var=num_partitions_var: all_reduce(tensor),
+                lambda tensor=tensor: tf.identity(tensor))
+            partial_negotiated_ts.append(negotiated_grad)
+
+        with tf.control_dependencies([increment_global_step_op]):
+            return [tf.identity(pnt) for pnt in partial_negotiated_ts]
 
 
 def cpu_group_all_reduce(ts):
