@@ -1,3 +1,4 @@
+#include <tensorflow/core/framework/common_shape_fns.h>
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
@@ -35,10 +36,7 @@ REGISTER_OP("AllReduceGpu")
     .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
+    .SetShapeFn(shape_inference::UnchangedShape);
 
 class AllReduceGpu : public AsyncOpKernel
 {

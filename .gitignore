@@ -44,6 +44,5 @@ tensorflow-repo-prefix
 Testing/
 venv
 *.pyc
-experiments
-p2p.sh
 go.sum
+.vscode
