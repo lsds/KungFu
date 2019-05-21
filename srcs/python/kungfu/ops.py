@@ -3,8 +3,6 @@ import platform
 import sysconfig
 from ctypes import cdll
 
-import sys
-
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
 def get_num_peers():
