@@ -48,7 +48,7 @@ func GoKungfuRank() int {
 func GoKungfuRegisterDataCallback(name *C.char, handle *C.data_callback_t) int {
 	sess := kungfu.CurrentSession()
 	return sess.RegisterDataCallback(C.GoString(name), func(data []byte) {
-		C.invoke_data_callback(handle, unsafe.Pointer(data[0]))
+		C.invoke_data_callback(handle, unsafe.Pointer(&data[0]))
 	})
 }
 

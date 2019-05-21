@@ -59,12 +59,13 @@ class MergeReceived : public OpKernel
     std::string input_tensor_name_;
 
     Tensor acc_;
-    int count_;
+    int to_merge_;
+    int merged_;
     std::mutex mu_;
 
   public:
     explicit MergeReceived(OpKernelConstruction *context)
-        : OpKernel(context), count_(0)
+        : OpKernel(context), to_merge_(0), merged_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
@@ -86,15 +87,17 @@ class MergeReceived : public OpKernel
             input_tensor_name_.c_str(), [&](void *data) {
                 // TODO: give priority to callback or it always lose to Compute
                 std::lock_guard<std::mutex> _lk(mu_);
-                LOG(INFO) << "MergeReceived::callback";
-                count_++;
+                // LOG(INFO) << "MergeReceived::callback";
+                to_merge_++;
                 // TODO: add data to this->data_;
             });
     }
 
     ~MergeReceived()
     {
+        std::lock_guard<std::mutex> _lk(mu_);
         _kungfu_world->UnregisterDataCallback(input_tensor_name_.c_str());
+        LOG(INFO) << merged_ << " merged, " << to_merge_ << " unmerged";
     }
 
     void Compute(OpKernelContext *context) override
@@ -105,8 +108,8 @@ class MergeReceived : public OpKernel
                        context->allocate_output(0, input.shape(), &output));
         {
             std::lock_guard<std::mutex> _lk(mu_);
-            LOG(INFO) << "MergeReceived::Compute, accumulated " << count_;
-            count_ = 0;
+            merged_ += to_merge_;
+            to_merge_ = 0;
             // TODO
             // output = input + data_
         }

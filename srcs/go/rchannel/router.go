@@ -127,10 +127,10 @@ func (r *Router) handle(name string, msg *Message) {
 		return
 	}
 	if f == nil {
-		log.Warnf("%s has nil callback", name)
+		log.Errorf("%s has nil callback", name)
 		return
 	}
-	log.Infof("handling message with name %s", name)
+	// log.Infof("handling message with name %s", name)
 	f(msg.Data)
 }
 
