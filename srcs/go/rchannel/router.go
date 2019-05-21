@@ -3,7 +3,6 @@ package rchannel
 import (
 	"net"
 	"os"
-	"unsafe"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -12,7 +11,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/shm"
 )
 
-type Callback func(unsafe.Pointer)
+type Callback func([]byte)
 
 type Router struct {
 	localAddr  plan.NetAddr
@@ -114,6 +113,12 @@ func (r *Router) RegisterDataCallback(name string, f Callback) {
 	r.callbacks[name] = f
 }
 
+func (r *Router) UnregisterDataCallback(name string) {
+	log.Infof("Router::UnregisterDataCallback %s", name)
+	// TODO: lock
+	delete(r.callbacks, name)
+}
+
 func (r *Router) handle(name string, msg *Message) {
 	// TODO: lock
 	f, ok := r.callbacks[name]
@@ -126,7 +131,7 @@ func (r *Router) handle(name string, msg *Message) {
 		return
 	}
 	log.Infof("handling message with name %s", name)
-	f(unsafe.Pointer(&msg.Data[0]))
+	f(msg.Data)
 }
 
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {

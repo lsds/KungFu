@@ -77,6 +77,8 @@ extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
 
 extern int KungfuRegisterDataCallback(const char *name, DataCallback handle);
 
+extern int KungfuUnregisterDataCallback(const char *name);
+
 extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
                            const char *name);
@@ -115,6 +117,11 @@ class kungfu_world
     int RegisterDataCallback(const char *name, DataCallback handle)
     {
         return KungfuRegisterDataCallback(name, handle);
+    }
+
+    int UnregisterDataCallback(const char *name)
+    {
+        return KungfuUnregisterDataCallback(name);
     }
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,

@@ -47,9 +47,15 @@ func GoKungfuRank() int {
 //export GoKungfuRegisterDataCallback
 func GoKungfuRegisterDataCallback(name *C.char, handle *C.data_callback_t) int {
 	sess := kungfu.CurrentSession()
-	return sess.RegisterDataCallback(C.GoString(name), func(data unsafe.Pointer) {
-		C.invoke_data_callback(handle, data)
+	return sess.RegisterDataCallback(C.GoString(name), func(data []byte) {
+		C.invoke_data_callback(handle, unsafe.Pointer(data[0]))
 	})
+}
+
+//export GoKungfuUnregisterDataCallback
+func GoKungfuUnregisterDataCallback(name *C.char) int {
+	sess := kungfu.CurrentSession()
+	return sess.UnregisterDataCallback(C.GoString(name))
 }
 
 //export GoKungfuSendTo

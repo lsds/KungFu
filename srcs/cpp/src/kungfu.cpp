@@ -26,6 +26,11 @@ int KungfuRegisterDataCallback(const char *name, DataCallback handle)
                                         new data_callback_s(handle));
 }
 
+int KungfuUnregisterDataCallback(const char *name)
+{
+    return GoKungfuUnregisterDataCallback((char *)name);
+}
+
 int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
                  KungFu_Datatype dtype, KungFu_Op op, const char *name,
                  DoneCallback done)

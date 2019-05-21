@@ -131,6 +131,11 @@ func (sess *session) RegisterDataCallback(name string, f rch.Callback) int {
 	return 0
 }
 
+func (sess *session) UnregisterDataCallback(name string) int {
+	sess.router.UnregisterDataCallback(name)
+	return 0
+}
+
 func (sess *session) AllReduce(w Workspace) int {
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
