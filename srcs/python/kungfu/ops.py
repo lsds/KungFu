@@ -125,7 +125,7 @@ def compute_partitions(fraction, ts, total_size, tensor_partition_idx_vars,
         assign_idx_var = tf.assign(tensor_partition_idx_vars[k], indexes[k])
         assign_idx_vars.append(assign_idx_var)
     with tf.control_dependencies(assign_idx_vars + [assign_partitions]):
-        return tf.identity(tf.constant(True, dtype=tf.bool))
+        return tf.constant(True, dtype=tf.bool)
 
 
 def adaptive_partial_exchange_with_cpu_allreduce(ts,
