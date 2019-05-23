@@ -59,6 +59,23 @@ _op_lib, _has_gpu = _load_and_init_op_lib()
 def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
+def _parse_schedule(schedule, batch_size, num_train):
+    # schedule is of the form
+    # f1;e1;f2;e2;f3;e3
+    tokens = schedule.split(",")
+    print("Num train: " + str(num_train))
+    print("Batch size: " + str(batch_size))
+    to_gs = lambda epoch: int(epoch * num_train / (batch_size * get_num_peers(
+    )))
+    pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
+             for t in tokens]
+    steps, fractions = zip(*pairs)
+
+    print("Steps: " + str(steps))
+    print("Fractions: " + str(fractions))
+    return steps, fractions
+
+
 
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
@@ -93,6 +110,23 @@ def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average,
                                           tensor_size=tensor_size, count_gradients=count_gradients, 
                                           find_epoch_denominator=find_epoch_denominator, fraction=fraction)
 
+def partial_exchange_all_reduce_with_schedule(t, budget, count_gradients, steps, fractions):
+    # Take full gradient name for unicity
+    tensor_size = t.shape.num_elements() * t.dtype.size
+    print(str(t))
+    print(str(t.name))
+    print(str(budget)) # zero
+    print(str(tensor_size))
+    print(str(tensor_size))
+    print(str(count_gradients))
+    print(str(steps))
+    print(str(fractions))
+    return _op_lib.partial_negotiator_with_schedule(t, input_tensor_name=t.name, budget=budget, 
+                                        tensor_size=tensor_size, count_gradients=count_gradients, 
+                                        steps=steps, fractions=fractions,
+                                        fraction=fractions[0])
+
+
 # Based on Guo Li
 def partial_exchange_all_reduce_front_end_partitioning(t, index, partitions, accumulate=False, average=False):
     # Take full gradient name for unicity
@@ -122,6 +156,30 @@ def set_num_gradients(n):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
+
+# Based on Andrei-Octavian Brabete, Dynamic Partitioning done within C++ operator
+def partial_exchange_group_all_reduce_with_schedule(ts, batch_size, num_train, schedule):
+    import math
+
+    steps, fractions = _parse_schedule(schedule, batch_size, num_train)
+    fraction = fractions[0]
+
+    total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
+    print("Total Size of All Gradients: " + str(total_size))
+    print("The fraction is: " + str(fraction))
+    budget = int(math.floor(fraction * total_size))
+    print("The bucket budget is: " + str(budget))
+
+    trained_steps_op = tf.Variable(tf.zeros([], tf.int32))
+    modify_trained_steps_op = tf.assign(
+            trained_steps_op, global_step_modifier(trained_steps_op))
+
+    
+    with tf.control_dependencies([modify_trained_steps_op]):
+        return [partial_exchange_all_reduce_with_schedule(t, budget, len(ts), steps, fractions) for t in ts]
+
+
+
 # Based on Andrei-Octavian Brabete, Partitioning done within C++ operator
 def partial_exchange_group_all_reduce(ts, batch_size, num_train, fraction=0.3, accumulate=False, average="none"):
     import math
@@ -139,6 +197,25 @@ def partial_exchange_group_all_reduce(ts, batch_size, num_train, fraction=0.3, a
         return [partial_exchange_all_reduce(t, budget, len(ts), accumulate, average, fraction, num_train / (batch_size * get_num_peers())) for t in ts]
 
 # Based on Guo Li, Partitioning in python
+
+def _parse_schedule(schedule, batch_size, num_train):
+    # schedule is of the form
+    # f1;e1;f2;e2;f3;e3
+    tokens = schedule.split(",")
+    print("Num train: " + str(num_train))
+    print("Batch size: " + str(batch_size))
+    to_gs = lambda epoch: int(epoch * num_train / (batch_size * get_num_peers(
+    )))
+    pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
+             for t in tokens]
+    steps, fractions = zip(*pairs)
+
+    print("Steps: " + str(steps))
+    print("Fractions: " + str(fractions))
+    return steps, fractions
+
+
+
 def partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
     import math
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
@@ -163,7 +240,7 @@ def partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, a
 
 def ako_group_all_reduce(gradient_tensors, num_partitions=1):
     partitioner      = AkoPartitioner(num_partitions)
-    grads_and_vars_to_negotiate = [(grad, grad.name[:-2]) for grad in gradient_tensors]
+    grads_and_vars_to_negotiate = [(grad, grad.name) for grad in gradient_tensors]
     partitionIndices = partitioner.partition_positions(grads_and_vars_to_negotiate)
     partitions       = partitioner.reconstruct_partition(grads_and_vars_to_negotiate, partitionIndices)
     
@@ -179,23 +256,6 @@ def ako_group_all_reduce(gradient_tensors, num_partitions=1):
                                                  tf.constant([num_partitions], dtype=tf.int32))
             negotiated_grads.append(negotiated_grad)
     return negotiated_grads
-
-def _parse_schedule(schedule, batch_size, num_train):
-    # schedule is of the form
-    # f1;e1;f2;e2;f3;e3
-    tokens = schedule.split(",")
-    print("Num train: " + str(num_train))
-    print("Batch size: " + str(batch_size))
-    to_gs = lambda epoch: int(epoch * num_train / (batch_size * get_num_peers(
-    )))
-    pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
-             for t in tokens]
-    steps, fractions = zip(*pairs)
-
-    print("Steps: " + str(steps))
-    print("Fractions: " + str(fractions))
-    return steps, fractions
-
 
 def compute_partitions(fraction, ts, total_size, tensor_partition_idx_vars,
                        num_partitions_var):

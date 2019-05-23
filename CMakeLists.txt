@@ -52,7 +52,8 @@ IF(KUNGFU_BUILD_TF_OPS)
                   srcs/cpp/src/tensorflow/ops/collective.cpp
                   srcs/cpp/src/tensorflow/ops/ako/cpu/k_partitioning.cpp
                   srcs/cpp/src/tensorflow/ops/ako/cpu/bin_packing.cpp
-                  srcs/cpp/src/tensorflow/ops/ako/cpu/bin_packing_accumulation.cpp)
+                  srcs/cpp/src/tensorflow/ops/ako/cpu/bin_packing_accumulation.cpp
+                  srcs/cpp/src/tensorflow/ops/ako/cpu/bin_packing_with_schedule.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
     IF(KUNGFU_USE_NCCL)
