@@ -84,8 +84,10 @@ class partial_exchange_manager
 
     ~partial_exchange_manager()
     {
-        tensors.clear();
-        partitions.clear();
+        // std::lock_guard<std::mutex> partitionAccessLock(partitionAccessMutex);
+        // std::lock_guard<std::mutex> constructionLock(constructionMutex);
+        // tensors.clear();
+        // partitions.clear();
         // std::cout << "Between here" << std::endl;
         // for (tensor_meta *t_m : tensors) {
         //     delete t_m;
