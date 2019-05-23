@@ -106,6 +106,7 @@ class MergeReceived : public OpKernel
             if (to_merge_ > 0) {
                 merged_ += to_merge_;
                 to_merge_ = 0;
+                // set to zeros
                 add_tensor(*output, input.tensor_data().data(),
                            acc_.tensor_data().data());
             } else {

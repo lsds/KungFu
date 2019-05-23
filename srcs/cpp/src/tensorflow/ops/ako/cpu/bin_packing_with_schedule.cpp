@@ -9,13 +9,14 @@
 
 namespace tensorflow
 {
-REGISTER_OP("PartialNegotiator")
+REGISTER_OP("PartialNegotiatorWithSchedule")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Attr("budget: int")
     .Attr("tensor_size: int")
     .Attr("count_gradients: int")
-    .Attr("find_epoch_denominator: float")
+    .Attr("steps: list(int)")
+    .Attr("fractions: list(float)")
     .Attr("fraction: float")
     .Input("allgradients: T")
     .Output("output: T")
@@ -24,11 +25,23 @@ REGISTER_OP("PartialNegotiator")
         return Status::OK();
     });
 
-class PartialNegotiator : public AsyncOpKernel
+class PartialNegotiatorWithSchedule : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
     using CPUDevice = Eigen::ThreadPoolDevice;
 
+
+    void printSchedule() {
+        std::cout << "Print Schedule C++" << std::endl;
+        std::cout << "Steps" << std::endl;
+        for(int step : steps) {
+            std::cout << "Step" << step << std::endl;
+        }  
+        std::cout << "Fractions" << std::endl;
+        for(float f : fractions) {
+            std::cout << "Fraction" << f << std::endl;
+        }   
+    }
   public:
     std::string input_tensor_name_;
     int32_t tensorSize_;
@@ -37,7 +50,12 @@ class PartialNegotiator : public AsyncOpKernel
     float find_epoch_denominator_;
     float initial_fraction_;
 
-    explicit PartialNegotiator(OpKernelConstruction *context)
+    std::vector<int> steps;
+    std::vector<float> fractions;
+
+    int repartition_id = 1;
+
+    explicit PartialNegotiatorWithSchedule(OpKernelConstruction *context)
         : AsyncOpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
@@ -55,10 +73,16 @@ class PartialNegotiator : public AsyncOpKernel
             context, tensorSize_ > 0,
             errors::InvalidArgument("tensor size must be greater than 0"));
 
-        OP_REQUIRES_OK(context, context->GetAttr("find_epoch_denominator", &find_epoch_denominator_));
+        OP_REQUIRES_OK(context, context->GetAttr("steps", &steps));
         OP_REQUIRES(
-            context, find_epoch_denominator_ > 0,
-            errors::InvalidArgument("find epoch denominator must be greater than 0"));
+            context, steps.size() > 0,
+            errors::InvalidArgument("steps size must be greater than 0"));
+
+        OP_REQUIRES_OK(context, context->GetAttr("fractions", &fractions));
+        OP_REQUIRES(
+            context, fractions.size() > 0,
+            errors::InvalidArgument("fractions size must be greater than 0"));
+
 
         OP_REQUIRES_OK(context, context->GetAttr("fraction", &initial_fraction_));
         OP_REQUIRES(
@@ -75,6 +99,11 @@ class PartialNegotiator : public AsyncOpKernel
         _partial_exchange_manager->setBudget(budget);
         _partial_exchange_manager->addTensorInfo(input_tensor_name_,
                                                  tensorSize_);
+        
+
+        std::reverse(steps.begin(), steps.end());
+        std::reverse(fractions.begin(), fractions.end());
+        printSchedule();
         _partial_exchange_manager->setFraction(initial_fraction_);
     }
 
@@ -88,14 +117,15 @@ class PartialNegotiator : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        int32_t epoch = 1 + (int32_t) _kungfu_world->GetGlobalStep() / find_epoch_denominator_;
-        // if(epoch == 80) { // count epochs from 0
-        //     std::cout << "First repartition" << std::endl;
-        //    _partial_exchange_manager->repartition(0.4, 1); 
-        // } else if (epoch == 120) {
-        //     std::cout << "Second repartition" << std::endl;
-        //     _partial_exchange_manager->repartition(1, 2); 
-        // }
+        int64_t gs = (int64_t) _kungfu_world->GetGlobalStep();
+        // discard the first one 
+        if(gs == steps[repartition_id]) {
+            std::cout << "Repartition ID" << repartition_id << " with fraction " << fractions[repartition_id] << std::endl;
+
+            _partial_exchange_manager->repartition(fractions[repartition_id], repartition_id);
+            repartition_id++;
+        }
+    
 
         if (_partial_exchange_manager->isReadyForNegotiation(
                 input_tensor_name_, _kungfu_world->GetGlobalStep())) {
@@ -114,7 +144,7 @@ class PartialNegotiator : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("PartialNegotiator").Device(DEVICE_CPU),
-                        PartialNegotiator);
+REGISTER_KERNEL_BUILDER(Name("PartialNegotiatorWithSchedule").Device(DEVICE_CPU),
+                        PartialNegotiatorWithSchedule);
 
 }  // namespace tensorflow
