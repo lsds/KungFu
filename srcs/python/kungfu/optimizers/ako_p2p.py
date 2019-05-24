@@ -23,12 +23,9 @@ class AkoP2P(KungFuOptimizer):
                  name=None,
                  use_locking=False,
                  device_dense='',
-                 device_sparse='',
-                 fraction=0.1):
+                 device_sparse=''):
         super(AkoP2P, self).__init__(optimizer, name, use_locking,
                                      device_dense, device_sparse)
-        self.fraction = fraction
-        self.sample_size = 1
 
     def avg(self, my_var, other_var):
         add_op = tf.add(my_var, other_var)
@@ -47,16 +44,15 @@ class AkoP2P(KungFuOptimizer):
         """Calls this same method on the underlying optimizer."""
         
         grads, variables = zip(*grads_and_vars)
-        sample_peers = sample(range(_get_num_peers()), 1)
-        
-        with tf.control_dependencies([self._optimizer.apply_gradients(grads_and_vars, **kwargs)]):
-            update_ops_peers = []
-            for peer in sample_peers:
-                other_peer_vars = request_vars(peer, variables)
-                update_ops = self.model_average(variables, other_peer_vars) 
-                update_ops_peers.append(update_ops_peers)
-            return update_ops_peers
+
+        #update_ops_peers = []
+        other_peer_vars = request_vars([i for i in range(_get_num_peers())], variables)
+        # update_ops = other_peer_vars # self.model_average(variables, other_peer_vars) 
+        #update_ops_peers.append(update_ops)
+
+
+        with tf.control_dependencies(other_peer_vars):
+            return self._optimizer.apply_gradients(grads_and_vars, **kwargs)  
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
-        """Send grads to peers according to Ako algorithm"""
         return grads_and_vars_to_negotiate

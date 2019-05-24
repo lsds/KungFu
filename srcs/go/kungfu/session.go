@@ -161,12 +161,12 @@ func (sess *session) SendTo(rank int, w Workspace) int {
 }
 
 
-func (sess *session) RequestVar(rank int, w Workspace) int {
+func (sess *session) RequestModel(rank int, requestName string) int {
 	if rank < 0 || len(sess.cluster.Peers) <= rank {
 		return code(errInvalidRank)
 	}
 	peer := sess.cluster.Peers[rank]
-	return code(sess.router.MakeRequestForVar(peer.NetAddr.WithName(w.Name), w.Name, rch.ConnRequestPeerToPeer))
+	return code(sess.router.MakeRequestForModel(peer.NetAddr.WithName(requestName), uint32(sess.myRank), rch.ConnRequestPeerToPeer))
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {

@@ -7,6 +7,8 @@
 
 #include <limits>
 
+#include <random>
+
 namespace tensorflow
 {
 REGISTER_OP("SendTo")
@@ -19,8 +21,8 @@ class SendTo : public OpKernel
 {
     using OpKernel::OpKernel;
     std::string input_tensor_name_;
-
-  public:
+    
+    public:
     explicit SendTo(OpKernelConstruction *context) : OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
@@ -58,69 +60,107 @@ REGISTER_KERNEL_BUILDER(Name("SendTo").Device(DEVICE_CPU), SendTo);
 
 
 
-REGISTER_OP("RequestVar")
+REGISTER_OP("RequestModel")
     .Attr("T: {int32, int64, float16, float32, float64}")
-    .Attr("var_name: string")
-    .Attr("shape: shape")
-    .Attr("dtype: type")
-    .Input("rank: int32")
-    .Output("other_var: T")
+    .Attr("self_rank: int")
+    .Attr("ranks: list(int)")
+    .Attr("NumTensors: int")
+    .Attr("var_names: list(string)")
+    .Attr("shapes: list(shape)")
+    .Attr("dtypes: list(type)")
+    .Input("vars: NumTensors * T")
+    .Output("outputs: NumTensors * T") // Try list(T) or list(tensor) if it does not work
     .SetShapeFn(shape_inference::UnchangedShape);   
 
-class RequestVar : public OpKernel
+class RequestModel : public OpKernel
 {
     using OpKernel::OpKernel;
-    std::string input_tensor_name_;
+    std::random_device random_device;   
+    std::mt19937 engine{random_device()};  
 
-    Tensor other_var_;
-    std::string var_name_;
-    
-    void init_result_tensor(OpKernelConstruction *context) {
-        TensorShapeProto shape_;
-        OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
-        DataType dtype_;
-        OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtype_));
-        other_var_ = Tensor(dtype_, shape_);
-        other_var_.flat<float>().setZero();
+    int self_rank_;
+
+    std::vector<int> ranks_;
+    int model_size_;
+
+    std::vector<std::string> var_names_;
+    std::vector<TensorShapeProto> shapes_;
+    std::vector<DataType> dtypes_;
+    std::vector<Tensor> other_vars_;
+
+    void check_attrs(OpKernelConstruction *context) {
+        OP_REQUIRES(
+            context, var_names_.size() > 0,
+            errors::InvalidArgument("var_names_ must not be empty"));
+        OP_REQUIRES(
+            context, shapes_.size() > 0,
+            errors::InvalidArgument("shapes_ must not be empty"));
+        OP_REQUIRES(
+            context, dtypes_.size() > 0,
+            errors::InvalidArgument("dtypes_ must not be empty"));
+        OP_REQUIRES(
+            context, other_vars_.size() > 0,
+            errors::InvalidArgument("other_vars_ must not be empty"));
+          OP_REQUIRES(
+            context, ranks_.size() > 0,
+            errors::InvalidArgument("ranks_ must not be empty"));
+    }
+
+    void init_result_tensors(OpKernelConstruction *context) {
+        OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
+        OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtypes_));
+        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
+        
+        for(int i = 0; i < model_size_; i++) {
+            Tensor other_var = Tensor(dtypes_[i], shapes_[i]);
+            std::cout << other_var.DebugString() << std::endl;
+            other_var.flat<float>().setZero();
+            other_vars_.push_back(other_var);
+        }
     }
 
   public:
-    explicit RequestVar(OpKernelConstruction *context) : OpKernel(context)
+    explicit RequestModel(OpKernelConstruction *context) : OpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("var_name",
-                                                 &var_name_));
-        OP_REQUIRES(
-            context, var_name_.size() >= 0,
-            errors::InvalidArgument("var_name must not be empty"));
+        OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
+        OP_REQUIRES_OK(context, context->GetAttr("var_names",
+                                                 &var_names_));
+        OP_REQUIRES_OK(context, context->GetAttr("ranks",
+                                                 &ranks_));
+        init_result_tensors(context);
+        check_attrs(context);
 
-        init_result_tensor(context);
-
+        std::cout << "AM I CONSTRUCTING THIS?" << std::endl;
     }
 
     void Compute(OpKernelContext *context) override
     {
-        const Tensor &rank_tensor = context->input(0);
-        int32_t rank              = rank_tensor.scalar<int32_t>()();
+        std::vector<Tensor*> outputs(other_vars_.size(), nullptr);
+        for(int i = 0; i < other_vars_.size(); i++) {
+            OP_REQUIRES_OK(context,
+                           context->allocate_output(i, other_vars_[i].shape(), &outputs[i]));
+        }
 
-        Tensor *output      = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(0, other_var_.shape(), &output));
+        std::uniform_int_distribution<int> dist(0, ranks_.size() - 1);
 
-        _kungfu_world->RequestVar(
-            rank, 
-            var_name_.c_str(), 
-            other_var_.NumElements(), 
-            to_kungfu_type(other_var_.dtype()), 
-            (void *)(other_var_.tensor_data().data()));
+        int destination = dist(engine);
+        while(destination == self_rank_) {
+            std::cout << "Picking another rank" << std::endl;
+            destination = dist(engine);
+        }
+        std::string req_name = "ModelRequest";
+        _kungfu_world->RequestModel(destination, req_name.c_str());
 
-        output->CopyFrom(other_var_, other_var_.shape());
-
+        std::cout << "Other vars size " << other_vars_.size() << std::endl;
+        for(int i = 0; i < other_vars_.size(); i++) {
+            outputs[i]->CopyFrom(other_vars_[i], other_vars_[i].shape());
+        }
     }
 
    
 };
 
-REGISTER_KERNEL_BUILDER(Name("RequestVar").Device(DEVICE_CPU), RequestVar);
+REGISTER_KERNEL_BUILDER(Name("RequestModel").Device(DEVICE_CPU), RequestModel);
 
 
 

@@ -3,6 +3,7 @@ package rchannel
 import (
 	"net"
 	"os"
+	"fmt"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -43,11 +44,11 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 }
 
 // RequestVar sends request name to given Addr
-func (r *Router) MakeRequestForVar(a plan.Addr, name string, t ConnType) error {
+func (r *Router) MakeRequestForModel(a plan.Addr, from uint32, t ConnType) error {
 	msg := Message{
+		From: from,
 		Length: 0,
 		Data:   nil,
-		RequestName: name,
 	}
 	if err := r.send(a, msg, t); err != nil {
 		log.Errorf("Router::Send failed: %v", err)
@@ -80,7 +81,10 @@ func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
 }
 
 func (r *Router) send(a plan.Addr, msg Message, t ConnType) error {
-	// log.Infof("%s::%s", "Router", "Send")
+	log.Infof("%s::%s", "Router", "Send")
+
+	log.Infof("From::%d", msg.From)
+
 	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
@@ -174,7 +178,8 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 		case ConnPeerToPeer:
 			r.handle(name, msg)
 		case ConnRequestPeerToPeer:
-			r.handle(name, msg)
+			fmt.Printf("Receiving request from: %d", msg.From)
+			// r.handleRequest()
 		default:
 			log.Infof("no handler for type %s", t)
 		}

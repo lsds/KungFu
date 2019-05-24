@@ -54,12 +54,16 @@ def _get_num_peers():
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
-def request_vars(rank, variables):
+def request_vars(peer_ranks, variables):
+    import tensorflow as tf
     request_avg_ops = []
-    for var in variables:
-        request_op = _op_lib.request_var(rank, var_name=var.name, shape=var.shape, dtype=var.dtype)
-        request_avg_ops.append(request_op)
-    return request_avg_ops
+    var_names  = [var.name for var in variables]
+    var_shapes = [var.shape for var in variables]
+    var_dtypes = [var.dtype for var in variables]
+    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" + str(len(variables)))
+    request_vars = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
+                                         var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
+    return request_vars
 
 def merge_received(t):
     return _op_lib.merge_received(t,

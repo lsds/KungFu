@@ -99,12 +99,15 @@ func (m *messageTail) ReadFrom(r io.Reader) error {
 
 // Message is the data transferred via channel
 type Message struct {
+	From   uint32
 	Length uint32
 	Data   []byte
-	RequestName string
 }
 
 func (m Message) WriteTo(w io.Writer) error {
+	if err := binary.Write(w, endian, m.From); err != nil {
+		return err
+	}
 	if err := binary.Write(w, endian, m.Length); err != nil {
 		return err
 	}
@@ -113,6 +116,9 @@ func (m Message) WriteTo(w io.Writer) error {
 }
 
 func (m *Message) ReadFrom(r io.Reader) error {
+	if err := binary.Read(r, endian, &m.From); err != nil {
+		return err
+	}
 	if err := binary.Read(r, endian, &m.Length); err != nil {
 		return err
 	}

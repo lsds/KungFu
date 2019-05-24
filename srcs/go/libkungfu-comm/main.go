@@ -81,22 +81,14 @@ func GoKungfuSendTo(rank int, sendBuf unsafe.Pointer, count int, dtype C.KungFu_
 	return 0
 }
 
-//export GoKungfuRequestVar
-func GoKungfuRequestVar(rank int, name *C.char, count int, dtype C.KungFu_Datatype, recvBuf unsafe.Pointer, done *C.callback_t) int {
-	fmt.Printf("%s", "Inside go")
+//export GoKungfuRequestModel
+func GoKungfuRequestModel(rank int, name *C.char) int {
+	fmt.Printf("Inside go requesting model: %s", name)
 
-	w := kf.Workspace{
-		RecvBuf: toBuffer(recvBuf, count, dtype),
-		Name:    C.GoString(name),
-	}
 	sess := kungfu.CurrentSession()
 
-	if done == nil {
-		// Synchronous case
-		return sess.SendTo(rank, w)
-	}
-
-	return 0
+	// Synchronous case
+	return sess.RequestModel(rank, C.GoString(name))
 }
 
 //export GoKungfuAllReduce
