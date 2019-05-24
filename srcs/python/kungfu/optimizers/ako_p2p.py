@@ -50,8 +50,12 @@ class AkoP2P(KungFuOptimizer):
         # update_ops = other_peer_vars # self.model_average(variables, other_peer_vars) 
         #update_ops_peers.append(update_ops)
 
-
-        with tf.control_dependencies(other_peer_vars):
+        # Make configurable momentum
+        momentum = 0.9  
+        assign_ops = [tf.assign(v, v + momentum * (v - other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
+        # Check this because it messes with the variable types in request_vars
+        with tf.control_dependencies(assign_ops):
+            # Check if assignment takes place
             return self._optimizer.apply_gradients(grads_and_vars, **kwargs)  
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
