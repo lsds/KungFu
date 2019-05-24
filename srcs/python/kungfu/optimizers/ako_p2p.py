@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from kungfu.ops import send_to, _tensor_size, _bin_pack, merge_received
+from kungfu.ops import request_vars, _tensor_size, _concat
 from .core import KungFuOptimizer
 
 
@@ -28,27 +28,34 @@ class AkoP2P(KungFuOptimizer):
         super(AkoP2P, self).__init__(optimizer, name, use_locking,
                                      device_dense, device_sparse)
         self.fraction = fraction
+        self.sample_size = 1
+
+    def avg(self, my_var, other_var):
+        add_op = tf.add(my_var, other_var)
+        avg_op = 0.5 * add_op
+        return avg_op
+
+    def model_average(self, my_vars, other_peer_vars):
+        update_ops = []
+        for my_v, other_v in zip(my_vars, other_peer_vars):
+            with tf.device(my_v.device):
+                avg = self.avg(my_v.read_value(), other_v.read_value())
+                update_ops.append(tf.assign(my_var, avg))
+        return update_ops
+
+    def apply_gradients(self, grads_and_vars, **kwargs):
+        """Calls this same method on the underlying optimizer."""
+        
+        grads, variables = zip(*grads_and_vars)
+        sample_peers = sample(range(_get_num_peers()), 1)
+        
+        with tf.control_dependencies([self._optimizer.apply_gradients(grads_and_vars, **kwargs)]):
+            update_ops = []
+            for peer in sample_peers:
+                other_peer_vars = request_vars(peer, variables)
+                update_ops = self.model_average(variables, other_peer_vars) 
+            return update_ops
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Send grads to peers according to Ako algorithm"""
-        gradients, variables = list(zip(*grads_and_vars_to_negotiate))
-
-        total_size = sum([_tensor_size(t) for t in gradients])
-        budget = int(self.fraction * total_size)
-        indexes, num_partitions = _bin_pack(
-            dict((t.name, _tensor_size(t)) for t in gradients), budget)
-        groups = [[] for _ in range(num_partitions)]
-        for t in gradients:
-            groups[indexes[t.name]].append(t)
-
-        send_ops = []
-        for dest_rank in range(_get_num_peers()):
-            k = dest_rank % num_partitions
-            group_k = groups[k]
-            for g in group_k:
-                send_op = send_to(dest_rank, g)
-                send_ops.append(send_op)
-
-        with tf.control_dependencies(send_ops):
-            merged_grads = [merge_received(g) for g in gradients]
-            return list(zip(merged_grads, variables))
+        return grads_and_vars_to_negotiate)

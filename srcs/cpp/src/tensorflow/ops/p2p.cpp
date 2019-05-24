@@ -43,6 +43,43 @@ class SendTo : public OpKernel
     }
 };
 
+REGISTER_OP("RequestVariableAverage")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("input_tensor_name: string")
+    .Input("rank: int32")
+    .Input("input: T");
+
+class RequestVariableAverage : public OpKernel
+{
+    using OpKernel::OpKernel;
+    std::string input_tensor_name_;
+
+  public:
+    explicit RequestVariableAverage(OpKernelConstruction *context) : OpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
+                                                 &input_tensor_name_));
+        OP_REQUIRES(
+            context, input_tensor_name_.size() >= 0,
+            errors::InvalidArgument("input_tensor_name must not be empty"));
+    }
+
+    void Compute(OpKernelContext *context) override
+    {
+        const Tensor &rank_tensor = context->input(0);
+        int32_t rank              = rank_tensor.scalar<int32_t>()();
+
+        const Tensor &input = context->input(1);
+
+        _kungfu_world->RequestVariableAverage(
+            rank, input.tensor_data().data(), input.NumElements(),
+            to_kungfu_type(input.dtype()), input_tensor_name_.c_str());
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("SendTo").Device(DEVICE_CPU), SendTo);
+
+
 REGISTER_KERNEL_BUILDER(Name("SendTo").Device(DEVICE_CPU), SendTo);
 
 REGISTER_OP("MergeReceived")

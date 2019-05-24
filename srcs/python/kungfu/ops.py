@@ -54,6 +54,12 @@ def _get_num_peers():
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
+def request_vars(rank, variables):
+    request_avg_ops = []
+    for var in variables:
+        request_op = _op_lib.request_var(rank, var)
+        request_avg_ops.append(request_op)
+    return request_avg_ops
 
 def merge_received(t):
     return _op_lib.merge_received(t,
