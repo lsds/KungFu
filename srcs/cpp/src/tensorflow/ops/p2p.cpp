@@ -43,25 +43,57 @@ class SendTo : public OpKernel
     }
 };
 
-REGISTER_OP("RequestVariableAverage")
-    .Attr("T: {int32, int64, float16, float32, float64}")
-    .Attr("input_tensor_name: string")
-    .Input("rank: int32")
-    .Input("input: T");
+REGISTER_KERNEL_BUILDER(Name("SendTo").Device(DEVICE_CPU), SendTo);
 
-class RequestVariableAverage : public OpKernel
+
+
+
+
+
+
+
+
+
+
+
+
+
+REGISTER_OP("RequestVar")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("var_name: string")
+    .Attr("shape: shape")
+    .Attr("dtype: type")
+    .Input("rank: int32")
+    .Output("other_var: T")
+    .SetShapeFn(shape_inference::UnchangedShape)
+
+class RequestVar : public OpKernel
 {
     using OpKernel::OpKernel;
     std::string input_tensor_name_;
 
+    Tensor other_var_;
+    
+    void init_result_tensor(OpKernelConstruction *context) {
+        TensorShapeProto shape_;
+        OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
+        DataType dtype_;
+        OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtype_));
+        other_var_ = Tensor(dtype_, shape_);
+        other_var_.flat<float>().setZero();
+    }
+
   public:
-    explicit RequestVariableAverage(OpKernelConstruction *context) : OpKernel(context)
+    explicit RequestVar(OpKernelConstruction *context) : OpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
-                                                 &input_tensor_name_));
+        OP_REQUIRES_OK(context, context->GetAttr("var_name",
+                                                 &var_name_));
         OP_REQUIRES(
-            context, input_tensor_name_.size() >= 0,
-            errors::InvalidArgument("input_tensor_name must not be empty"));
+            context, var_name.size() >= 0,
+            errors::InvalidArgument("var_name must not be empty"));
+
+        init_result_tensor(context);
+
     }
 
     void Compute(OpKernelContext *context) override
@@ -69,18 +101,32 @@ class RequestVariableAverage : public OpKernel
         const Tensor &rank_tensor = context->input(0);
         int32_t rank              = rank_tensor.scalar<int32_t>()();
 
-        const Tensor &input = context->input(1);
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, other_var.shape(), &output));
 
-        _kungfu_world->RequestVariableAverage(
-            rank, input.tensor_data().data(), input.NumElements(),
-            to_kungfu_type(input.dtype()), input_tensor_name_.c_str());
+        _kungfu_world->RequestVar(
+            rank, var_name.c_str(), (void *)(other_var->tensor_data().data()));
+
+        output->CopyFrom(other_var_, other_var_.shape());
+
     }
+
+   
 };
 
-REGISTER_KERNEL_BUILDER(Name("SendTo").Device(DEVICE_CPU), SendTo);
+REGISTER_KERNEL_BUILDER(Name("RequestVar").Device(DEVICE_CPU), RequestVar);
 
 
-REGISTER_KERNEL_BUILDER(Name("SendTo").Device(DEVICE_CPU), SendTo);
+
+
+
+
+
+
+
+
+
 
 REGISTER_OP("MergeReceived")
     .Attr("T: {int32, int64, float16, float32, float64}")

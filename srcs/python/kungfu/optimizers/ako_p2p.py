@@ -58,4 +58,4 @@ class AkoP2P(KungFuOptimizer):
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Send grads to peers according to Ako algorithm"""
-        return grads_and_vars_to_negotiate)
+        return grads_and_vars_to_negotiate

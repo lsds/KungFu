@@ -57,7 +57,7 @@ def send_to(rank, t):
 def request_vars(rank, variables):
     request_avg_ops = []
     for var in variables:
-        request_op = _op_lib.request_var(rank, var)
+        request_op = _op_lib.request_var(rank, var_name=var.name, shape=var.shape, dtype=var.dtype)
         request_avg_ops.append(request_op)
     return request_avg_ops
 
