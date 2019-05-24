@@ -50,11 +50,12 @@ class AkoP2P(KungFuOptimizer):
         sample_peers = sample(range(_get_num_peers()), 1)
         
         with tf.control_dependencies([self._optimizer.apply_gradients(grads_and_vars, **kwargs)]):
-            update_ops = []
+            update_ops_peers = []
             for peer in sample_peers:
                 other_peer_vars = request_vars(peer, variables)
                 update_ops = self.model_average(variables, other_peer_vars) 
-            return update_ops
+                update_ops_peers.append(update_ops_peers)
+            return update_ops_peers
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Send grads to peers according to Ako algorithm"""

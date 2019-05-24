@@ -166,7 +166,7 @@ func (sess *session) RequestVar(rank int, w Workspace) int {
 		return code(errInvalidRank)
 	}
 	peer := sess.cluster.Peers[rank]
-	return code(sess.router.RequestVar(peer.NetAddr.WithName(w.Name), w.name, rch.ConnRequestPeerToPeer))
+	return code(sess.router.MakeRequestForVar(peer.NetAddr.WithName(w.Name), w.Name, rch.ConnRequestPeerToPeer))
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {

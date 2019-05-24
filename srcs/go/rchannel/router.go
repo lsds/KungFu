@@ -42,6 +42,25 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 	return newChannel(a.Name, conn), nil
 }
 
+// RequestVar sends request name to given Addr
+func (r *Router) MakeRequestForVar(a plan.Addr, name string, t ConnType) error {
+	msg := Message{
+		Length: 0,
+		Data:   nil,
+		RequestName: name,
+	}
+	if err := r.send(a, msg, t); err != nil {
+		log.Errorf("Router::Send failed: %v", err)
+		// TODO: retry
+		if t == ConnCollective {
+			os.Exit(1)
+		}
+		// return err
+	}
+	r.monitor.Egress(int64(msg.Length), a.NetAddr())
+	return nil
+}
+
 // Send sends data in buf to given Addr
 func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
 	msg := Message{
@@ -154,8 +173,8 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 			r.bufferPool.require(remote.WithName(name)) <- msg
 		case ConnPeerToPeer:
 			r.handle(name, msg)
-		case ConnReusablePeerToPeer:
-			r.handleRequest(name, msg)
+		case ConnRequestPeerToPeer:
+			r.handle(name, msg)
 		default:
 			log.Infof("no handler for type %s", t)
 		}

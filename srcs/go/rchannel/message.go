@@ -13,6 +13,7 @@ const (
 	ConnControl    ConnType = 0
 	ConnCollective ConnType = 1
 	ConnPeerToPeer ConnType = 2
+	ConnRequestPeerToPeer ConnType = 3
 )
 
 var endian = binary.LittleEndian
@@ -100,7 +101,7 @@ func (m *messageTail) ReadFrom(r io.Reader) error {
 type Message struct {
 	Length uint32
 	Data   []byte
-	requestName string
+	RequestName string
 }
 
 func (m Message) WriteTo(w io.Writer) error {
