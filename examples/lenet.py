@@ -95,9 +95,9 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     loss = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.GradientDescentOptimizer(learning_rate = 0.001)
 
-    if kungfu_strategy == 'ako':
+    if kungfu_strategy == 'p2p':
         from kungfu.optimizers import AkoP2P
-        optimizer = AkoP2P(optimizer, fraction=0.8)
+        optimizer = AkoP2P(optimizer)
     else:
         from kungfu.optimizers import ParallelOptimizer
         print("Using parallel optimizer")
