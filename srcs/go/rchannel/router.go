@@ -154,6 +154,8 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 			r.bufferPool.require(remote.WithName(name)) <- msg
 		case ConnPeerToPeer:
 			r.handle(name, msg)
+		case ConnReusablePeerToPeer:
+			r.handleRequest(name, msg)
 		default:
 			log.Infof("no handler for type %s", t)
 		}

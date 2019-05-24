@@ -77,6 +77,8 @@ extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
 extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
                         KungFu_Datatype dtype, const char *name);
 
+extern int KungfuRequestVar(int32_t rank, const char *name, int count, KungFu_Datatype dtype, void *recvbuf);
+
 extern int KungfuRegisterDataCallback(const char *name, DataCallback handle);
 
 extern int KungfuUnregisterDataCallback(const char *name);
@@ -120,6 +122,11 @@ class kungfu_world
                KungFu_Datatype dtype, const char *name)
     {
         return KungfuSendTo(rank, sendbuf, count, dtype, name);
+    }
+
+    int RequestVar(int32_t rank, const char *name, int count, KungFu_Datatype dtype, void *recvbuf)
+    {
+        return KungfuRequestVar(rank, name, count, dtype, recvbuf);
     }
 
     int RegisterDataCallback(const char *name, DataCallback handle)

@@ -100,6 +100,7 @@ func (m *messageTail) ReadFrom(r io.Reader) error {
 type Message struct {
 	Length uint32
 	Data   []byte
+	requestName string
 }
 
 func (m Message) WriteTo(w io.Writer) error {

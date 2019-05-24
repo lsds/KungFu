@@ -160,6 +160,15 @@ func (sess *session) SendTo(rank int, w Workspace) int {
 	return code(sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnPeerToPeer))
 }
 
+
+func (sess *session) RequestVar(rank int, w Workspace) int {
+	if rank < 0 || len(sess.cluster.Peers) <= rank {
+		return code(errInvalidRank)
+	}
+	peer := sess.cluster.Peers[rank]
+	return code(sess.router.RequestVar(peer.NetAddr.WithName(w.Name), w.name, rch.ConnRequestPeerToPeer))
+}
+
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	if len(sess.cluster.Peers) == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)

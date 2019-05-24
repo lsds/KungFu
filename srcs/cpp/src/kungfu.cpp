@@ -27,6 +27,11 @@ int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
                           (char *)name, nullptr);
 }
 
+int KungfuRequestVar(int32_t rank, const char *name, int count, KungFu_Datatype dtype, void *recvbuf)
+{
+    return GoKungfuRequestVar(rank, (char *)name, GoInt(count), GoInt(dtype), (void *) recvbuf, nullptr);
+}
+
 
 int KungfuRegisterDataCallback(const char *name, DataCallback handle)
 {

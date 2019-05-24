@@ -4,6 +4,7 @@ import (
 	"os"
 	"reflect"
 	"unsafe"
+	"fmt"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -77,6 +78,24 @@ func GoKungfuSendTo(rank int, sendBuf unsafe.Pointer, count int, dtype C.KungFu_
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
+	return 0
+}
+
+//export GoKungfuRequestVar
+func GoKungfuRequestVar(rank int, name *C.char, count int, dtype C.KungFu_Datatype, recvBuf unsafe.Pointer, done *C.callback_t) int {
+	fmt.Printf("%s", "Inside go")
+
+	w := kf.Workspace{
+		RecvBuf: toBuffer(recvBuf, count, dtype),
+		Name:    C.GoString(name),
+	}
+	sess := kungfu.CurrentSession()
+
+	if done == nil {
+		// Synchronous case
+		return sess.SendTo(rank, w)
+	}
+
 	return 0
 }
 

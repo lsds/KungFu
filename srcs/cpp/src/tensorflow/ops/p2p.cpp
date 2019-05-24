@@ -65,7 +65,7 @@ REGISTER_OP("RequestVar")
     .Attr("dtype: type")
     .Input("rank: int32")
     .Output("other_var: T")
-    .SetShapeFn(shape_inference::UnchangedShape)
+    .SetShapeFn(shape_inference::UnchangedShape);   
 
 class RequestVar : public OpKernel
 {
@@ -73,6 +73,7 @@ class RequestVar : public OpKernel
     std::string input_tensor_name_;
 
     Tensor other_var_;
+    std::string var_name_;
     
     void init_result_tensor(OpKernelConstruction *context) {
         TensorShapeProto shape_;
@@ -89,7 +90,7 @@ class RequestVar : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("var_name",
                                                  &var_name_));
         OP_REQUIRES(
-            context, var_name.size() >= 0,
+            context, var_name_.size() >= 0,
             errors::InvalidArgument("var_name must not be empty"));
 
         init_result_tensor(context);
@@ -103,10 +104,14 @@ class RequestVar : public OpKernel
 
         Tensor *output      = nullptr;
         OP_REQUIRES_OK(context,
-                       context->allocate_output(0, other_var.shape(), &output));
+                       context->allocate_output(0, other_var_.shape(), &output));
 
         _kungfu_world->RequestVar(
-            rank, var_name.c_str(), (void *)(other_var->tensor_data().data()));
+            rank, 
+            var_name_.c_str(), 
+            other_var_.NumElements(), 
+            to_kungfu_type(other_var_.dtype()), 
+            (void *)(other_var_.tensor_data().data()));
 
         output->CopyFrom(other_var_, other_var_.shape());
 
