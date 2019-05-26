@@ -42,8 +42,10 @@ class AkoP2P(KungFuOptimizer):
         else:
             print("It is not an instance of tf.train.MomentumOptimizer")
 
+        print_vars = [tf.Print(o_v, [o_v], message="Other peer variable ID " + str(i)) for i, o_v in enumerate(other_peer_vars)]
+
         assign_ops = [tf.assign_add(v, momentum * (v - other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
-        with tf.control_dependencies(assign_ops):
+        with tf.control_dependencies(print_vars + assign_ops):
             # Check if assignment takes place
             return self._optimizer.apply_gradients(grads_and_vars, **kwargs)  
 

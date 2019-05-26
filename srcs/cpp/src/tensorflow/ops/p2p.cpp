@@ -99,7 +99,6 @@ class RequestModel : public OpKernel
         std::cout << "Model store update" << std::endl;
         for(int i = 0; i < var_names_.size(); i++) {
             const Tensor &input = context->input(i);
-            std::cout << "Inside the model store update: " << input.DebugString() << std::endl;
             _kungfu_world->UpdateModelStore(i,
                                             input.tensor_data().data(),
                                             input.NumElements(), 
@@ -139,14 +138,12 @@ class RequestModel : public OpKernel
     }
 
     void register_callbacks_for_variables(OpKernelConstruction *context) {
-        std::cout << "NUM INPUTS IS " << var_names_.size() << ". IT SHOULD BE 10" << std::endl;
         for(int i = 0; i < var_names_.size(); i++) {
             _kungfu_world->RegisterDataCallback(
                 std::to_string(i).c_str(), [&, i=i](void *data, int len) {
-                    // TODO: give priority to callback or it always lose to Compute
-                    std::lock_guard<std::mutex> _lk(mu_);
+                    // /std::lock_guard<std::mutex> _lk(mu_);
         
-                    std::cout << i << std::endl;
+                    std::cout << "Updating other_var " << i << " inside callback." << std::endl;
 
                     if(other_vars_[i].NumElements() != len) {
                         LOG(ERROR) << "The other tensor variable received has a different size: " << len  << " than the "
@@ -154,7 +151,13 @@ class RequestModel : public OpKernel
                     }
 
                     other_vars_[i].flat<float>().setZero();
-                    add_tensor(other_vars_[i], other_vars_[i].tensor_data().data(), data);
+
+                    std_transform_2((const float *)data, 
+                                    (const void *) other_vars_[i].tensor_data().data(), 
+                                    (void *) other_vars_[i].tensor_data().data(), 
+                                    other_vars_[i].NumElements(), 
+                                    to_kungfu_type(other_vars_[i].dtype()), 
+                                    KungFu_SUM);
             });
         }
     }
@@ -175,15 +178,14 @@ class RequestModel : public OpKernel
 
     ~RequestModel()
     {
-        // std::lock_guard<std::mutex> _lk(mu_);
-        // // for(int i = 0; i < var_names_.size(); i++) {
-        // //     _kungfu_world->UnregisterDataCallback(std::to_string(i).c_str());
-        // // }
+        //std::lock_guard<std::mutex> _lk(mu_);
+        for(int i = 0; i < var_names_.size(); i++) {
+            _kungfu_world->UnregisterDataCallback(std::to_string(i).c_str());
+        }
     }
 
     void Compute(OpKernelContext *context) override
     {
-        update_model_store(context);
 
         std::uniform_int_distribution<int> dist(0, ranks_.size() - 1);
         int destination = dist(engine);
@@ -192,19 +194,20 @@ class RequestModel : public OpKernel
         std::string req_name = "ThisIsTheUniqueModelRequestName";
         _kungfu_world->RequestModel(destination, req_name.c_str());
 
-
-        {
-            std::lock_guard<std::mutex> _lk(mu_);
-            std::vector<Tensor*> outputs(other_vars_.size(), nullptr);
-            for(int i = 0; i < other_vars_.size(); i++) {
-                OP_REQUIRES_OK(context,
-                            context->allocate_output(i, other_vars_[i].shape(), &outputs[i]));
-            }
-
-            for(int i = 0; i < other_vars_.size(); i++) {
-                outputs[i]->CopyFrom(other_vars_[i], other_vars_[i].shape());
-            }
+        //std::lock_guard<std::mutex> _lk(mu_);
+        std::vector<Tensor*> outputs(other_vars_.size(), nullptr);
+        for(int i = 0; i < other_vars_.size(); i++) {
+            OP_REQUIRES_OK(context,
+                        context->allocate_output(i, other_vars_[i].shape(), &outputs[i]));
         }
+
+        for(int i = 0; i < other_vars_.size(); i++) {
+            outputs[i]->CopyFrom(other_vars_[i], other_vars_[i].shape());   
+            std::cout << "Output " << i << " is " << outputs[i]->DebugString() << std::endl;
+        }
+
+        update_model_store(context);
+    
     }
 
    

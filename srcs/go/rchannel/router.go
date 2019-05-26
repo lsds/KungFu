@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"fmt"
+	"sync"
 	"strconv"
 	//"encoding/hex"
 
@@ -30,9 +31,11 @@ type Router struct {
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
 
-	callbacks map[string]Callback // TODO: mutex
+	callbacks       map[string]Callback
+	callbacksMutex  sync.Mutex
 	// TODO: delele callbacks on exit
-	modelStore [][]byte
+	modelStore      []*kb.Buffer
+	modelStoreMutex sync.Mutex
 	// Add peers to use for P2P request-reply
 	peers []plan.PeerSpec
 }
@@ -145,19 +148,23 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 var newShm = shm.New
 
 func (r *Router) RegisterDataCallback(name string, f Callback) {
+	r.callbacksMutex.Lock()
+	defer r.callbacksMutex.Unlock()
 	log.Infof("Router::RegisterDataCallback %s %p", name, f)
-	// TODO: lock
 	r.callbacks[name] = f
 }
 
 func (r *Router) UnregisterDataCallback(name string) {
+	r.callbacksMutex.Lock()
+	defer r.callbacksMutex.Unlock()
 	log.Infof("Router::UnregisterDataCallback %s", name)
-	// TODO: lock
 	delete(r.callbacks, name)
 }
 
 func (r *Router) handle(name string, msg *Message) {
-	// TODO: lock
+	r.callbacksMutex.Lock()
+	defer r.callbacksMutex.Unlock()
+	
 	f, ok := r.callbacks[name]
 	if !ok {
 		log.Warnf("%s has no callback registered", name)
@@ -169,15 +176,35 @@ func (r *Router) handle(name string, msg *Message) {
 	}
 	log.Infof("handling message with name %+v", msg)
 	f(msg)
+
 }
 
 func (r *Router) replyWithModel(destRank uint32) {
 	//fmt.Println("In reply Model, model is:")
 	// /fmt.Printf("Model store size %d\n", len(r.modelStore))
+	r.modelStoreMutex.Lock()
+	defer r.modelStoreMutex.Unlock()
 	destPeer := r.peers[destRank]
-	for i, variableAsByteArr := range r.modelStore {
-		fmt.Printf("Sending tensor %d\n", i)
-		r.Send(destPeer.NetAddr.WithName(strconv.Itoa(i)), variableAsByteArr, ConnReplyPeerToPeer)
+	fmt.Printf("%+v\n", r.modelStore)
+	for i, variableBuffer := range r.modelStore {
+		if variableBuffer != nil {
+			a      := destPeer.NetAddr.WithName(strconv.Itoa(i))
+			buf    := variableBuffer.Data
+			length := variableBuffer.Count
+			msg    := Message{
+				       Length: uint32(length),
+				       Data:   buf,
+			          }
+			if err := r.send(a, msg, ConnReplyPeerToPeer); err != nil {
+				log.Errorf("Router::Send failed: %v", err)
+				// TODO: retry
+				if ConnReplyPeerToPeer == ConnCollective {
+					os.Exit(1)
+				}
+				// return err
+			}
+			r.monitor.Egress(int64(msg.Length), a.NetAddr())
+		}
 	}
 }
 
@@ -187,17 +214,24 @@ func (r *Router) SetPeersForP2P(peers []plan.PeerSpec) {
 }
 
 func (r *Router) InitModelStore(numVariables int) error {
+	r.modelStoreMutex.Lock()
+	defer r.modelStoreMutex.Unlock()
 	log.Infof("Init model store")
-	r.modelStore = make([][]*kb.Buffer, numVariables)
-	for i, _ := range r.modelStore {
-		r.modelStore[i] = // TODO
-	}
+	r.modelStore = make([]*kb.Buffer, numVariables)
 	return nil
 }
 
 func (r *Router) UpdateModelStore(varId int, varbuf *kb.Buffer) error {
+	r.modelStoreMutex.Lock()
+	defer r.modelStoreMutex.Unlock()
+	if r.modelStore[varId] == nil {
+		newBuf := kb.NewBuffer(varbuf.Count, varbuf.Type)
+		newBuf.Data = varbuf.Data
+		r.modelStore[varId] = newBuf
+	} else {
+		r.modelStore[varId].CopyFrom(varbuf)
+	}
 	
-	r.modelStore[varId] = varbuf
 	return nil
 }
 
@@ -225,7 +259,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 			//fmt.Printf("Receiving request from: %d\n", msg.From)
 			r.replyWithModel(msg.From)
 		case ConnReplyPeerToPeer:
-			fmt.Printf("Receiving tensor with name %s\n", name)
+			//fmt.Printf("Receiving tensor with name %s\n", name)
 			r.handle(name, msg)
 		default:
 			log.Infof("no handler for type %s", t)
