@@ -12,6 +12,12 @@ import (
 	"github.com/lsds/KungFu/srcs/go/shm"
 )
 
+type ModelStore struct {
+	variables [][]byte
+}
+
+
+
 type Callback func(*Message)
 
 type Router struct {
@@ -22,6 +28,7 @@ type Router struct {
 
 	callbacks map[string]Callback // TODO: mutex
 	// TODO: delele callbacks on exit
+	modelStore: ModelStore
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -81,7 +88,7 @@ func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
 }
 
 func (r *Router) send(a plan.Addr, msg Message, t ConnType) error {
-	log.Infof("%s::%s", "Router", "Send")
+	log.Infof("%s::%s\n", "Router", "Send")
 
 	log.Infof("From::%d", msg.From)
 
@@ -157,6 +164,23 @@ func (r *Router) handle(name string, msg *Message) {
 	f(msg)
 }
 
+
+func (r *Router) replyWithModel(name string, msg *Message) {
+	// TODO: lock
+	f, ok := r.callbacks[name]
+	if !ok {
+		log.Warnf("%s has no callback registered", name)
+		return
+	}
+	if f == nil {
+		log.Errorf("%s has nil callback", name)
+		return
+	}
+	r.ModelStore.update()
+	model := r.ModelStore.retrieve()
+	MakeRequestForModel(peer.NetAddr.WithName("ModelReply", rch.ConnReplyPeerToPeer)
+
+
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
 	var shm shm.Shm
 	if kc.UseShm && remote.Host == r.localAddr.Host {
@@ -178,8 +202,8 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 		case ConnPeerToPeer:
 			r.handle(name, msg)
 		case ConnRequestPeerToPeer:
-			fmt.Printf("Receiving request from: %d", msg.From)
-			// r.handleRequest()
+			fmt.Printf("Receiving request from: %d\n", msg.From)
+			r.replyWithModel(name)
 		default:
 			log.Infof("no handler for type %s", t)
 		}

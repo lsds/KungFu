@@ -108,7 +108,7 @@ class RequestModel : public OpKernel
 
     void init_result_tensors(OpKernelConstruction *context) {
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtypes_));
+        OP_REQUIRES_OK(context, context->GetAttr("dtypes", &dtypes_));
         OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
         
         for(int i = 0; i < model_size_; i++) {
@@ -130,7 +130,6 @@ class RequestModel : public OpKernel
         init_result_tensors(context);
         check_attrs(context);
 
-        std::cout << "AM I CONSTRUCTING THIS?" << std::endl;
     }
 
     void Compute(OpKernelContext *context) override
@@ -148,10 +147,9 @@ class RequestModel : public OpKernel
             std::cout << "Picking another rank" << std::endl;
             destination = dist(engine);
         }
-        std::string req_name = "ModelRequest";
+        std::string req_name = "ThisIsTheUniqueModelRequestName";
         _kungfu_world->RequestModel(destination, req_name.c_str());
 
-        std::cout << "Other vars size " << other_vars_.size() << std::endl;
         for(int i = 0; i < other_vars_.size(); i++) {
             outputs[i]->CopyFrom(other_vars_[i], other_vars_[i].shape());
         }
@@ -173,7 +171,7 @@ REGISTER_KERNEL_BUILDER(Name("RequestModel").Device(DEVICE_CPU), RequestModel);
 
 
 
-REGISTER_OP("MergeReceived")
+REGISTER_OP("ModelStoreUpdate")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Attr("shape: shape")
@@ -182,7 +180,7 @@ REGISTER_OP("MergeReceived")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
 
-class MergeReceived : public OpKernel
+class ModelStoreUpdate : public OpKernel
 {
     using OpKernel::OpKernel;
 
@@ -196,32 +194,7 @@ class MergeReceived : public OpKernel
     int32_t empty_merge_count;
 
   public:
-
-    float get_min(Tensor& t) {
-        auto t_flat = t.flat<float>();
-        float min = std::numeric_limits<float>::max();;
-        for(int i = 0; i < t.NumElements(); i++) {
-            if(t_flat(i) < min) {
-                min = t_flat(i);
-            }
-        }
-        return min;
-    }
-
-
-    float get_max(Tensor& t) {
-        auto t_flat = t.flat<float>();
-        float max = std::numeric_limits<float>::lowest();;
-        for(int i = 0; i < t.NumElements(); i++) {
-            if(t_flat(i) > max) {
-                max = t_flat(i);
-            }
-        }
-        return max;
-    }
-
-
-    explicit MergeReceived(OpKernelConstruction *context)
+    explicit ModelStoreUpdate(OpKernelConstruction *context)
         : OpKernel(context), to_merge_(0), merged_(0), empty_merge_count(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
@@ -229,13 +202,6 @@ class MergeReceived : public OpKernel
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
-
-        TensorShapeProto shape_;
-        OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
-        DataType dtype_;
-        OP_REQUIRES_OK(context, context->GetAttr("dtype", &dtype_));
-        acc_ = Tensor(dtype_, shape_);
-        acc_.flat<float>().setZero();
 
         _kungfu_world->RegisterDataCallback(
             input_tensor_name_.c_str(), [&](void *data, int len) {
@@ -248,7 +214,7 @@ class MergeReceived : public OpKernel
         });
     }
 
-    ~MergeReceived()
+    ~ModelStoreUpdate()
     {
         std::lock_guard<std::mutex> _lk(mu_);
         _kungfu_world->UnregisterDataCallback(input_tensor_name_.c_str());
@@ -263,22 +229,12 @@ class MergeReceived : public OpKernel
                        context->allocate_output(0, input.shape(), &output));
         {
             std::lock_guard<std::mutex> _lk(mu_);
-            if (to_merge_ > 0) {
-                empty_merge_count = 0;
-                merged_ += to_merge_;
-                to_merge_ = 0;
-                add_tensor(*output, input.tensor_data().data(),
-                           acc_.tensor_data().data());
-            } else {
-                empty_merge_count++;
-                output->CopyFrom(input, input.shape());
-            }
-            std::cout << "["  << input_tensor_name_ << "] EMPTY MERGE: " << empty_merge_count << std::endl;
+           
         }
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("MergeReceived").Device(DEVICE_CPU),
-                        MergeReceived);
+REGISTER_KERNEL_BUILDER(Name("ModelStoreUpdate").Device(DEVICE_CPU),
+                        ModelStoreUpdate);
 
 }  // namespace tensorflow

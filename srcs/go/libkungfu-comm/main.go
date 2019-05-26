@@ -83,7 +83,7 @@ func GoKungfuSendTo(rank int, sendBuf unsafe.Pointer, count int, dtype C.KungFu_
 
 //export GoKungfuRequestModel
 func GoKungfuRequestModel(rank int, name *C.char) int {
-	fmt.Printf("Inside go requesting model: %s", name)
+	fmt.Printf("Inside go requesting model: %s", C.GoString(name))
 
 	sess := kungfu.CurrentSession()
 
