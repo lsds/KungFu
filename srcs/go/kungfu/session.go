@@ -169,6 +169,15 @@ func (sess *session) RequestModel(rank int, requestName string) int {
 	return code(sess.router.MakeRequestForModel(peer.NetAddr.WithName(requestName), uint32(sess.myRank), rch.ConnRequestPeerToPeer))
 }
 
+func (sess *session) UpdateModelStore(varId int, varbuf *kb.Buffer) int {
+	return code(sess.router.UpdateModelStore(varId, varbuf.Data))
+}
+
+func (sess *session) InitModelStore(numVariables int) int {
+	sess.router.SetPeersForP2P(sess.cluster.Peers)
+	return code(sess.router.InitModelStore(numVariables))
+}
+
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	if len(sess.cluster.Peers) == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)

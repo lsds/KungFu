@@ -88,6 +88,23 @@ class RequestModel : public OpKernel
     std::vector<DataType> dtypes_;
     std::vector<Tensor> other_vars_;
 
+
+    std::mutex mu_;
+
+    void update_model_store(OpKernelContext* context) {
+        OP_REQUIRES(
+            context, var_names_.size() == context->num_inputs(),
+            errors::InvalidArgument("Wrong number of inputs for operator"));
+
+        for(int i = 0; i < var_names_.size(); i++) {
+            const Tensor &input = context->input(i);
+            _kungfu_world->UpdateModelStore(i,
+                                            input.tensor_data().data(),
+                                            input.NumElements(), 
+                                            to_kungfu_type(input.dtype()));
+        }   
+    }
+
     void check_attrs(OpKernelConstruction *context) {
         OP_REQUIRES(
             context, var_names_.size() > 0,
@@ -113,9 +130,22 @@ class RequestModel : public OpKernel
         
         for(int i = 0; i < model_size_; i++) {
             Tensor other_var = Tensor(dtypes_[i], shapes_[i]);
-            std::cout << other_var.DebugString() << std::endl;
             other_var.flat<float>().setZero();
             other_vars_.push_back(other_var);
+        }
+    }
+
+    void register_callbacks_for_variables(OpKernelConstruction *context) {
+        std::cout << "NUM INPUTS IS " << var_names_.size() << ". IT SHOULD BE 10" << std::endl;
+        for(int i = 0; i < var_names_.size(); i++) {
+            _kungfu_world->RegisterDataCallback(
+                std::to_string(i).c_str(), [&](void *data, int len) {
+                    // TODO: give priority to callback or it always lose to Compute
+                    std::lock_guard<std::mutex> _lk(mu_);
+        
+                    other_vars_[i].flat<float>().setZero();
+                    add_tensor(other_vars_[i], other_vars_[i].tensor_data().data(), data);
+            });
         }
     }
 
@@ -129,29 +159,41 @@ class RequestModel : public OpKernel
                                                  &ranks_));
         init_result_tensors(context);
         check_attrs(context);
+        _kungfu_world->InitModelStore(var_names_.size());
+        register_callbacks_for_variables(context);
+    }
 
+    ~RequestModel()
+    {
+        std::lock_guard<std::mutex> _lk(mu_);
+        for(int i = 0; i < var_names_.size(); i++) {
+            _kungfu_world->UnregisterDataCallback(std::to_string(i).c_str());
+        }
     }
 
     void Compute(OpKernelContext *context) override
     {
-        std::vector<Tensor*> outputs(other_vars_.size(), nullptr);
-        for(int i = 0; i < other_vars_.size(); i++) {
-            OP_REQUIRES_OK(context,
-                           context->allocate_output(i, other_vars_[i].shape(), &outputs[i]));
-        }
+        update_model_store(context);
 
         std::uniform_int_distribution<int> dist(0, ranks_.size() - 1);
-
         int destination = dist(engine);
-        while(destination == self_rank_) {
-            std::cout << "Picking another rank" << std::endl;
-            destination = dist(engine);
-        }
+        while(destination == self_rank_) { destination = dist(engine); }
+
         std::string req_name = "ThisIsTheUniqueModelRequestName";
         _kungfu_world->RequestModel(destination, req_name.c_str());
 
-        for(int i = 0; i < other_vars_.size(); i++) {
-            outputs[i]->CopyFrom(other_vars_[i], other_vars_[i].shape());
+
+        {
+            std::lock_guard<std::mutex> _lk(mu_);
+            std::vector<Tensor*> outputs(other_vars_.size(), nullptr);
+            for(int i = 0; i < other_vars_.size(); i++) {
+                OP_REQUIRES_OK(context,
+                            context->allocate_output(i, other_vars_[i].shape(), &outputs[i]));
+            }
+
+            for(int i = 0; i < other_vars_.size(); i++) {
+                outputs[i]->CopyFrom(other_vars_[i], other_vars_[i].shape());
+            }
         }
     }
 

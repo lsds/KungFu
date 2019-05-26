@@ -60,7 +60,6 @@ def request_vars(peer_ranks, variables):
     var_names  = [var.name for var in variables]
     var_shapes = [var.shape for var in variables]
     var_dtypes = [var.dtype for var in variables]
-    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" + str(len(variables)))
     request_vars = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
                                          var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
     return request_vars

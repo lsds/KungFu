@@ -91,6 +91,19 @@ func GoKungfuRequestModel(rank int, name *C.char) int {
 	return sess.RequestModel(rank, C.GoString(name))
 }
 
+//export GoKungfuUpdateModelStore
+func GoKungfuUpdateModelStore(var_id int, varbuf unsafe.Pointer, count int, dtype C.KungFu_Datatype) int {
+	sess := kungfu.CurrentSession()
+	return sess.UpdateModelStore(var_id, toBuffer(varbuf, count, dtype))
+}
+
+
+//export GoKungfuInitModelStore
+func GoKungfuInitModelStore(numVariables int) int {
+	sess := kungfu.CurrentSession()
+	return sess.InitModelStore(numVariables)
+}
+
 //export GoKungfuAllReduce
 func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{

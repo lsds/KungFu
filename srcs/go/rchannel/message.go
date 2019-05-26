@@ -10,10 +10,12 @@ import (
 type ConnType uint16
 
 const (
-	ConnControl    ConnType = 0
-	ConnCollective ConnType = 1
-	ConnPeerToPeer ConnType = 2
+	ConnControl    ConnType 	   = 0
+	ConnCollective ConnType 	   = 1
+	ConnPeerToPeer ConnType        = 2
 	ConnRequestPeerToPeer ConnType = 3
+	ConnReplyPeerToPeer ConnType   = 4
+
 )
 
 var endian = binary.LittleEndian

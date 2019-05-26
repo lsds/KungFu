@@ -33,6 +33,14 @@ int KungfuRequestModel(int rank, const char *name)
 }
 
 
+int KungfuUpdateModelStore(int32_t var_id, const void *varbuf, int count, KungFu_Datatype dtype)  {
+    return GoKungfuUpdateModelStore(var_id, (void *) varbuf, GoInt(count), GoInt(dtype));
+}
+
+int KungfuInitModelStore(int num_variables) {
+    return GoKungfuInitModelStore(num_variables);
+}
+
 int KungfuRegisterDataCallback(const char *name, DataCallback handle)
 {
     return GoKungfuRegisterDataCallback((char *)name,

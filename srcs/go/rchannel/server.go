@@ -104,7 +104,7 @@ func (s *Server) handle(conn net.Conn) error {
 		return s.handlePeerToPeer(remoteNetAddr, conn)
 	case ConnRequestPeerToPeer:
 		return s.handleRequestPeerToPeer(remoteNetAddr, conn)
-	case ConnReeplyPeerToPeer:
+	case ConnReplyPeerToPeer:
 		return s.handleReplyPeerToPeer(remoteNetAddr, conn)
 	default:
 		return errInvalidConnectionHeader

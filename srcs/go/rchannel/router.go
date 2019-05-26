@@ -3,13 +3,16 @@ package rchannel
 import (
 	"net"
 	"os"
-	"fmt"
+	//"fmt"
+	"strconv"
+	//"encoding/hex"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/shm"
+
 )
 
 type ModelStore struct {
@@ -28,7 +31,9 @@ type Router struct {
 
 	callbacks map[string]Callback // TODO: mutex
 	// TODO: delele callbacks on exit
-	modelStore: ModelStore
+	modelStore [][]byte
+	// Add peers to use for P2P request-reply
+	peers []plan.PeerSpec
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -88,9 +93,9 @@ func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
 }
 
 func (r *Router) send(a plan.Addr, msg Message, t ConnType) error {
-	log.Infof("%s::%s\n", "Router", "Send")
+	//log.Infof("%s::%s\n", "Router", "Send")
 
-	log.Infof("From::%d", msg.From)
+	//log.Infof("From::%d", msg.From)
 
 	ch, err := r.getChannel(a, t)
 	if err != nil {
@@ -118,6 +123,7 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 	}
 	var msg Message
 	if mh.BodyInShm != 0 {
+		log.Errorf("%s", "Should not get here")
 		var mt messageTail
 		if err := mt.ReadFrom(conn); err != nil {
 			return "", nil, err
@@ -165,21 +171,30 @@ func (r *Router) handle(name string, msg *Message) {
 }
 
 
-func (r *Router) replyWithModel(name string, msg *Message) {
-	// TODO: lock
-	f, ok := r.callbacks[name]
-	if !ok {
-		log.Warnf("%s has no callback registered", name)
-		return
+func (r *Router) replyWithModel(destRank uint32) {
+	//fmt.Println("In reply Model, model is:")
+	// /fmt.Printf("Model store size %d\n", len(r.modelStore))
+	destPeer := r.peers[destRank]
+	for i, variableAsByteArr := range r.modelStore {
+		//fmt.Printf("Variable %d FRONT is: %s\n", i, hex.EncodeToString(variableAsByteArr))
+		r.Send(destPeer.NetAddr.WithName(strconv.Itoa(i)), variableAsByteArr, ConnReplyPeerToPeer)
 	}
-	if f == nil {
-		log.Errorf("%s has nil callback", name)
-		return
-	}
-	r.ModelStore.update()
-	model := r.ModelStore.retrieve()
-	MakeRequestForModel(peer.NetAddr.WithName("ModelReply", rch.ConnReplyPeerToPeer)
+}
 
+func (r *Router) SetPeersForP2P(peers []plan.PeerSpec) {
+	r.peers = peers
+}
+
+func (r *Router) InitModelStore(numVariables int) error {
+	log.Infof("Init model store")
+	r.modelStore = make([][]byte, numVariables)
+	return nil
+}
+
+func (r *Router) UpdateModelStore(varId int, varbuf []byte) error {
+	r.modelStore[varId] = varbuf
+	return nil
+}
 
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
 	var shm shm.Shm
@@ -202,8 +217,10 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 		case ConnPeerToPeer:
 			r.handle(name, msg)
 		case ConnRequestPeerToPeer:
-			fmt.Printf("Receiving request from: %d\n", msg.From)
-			r.replyWithModel(name)
+			//fmt.Printf("Receiving request from: %d\n", msg.From)
+			r.replyWithModel(msg.From)
+		case ConnReplyPeerToPeer:
+			r.handle(name, msg)
 		default:
 			log.Infof("no handler for type %s", t)
 		}
