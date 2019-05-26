@@ -77,7 +77,7 @@ extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
 extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
                         KungFu_Datatype dtype, const char *name);
 
-extern int KungfuRequestModel(int rank, const char *name);
+extern int KungfuRequestModel(int destinationRank, const char *name);
 extern int KungfuUpdateModelStore(int32_t var_id, const void *varbuf, int count,
                                   KungFu_Datatype dtype);
 extern int KungfuInitModelStore(int32_t num_variables);
@@ -127,9 +127,9 @@ class kungfu_world
         return KungfuSendTo(rank, sendbuf, count, dtype, name);
     }
 
-    int RequestModel(int rank, const char *name)
+    int RequestModel(int destinationRank, const char *name)
     {
-        return KungfuRequestModel(rank, name);
+        return KungfuRequestModel(destinationRank, name);
     }
 
     int UpdateModelStore(int32_t var_id, const void *varbuf, int count,

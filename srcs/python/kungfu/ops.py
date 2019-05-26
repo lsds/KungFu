@@ -189,6 +189,7 @@ def partial_exchange_with_gpu_allreduce(ts,
 
 
 def ako_p2p(gradients, fraction):
+    """Partial gradient exchange using Ako P2P"""
     import tensorflow as tf
 
     print("Constructing Ako P2P negotiator with budget fraction %f." % fraction)

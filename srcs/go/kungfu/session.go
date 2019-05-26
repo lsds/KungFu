@@ -166,11 +166,11 @@ func (sess *session) RequestModel(rank int, requestName string) int {
 		return code(errInvalidRank)
 	}
 	peer := sess.cluster.Peers[rank]
-	return code(sess.router.MakeRequestForModel(peer.NetAddr.WithName(requestName), uint32(sess.myRank), rch.ConnRequestPeerToPeer))
+	return code(sess.router.RequestModel(peer.NetAddr.WithName(requestName), uint32(sess.myRank), rch.ConnRequestPeerToPeer))
 }
 
 func (sess *session) UpdateModelStore(varId int, varbuf *kb.Buffer) int {
-	return code(sess.router.UpdateModelStore(varId, varbuf.Data))
+	return code(sess.router.UpdateModelStore(varId, varbuf))
 }
 
 func (sess *session) InitModelStore(numVariables int) int {

@@ -96,8 +96,10 @@ class RequestModel : public OpKernel
             context, var_names_.size() == context->num_inputs(),
             errors::InvalidArgument("Wrong number of inputs for operator"));
 
+        std::cout << "Model store update" << std::endl;
         for(int i = 0; i < var_names_.size(); i++) {
             const Tensor &input = context->input(i);
+            std::cout << "Inside the model store update: " << input.DebugString() << std::endl;
             _kungfu_world->UpdateModelStore(i,
                                             input.tensor_data().data(),
                                             input.NumElements(), 
@@ -131,6 +133,7 @@ class RequestModel : public OpKernel
         for(int i = 0; i < model_size_; i++) {
             Tensor other_var = Tensor(dtypes_[i], shapes_[i]);
             other_var.flat<float>().setZero();
+            //std::cout << "Initial other_tensors: " << other_var.DebugString()  << ", " << other_var.NumElements() << std::endl;
             other_vars_.push_back(other_var);
         }
     }
@@ -139,12 +142,15 @@ class RequestModel : public OpKernel
         std::cout << "NUM INPUTS IS " << var_names_.size() << ". IT SHOULD BE 10" << std::endl;
         for(int i = 0; i < var_names_.size(); i++) {
             _kungfu_world->RegisterDataCallback(
-                std::to_string(i).c_str(), [&](void *data, int len) {
+                std::to_string(i).c_str(), [&, i=i](void *data, int len) {
                     // TODO: give priority to callback or it always lose to Compute
                     std::lock_guard<std::mutex> _lk(mu_);
         
+                    std::cout << i << std::endl;
+
                     if(other_vars_[i].NumElements() != len) {
-                        LOG(ERROR) << "The other tensor variable received has a different size than the local variable";
+                        LOG(ERROR) << "The other tensor variable received has a different size: " << len  << " than the "
+                                      "local variable: " << other_vars_[i].NumElements();
                     }
 
                     other_vars_[i].flat<float>().setZero();
@@ -169,10 +175,10 @@ class RequestModel : public OpKernel
 
     ~RequestModel()
     {
-        std::lock_guard<std::mutex> _lk(mu_);
-        for(int i = 0; i < var_names_.size(); i++) {
-            _kungfu_world->UnregisterDataCallback(std::to_string(i).c_str());
-        }
+        // std::lock_guard<std::mutex> _lk(mu_);
+        // // for(int i = 0; i < var_names_.size(); i++) {
+        // //     _kungfu_world->UnregisterDataCallback(std::to_string(i).c_str());
+        // // }
     }
 
     void Compute(OpKernelContext *context) override

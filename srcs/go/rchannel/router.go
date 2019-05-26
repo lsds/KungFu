@@ -7,6 +7,7 @@ import (
 	"strconv"
 	//"encoding/hex"
 
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
@@ -56,7 +57,7 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 }
 
 // RequestVar sends request name to given Addr
-func (r *Router) MakeRequestForModel(a plan.Addr, from uint32, t ConnType) error {
+func (r *Router) RequestModel(a plan.Addr, from uint32, t ConnType) error {
 	msg := Message{
 		From: from,
 		Length: 0,
@@ -170,13 +171,12 @@ func (r *Router) handle(name string, msg *Message) {
 	f(msg)
 }
 
-
 func (r *Router) replyWithModel(destRank uint32) {
 	//fmt.Println("In reply Model, model is:")
 	// /fmt.Printf("Model store size %d\n", len(r.modelStore))
 	destPeer := r.peers[destRank]
 	for i, variableAsByteArr := range r.modelStore {
-		//fmt.Printf("Variable %d FRONT is: %s\n", i, hex.EncodeToString(variableAsByteArr))
+		fmt.Printf("Sending tensor %d\n", i)
 		r.Send(destPeer.NetAddr.WithName(strconv.Itoa(i)), variableAsByteArr, ConnReplyPeerToPeer)
 	}
 }
@@ -188,11 +188,15 @@ func (r *Router) SetPeersForP2P(peers []plan.PeerSpec) {
 
 func (r *Router) InitModelStore(numVariables int) error {
 	log.Infof("Init model store")
-	r.modelStore = make([][]byte, numVariables)
+	r.modelStore = make([][]*kb.Buffer, numVariables)
+	for i, _ := range r.modelStore {
+		r.modelStore[i] = // TODO
+	}
 	return nil
 }
 
-func (r *Router) UpdateModelStore(varId int, varbuf []byte) error {
+func (r *Router) UpdateModelStore(varId int, varbuf *kb.Buffer) error {
+	
 	r.modelStore[varId] = varbuf
 	return nil
 }
@@ -221,6 +225,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 			//fmt.Printf("Receiving request from: %d\n", msg.From)
 			r.replyWithModel(msg.From)
 		case ConnReplyPeerToPeer:
+			fmt.Printf("Receiving tensor with name %s\n", name)
 			r.handle(name, msg)
 		default:
 			log.Infof("no handler for type %s", t)

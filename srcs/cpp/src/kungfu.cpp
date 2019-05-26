@@ -27,9 +27,9 @@ int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
                           (char *)name, nullptr);
 }
 
-int KungfuRequestModel(int rank, const char *name)
+int KungfuRequestModel(int destinationRank, const char *name)
 {
-    return GoKungfuRequestModel(rank, (char *)name);
+    return GoKungfuRequestModel(destinationRank, (char *)name);
 }
 
 

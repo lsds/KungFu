@@ -27,19 +27,6 @@ class AkoP2P(KungFuOptimizer):
         super(AkoP2P, self).__init__(optimizer, name, use_locking,
                                      device_dense, device_sparse)
 
-    def avg(self, my_var, other_var):
-        add_op = tf.add(my_var, other_var)
-        avg_op = 0.5 * add_op
-        return avg_op
-
-    def model_average(self, my_vars, other_peer_vars):
-        update_ops = []
-        for my_v, other_v in zip(my_vars, other_peer_vars):
-            with tf.device(my_v.device):
-                avg = self.avg(my_v.read_value(), other_v.read_value())
-                update_ops.append(tf.assign(my_var, avg))
-        return update_ops
-
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
         
@@ -49,10 +36,13 @@ class AkoP2P(KungFuOptimizer):
 
         # Make configurable momentum
         momentum = 0
-        if isinstance(self, tf.train.MomentumOptimizer):
+        if isinstance(self._optimizer, tf.train.MomentumOptimizer):
+            print("Using momentum optimizer")
             momentum = self._optimizer._momentum
-            
-        assign_ops = [tf.assign(v, v + momentum * (v - other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
+        else:
+            print("It is not an instance of tf.train.MomentumOptimizer")
+
+        assign_ops = [tf.assign_add(v, momentum * (v - other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
         with tf.control_dependencies(assign_ops):
             # Check if assignment takes place
             return self._optimizer.apply_gradients(grads_and_vars, **kwargs)  
