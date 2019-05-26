@@ -48,7 +48,10 @@ class AkoP2P(KungFuOptimizer):
         other_peer_vars = request_vars([i for i in range(_get_num_peers())], variables)
 
         # Make configurable momentum
-        momentum = 0.9  
+        momentum = 0
+        if isinstance(self, tf.train.MomentumOptimizer):
+            momentum = self._optimizer._momentum
+            
         assign_ops = [tf.assign(v, v + momentum * (v - other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
         with tf.control_dependencies(assign_ops):
             # Check if assignment takes place

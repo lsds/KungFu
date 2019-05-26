@@ -143,6 +143,10 @@ class RequestModel : public OpKernel
                     // TODO: give priority to callback or it always lose to Compute
                     std::lock_guard<std::mutex> _lk(mu_);
         
+                    if(other_vars_[i].NumElements() != len) {
+                        LOG(ERROR) << "The other tensor variable received has a different size than the local variable";
+                    }
+
                     other_vars_[i].flat<float>().setZero();
                     add_tensor(other_vars_[i], other_vars_[i].tensor_data().data(), data);
             });

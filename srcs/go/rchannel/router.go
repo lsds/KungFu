@@ -3,7 +3,7 @@ package rchannel
 import (
 	"net"
 	"os"
-	//"fmt"
+	"fmt"
 	"strconv"
 	//"encoding/hex"
 
@@ -166,7 +166,7 @@ func (r *Router) handle(name string, msg *Message) {
 		log.Errorf("%s has nil callback", name)
 		return
 	}
-	//log.Infof("handling message with name %+v", msg)
+	log.Infof("handling message with name %+v", msg)
 	f(msg)
 }
 
@@ -183,6 +183,7 @@ func (r *Router) replyWithModel(destRank uint32) {
 
 func (r *Router) SetPeersForP2P(peers []plan.PeerSpec) {
 	r.peers = peers
+	fmt.Printf("The peers are: %+v",  r.peers)
 }
 
 func (r *Router) InitModelStore(numVariables int) error {
