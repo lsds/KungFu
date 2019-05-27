@@ -131,11 +131,11 @@ class partial_exchange_manager
         tensors.push_back(t_m);
 
         // Begin bin packing when all operators constructed
-        if (tensors.size() == countGradients) {
-            std::cout << "The budget is: " << this->budget << std::endl;
-            bin_pack(true);
-            print_partition_info();
-        }
+        // if (tensors.size() == countGradients) {
+        //     std::cout << "The budget is: " << this->budget << std::endl;
+        //     bin_pack(true);
+        //     print_partition_info();
+        // }
     }
 
     bool isReadyForNegotiation(const std::string tensor_name, int32_t global_step)
@@ -175,7 +175,7 @@ class partial_exchange_manager
         
         // Restore bin counter
         this->bin_counter = 1;
-        bin_pack(false);
+        bin_pack();
         print_partition_info();
     }
 
@@ -190,7 +190,7 @@ class partial_exchange_manager
 
     // Bin packing algorithm based on:
     // https://www.youtube.com/watch?v=uDdMuUWf6h4
-    void bin_pack(bool should_sort)
+    void bin_pack()
     {
         std::cout << "Total budget per bin: " << budget << std::endl;
         std::cout << "When starting bin packing, the tensors are: "
@@ -199,15 +199,12 @@ class partial_exchange_manager
             std::cout << *t << std::endl;
         }
 
-        if (should_sort) {
-            // Sort only once
-            // Comparator affects the ordering on each peer.
-            auto grt = [](tensor_meta *t1, tensor_meta *t2) {
-                return t1->size > t2->size ||
-                    (t1->size == t2->size && t1->name > t2->name);
-            };
-            std::sort(tensors.begin(), tensors.end(), grt);
-        }
+        
+        auto grt = [](tensor_meta *t1, tensor_meta *t2) {
+            return t1->size > t2->size ||
+                (t1->size == t2->size && t1->name > t2->name);
+        };
+        std::sort(tensors.begin(), tensors.end(), grt);
 
         if (tensors[0]->size > budget) {
             std::cout << "Infeasible to bin-pack the tensors with small "

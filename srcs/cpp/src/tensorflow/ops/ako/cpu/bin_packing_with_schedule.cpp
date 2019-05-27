@@ -53,7 +53,7 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
     std::vector<int> steps;
     std::vector<float> fractions;
 
-    int repartition_id = 1;
+    int repartition_id = 0;
 
     explicit PartialNegotiatorWithSchedule(OpKernelConstruction *context)
         : AsyncOpKernel(context)
@@ -101,10 +101,8 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
                                                  tensorSize_);
         
 
-        std::reverse(steps.begin(), steps.end());
-        std::reverse(fractions.begin(), fractions.end());
         printSchedule();
-        _partial_exchange_manager->setFraction(initial_fraction_);
+        //_partial_exchange_manager->setFraction(initial_fraction_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
