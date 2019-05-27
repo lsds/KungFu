@@ -123,7 +123,7 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
 
 
 def train_mnist(x, y, mnist, train_step, acc, n_epochs, n_batches, batch_size,
-                val_accuracy_target):
+                val_accuracy_target, kungfu_strategy):
     reached_target_accuracy = False
     with tf.Session() as sess:
         writer = tf.summary.FileWriter("/home/ab7515/tensorboard-logs-andrei",
@@ -131,7 +131,14 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, n_batches, batch_size,
 
         sess.run(tf.global_variables_initializer())
 
-        sess.run(kf.distributed_variables_initializer())
+        initializer = None
+        if kungfu_strategy == 'p2p':
+            from kungfu.optimizers import AkoP2P
+            initializer = AkoP2P.get_initializer()
+        else:
+            initializer = kf.distributed_variables_initializer()
+
+        sess.run(initializer)
 
         time_start = time.time()
         total_val_duration = 0
@@ -250,16 +257,9 @@ def show_trainable_variables_info():
           (tot_vars, tot_dim, show_size(tot_size)))
 
 
-def warmup():
-    from kungfu.optimizers import AkoP2P
-    initializer = AkoP2P.get_initializer()
-    with tf.Session() as sess:
-        sess.run(initializer)
-
 
 def main():
     args = parse_args()
-    measure(warmup, 'warmup')
     x, y_, train_step, acc = build_train_ops(args.kungfu_strategy,
                                              args.ako_partitions,
                                              args.batch_size)
@@ -272,7 +272,7 @@ def main():
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, args.n_epochs, args.
                             n_batches, args.batch_size, args.
-                            val_accuracy_target), 'train')
+                            val_accuracy_target, args.kungfu_strategy), 'train')
 
 
 measure(main, 'main')

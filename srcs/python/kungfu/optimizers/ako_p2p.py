@@ -36,8 +36,8 @@ class AkoP2P(KungFuOptimizer):
         variables = g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         for v in variables:
             ops.append(tf.assign(v, broadcast(v)))
-        #ops.append(save_model(variables))
-        return tf.group(ops)
+        with tf.control_dependencies(ops):
+             return save_model(tf.trainable_variables())
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
@@ -54,24 +54,19 @@ class AkoP2P(KungFuOptimizer):
         else:
             raise Exception("Optimizer is not an instance of tf.train.MomentumOptimizer")
 
-        # tf.Print(o_v, [o_v], message="Other peer variable ID " + str(i) + ": ") 
+        print_ovs = [tf.Print(o_v, [o_v], message="Other peer variable ID " + str(i) + ": ") for i, o_v in enumerate(other_peer_vars)]
+        print_lvs = [tf.Print(v, [v], message="My variable ID " + str(i) + ": ") for i, (_, v) in enumerate(grads_and_vars)]
 
-        clip_nans_ops = []
-        for ((g, v), o_v) in zip(grads_and_vars, other_peer_vars):
-            clip_nan = tf.where(tf.is_nan(o_v), v, o_v)
-            clip_nans_ops.append(clip_nan)
-
-        assign_ops = [tf.assign_add(v, momentum * (v - other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
+        assign_ops = [tf.assign(v, 0.5 * (v + other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
        
         apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs) 
         save_model_op = save_model(variables)
 
-        with tf.control_dependencies(clip_nans_ops):
-            with tf.control_dependencies(assign_ops):
-                with tf.control_dependencies([apply_op]):
-                    with tf.control_dependencies([save_model_op]):
-                        # figure out type of apply_ops
-                        return tf.group(apply_op)
+        with tf.control_dependencies(assign_ops):
+            with tf.control_dependencies([apply_op]):
+                with tf.control_dependencies([save_model_op]):
+                    # figure out type of apply_ops
+                    return tf.group(apply_op)
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         return grads_and_vars_to_negotiate

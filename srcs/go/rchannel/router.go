@@ -174,6 +174,7 @@ func (r *Router) handle(name string, msg *Message) {
 }
 
 func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
+	//fmt.Println("Locking when preparing the response")
 	r.modelStore.modelStoreMutex.Lock()
 	defer r.modelStore.modelStoreMutex.Unlock()
 

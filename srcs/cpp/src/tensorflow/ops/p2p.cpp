@@ -75,21 +75,9 @@ class RequestModel : public OpKernel
     std::vector<DataType> dtypes_;
 
 
+    int gs;
+
     //std::mutex mu_;
-
-    void update_model_store(OpKernelContext* context) {
-        OP_REQUIRES(
-            context, var_names_.size() == context->num_inputs(),
-            errors::InvalidArgument("Wrong number of inputs for operator"));
-
-        for(int i = 0; i < var_names_.size(); i++) {
-            const Tensor &input = context->input(i);
-            _kungfu_world->UpdateModelStore(var_names_[i].c_str(),
-                                            input.tensor_data().data(),
-                                            input.NumElements(), 
-                                            to_kungfu_type(input.dtype()));
-        }   
-    }
 
     void check_attrs(OpKernelConstruction *context) {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
@@ -116,13 +104,15 @@ class RequestModel : public OpKernel
     }
 
   public:
-    explicit RequestModel(OpKernelConstruction *context) : OpKernel(context)
+    explicit RequestModel(OpKernelConstruction *context) : OpKernel(context), gs(0)
     {   
         check_attrs(context);
     }
 
     void Compute(OpKernelContext *context) override
     {   
+        //std::cout <<  "Requesting model at global step " << gs << std::endl;
+        gs++;
         //std::lock_guard<std::mutex> _lk(mu_);
         std::vector<Tensor*> outputs(model_size_, nullptr);
         for(int i = 0; i < model_size_; i++) {
@@ -141,6 +131,7 @@ class RequestModel : public OpKernel
                                          to_kungfu_type(outputs[i]->dtype()),
                                          var_names_[i].c_str());
         }
+        //std::cout <<  "Finish requesting model at global step " << gs << std::endl;
     }
 
    
@@ -165,9 +156,10 @@ class SaveModel : public OpKernel
     using OpKernel::OpKernel;
     std::vector<std::string> var_names_;
 
+    int gs;
   public:
 
-    explicit SaveModel(OpKernelConstruction *context) : OpKernel(context)
+    explicit SaveModel(OpKernelConstruction *context) : OpKernel(context), gs(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
         OP_REQUIRES(context, var_names_.size() > 0,
@@ -175,16 +167,22 @@ class SaveModel : public OpKernel
     }
     void Compute(OpKernelContext *context) override
     {   
+        gs++;
         OP_REQUIRES(context, context->num_inputs() > 0,
                     errors::InvalidArgument("Wrong number of inputs for operator SaveModel"));
 
-        for(int i = 0; i < context->num_inputs(); i++) {
+        //std::cout << "Saving the model at global step " << gs << std::endl;
+
+        for(int i = 0; i < var_names_.size(); i++) {
             const Tensor &input = context->input(i);
+            //std::cout << "Before index " << i << input.DebugString() << std::endl;
             _kungfu_world->UpdateModelStore(var_names_[i].c_str(),
                                             input.tensor_data().data(),
                                             input.NumElements(), 
                                             to_kungfu_type(input.dtype()));
+            //std::cout << "After index " << i << std::endl;
         }   
+        //std::cout << "Finish saving the model at global step " << gs << std::endl;
     }
 
    

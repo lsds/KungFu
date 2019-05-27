@@ -12,7 +12,6 @@ import (
 
 type ModelStore struct {
 	modelStore      map[string]*kb.Buffer
-	storeVersion    int
 	modelStoreMutex sync.Mutex
 
 }
@@ -27,11 +26,12 @@ func NewModelStore() *ModelStore {
 
 
 func (store ModelStore) UpdateModelStore(varname string, varbuf *kb.Buffer) error {
+	//fmt.Println("Locking when updating the model store")
 	store.modelStoreMutex.Lock()
 	defer store.modelStoreMutex.Unlock()
 
-	// fmt.Printf("Updating model store for variable: %s\n", varname)
-	// fmt.Printf("Contents of the variables: %+v\n", varbuf.Data[:20])
+	//fmt.Printf("Updating model store for variable: %s\n", varname)
+	//fmt.Printf("Contents of the variables: %+v\n", varbuf.Data[:20])
 
 	_, ok := store.modelStore[varname]
 	if !ok {
@@ -40,6 +40,7 @@ func (store ModelStore) UpdateModelStore(varname string, varbuf *kb.Buffer) erro
 		newBuf.CopyFrom(varbuf)
 		store.modelStore[varname] = newBuf
 	} else {
+		//log.Infof("%s copying from buffer to model store", varname)
 		store.modelStore[varname].CopyFrom(varbuf)
 	}
 

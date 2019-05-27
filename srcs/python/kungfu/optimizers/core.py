@@ -31,7 +31,7 @@ class KungFuOptimizer(tf.train.Optimizer):
         return self._negotiate_grads_by_strategy(grads_and_vars_to_negotiate)
 
     def apply_gradients(self, *args, **kwargs):
-        raise RuntimeError('Not implemented')
+        return self._optimizer.apply_gradients(*args, **kwargs) 
 
     def get_slot(self, *args, **kwargs):
         """Calls this same method on the underlying optimizer."""
