@@ -102,10 +102,8 @@ func (s *Server) handle(conn net.Conn) error {
 		return s.handleCollective(remoteNetAddr, conn)
 	case ConnPeerToPeer:
 		return s.handlePeerToPeer(remoteNetAddr, conn)
-	case ConnRequestPeerToPeer:
-		return s.handleRequestPeerToPeer(remoteNetAddr, conn)
-	case ConnReplyPeerToPeer:
-		return s.handleReplyPeerToPeer(remoteNetAddr, conn)
+	case ConnSynchPeerToPeer:
+		return s.handleSynchPeerToPeer(remoteNetAddr, conn)
 	default:
 		return errInvalidConnectionHeader
 	}
@@ -129,15 +127,8 @@ func (s *Server) handlePeerToPeer(remoteNetAddr plan.NetAddr, conn net.Conn) err
 	return nil
 }
 
-func (s *Server) handleRequestPeerToPeer(remoteNetAddr plan.NetAddr, conn net.Conn) error {
-	if n, err := s.router.stream(conn, remoteNetAddr, ConnRequestPeerToPeer); err != nil && err != io.EOF {
-		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
-	}
-	return nil
-}
-
-func (s *Server) handleReplyPeerToPeer(remoteNetAddr plan.NetAddr, conn net.Conn) error {
-	if n, err := s.router.stream(conn, remoteNetAddr, ConnReplyPeerToPeer); err != nil && err != io.EOF {
+func (s *Server) handleSynchPeerToPeer(remoteNetAddr plan.NetAddr, conn net.Conn) error {
+	if n, err := s.router.stream(conn, remoteNetAddr, ConnSynchPeerToPeer); err != nil && err != io.EOF {
 		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
 	}
 	return nil

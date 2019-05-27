@@ -77,10 +77,9 @@ extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
 extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
                         KungFu_Datatype dtype, const char *name);
 
-extern int KungfuRequestModel(int destinationRank, const char *name);
-extern int KungfuUpdateModelStore(int32_t var_id, const void *varbuf, int count,
+extern int KungfuRequest(int destinationRank, void *tensorbuf, int count, KungFu_Datatype dtype, const char *name);
+extern int KungfuUpdateModelStore(const char *varname, const void *varbuf, int count,
                                   KungFu_Datatype dtype);
-extern int KungfuInitModelStore(int32_t num_variables);
 
 extern int KungfuRegisterDataCallback(const char *name, DataCallback handle);
 
@@ -127,18 +126,14 @@ class kungfu_world
         return KungfuSendTo(rank, sendbuf, count, dtype, name);
     }
 
-    int RequestModel(int destinationRank, const char *name)
+    int Request(int destinationRank, void *tensorbuf, int count, KungFu_Datatype dtype, const char *name)
     {
-        return KungfuRequestModel(destinationRank, name);
+        return KungfuRequest(destinationRank, tensorbuf, count, dtype, name);
     }
 
-    int UpdateModelStore(int32_t var_id, const void *varbuf, int count,
+    int UpdateModelStore(const char *varname, const void *varbuf, int count,
                                   KungFu_Datatype dtype)  {
-        return KungfuUpdateModelStore(var_id, varbuf, count, dtype);
-    }
-
-    int InitModelStore(int32_t num_variables)  {
-        return KungfuInitModelStore(num_variables);
+        return KungfuUpdateModelStore(varname, varbuf, count, dtype);
     }
 
     int RegisterDataCallback(const char *name, DataCallback handle)

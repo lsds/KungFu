@@ -47,19 +47,6 @@ class SendTo : public OpKernel
 
 REGISTER_KERNEL_BUILDER(Name("SendTo").Device(DEVICE_CPU), SendTo);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 REGISTER_OP("RequestModel")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("self_rank: int")
@@ -69,7 +56,7 @@ REGISTER_OP("RequestModel")
     .Attr("shapes: list(shape)")
     .Attr("dtypes: list(type)")
     .Input("vars: NumTensors * T")
-    .Output("outputs: NumTensors * T") // Try list(T) or list(tensor) if it does not work
+    .Output("outputs: NumTensors * T")
     .SetShapeFn(shape_inference::UnchangedShape);   
 
 class RequestModel : public OpKernel
@@ -86,20 +73,18 @@ class RequestModel : public OpKernel
     std::vector<std::string> var_names_;
     std::vector<TensorShapeProto> shapes_;
     std::vector<DataType> dtypes_;
-    std::vector<Tensor> other_vars_;
 
 
-    std::mutex mu_;
+    //std::mutex mu_;
 
     void update_model_store(OpKernelContext* context) {
         OP_REQUIRES(
             context, var_names_.size() == context->num_inputs(),
             errors::InvalidArgument("Wrong number of inputs for operator"));
 
-        std::cout << "Model store update" << std::endl;
         for(int i = 0; i < var_names_.size(); i++) {
             const Tensor &input = context->input(i);
-            _kungfu_world->UpdateModelStore(i,
+            _kungfu_world->UpdateModelStore(var_names_[i].c_str(),
                                             input.tensor_data().data(),
                                             input.NumElements(), 
                                             to_kungfu_type(input.dtype()));
@@ -107,6 +92,14 @@ class RequestModel : public OpKernel
     }
 
     void check_attrs(OpKernelConstruction *context) {
+        OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
+        OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
+        OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+
+        OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
+        OP_REQUIRES_OK(context, context->GetAttr("dtypes", &dtypes_));
+        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
+
         OP_REQUIRES(
             context, var_names_.size() > 0,
             errors::InvalidArgument("var_names_ must not be empty"));
@@ -117,102 +110,87 @@ class RequestModel : public OpKernel
             context, dtypes_.size() > 0,
             errors::InvalidArgument("dtypes_ must not be empty"));
         OP_REQUIRES(
-            context, other_vars_.size() > 0,
-            errors::InvalidArgument("other_vars_ must not be empty"));
-          OP_REQUIRES(
             context, ranks_.size() > 0,
             errors::InvalidArgument("ranks_ must not be empty"));
-    }
-
-    void init_result_tensors(OpKernelConstruction *context) {
-        OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context, context->GetAttr("dtypes", &dtypes_));
-        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
-        
-        for(int i = 0; i < model_size_; i++) {
-            Tensor other_var = Tensor(dtypes_[i], shapes_[i]);
-            other_var.flat<float>().setZero();
-            //std::cout << "Initial other_tensors: " << other_var.DebugString()  << ", " << other_var.NumElements() << std::endl;
-            other_vars_.push_back(other_var);
-        }
-    }
-
-    void register_callbacks_for_variables(OpKernelConstruction *context) {
-        for(int i = 0; i < var_names_.size(); i++) {
-            _kungfu_world->RegisterDataCallback(
-                std::to_string(i).c_str(), [&, i=i](void *data, int len) {
-                    // /std::lock_guard<std::mutex> _lk(mu_);
-        
-                    std::cout << "Updating other_var " << i << " inside callback." << std::endl;
-
-                    if(other_vars_[i].NumElements() != len) {
-                        LOG(ERROR) << "The other tensor variable received has a different size: " << len  << " than the "
-                                      "local variable: " << other_vars_[i].NumElements();
-                    }
-
-                    other_vars_[i].flat<float>().setZero();
-
-                    std_transform_2((const float *)data, 
-                                    (const void *) other_vars_[i].tensor_data().data(), 
-                                    (void *) other_vars_[i].tensor_data().data(), 
-                                    other_vars_[i].NumElements(), 
-                                    to_kungfu_type(other_vars_[i].dtype()), 
-                                    KungFu_SUM);
-            });
-        }
+          
     }
 
   public:
     explicit RequestModel(OpKernelConstruction *context) : OpKernel(context)
-    {
-        OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
-        OP_REQUIRES_OK(context, context->GetAttr("var_names",
-                                                 &var_names_));
-        OP_REQUIRES_OK(context, context->GetAttr("ranks",
-                                                 &ranks_));
-        init_result_tensors(context);
+    {   
         check_attrs(context);
-        _kungfu_world->InitModelStore(var_names_.size());
-        register_callbacks_for_variables(context);
-    }
-
-    ~RequestModel()
-    {
-        //std::lock_guard<std::mutex> _lk(mu_);
-        for(int i = 0; i < var_names_.size(); i++) {
-            _kungfu_world->UnregisterDataCallback(std::to_string(i).c_str());
-        }
     }
 
     void Compute(OpKernelContext *context) override
-    {
+    {   
+        //std::lock_guard<std::mutex> _lk(mu_);
+        std::vector<Tensor*> outputs(model_size_, nullptr);
+        for(int i = 0; i < model_size_; i++) {
+            OP_REQUIRES_OK(context,
+                        context->allocate_output(i, shapes_[i], &outputs[i]));
+        }
 
         std::uniform_int_distribution<int> dist(0, ranks_.size() - 1);
         int destination = dist(engine);
         while(destination == self_rank_) { destination = dist(engine); }
 
-        std::string req_name = "ThisIsTheUniqueModelRequestName";
-        _kungfu_world->RequestModel(destination, req_name.c_str());
-
-        //std::lock_guard<std::mutex> _lk(mu_);
-        std::vector<Tensor*> outputs(other_vars_.size(), nullptr);
-        for(int i = 0; i < other_vars_.size(); i++) {
-            OP_REQUIRES_OK(context,
-                        context->allocate_output(i, other_vars_[i].shape(), &outputs[i]));
+        for(int i = 0; i < model_size_; i++) {
+            _kungfu_world->Request(destination, 
+                                         (void *) outputs[i]->tensor_data().data(),
+                                         outputs[i]->NumElements(), 
+                                         to_kungfu_type(outputs[i]->dtype()),
+                                         var_names_[i].c_str());
         }
-
-        for(int i = 0; i < other_vars_.size(); i++) {
-            outputs[i]->CopyFrom(other_vars_[i], other_vars_[i].shape());   
-            std::cout << "Output " << i << " is " << outputs[i]->DebugString() << std::endl;
-        }
-
-        update_model_store(context);
-    
     }
 
    
 };
 
 REGISTER_KERNEL_BUILDER(Name("RequestModel").Device(DEVICE_CPU), RequestModel);
+
+
+
+
+
+
+
+REGISTER_OP("SaveModel")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("NumTensors: int")
+    .Attr("var_names: list(string)")
+    .Input("vars: NumTensors * T");
+
+class SaveModel : public OpKernel
+{
+    using OpKernel::OpKernel;
+    std::vector<std::string> var_names_;
+
+  public:
+
+    explicit SaveModel(OpKernelConstruction *context) : OpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
+        OP_REQUIRES(context, var_names_.size() > 0,
+                    errors::InvalidArgument("number of variable names must be greater than 0"));
+    }
+    void Compute(OpKernelContext *context) override
+    {   
+        OP_REQUIRES(context, context->num_inputs() > 0,
+                    errors::InvalidArgument("Wrong number of inputs for operator SaveModel"));
+
+        for(int i = 0; i < context->num_inputs(); i++) {
+            const Tensor &input = context->input(i);
+            _kungfu_world->UpdateModelStore(var_names_[i].c_str(),
+                                            input.tensor_data().data(),
+                                            input.NumElements(), 
+                                            to_kungfu_type(input.dtype()));
+        }   
+    }
+
+   
+};
+
+REGISTER_KERNEL_BUILDER(Name("SaveModel").Device(DEVICE_CPU), SaveModel);
+
 
 }  // namespace tensorflow

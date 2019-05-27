@@ -54,6 +54,13 @@ def _get_num_peers():
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
+
+def save_model(variables):
+    import tensorflow as tf
+    var_names  = [var.name for var in variables]
+    return _op_lib.save_model(variables, var_names=var_names)
+
+
 def request_vars(peer_ranks, variables):
     import tensorflow as tf
     request_avg_ops = []

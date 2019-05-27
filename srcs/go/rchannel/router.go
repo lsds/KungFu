@@ -3,9 +3,9 @@ package rchannel
 import (
 	"net"
 	"os"
-	"fmt"
+	//"fmt"
 	"sync"
-	"strconv"
+	//"strconv"
 	//"encoding/hex"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -14,14 +14,8 @@ import (
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/shm"
-
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
-
-type ModelStore struct {
-	variables [][]byte
-}
-
-
 
 type Callback func(*Message)
 
@@ -33,11 +27,7 @@ type Router struct {
 
 	callbacks       map[string]Callback
 	callbacksMutex  sync.Mutex
-	// TODO: delele callbacks on exit
-	modelStore      []*kb.Buffer
-	modelStoreMutex sync.Mutex
-	// Add peers to use for P2P request-reply
-	peers []plan.PeerSpec
+	modelStore      *ModelStore
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -47,6 +37,7 @@ func NewRouter(self plan.PeerSpec) *Router {
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
 		callbacks:  make(map[string]Callback),
+		modelStore: NewModelStore(),
 	}
 }
 
@@ -60,20 +51,24 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 }
 
 // RequestVar sends request name to given Addr
-func (r *Router) RequestModel(a plan.Addr, from uint32, t ConnType) error {
+func (r *Router) Request(a plan.Addr, from uint32, t ConnType, varbuf *kb.Buffer) error {
+	ch, err := r.getChannel(a, t)
+	if err != nil {
+		return err
+	}
+	if err := ch.Send(Message{}); err != nil {
+		return err
+	}
+	
 	msg := Message{
-		From: from,
-		Length: 0,
-		Data:   nil,
+		Length: uint32(varbuf.Count * varbuf.Type.Size()),
+		Data:   varbuf.Data,
 	}
-	if err := r.send(a, msg, t); err != nil {
-		log.Errorf("Router::Send failed: %v", err)
-		// TODO: retry
-		if t == ConnCollective {
-			os.Exit(1)
-		}
-		// return err
+
+	if err := ch.Receive(msg); err != nil {
+	   return err	
 	}
+
 	r.monitor.Egress(int64(msg.Length), a.NetAddr())
 	return nil
 }
@@ -176,64 +171,42 @@ func (r *Router) handle(name string, msg *Message) {
 	}
 	log.Infof("handling message with name %+v", msg)
 	f(msg)
-
 }
 
-func (r *Router) replyWithModel(destRank uint32) {
-	//fmt.Println("In reply Model, model is:")
-	// /fmt.Printf("Model store size %d\n", len(r.modelStore))
-	r.modelStoreMutex.Lock()
-	defer r.modelStoreMutex.Unlock()
-	destPeer := r.peers[destRank]
-	fmt.Printf("%+v\n", r.modelStore)
-	for i, variableBuffer := range r.modelStore {
-		if variableBuffer != nil {
-			a      := destPeer.NetAddr.WithName(strconv.Itoa(i))
-			buf    := variableBuffer.Data
-			length := variableBuffer.Count
-			msg    := Message{
-				       Length: uint32(length),
-				       Data:   buf,
-			          }
-			if err := r.send(a, msg, ConnReplyPeerToPeer); err != nil {
-				log.Errorf("Router::Send failed: %v", err)
-				// TODO: retry
-				if ConnReplyPeerToPeer == ConnCollective {
-					os.Exit(1)
-				}
-				// return err
-			}
-			r.monitor.Egress(int64(msg.Length), a.NetAddr())
-		}
+func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
+	r.modelStore.modelStoreMutex.Lock()
+	defer r.modelStore.modelStoreMutex.Unlock()
+
+	variableBuffer := r.modelStore.modelStore[name]
+
+	bs := []byte(name)
+	mh := messageHeader{
+		NameLength: uint32(len(bs)),
+		Name:       bs,
 	}
-}
 
-func (r *Router) SetPeersForP2P(peers []plan.PeerSpec) {
-	r.peers = peers
-	fmt.Printf("The peers are: %+v",  r.peers)
-}
-
-func (r *Router) InitModelStore(numVariables int) error {
-	r.modelStoreMutex.Lock()
-	defer r.modelStoreMutex.Unlock()
-	log.Infof("Init model store")
-	r.modelStore = make([]*kb.Buffer, numVariables)
-	return nil
-}
-
-func (r *Router) UpdateModelStore(varId int, varbuf *kb.Buffer) error {
-	r.modelStoreMutex.Lock()
-	defer r.modelStoreMutex.Unlock()
-	if r.modelStore[varId] == nil {
-		newBuf := kb.NewBuffer(varbuf.Count, varbuf.Type)
-		newBuf.Data = varbuf.Data
-		r.modelStore[varId] = newBuf
-	} else {
-		r.modelStore[varId].CopyFrom(varbuf)
+	if err := mh.WriteTo(conn); err != nil {
+		log.Errorf("Could not write variable from store to connection: %s", name)
+		utils.ExitErr(err)
 	}
-	
-	return nil
+
+	m := Message{
+		Length: uint32(variableBuffer.Count * variableBuffer.Type.Size()),
+		Data:   variableBuffer.Data,
+	}
+
+	if err := m.WriteTo(conn); err != nil {
+		log.Errorf("Could not write variable from store to connection: %s", name)
+		utils.ExitErr(err)
+	}
+
 }
+
+func (r *Router) UpdateModelStore(varname string, varbuf *kb.Buffer) error {
+	err := r.modelStore.UpdateModelStore(varname, varbuf)
+	return err
+}
+
 
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
 	var shm shm.Shm
@@ -255,12 +228,8 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 			r.bufferPool.require(remote.WithName(name)) <- msg
 		case ConnPeerToPeer:
 			r.handle(name, msg)
-		case ConnRequestPeerToPeer:
-			//fmt.Printf("Receiving request from: %d\n", msg.From)
-			r.replyWithModel(msg.From)
-		case ConnReplyPeerToPeer:
-			//fmt.Printf("Receiving tensor with name %s\n", name)
-			r.handle(name, msg)
+		case ConnSynchPeerToPeer:
+			r.handleSynch(name, msg, conn)
 		default:
 			log.Infof("no handler for type %s", t)
 		}

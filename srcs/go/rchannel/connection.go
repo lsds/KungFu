@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"errors"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -14,6 +15,7 @@ import (
 type Connection interface {
 	io.Closer
 	Send(name string, m Message) error
+	Read(name string, m Message) error 
 }
 
 func parseIPv4(host string) uint32 {
@@ -79,6 +81,20 @@ func (c *tcpConnection) Send(name string, m Message) error {
 	return m.WriteTo(c.conn)
 }
 
+func (c *tcpConnection) Read(name string, m Message) error {
+	c.Lock()
+	defer c.Unlock()
+	bs := []byte(name)
+	mh := messageHeader{
+		NameLength: uint32(len(bs)),
+		Name:       bs,
+	}
+	if err := mh.ReadFrom(c.conn); err != nil {
+		return err
+	}
+	return m.ReadInto(c.conn)
+}
+
 func (c *tcpConnection) Close() error {
 	return c.conn.Close()
 }
@@ -118,4 +134,9 @@ func (c *shmConnection) Send(name string, m Message) error {
 		Length: m.Length,
 	}
 	return mt.WriteTo(c.conn)
+}
+
+
+func (c *shmConnection) Read(name string, m Message) error {
+	return errors.New("Unsupported shared memory read")
 }

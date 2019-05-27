@@ -10,12 +10,10 @@ import (
 type ConnType uint16
 
 const (
-	ConnControl    ConnType 	   = 0
-	ConnCollective ConnType 	   = 1
-	ConnPeerToPeer ConnType        = 2
-	ConnRequestPeerToPeer ConnType = 3
-	ConnReplyPeerToPeer ConnType   = 4
-
+	ConnControl    ConnType 	   = iota
+	ConnCollective ConnType 	   = iota
+	ConnPeerToPeer ConnType        = iota
+	ConnSynchPeerToPeer ConnType = iota
 )
 
 var endian = binary.LittleEndian
@@ -101,15 +99,11 @@ func (m *messageTail) ReadFrom(r io.Reader) error {
 
 // Message is the data transferred via channel
 type Message struct {
-	From   uint32
 	Length uint32
 	Data   []byte
 }
 
 func (m Message) WriteTo(w io.Writer) error {
-	if err := binary.Write(w, endian, m.From); err != nil {
-		return err
-	}
 	if err := binary.Write(w, endian, m.Length); err != nil {
 		return err
 	}
@@ -118,13 +112,24 @@ func (m Message) WriteTo(w io.Writer) error {
 }
 
 func (m *Message) ReadFrom(r io.Reader) error {
-	if err := binary.Read(r, endian, &m.From); err != nil {
-		return err
-	}
 	if err := binary.Read(r, endian, &m.Length); err != nil {
 		return err
 	}
 	m.Data = make([]byte, m.Length)
+	if err := readN(r, m.Data, int(m.Length)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Message) ReadInto(r io.Reader) error {
+	var length uint32
+	if err := binary.Read(r, endian, &length); err != nil {
+		return err
+	}
+	if length != m.Length {
+		return errors.New("Unexpected message length")
+	}
 	if err := readN(r, m.Data, int(m.Length)); err != nil {
 		return err
 	}

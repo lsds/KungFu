@@ -4,7 +4,7 @@ import (
 	"os"
 	"reflect"
 	"unsafe"
-	"fmt"
+	//"fmt"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -81,27 +81,20 @@ func GoKungfuSendTo(rank int, sendBuf unsafe.Pointer, count int, dtype C.KungFu_
 	return 0
 }
 
-//export GoKungfuRequestModel
-func GoKungfuRequestModel(rank int, name *C.char) int {
-	fmt.Printf("Inside go requesting model: %s", C.GoString(name))
+//export GoKungfuRequest
+func GoKungfuRequest(rank int, varbuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, name *C.char) int {
+	//fmt.Printf("Inside go requesting model: %s", C.GoString(name))
 
 	sess := kungfu.CurrentSession()
 
 	// Synchronous case
-	return sess.RequestModel(rank, C.GoString(name))
+	return sess.RequestModel(rank, toBuffer(varbuf, count, dtype), C.GoString(name))
 }
 
 //export GoKungfuUpdateModelStore
-func GoKungfuUpdateModelStore(var_id int, varbuf unsafe.Pointer, count int, dtype C.KungFu_Datatype) int {
+func GoKungfuUpdateModelStore(varname *C.char, varbuf unsafe.Pointer, count int, dtype C.KungFu_Datatype) int {
 	sess := kungfu.CurrentSession()
-	return sess.UpdateModelStore(var_id, toBuffer(varbuf, count, dtype))
-}
-
-
-//export GoKungfuInitModelStore
-func GoKungfuInitModelStore(numVariables int) int {
-	sess := kungfu.CurrentSession()
-	return sess.InitModelStore(numVariables)
+	return sess.UpdateModelStore(C.GoString(varname), toBuffer(varbuf, count, dtype))
 }
 
 //export GoKungfuAllReduce

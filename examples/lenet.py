@@ -105,7 +105,7 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(
         logits=logits, labels=y)  #one_hot_y)
     loss = tf.reduce_mean(cross_entropy)
-    optimizer = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.9)
+    optimizer = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.2)
 
     if kungfu_strategy == 'p2p':
         from kungfu.optimizers import AkoP2P
@@ -251,8 +251,10 @@ def show_trainable_variables_info():
 
 
 def warmup():
+    from kungfu.optimizers import AkoP2P
+    initializer = AkoP2P.get_initializer()
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
+        sess.run(initializer)
 
 
 def main():

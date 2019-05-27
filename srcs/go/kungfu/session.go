@@ -161,21 +161,16 @@ func (sess *session) SendTo(rank int, w Workspace) int {
 }
 
 
-func (sess *session) RequestModel(rank int, requestName string) int {
+func (sess *session) RequestModel(rank int, varbuf *kb.Buffer, requestName string) int {
 	if rank < 0 || len(sess.cluster.Peers) <= rank {
 		return code(errInvalidRank)
 	}
 	peer := sess.cluster.Peers[rank]
-	return code(sess.router.RequestModel(peer.NetAddr.WithName(requestName), uint32(sess.myRank), rch.ConnRequestPeerToPeer))
+	return code(sess.router.Request(peer.NetAddr.WithName(requestName), uint32(sess.myRank), rch.ConnSynchPeerToPeer, varbuf))
 }
 
-func (sess *session) UpdateModelStore(varId int, varbuf *kb.Buffer) int {
-	return code(sess.router.UpdateModelStore(varId, varbuf))
-}
-
-func (sess *session) InitModelStore(numVariables int) int {
-	sess.router.SetPeersForP2P(sess.cluster.Peers)
-	return code(sess.router.InitModelStore(numVariables))
+func (sess *session) UpdateModelStore(varname string, varbuf *kb.Buffer) int {
+	 return code(sess.router.UpdateModelStore(varname, varbuf))
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {

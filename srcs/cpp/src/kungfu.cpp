@@ -27,18 +27,17 @@ int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
                           (char *)name, nullptr);
 }
 
-int KungfuRequestModel(int destinationRank, const char *name)
+int KungfuRequest(int destinationRank, 
+                 void *tensorbuf, int count,
+                 KungFu_Datatype dtype,
+                 const char *name)
 {
-    return GoKungfuRequestModel(destinationRank, (char *)name);
+    return GoKungfuRequest(destinationRank, (void *) tensorbuf, GoInt(count), GoInt(dtype), (char *)name);
 }
 
 
-int KungfuUpdateModelStore(int32_t var_id, const void *varbuf, int count, KungFu_Datatype dtype)  {
-    return GoKungfuUpdateModelStore(var_id, (void *) varbuf, GoInt(count), GoInt(dtype));
-}
-
-int KungfuInitModelStore(int num_variables) {
-    return GoKungfuInitModelStore(num_variables);
+int KungfuUpdateModelStore(const char *varname, const void *varbuf, int count, KungFu_Datatype dtype)  {
+    return GoKungfuUpdateModelStore((char *) varname, (void *) varbuf, GoInt(count), GoInt(dtype));
 }
 
 int KungfuRegisterDataCallback(const char *name, DataCallback handle)
