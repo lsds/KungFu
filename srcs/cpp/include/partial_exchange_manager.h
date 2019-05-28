@@ -177,8 +177,10 @@ class partial_exchange_manager
         std::cout << "New fraction is: " << this->current_fraction << std::endl;
 
         // Clear old partitions
+        std::cout << "PARTITIONS SIZE BEFORE: " << partitions.size() << std::endl;
         partitions.clear();
-        
+        std::cout << "PARTITIONS SIZE AFTER: " << partitions.size() << std::endl;
+
         // Restore bin counter
         this->bin_counter = 1;
         bin_pack();
