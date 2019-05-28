@@ -11,37 +11,33 @@ import (
 
 
 type ModelStore struct {
-	modelStore      map[string]*kb.Buffer
+	modelStore      *kb.Buffer
 	modelStoreMutex sync.Mutex
 
 }
 
 func NewModelStore() *ModelStore {
     s := &ModelStore{
-			modelStore : make(map[string]*kb.Buffer),
+			modelStore : nil,
 	}
 	return s
 }
 
 
 
-func (store ModelStore) UpdateModelStore(varname string, varbuf *kb.Buffer) error {
-	//fmt.Println("Locking when updating the model store")
+func (store *ModelStore) UpdateModelStore(updateName string, model *kb.Buffer) error {
 	store.modelStoreMutex.Lock()
 	defer store.modelStoreMutex.Unlock()
 
-	//fmt.Printf("Updating model store for variable: %s\n", varname)
-	//fmt.Printf("Contents of the variables: %+v\n", varbuf.Data[:20])
+	//fmt.Printf("Updating model store: %+v\n", model.Data[:20])
 
-	_, ok := store.modelStore[varname]
-	if !ok {
-		log.Warnf("%s has no entry in the store. Initializing storage for this variable.", varname)
-		newBuf := kb.NewBuffer(varbuf.Count, varbuf.Type)
-		newBuf.CopyFrom(varbuf)
-		store.modelStore[varname] = newBuf
+	if store.modelStore == nil {
+		log.Warnf("%s has no entry in the store. Initializing storage for this variable.", updateName)
+		newBuf := kb.NewBuffer(model.Count, model.Type)
+		newBuf.CopyFrom(model)
+		store.modelStore = newBuf
 	} else {
-		//log.Infof("%s copying from buffer to model store", varname)
-		store.modelStore[varname].CopyFrom(varbuf)
+		store.modelStore.CopyFrom(model)
 	}
 
 	return nil

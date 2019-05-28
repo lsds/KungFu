@@ -58,7 +58,8 @@ def send_to(rank, t):
 def save_model(variables):
     import tensorflow as tf
     var_names  = [var.name for var in variables]
-    return _op_lib.save_model(variables, var_names=var_names)
+    var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
+    return _op_lib.save_model(variables, type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes, var_names=var_names)
 
 
 def request_vars(peer_ranks, variables):
@@ -67,7 +68,10 @@ def request_vars(peer_ranks, variables):
     var_names  = [var.name for var in variables]
     var_shapes = [var.shape for var in variables]
     var_dtypes = [var.dtype for var in variables]
+
+    var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
     request_vars = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
+                                         type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
                                          var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
     return request_vars
 

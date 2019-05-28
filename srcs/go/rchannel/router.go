@@ -3,7 +3,7 @@ package rchannel
 import (
 	"net"
 	"os"
-	//"fmt"
+	"fmt"
 	"sync"
 	//"strconv"
 	//"encoding/hex"
@@ -51,7 +51,7 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 }
 
 // RequestVar sends request name to given Addr
-func (r *Router) Request(a plan.Addr, from uint32, t ConnType, varbuf *kb.Buffer) error {
+func (r *Router) Request(a plan.Addr, from uint32, t ConnType, model *kb.Buffer) error {
 	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
@@ -61,8 +61,8 @@ func (r *Router) Request(a plan.Addr, from uint32, t ConnType, varbuf *kb.Buffer
 	}
 	
 	msg := Message{
-		Length: uint32(varbuf.Count * varbuf.Type.Size()),
-		Data:   varbuf.Data,
+		Length: uint32(model.Count * model.Type.Size()),
+		Data:   model.Data,
 	}
 
 	if err := ch.Receive(msg); err != nil {
@@ -178,7 +178,11 @@ func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
 	r.modelStore.modelStoreMutex.Lock()
 	defer r.modelStore.modelStoreMutex.Unlock()
 
-	variableBuffer := r.modelStore.modelStore[name]
+	modelBuffer := r.modelStore.modelStore
+
+	if modelBuffer == nil {
+		fmt.Println("Model buffer is nil")
+	}
 
 	bs := []byte(name)
 	mh := messageHeader{
@@ -192,8 +196,8 @@ func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
 	}
 
 	m := Message{
-		Length: uint32(variableBuffer.Count * variableBuffer.Type.Size()),
-		Data:   variableBuffer.Data,
+		Length: uint32(modelBuffer.Count * modelBuffer.Type.Size()),
+		Data:   modelBuffer.Data,
 	}
 
 	if err := m.WriteTo(conn); err != nil {
@@ -203,8 +207,8 @@ func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
 
 }
 
-func (r *Router) UpdateModelStore(varname string, varbuf *kb.Buffer) error {
-	err := r.modelStore.UpdateModelStore(varname, varbuf)
+func (r *Router) UpdateModelStore(updateName string, model *kb.Buffer) error {
+	err := r.modelStore.UpdateModelStore(updateName, model)
 	return err
 }
 

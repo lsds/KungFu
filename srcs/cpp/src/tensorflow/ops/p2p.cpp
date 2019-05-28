@@ -52,6 +52,8 @@ REGISTER_OP("RequestModel")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
     .Attr("NumTensors: int")
+    .Attr("type_size_bytes: int")
+    .Attr("var_sizes: list(int)")
     .Attr("var_names: list(string)")
     .Attr("shapes: list(shape)")
     .Attr("dtypes: list(type)")
@@ -74,6 +76,11 @@ class RequestModel : public OpKernel
     std::vector<TensorShapeProto> shapes_;
     std::vector<DataType> dtypes_;
 
+    // Used for the buffer
+    std::vector<int> var_sizes_;
+    int type_size_bytes_;
+    int total_buf_size_;
+
 
     int gs;
 
@@ -88,6 +95,10 @@ class RequestModel : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("dtypes", &dtypes_));
         OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
 
+        // Used for the buffer
+        OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
+        OP_REQUIRES_OK(context, context->GetAttr("type_size_bytes", &type_size_bytes_));
+
         OP_REQUIRES(
             context, var_names_.size() > 0,
             errors::InvalidArgument("var_names_ must not be empty"));
@@ -100,20 +111,23 @@ class RequestModel : public OpKernel
         OP_REQUIRES(
             context, ranks_.size() > 0,
             errors::InvalidArgument("ranks_ must not be empty"));
+
+        total_buf_size_ = 0;
+        for(int s : var_sizes_) {
+            total_buf_size_ += s;
+        }
           
     }
 
   public:
-    explicit RequestModel(OpKernelConstruction *context) : OpKernel(context), gs(0)
+    explicit RequestModel(OpKernelConstruction *context) : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0)
     {   
         check_attrs(context);
     }
 
     void Compute(OpKernelContext *context) override
     {   
-        //std::cout <<  "Requesting model at global step " << gs << std::endl;
         gs++;
-        //std::lock_guard<std::mutex> _lk(mu_);
         std::vector<Tensor*> outputs(model_size_, nullptr);
         for(int i = 0; i < model_size_; i++) {
             OP_REQUIRES_OK(context,
@@ -124,14 +138,24 @@ class RequestModel : public OpKernel
         int destination = dist(engine);
         while(destination == self_rank_) { destination = dist(engine); }
 
-        for(int i = 0; i < model_size_; i++) {
-            _kungfu_world->Request(destination, 
-                                         (void *) outputs[i]->tensor_data().data(),
-                                         outputs[i]->NumElements(), 
-                                         to_kungfu_type(outputs[i]->dtype()),
-                                         var_names_[i].c_str());
-        }
-        //std::cout <<  "Finish requesting model at global step " << gs << std::endl;
+
+        unsigned char *modelBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
+
+        // Fill in the model Buffer with response from random peer
+        _kungfu_world->Request(destination, 
+                              (void *) modelBuf,
+                              total_buf_size_, 
+                              to_kungfu_type(context->input(0).dtype()));
+
+        int offset = 0;
+        for(int i = 0; i < var_sizes_.size(); i++) {
+            std::copy(offset + modelBuf, offset + modelBuf + var_sizes_[i] * type_size_bytes_, 
+                      (unsigned char *) outputs[i]->tensor_data().data());
+            offset += var_sizes_[i] * type_size_bytes_;
+        }        
+
+        free(modelBuf);
+
     }
 
    
@@ -148,6 +172,8 @@ REGISTER_KERNEL_BUILDER(Name("RequestModel").Device(DEVICE_CPU), RequestModel);
 REGISTER_OP("SaveModel")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("NumTensors: int")
+    .Attr("type_size_bytes: int")
+    .Attr("var_sizes: list(int)")
     .Attr("var_names: list(string)")
     .Input("vars: NumTensors * T");
 
@@ -155,15 +181,33 @@ class SaveModel : public OpKernel
 {
     using OpKernel::OpKernel;
     std::vector<std::string> var_names_;
+    std::vector<int> var_sizes_;
+
+    int type_size_bytes_;
+    int total_buf_size_;
 
     int gs;
   public:
 
-    explicit SaveModel(OpKernelConstruction *context) : OpKernel(context), gs(0)
+    explicit SaveModel(OpKernelConstruction *context) : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
         OP_REQUIRES(context, var_names_.size() > 0,
                     errors::InvalidArgument("number of variable names must be greater than 0"));
+           
+        OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
+        OP_REQUIRES(context, var_sizes_.size() > 0,
+                    errors::InvalidArgument("number of variable sizes must be greater than 0"));
+
+        OP_REQUIRES_OK(context, context->GetAttr("type_size_bytes", &type_size_bytes_));
+        OP_REQUIRES(context, type_size_bytes_ > 0,
+                    errors::InvalidArgument("data type size in bytes must be greater than 0"));
+        
+        total_buf_size_ = 0;
+        for(int s : var_sizes_) {
+            total_buf_size_ += s;
+        }
+        // number of floats it has
     }
     void Compute(OpKernelContext *context) override
     {   
@@ -171,21 +215,26 @@ class SaveModel : public OpKernel
         OP_REQUIRES(context, context->num_inputs() > 0,
                     errors::InvalidArgument("Wrong number of inputs for operator SaveModel"));
 
-        //std::cout << "Saving the model at global step " << gs << std::endl;
-
-        for(int i = 0; i < var_names_.size(); i++) {
+        unsigned char *modelBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
+        
+        int offset = 0;
+        for(int i = 0; i < var_sizes_.size(); i++) {
             const Tensor &input = context->input(i);
-            //std::cout << "Before index " << i << input.DebugString() << std::endl;
-            _kungfu_world->UpdateModelStore(var_names_[i].c_str(),
-                                            input.tensor_data().data(),
-                                            input.NumElements(), 
-                                            to_kungfu_type(input.dtype()));
-            //std::cout << "After index " << i << std::endl;
-        }   
-        //std::cout << "Finish saving the model at global step " << gs << std::endl;
-    }
+            std::copy((unsigned char* ) input.tensor_data().data(), 
+                      (unsigned char *) input.tensor_data().data() + var_sizes_[i] * type_size_bytes_, 
+                      modelBuf + offset);
+            offset += var_sizes_[i] * type_size_bytes_;
+        }
 
-   
+        std::string updateName = "ModelStoreUpdateAtGlobalStep " + std::to_string(gs);
+        _kungfu_world->UpdateModelStore(updateName.c_str(),
+                                        (void *) modelBuf, 
+                                        total_buf_size_,  // how many elements of the type below it has?
+                                        to_kungfu_type(context->input(0).dtype()));
+       
+
+        free(modelBuf);
+    }
 };
 
 REGISTER_KERNEL_BUILDER(Name("SaveModel").Device(DEVICE_CPU), SaveModel);

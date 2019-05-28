@@ -82,19 +82,17 @@ func GoKungfuSendTo(rank int, sendBuf unsafe.Pointer, count int, dtype C.KungFu_
 }
 
 //export GoKungfuRequest
-func GoKungfuRequest(rank int, varbuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, name *C.char) int {
-	//fmt.Printf("Inside go requesting model: %s", C.GoString(name))
-
+func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype) int {
 	sess := kungfu.CurrentSession()
 
 	// Synchronous case
-	return sess.RequestModel(rank, toBuffer(varbuf, count, dtype), C.GoString(name))
+	return sess.RequestModel(rank, toBuffer(model, count, dtype))
 }
 
 //export GoKungfuUpdateModelStore
-func GoKungfuUpdateModelStore(varname *C.char, varbuf unsafe.Pointer, count int, dtype C.KungFu_Datatype) int {
+func GoKungfuUpdateModelStore(name *C.char, model unsafe.Pointer, count int, dtype C.KungFu_Datatype) int {
 	sess := kungfu.CurrentSession()
-	return sess.UpdateModelStore(C.GoString(varname), toBuffer(varbuf, count, dtype))
+	return sess.UpdateModelStore(C.GoString(name), toBuffer(model, count, dtype))
 }
 
 //export GoKungfuAllReduce
