@@ -145,8 +145,6 @@ class RequestModel : public OpKernel
         int destination = dist(engine);
         while(destination == self_rank_) { destination = dist(engine); }
 
-
-
         // Fill in the model Buffer with response from random peer
         _kungfu_world->Request(destination, 
                               (void *) modelBuf,
@@ -166,10 +164,6 @@ class RequestModel : public OpKernel
 };
 
 REGISTER_KERNEL_BUILDER(Name("RequestModel").Device(DEVICE_CPU), RequestModel);
-
-
-
-
 
 
 
@@ -228,8 +222,6 @@ class SaveModel : public OpKernel
         gs++;
         OP_REQUIRES(context, context->num_inputs() > 0,
                     errors::InvalidArgument("Wrong number of inputs for operator SaveModel"));
-
-        unsigned char *modelBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
         
         int offset = 0;
         for(int i = 0; i < var_sizes_.size(); i++) {

@@ -29,7 +29,6 @@ func (store *ModelStore) UpdateModelStore(updateName string, model *kb.Buffer) e
 	store.modelStoreMutex.Lock()
 	defer store.modelStoreMutex.Unlock()
 
-	//fmt.Printf("Updating model store: %+v\n", model.Data[:20])
 
 	if store.modelStore == nil {
 		log.Warnf("%s has no entry in the store. Initializing storage for this variable.", updateName)

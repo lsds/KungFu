@@ -51,7 +51,7 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 }
 
 // RequestVar sends request name to given Addr
-func (r *Router) Request(a plan.Addr, from uint32, t ConnType, model *kb.Buffer) error {
+func (r *Router) Request(a plan.Addr, t ConnType, model *kb.Buffer) error {
 	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
