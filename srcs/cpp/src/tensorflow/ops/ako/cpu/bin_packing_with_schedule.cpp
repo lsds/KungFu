@@ -15,6 +15,7 @@ REGISTER_OP("PartialNegotiatorWithSchedule")
     .Attr("budget: int")
     .Attr("tensor_size: int")
     .Attr("count_gradients: int")
+    .Attr("total_size: int")
     .Attr("steps: list(int)")
     .Attr("fractions: list(float)")
     .Attr("fraction: float")
@@ -49,6 +50,7 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
     int32_t budget;
     float find_epoch_denominator_;
     float initial_fraction_;
+    int32_t total_size_;
 
     std::vector<int> steps;
     std::vector<float> fractions;
@@ -95,14 +97,20 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
             context, count_gradients_ > 0,
             errors::InvalidArgument("gradient count must be greater than 0"));
 
+        OP_REQUIRES_OK(context, context->GetAttr("total_size", &total_size_));
+        OP_REQUIRES(
+            context, total_size_ > 0,
+            errors::InvalidArgument("total size of all gradients must be greater than 0"));
+
         _partial_exchange_manager->setCountGradients(count_gradients_);
+        _partial_exchange_manager->setTotalSize(total_size_);
         _partial_exchange_manager->setBudget(budget);
         _partial_exchange_manager->addTensorInfo(input_tensor_name_,
                                                  tensorSize_);
         
 
-        printSchedule();
-        //_partial_exchange_manager->setFraction(initial_fraction_);
+        //printSchedule();
+        _partial_exchange_manager->setFraction(initial_fraction_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -116,9 +124,10 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
                        context->allocate_output(0, gradients.shape(), &output));
 
         int64_t gs = (int64_t) _kungfu_world->GetGlobalStep();
+        //std::cout << "Global Step" << gs << std::endl;
         // discard the first one 
         if(gs == steps[repartition_id]) {
-            std::cout << "Repartition ID" << repartition_id << " with fraction " << fractions[repartition_id] << std::endl;
+            std::cout << "Repartition ID " << repartition_id << " with fraction " << fractions[repartition_id] << std::endl;
 
             _partial_exchange_manager->repartition(fractions[repartition_id], repartition_id);
             repartition_id++;

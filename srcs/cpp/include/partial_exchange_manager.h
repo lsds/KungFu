@@ -108,6 +108,14 @@ class partial_exchange_manager
         }
     }
 
+    void setTotalSize(const int32_t total_size)
+    {
+        std::lock_guard<std::mutex> lock(constructionMutex);
+        if (this->total_size_gradients == 0) {
+            total_size_gradients = total_size;
+        }
+    }
+
     void setBudget(const int32_t budget)
     {
         std::lock_guard<std::mutex> lock(constructionMutex);
@@ -159,8 +167,6 @@ class partial_exchange_manager
         }
 
         repartition_ids.insert(repartition_id);
-
-        this->total_size_gradients = this->budget / this->current_fraction;
         
         std::cout << "Repartitioning with new fraction: " << new_fraction << "." << std::endl;
         std::cout << "Old budget is: " << this->budget << ". ";
@@ -195,9 +201,9 @@ class partial_exchange_manager
         std::cout << "Total budget per bin: " << budget << std::endl;
         std::cout << "When starting bin packing, the tensors are: "
                   << std::endl;
-        for (tensor_meta *t : tensors) {
-            std::cout << *t << std::endl;
-        }
+        // for (tensor_meta *t : tensors) {
+        //     std::cout << *t << std::endl;
+        // }
 
         
         auto grt = [](tensor_meta *t1, tensor_meta *t2) {
