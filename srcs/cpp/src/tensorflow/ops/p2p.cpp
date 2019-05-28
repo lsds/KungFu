@@ -81,6 +81,7 @@ class RequestModel : public OpKernel
     int type_size_bytes_;
     int total_buf_size_;
 
+    unsigned char *modelBuf;
 
     int gs;
 
@@ -120,9 +121,15 @@ class RequestModel : public OpKernel
     }
 
   public:
-    explicit RequestModel(OpKernelConstruction *context) : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0)
+    explicit RequestModel(OpKernelConstruction *context) : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0), modelBuf(nullptr)
     {   
         check_attrs(context);
+        modelBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
+    }
+
+    ~RequestModel()
+    {   
+        free(modelBuf);
     }
 
     void Compute(OpKernelContext *context) override
@@ -139,7 +146,6 @@ class RequestModel : public OpKernel
         while(destination == self_rank_) { destination = dist(engine); }
 
 
-        unsigned char *modelBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
 
         // Fill in the model Buffer with response from random peer
         _kungfu_world->Request(destination, 
@@ -153,8 +159,6 @@ class RequestModel : public OpKernel
                       (unsigned char *) outputs[i]->tensor_data().data());
             offset += var_sizes_[i] * type_size_bytes_;
         }        
-
-        free(modelBuf);
 
     }
 
@@ -186,6 +190,8 @@ class SaveModel : public OpKernel
     int type_size_bytes_;
     int total_buf_size_;
 
+    unsigned char *modelBuf;
+
     int gs;
   public:
 
@@ -203,12 +209,20 @@ class SaveModel : public OpKernel
         OP_REQUIRES(context, type_size_bytes_ > 0,
                     errors::InvalidArgument("data type size in bytes must be greater than 0"));
         
+        // number of floats it has
         total_buf_size_ = 0;
         for(int s : var_sizes_) {
             total_buf_size_ += s;
         }
-        // number of floats it has
+
+        modelBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
+
     }
+
+    ~SaveModel() {
+        free(modelBuf);
+    }
+
     void Compute(OpKernelContext *context) override
     {   
         gs++;
@@ -232,8 +246,6 @@ class SaveModel : public OpKernel
                                         total_buf_size_,  // how many elements of the type below it has?
                                         to_kungfu_type(context->input(0).dtype()));
        
-
-        free(modelBuf);
     }
 };
 
