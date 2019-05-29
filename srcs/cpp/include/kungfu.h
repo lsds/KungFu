@@ -79,7 +79,7 @@ extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
 
 extern int KungfuRequest(int destinationRank, void *model, int count, KungFu_Datatype dtype, DoneCallback done);
 extern int KungfuUpdateModelStore(const char *name, const void *model, int count,
-                                  KungFu_Datatype dtype);
+                                  KungFu_Datatype dtype, DoneCallback done);
 
 extern int KungfuRegisterDataCallback(const char *name, DataCallback handle);
 
@@ -132,8 +132,8 @@ class kungfu_world
     }
 
     int UpdateModelStore(const char *name, const void *model, int count,
-                                  KungFu_Datatype dtype)  {
-        return KungfuUpdateModelStore(name, model, count, dtype);
+                                  KungFu_Datatype dtype, DoneCallback done)  {
+        return KungfuUpdateModelStore(name, model, count, dtype, done);
     }
 
     int RegisterDataCallback(const char *name, DataCallback handle)

@@ -54,10 +54,10 @@ class AkoP2P(KungFuOptimizer):
         else:
             raise Exception("Optimizer is not an instance of tf.train.MomentumOptimizer")
 
-        print_ovs = [tf.Print(o_v, [o_v], message="Other peer variable ID " + str(i) + ": ") for i, o_v in enumerate(other_peer_vars)]
-        print_lvs = [tf.Print(v, [v], message="My variable ID " + str(i) + ": ") for i, (_, v) in enumerate(grads_and_vars)]
+        # print_ovs = [tf.Print(o_v, [o_v], message="Other peer variable ID " + str(i) + ": ") for i, o_v in enumerate(other_peer_vars)]
+        # print_lvs = [tf.Print(v, [v], message="My variable ID " + str(i) + ": ") for i, (_, v) in enumerate(grads_and_vars)]
 
-        assign_ops = [tf.assign(v, 0.5 * (v + other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
+        assign_ops = [tf.assign(v, 0.5 * (v + other_v), use_locking=False) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
         #assign_ops = [tf.assign_add(v, momentum * (v - other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
 
         apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs) 

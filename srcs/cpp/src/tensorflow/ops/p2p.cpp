@@ -171,7 +171,7 @@ class RequestModel : public AsyncOpKernel
         _kungfu_world->Request(destination, 
                               (void *) modelBuf,
                               total_buf_size_, 
-                              to_kungfu_type(context->input(0).dtype()), func);
+                              to_kungfu_type(context->input(0).dtype()), nullptr);
 
           
 
@@ -192,9 +192,10 @@ REGISTER_OP("SaveModel")
     .Attr("var_names: list(string)")
     .Input("vars: NumTensors * T");
 
-class SaveModel : public OpKernel
+class SaveModel : public AsyncOpKernel
 {
-    using OpKernel::OpKernel;
+    using AsyncOpKernel::AsyncOpKernel;
+
     std::vector<std::string> var_names_;
     std::vector<int> var_sizes_;
 
@@ -206,7 +207,7 @@ class SaveModel : public OpKernel
     int gs;
   public:
 
-    explicit SaveModel(OpKernelConstruction *context) : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0)
+    explicit SaveModel(OpKernelConstruction *context) : AsyncOpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
         OP_REQUIRES(context, var_names_.size() > 0,
@@ -234,7 +235,7 @@ class SaveModel : public OpKernel
         free(modelBuf);
     }
 
-    void Compute(OpKernelContext *context) override
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {   
         gs++;
         OP_REQUIRES(context, context->num_inputs() > 0,
@@ -253,7 +254,7 @@ class SaveModel : public OpKernel
         _kungfu_world->UpdateModelStore(updateName.c_str(),
                                         (void *) modelBuf, 
                                         total_buf_size_,  // how many elements of the type below it has?
-                                        to_kungfu_type(context->input(0).dtype()));
+                                        to_kungfu_type(context->input(0).dtype()), nullptr);
        
     }
 };
