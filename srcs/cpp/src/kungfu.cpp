@@ -34,6 +34,13 @@ int KungfuRequest(int destinationRank,
     return GoKungfuRequest(destinationRank, (void *) model, GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
+int KungfuRequest(int destinationRank, 
+                 void *model, int count,
+                 KungFu_Datatype dtype)
+{
+    return GoKungfuRequest(destinationRank, (void *) model, GoInt(count), GoInt(dtype), nullptr);
+}
+
 
 int KungfuUpdateModelStore(const char *name, const void *model, int count, KungFu_Datatype dtype, DoneCallback done)  {
     return GoKungfuUpdateModelStore((char *) name, (void *) model, GoInt(count), GoInt(dtype), new CallbackWrapper(done));

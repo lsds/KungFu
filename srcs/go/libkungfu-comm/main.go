@@ -88,11 +88,7 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 
 	if done == nil {
 		// Synchronous case
-		//start := time.Now()
-		ret := sess.RequestModel(rank, toBuffer(model, count, dtype))
-		//elapsed := time.Since(start)
-   		//fmt.Printf("Request took %s", elapsed)
-		return ret
+		return sess.RequestModel(rank, toBuffer(model, count, dtype))
 	}
 
 	go func() {

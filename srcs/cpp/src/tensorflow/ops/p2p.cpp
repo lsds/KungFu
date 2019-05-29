@@ -246,7 +246,7 @@ class SaveModel : public AsyncOpKernel
         _kungfu_world->UpdateModelStore(updateName.c_str(),
                                         (void *) modelBuf, 
                                         total_buf_size_,  // how many elements of the type below it has?
-                                        to_kungfu_type(context->input(0).dtype()), nullptr);
+                                        to_kungfu_type(context->input(0).dtype()), done); // do not put nullptr!
        
     }
 };
@@ -369,10 +369,8 @@ class RequestModelWithPrefetch : public OpKernel
             _kungfu_world->Request(destination, 
                                 (void *) modelBuf,
                                 total_buf_size_, 
-                                to_kungfu_type(context->input(0).dtype()), nullptr);
-        } 
-
-        
+                                to_kungfu_type(context->input(0).dtype()));
+        }
         
         _kungfu_world->Request(destination, 
                 (void *) prefetchBuf,
