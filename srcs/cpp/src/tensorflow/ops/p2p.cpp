@@ -9,6 +9,9 @@
 
 #include <random>
 
+#include <mutex>
+
+
 namespace tensorflow
 {
 REGISTER_OP("SendTo")
@@ -61,9 +64,11 @@ REGISTER_OP("RequestModel")
     .Output("outputs: NumTensors * T")
     .SetShapeFn(shape_inference::UnchangedShape);   
 
-class RequestModel : public OpKernel
+class RequestModel : public AsyncOpKernel
 {
-    using OpKernel::OpKernel;
+
+    using AsyncOpKernel::AsyncOpKernel;
+
     std::random_device random_device;   
     std::mt19937 engine{random_device()};  
 
@@ -85,7 +90,7 @@ class RequestModel : public OpKernel
 
     int gs;
 
-    //std::mutex mu_;
+    std::mutex mu_;
 
     void check_attrs(OpKernelConstruction *context) {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
@@ -121,7 +126,8 @@ class RequestModel : public OpKernel
     }
 
   public:
-    explicit RequestModel(OpKernelConstruction *context) : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0), modelBuf(nullptr)
+    explicit RequestModel(OpKernelConstruction *context) : 
+        AsyncOpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0), modelBuf(nullptr)
     {   
         check_attrs(context);
         modelBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
@@ -132,7 +138,7 @@ class RequestModel : public OpKernel
         free(modelBuf);
     }
 
-    void Compute(OpKernelContext *context) override
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {   
         gs++;
         std::vector<Tensor*> outputs(model_size_, nullptr);
@@ -145,18 +151,29 @@ class RequestModel : public OpKernel
         int destination = dist(engine);
         while(destination == self_rank_) { destination = dist(engine); }
 
+
+        std::function<void()> func = [&, modelBuf=modelBuf,
+                                        type_size_bytes_=type_size_bytes_, 
+                                        outputs=outputs,
+                                        var_sizes_=var_sizes_, done=done]() {
+                std::lock_guard<std::mutex> l(mu_);
+
+                int offset = 0;
+                for(int i = 0; i < var_sizes_.size(); i++) {
+                    std::copy(offset + modelBuf, offset + modelBuf + var_sizes_[i] * type_size_bytes_, 
+                             (unsigned char *) outputs[i]->tensor_data().data());
+                    offset += var_sizes_[i] * type_size_bytes_;
+                }
+                done();
+        };
+
         // Fill in the model Buffer with response from random peer
         _kungfu_world->Request(destination, 
                               (void *) modelBuf,
                               total_buf_size_, 
-                              to_kungfu_type(context->input(0).dtype()));
+                              to_kungfu_type(context->input(0).dtype()), func);
 
-        int offset = 0;
-        for(int i = 0; i < var_sizes_.size(); i++) {
-            std::copy(offset + modelBuf, offset + modelBuf + var_sizes_[i] * type_size_bytes_, 
-                      (unsigned char *) outputs[i]->tensor_data().data());
-            offset += var_sizes_[i] * type_size_bytes_;
-        }        
+          
 
     }
 

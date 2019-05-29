@@ -82,11 +82,21 @@ func GoKungfuSendTo(rank int, sendBuf unsafe.Pointer, count int, dtype C.KungFu_
 }
 
 //export GoKungfuRequest
-func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype) int {
+func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 
-	// Synchronous case
-	return sess.RequestModel(rank, toBuffer(model, count, dtype))
+	if done == nil {
+		// Synchronous case
+		return sess.RequestModel(rank, toBuffer(model, count, dtype))
+	}
+
+	go func() {
+		sess.RequestModel(rank, toBuffer(model, count, dtype))
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+
 }
 
 //export GoKungfuUpdateModelStore

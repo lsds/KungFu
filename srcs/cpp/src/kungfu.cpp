@@ -29,9 +29,9 @@ int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
 
 int KungfuRequest(int destinationRank, 
                  void *model, int count,
-                 KungFu_Datatype dtype)
+                 KungFu_Datatype dtype, DoneCallback done)
 {
-    return GoKungfuRequest(destinationRank, (void *) model, GoInt(count), GoInt(dtype));
+    return GoKungfuRequest(destinationRank, (void *) model, GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
 
