@@ -151,7 +151,6 @@ class RequestModel : public AsyncOpKernel
         int destination = dist(engine);
         while(destination == self_rank_) { destination = dist(engine); }
 
-
         std::function<void()> func = [&, modelBuf=modelBuf,
                                         type_size_bytes_=type_size_bytes_, 
                                         outputs=outputs,
@@ -172,17 +171,10 @@ class RequestModel : public AsyncOpKernel
                               (void *) modelBuf,
                               total_buf_size_, 
                               to_kungfu_type(context->input(0).dtype()), nullptr);
-
-          
-
-    }
-
-   
+    } 
 };
 
 REGISTER_KERNEL_BUILDER(Name("RequestModel").Device(DEVICE_CPU), RequestModel);
-
-
 
 REGISTER_OP("SaveModel")
     .Attr("T: {int32, int64, float16, float32, float64}")
@@ -261,5 +253,143 @@ class SaveModel : public AsyncOpKernel
 
 REGISTER_KERNEL_BUILDER(Name("SaveModel").Device(DEVICE_CPU), SaveModel);
 
+REGISTER_OP("RequestModelWithPrefetch")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("self_rank: int")
+    .Attr("ranks: list(int)")
+    .Attr("NumTensors: int")
+    .Attr("type_size_bytes: int")
+    .Attr("var_sizes: list(int)")
+    .Attr("var_names: list(string)")
+    .Attr("shapes: list(shape)")
+    .Attr("dtypes: list(type)")
+    .Input("vars: NumTensors * T")
+    .Output("outputs: NumTensors * T")
+    .SetShapeFn(shape_inference::UnchangedShape);   
 
+class RequestModelWithPrefetch : public OpKernel
+{
+
+    using OpKernel::OpKernel;
+
+    std::random_device random_device;   
+    std::mt19937 engine{random_device()};  
+
+    int self_rank_;
+
+    std::vector<int> ranks_;
+    int model_size_;
+
+    std::vector<std::string> var_names_;
+    std::vector<TensorShapeProto> shapes_;
+    std::vector<DataType> dtypes_;
+
+    // Used for the buffer
+    std::vector<int> var_sizes_;
+    int type_size_bytes_;
+    int total_buf_size_;
+
+    unsigned char *modelBuf;
+    unsigned char *prefetchBuf;
+    std::function<void()> prefetchCallback;
+
+    int gs;
+
+    std::mutex mu_;
+
+    void check_attrs(OpKernelConstruction *context) {
+        OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
+        OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
+        OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+
+        OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
+        OP_REQUIRES_OK(context, context->GetAttr("dtypes", &dtypes_));
+        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
+
+        // Used for the buffer
+        OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
+        OP_REQUIRES_OK(context, context->GetAttr("type_size_bytes", &type_size_bytes_));
+
+        OP_REQUIRES(
+            context, var_names_.size() > 0,
+            errors::InvalidArgument("var_names_ must not be empty"));
+        OP_REQUIRES(
+            context, shapes_.size() > 0,
+            errors::InvalidArgument("shapes_ must not be empty"));
+        OP_REQUIRES(
+            context, dtypes_.size() > 0,
+            errors::InvalidArgument("dtypes_ must not be empty"));
+        OP_REQUIRES(
+            context, ranks_.size() > 0,
+            errors::InvalidArgument("ranks_ must not be empty"));
+
+        total_buf_size_ = 0;
+        for(int s : var_sizes_) {
+            total_buf_size_ += s;
+        }        
+    }
+
+  public:
+    explicit RequestModelWithPrefetch(OpKernelConstruction *context) : 
+        OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0), modelBuf(nullptr)
+    {   
+        check_attrs(context);
+        prefetchBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
+    }
+
+    ~RequestModelWithPrefetch()
+    {   
+        free(modelBuf);
+    }
+
+    void Compute(OpKernelContext *context) override
+    {   
+        gs++;
+        std::vector<Tensor*> outputs(model_size_, nullptr);
+        for(int i = 0; i < model_size_; i++) {
+            OP_REQUIRES_OK(context,
+                        context->allocate_output(i, shapes_[i], &outputs[i]));
+        }
+
+        std::uniform_int_distribution<int> dist(0, ranks_.size() - 1);
+        int destination = dist(engine);
+        while(destination == self_rank_) { destination = dist(engine); }
+
+        // Fill in the model Buffer with response from random peer
+        if (modelBuf == nullptr) {
+            modelBuf = (unsigned char*) malloc(total_buf_size_ * type_size_bytes_);
+            prefetchCallback = [&, modelBuf=modelBuf,
+                                            prefetchBuf=prefetchBuf, 
+                                            total_buf_size_=total_buf_size_,
+                                            type_size_bytes_=type_size_bytes_]() {
+                    std::lock_guard<std::mutex> l(mu_);
+                    std::copy(prefetchBuf, prefetchBuf + total_buf_size_ * type_size_bytes_, (unsigned char *) modelBuf);
+            };
+            
+            _kungfu_world->Request(destination, 
+                                (void *) modelBuf,
+                                total_buf_size_, 
+                                to_kungfu_type(context->input(0).dtype()), nullptr);
+        } 
+
+        
+        
+        _kungfu_world->Request(destination, 
+                (void *) prefetchBuf,
+                total_buf_size_, 
+                to_kungfu_type(context->input(0).dtype()), prefetchCallback);
+
+        {
+            std::lock_guard<std::mutex> l(mu_);
+            int offset = 0;
+            for(int i = 0; i < var_sizes_.size(); i++) {
+                std::copy(offset + modelBuf, offset + modelBuf + var_sizes_[i] * type_size_bytes_, 
+                        (unsigned char *) outputs[i]->tensor_data().data());
+                offset += var_sizes_[i] * type_size_bytes_;
+            }
+        }
+    } 
+};
+
+REGISTER_KERNEL_BUILDER(Name("RequestModelWithPrefetch").Device(DEVICE_CPU), RequestModelWithPrefetch);
 }  // namespace tensorflow

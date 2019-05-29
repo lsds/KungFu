@@ -70,7 +70,7 @@ def request_vars(peer_ranks, variables):
     var_dtypes = [var.dtype for var in variables]
 
     var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
-    request_vars = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
+    request_vars = _op_lib.request_model_with_prefetch(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
                                          type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
                                          var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
     return request_vars
