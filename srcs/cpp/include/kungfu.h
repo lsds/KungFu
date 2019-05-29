@@ -57,7 +57,7 @@ extern void order_group_wait(order_group_t *);
 
 #include <functional>
 typedef std::function<void()> DoneCallback;
-typedef std::function<void(void *,int)> DataCallback;
+typedef std::function<void(void *)> DataCallback;
 
 extern int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
                         KungFu_Datatype dtype, KungFu_Op op, const char *name,

@@ -116,9 +116,7 @@ class RequestModel : public AsyncOpKernel
                     errors::InvalidArgument("ranks_ must not be empty"));
 
         total_buf_size_ = 0;
-        for (int s : var_sizes_) {
-            total_buf_size_ += s;
-        }
+        for (int s : var_sizes_) { total_buf_size_ += s; }
     }
 
   public:
@@ -143,15 +141,12 @@ class RequestModel : public AsyncOpKernel
 
         std::uniform_int_distribution<int> dist(0, ranks_.size() - 1);
         int destination = dist(engine);
-        while (destination == self_rank_) {
-            destination = dist(engine);
-        }
+        while (destination == self_rank_) { destination = dist(engine); }
 
-        std::function<void()> func = [
-                &, modelBuf = modelBuf, type_size_bytes_ = type_size_bytes_,
-                outputs = outputs, var_sizes_ = var_sizes_, done = done
-        ]()
-        {
+        std::function<void()> func = [&, modelBuf = modelBuf,
+                                      type_size_bytes_ = type_size_bytes_,
+                                      outputs          = outputs,
+                                      var_sizes_ = var_sizes_, done = done]() {
             std::lock_guard<std::mutex> l(mu_);
 
             int offset = 0;
@@ -217,9 +212,7 @@ class SaveModel : public OpKernel
 
         // number of floats it has
         total_buf_size_ = 0;
-        for (int s : var_sizes_) {
-            total_buf_size_ += s;
-        }
+        for (int s : var_sizes_) { total_buf_size_ += s; }
 
         modelBuf = (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
     }
@@ -322,9 +315,7 @@ class RequestModelWithPrefetch : public OpKernel
                     errors::InvalidArgument("ranks_ must not be empty"));
 
         total_buf_size_ = 0;
-        for (int s : var_sizes_) {
-            total_buf_size_ += s;
-        }
+        for (int s : var_sizes_) { total_buf_size_ += s; }
     }
 
   public:
@@ -345,9 +336,7 @@ class RequestModelWithPrefetch : public OpKernel
 
         std::uniform_int_distribution<int> dist(0, ranks_.size() - 1);
         int destination = dist(engine);
-        while (destination == self_rank_) {
-            destination = dist(engine);
-        }
+        while (destination == self_rank_) { destination = dist(engine); }
 
         // Fill in the model Buffer with response from random peer
         if (modelBuf == nullptr) {
@@ -357,12 +346,10 @@ class RequestModelWithPrefetch : public OpKernel
             _kungfu_world->Request(destination, (void *)modelBuf,
                                    total_buf_size_,
                                    to_kungfu_type(context->input(0).dtype()));
-            prefetchCallback = [
-                    &, modelBuf = modelBuf, prefetchBuf = prefetchBuf,
-                    total_buf_size_  = total_buf_size_,
-                    type_size_bytes_ = type_size_bytes_
-            ]()
-            {
+            prefetchCallback = [&, modelBuf = modelBuf,
+                                prefetchBuf      = prefetchBuf,
+                                total_buf_size_  = total_buf_size_,
+                                type_size_bytes_ = type_size_bytes_]() {
                 std::lock_guard<std::mutex> l(mu_);
                 std::copy(prefetchBuf,
                           prefetchBuf + total_buf_size_ * type_size_bytes_,

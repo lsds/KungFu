@@ -13,7 +13,7 @@ void invoke_callback(callback_t *f) { (*f)(); }
 
 void delete_callback(callback_t *f) { delete f; }
 
-void invoke_data_callback(data_callback_t *f, void *data, int len) { (*f)(data, len); }
+void invoke_data_callback(data_callback_t *f, void *data) { (*f)(data); }
 
 void delete_data_callback(data_callback_t *f) { delete f; }
 
