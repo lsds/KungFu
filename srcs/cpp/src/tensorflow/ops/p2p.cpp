@@ -6,9 +6,7 @@
 #include <kungfu_tensorflow_ops.h>
 
 #include <limits>
-
 #include <random>
-
 #include <mutex>
 
 namespace tensorflow
@@ -179,10 +177,11 @@ class SaveModel : public OpKernel
     unsigned char *modelBuf;
 
     int gs;
+    std::atomic<bool> alreadySaving;
 
   public:
     explicit SaveModel(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0)
+        : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0), alreadySaving(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
         OP_REQUIRES(context, var_names_.size() > 0,
@@ -226,13 +225,16 @@ class SaveModel : public OpKernel
             offset += var_sizes_[i] * type_size_bytes_;
         }
 
-        std::string updateName =
-            "ModelStoreUpdateAtGlobalStep " + std::to_string(gs);
-        _kungfu_world->UpdateModelStore(
-            updateName.c_str(), (void *)modelBuf,
-            total_buf_size_,  // how many elements of the type below it has?
-            to_kungfu_type(context->input(0).dtype()),
-            [] {});  // do not put nullptr!
+        if(!alreadySaving.load()) {
+            alreadySaving = true;
+            std::string updateName =
+                "ModelStoreUpdateAtGlobalStep " + std::to_string(gs);
+            _kungfu_world->UpdateModelStore(
+                updateName.c_str(), (void *)modelBuf,
+                total_buf_size_,  // how many elements of the type below it has?
+                to_kungfu_type(context->input(0).dtype()),
+                [&]() { alreadySaving = false; });  // do not put nullptr!
+        }
     }
 };
 
@@ -279,6 +281,7 @@ class RequestModelWithPrefetch : public OpKernel
     int gs;
 
     std::mutex mu_;
+    std::atomic<bool> alreadyRequesting;
 
     void check_attrs(OpKernelConstruction *context)
     {
@@ -311,7 +314,7 @@ class RequestModelWithPrefetch : public OpKernel
   public:
     explicit RequestModelWithPrefetch(OpKernelConstruction *context)
         : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0),
-          modelBuf(nullptr)
+          modelBuf(nullptr), alreadyRequesting(false)
     {
         check_attrs(context);
         prefetchBuf =
@@ -344,12 +347,17 @@ class RequestModelWithPrefetch : public OpKernel
                 std::copy(prefetchBuf,
                           prefetchBuf + total_buf_size_ * type_size_bytes_,
                           (unsigned char *)modelBuf);
+                alreadyRequesting = false;
             };
         }
 
-        _kungfu_world->Request(
-            destination, (void *)prefetchBuf, total_buf_size_,
-            to_kungfu_type(context->input(0).dtype()), prefetchCallback);
+        if(!alreadyRequesting.load()) {
+            // no other goroutine spawned in background
+            alreadyRequesting = true;
+            _kungfu_world->Request(
+                destination, (void *)prefetchBuf, total_buf_size_,
+                to_kungfu_type(context->input(0).dtype()), prefetchCallback);
+        }
 
         {
             std::lock_guard<std::mutex> l(mu_);
