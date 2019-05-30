@@ -168,7 +168,7 @@ func (r *Router) handle(name string, msg *Message) {
 	f(msg)
 }
 
-func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
+func (r *Router) handleSync(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
 	r.modelStore.modelStoreMutex.Lock()
 	defer r.modelStore.modelStoreMutex.Unlock()
 
@@ -198,7 +198,7 @@ func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
 		log.Errorf("Could not write variable from store to connection: %s", name)
 		utils.ExitErr(err)
 	}
-	r.monitor.Egress(int64(m.Length), a.NetAddr())
+	r.monitor.Egress(int64(m.Length), remote)
 }
 
 func (r *Router) UpdateModelStore(updateName string, model *kb.Buffer) error {
@@ -228,7 +228,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 		case ConnPeerToPeer:
 			r.handle(name, msg)
 		case ConnSynchPeerToPeer:
-			r.handleSynch(name, msg, conn)
+			r.handleSync(name, msg, conn, remote)
 		default:
 			log.Infof("no handler for type %s", t)
 		}
