@@ -59,14 +59,12 @@ REGISTER_OP("RequestModel")
     .Attr("var_names: list(string)")
     .Attr("shapes: list(shape)")
     .Attr("dtypes: list(type)")
-    .Input("vars: NumTensors * T")
-    .Output("outputs: NumTensors * T")
-    .SetShapeFn(shape_inference::UnchangedShape);
+    .Input("vars: NumTensors * T");
 
-class RequestModel : public AsyncOpKernel
+class RequestModel : public OpKernel
 {
 
-    using AsyncOpKernel::AsyncOpKernel;
+    using OpKernel::OpKernel;
 
     std::random_device random_device;
     std::mt19937 engine{random_device()};
@@ -87,9 +85,7 @@ class RequestModel : public AsyncOpKernel
 
     unsigned char *modelBuf;
 
-    int gs;
-
-    std::mutex mu_;
+    //std::mutex mu_;
 
     void check_attrs(OpKernelConstruction *context)
     {
@@ -121,7 +117,7 @@ class RequestModel : public AsyncOpKernel
 
   public:
     explicit RequestModel(OpKernelConstruction *context)
-        : AsyncOpKernel(context), gs(0), type_size_bytes_(0),
+        : OpKernel(context), type_size_bytes_(0),
           total_buf_size_(0), modelBuf(nullptr)
     {
         check_attrs(context);
@@ -130,39 +126,33 @@ class RequestModel : public AsyncOpKernel
 
     ~RequestModel() { free(modelBuf); }
 
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    void Compute(OpKernelContext *context) override
     {
-        gs++;
-        std::vector<Tensor *> outputs(model_size_, nullptr);
-        for (int i = 0; i < model_size_; i++) {
-            OP_REQUIRES_OK(
-                context, context->allocate_output(i, shapes_[i], &outputs[i]));
-        }
-
         std::uniform_int_distribution<int> dist(0, ranks_.size() - 1);
         int destination = dist(engine);
         while (destination == self_rank_) { destination = dist(engine); }
 
-        std::function<void()> func = [&, modelBuf = modelBuf,
-                                      type_size_bytes_ = type_size_bytes_,
-                                      outputs          = outputs,
-                                      var_sizes_ = var_sizes_, done = done]() {
-            std::lock_guard<std::mutex> l(mu_);
-
-            int offset = 0;
-            for (int i = 0; i < var_sizes_.size(); i++) {
-                std::copy(offset + modelBuf,
-                          offset + modelBuf + var_sizes_[i] * type_size_bytes_,
-                          (unsigned char *)outputs[i]->tensor_data().data());
-                offset += var_sizes_[i] * type_size_bytes_;
-            }
-            done();
-        };
-
         // Fill in the model Buffer with response from random peer
         _kungfu_world->Request(destination, (void *)modelBuf, total_buf_size_,
-                               to_kungfu_type(context->input(0).dtype()),
-                               nullptr);
+                               to_kungfu_type(context->input(0).dtype()));
+
+        int offset = 0;
+        for (int i = 0; i < var_sizes_.size(); i++) {
+            // This input tensor does not seem to be initialized?
+            Tensor &input = (Tensor &)context->input(i);
+            Tensor other(input.dtype(), input.shape());
+            std::copy(offset + modelBuf,
+                        offset + modelBuf + var_sizes_[i] * type_size_bytes_,
+                        (unsigned char *)other.tensor_data().data());
+            auto other_flt = other.flat<float>();
+            other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
+            std::copy((unsigned char *)other.tensor_data().data(),
+                        (unsigned char *)other.tensor_data().data() +
+                            var_sizes_[i] * type_size_bytes_,
+                        (unsigned char *)input.tensor_data().data());
+            offset += var_sizes_[i] * type_size_bytes_;
+        }
+
     }
 };
 

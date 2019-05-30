@@ -15,17 +15,21 @@ def _get_num_peers():
     return len(cluster_spec['Peers'])
 
 
-class AkoP2P(KungFuOptimizer):
+class DecentralizedP2P(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
 
     def __init__(self,
                  optimizer,
+                 type_of_decentralized_synchronization,
                  name=None,
                  use_locking=False,
                  device_dense='',
                  device_sparse=''):
-        super(AkoP2P, self).__init__(optimizer, name, use_locking,
+        super(DecentralizedP2P, self).__init__(optimizer, name, use_locking,
                                      device_dense, device_sparse)
+        if type_of_decentralized_synchronization is None:
+           raise Exception("Type of decentralized synchronization not specified.") 
+        self.type_of_decentralized_synchronization = type_of_decentralized_synchronization
 
     @staticmethod
     def get_initializer():
@@ -44,7 +48,8 @@ class AkoP2P(KungFuOptimizer):
         
         grads, variables = zip(*grads_and_vars)
 
-        fill_avg_model_vars_using_other = request_vars([i for i in range(_get_num_peers())], variables)
+        fill_avg_model_vars_using_other = request_vars([i for i in range(_get_num_peers())], variables, 
+                                                       self.type_of_decentralized_synchronization)
 
         # Make configurable momentum
         momentum = 0

@@ -62,7 +62,7 @@ def save_model(variables):
     return _op_lib.save_model(variables, type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes, var_names=var_names)
 
 
-def request_vars(peer_ranks, variables):
+def request_vars(peer_ranks, variables, type_of_synchronization):
     import tensorflow as tf
     request_avg_ops = []
     var_names  = [var.name for var in variables]
@@ -70,10 +70,19 @@ def request_vars(peer_ranks, variables):
     var_dtypes = [var.dtype for var in variables]
 
     var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
-    print("Using request model with prefetch")
-    request_vars = _op_lib.request_model_with_prefetch(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
-                                         type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
-                                         var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
+    if type_of_synchronization == 'async':
+        print("Using request model with prefetch.")
+        request_vars = _op_lib.request_model_with_prefetch(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
+                                            type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
+                                             var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
+    elif type_of_synchronization == 'sync':
+        print("Using synchronous request model.")
+        request_vars = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
+                                            type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
+                                             var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
+    else:
+        raise Exception("Invalid type of synchronization strategy")
+        
     return request_vars
 
 def merge_received(t):

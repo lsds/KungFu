@@ -108,8 +108,8 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     optimizer = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.9)
 
     if kungfu_strategy == 'p2p':
-        from kungfu.optimizers import AkoP2P
-        optimizer = AkoP2P(optimizer)
+        from kungfu.optimizers import DecentralizedP2P
+        optimizer = DecentralizedP2P(optimizer)
     else:
         from kungfu.optimizers import ParallelOptimizer
         print("Using parallel optimizer")
@@ -133,8 +133,8 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, n_batches, batch_size,
 
         initializer = None
         if kungfu_strategy == 'p2p':
-            from kungfu.optimizers import AkoP2P
-            initializer = AkoP2P.get_initializer()
+            from kungfu.optimizers import DecentralizedP2P
+            initializer = DecentralizedP2P.get_initializer()
         else:
             initializer = kf.distributed_variables_initializer()
 

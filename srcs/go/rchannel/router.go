@@ -5,8 +5,6 @@ import (
 	"os"
 	"fmt"
 	"sync"
-	//"strconv"
-	//"encoding/hex"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -92,10 +90,6 @@ func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
 }
 
 func (r *Router) send(a plan.Addr, msg Message, t ConnType) error {
-	//log.Infof("%s::%s\n", "Router", "Send")
-
-	//log.Infof("From::%d", msg.From)
-
 	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
@@ -174,7 +168,6 @@ func (r *Router) handle(name string, msg *Message) {
 }
 
 func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
-	//fmt.Println("Locking when preparing the response")
 	r.modelStore.modelStoreMutex.Lock()
 	defer r.modelStore.modelStoreMutex.Unlock()
 
