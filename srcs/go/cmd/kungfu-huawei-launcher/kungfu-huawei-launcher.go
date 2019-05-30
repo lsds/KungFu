@@ -46,10 +46,6 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Printf("GPUs: %s", strings.Join(env.GPUs, ","))
-	// if err := utils.TestConnectivity(env.ClusterSpec, env.ContainerIndex); err != nil {
-	// 	utils.ExitErr(err)
-	// }
 	ps, err := sch.CreateProcs(prog, args, env.ClusterSpec, kb.ParseAlgo(*algo), *disableNCCL)
 	if err != nil {
 		utils.ExitErr(err)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 // https://github.com/huawei-clouds/modelarts-example/blob/master/CustomImage/自定义镜像训练功能操作指南.md
@@ -20,10 +19,7 @@ const (
 )
 
 type ContainerInfo struct {
-	// ContainerIndex int
-	// ClusterSize    int
 	SelfIPv4    string
-	GPUs        []string
 	ClusterSpec *plan.ClusterSpec
 }
 
@@ -35,10 +31,6 @@ func ParseEnv(np int) (*ContainerInfo, error) {
 	num, err := requireInt(TaskNumEnvKey)
 	if err != nil {
 		return nil, err
-	}
-	gpus := utils.ListNvidiaGPUNames()
-	if len(gpus) > 0 {
-		return ParseEnvV100(np)
 	}
 	clusterSpec, err := parseClusterSpec(num)
 	if err != nil {
@@ -53,10 +45,7 @@ func ParseEnv(np int) (*ContainerInfo, error) {
 		idx = 0
 	}
 	return &ContainerInfo{
-		// ContainerIndex: idx,
-		// ClusterSize:    num,
 		SelfIPv4:    clusterSpec.Peers[idx].NetAddr.Host,
-		GPUs:        gpus,
 		ClusterSpec: clusterSpec,
 	}, nil
 }
