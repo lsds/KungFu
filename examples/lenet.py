@@ -13,7 +13,6 @@ from kungfu.helpers.mnist import load_datasets
 
 import kungfu as kf
 
-# TODO: add to kungfu optimizer; use model size in bits x64
 def get_number_of_trainable_parameters():
     return np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
 
@@ -31,6 +30,7 @@ def measure(f, name=None):
 
 
 
+# Source: https://www.kaggle.com/danyfang/mnist-competition
 def LeNet5(x):    
     # Hyperparameters
     mu = 0
@@ -77,7 +77,7 @@ def LeNet5(x):
     logits = tf.matmul(fc2, fc3_w) + fc3_b
     return logits
 
-def build_train_ops(kungfu_strategy, ako_partitions):
+def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     # Parameters
     learning_rate = 0.01
     training_epochs = 25
@@ -93,14 +93,15 @@ def build_train_ops(kungfu_strategy, ako_partitions):
     #Softmax with cost function implementation
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = y) #one_hot_y)
     loss = tf.reduce_mean(cross_entropy)
-    optimizer = tf.train.AdamOptimizer(learning_rate = 0.001)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate = 0.001)
 
     if kungfu_strategy == 'ako':
-        from kungfu.optimizers import AkoOptimizer
-        optimizer = AkoOptimizer(optimizer, ako_partitions=ako_partitions)
+        from kungfu.optimizers import AkoP2P
+        optimizer = AkoP2P(optimizer, fraction=0.8)
     else:
         from kungfu.optimizers import ParallelOptimizer
-        optimizer = ParallelOptimizer(optimizer)
+        print("Using parallel optimizer")
+        optimizer = ParallelOptimizer(optimizer, device_batch_size=device_batch_size)
 
     train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(y,1))
@@ -131,6 +132,80 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
                         y: batch_ys
                     })
 
+            # Learning Rate (decay LR)
+            def feed_batches_learning_rate_scaling(batch_size, curr_lr):
+                mini_batch_indices = list(range(0, len(mnist.train.images), batch_size))
+                if len(mini_batch_indices) < batch_size:
+                    mini_batch_indices = list(range(0, len(mnist.train.images)))
+                #random.shuffle(mini_batch_indices)
+                interval = 10
+
+                lr = curr_lr
+                for iteration_id, offset in enumerate(mini_batch_indices):
+                    batch_xs, batch_ys = mnist.train.images[offset:offset+batch_size], mnist.train.labels[offset:offset+batch_size]
+                    _, future_batch_size = sess.run([train_step, future_batch_op], feed_dict={
+                        x: batch_xs,
+                        y: batch_ys,
+                        lr_placeholder: lr,
+                    })
+                    if (iteration_id + 1) % interval == 0:
+                        before = lr
+                        lr = (batch_size / future_batch_size) * lr
+                return lr
+
+            # Adaptive batches (increase BS) 
+            def feed_batches(batch_size, init_offset):
+                mini_batch_indices = list(range(init_offset, len(mnist.train.images), batch_size))
+                if len(mini_batch_indices) < batch_size:
+                    mini_batch_indices = list(range(init_offset, len(mnist.train.images)))
+                #random.shuffle(mini_batch_indices)
+                interval = 10
+                examples_processed = 0
+                for iteration_id, offset in enumerate(mini_batch_indices):
+                    batch_xs, batch_ys = mnist.train.images[offset:offset+batch_size], mnist.train.labels[offset:offset+batch_size]
+                    _, future_batch_size = sess.run([train_step, future_batch_op], feed_dict={
+                        x: batch_xs,
+                        y: batch_ys,
+                        lr_placeholder: initial_lr,
+                    })
+                    examples_processed += batch_size
+                    if (iteration_id + 1) % interval == 0:
+                        future_batch_size = int(future_batch_size)
+                        return examples_processed, future_batch_size, offset, batch_size, future_batch_size
+                return 60000, -1, -1, None, None
+
+            def adaptive_batch_loop():
+                examples_processed = 0
+                batch = local_batch
+                init_offset = 0
+                changes = []
+                before = time.time()
+                while examples_processed < 60000:
+                    examples, future_batch_size, last_offset, b, future = feed_batches(batch, init_offset)
+                    changes.append((b, future))
+                    examples_processed += examples
+                    init_offset = last_offset
+                    if future_batch_size is not None and future_batch_size > 0:
+                        batch = future_batch_size
+                after = time.time()
+                took = after - before
+                print("Batch Size changes: ")
+                for b, future_b in changes:
+                    print("Change: (" + str(b) + ", " + str(future_b) + ")")
+                return took
+
+            timeEpoch = 0
+            if dynamic_sgd == "batch":
+                timeEpoch = adaptive_batch_loop()
+            elif dynamic_sgd == "learning_rate":
+                before = time.time()
+                global_lr = feed_batches_learning_rate_scaling(local_batch, global_lr)
+                timeEpoch = time.time() - before
+            else:    
+                timeEpoch = timeit.timeit(lambda: feed_batches_static(local_batch), number=1)
+
+
+            print("Training Epoch took: " + str(timeEpoch))
 
             # Measure throughput
             timeEpoch = timeit.timeit(feed_batches, number=1)
@@ -149,24 +224,6 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, batch_size, val_accuracy
 
             now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print('%s - validation accuracy (epoch %d): %f' % (now, epoch_i, val_acc))
-
-            window_val_acc_median = 0
-            if not reached_target_accuracy:
-                window.append(val_acc)
-                if len(window) > 1:
-                   window.pop(0)
-                
-                window_val_acc_median = 0 if len(window) < 1 else np.median(window)
-                if window_val_acc_median * 100 >= val_accuracy_target:
-                   reached_target_accuracy = True
-                   print("reached validation accuracy target %.3f: %.4f (time %s)" % (val_accuracy_target, val_acc, str(time.time() - time_start - total_val_duration)))
-
-         # Results
-        img_sec_mean = np.mean(img_secs)
-        img_sec_conf = 1.96 * np.std(img_secs)
-        print('Img/sec per CPU: %.2f +- %.2f' % (img_sec_mean, img_sec_conf))
-        print('Total img/sec: %.2f +- %.2f' % (4 * img_sec_mean, 4 * img_sec_conf))
-
 
         # %% Print final test accuracy:
         test_acc = sess.run(acc,
@@ -222,10 +279,10 @@ def warmup():
 def main():
     args = parse_args()
     measure(warmup, 'warmup')
-    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions)
+    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy, args.ako_partitions, args.batch_size)
     show_trainable_variables_info()
     
-    mnist = measure(lambda: load_datasets('var/data/mnist', normalize=True, one_hot=True, padded=True), 'load data')
+    mnist = measure(lambda: load_datasets('./mnist', normalize=True, one_hot=True, padded=True), 'load data')
 
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, 

@@ -11,11 +11,16 @@ import (
 	"github.com/lsds/KungFu/srcs/go/shm"
 )
 
+type Callback func([]byte)
+
 type Router struct {
 	localAddr  plan.NetAddr
 	bufferPool *BufferPool
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
+
+	callbacks map[string]Callback // TODO: mutex
+	// TODO: delele callbacks on exit
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -24,12 +29,13 @@ func NewRouter(self plan.PeerSpec) *Router {
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
+		callbacks:  make(map[string]Callback),
 	}
 }
 
 // getChannel returns the Channel of given Addr
-func (r *Router) getChannel(a plan.Addr) (*Channel, error) {
-	conn, err := r.connPool.get(a.NetAddr(), r.localAddr)
+func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
+	conn, err := r.connPool.get(a.NetAddr(), r.localAddr, t)
 	if err != nil {
 		return nil, err
 	}
@@ -37,24 +43,26 @@ func (r *Router) getChannel(a plan.Addr) (*Channel, error) {
 }
 
 // Send sends data in buf to given Addr
-func (r *Router) Send(a plan.Addr, buf []byte) error {
+func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
 	msg := Message{
 		Length: uint32(len(buf)),
 		Data:   buf,
 	}
-	if err := r.send(a, msg); err != nil {
+	if err := r.send(a, msg, t); err != nil {
 		log.Errorf("Router::Send failed: %v", err)
 		// TODO: retry
-		os.Exit(1)
+		if t == ConnCollective {
+			os.Exit(1)
+		}
 		// return err
 	}
 	r.monitor.Egress(int64(msg.Length), a.NetAddr())
 	return nil
 }
 
-func (r *Router) send(a plan.Addr, msg Message) error {
+func (r *Router) send(a plan.Addr, msg Message, t ConnType) error {
 	// log.Infof("%s::%s", "Router", "Send")
-	ch, err := r.getChannel(a)
+	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
 	}
@@ -100,7 +108,34 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 
 var newShm = shm.New
 
-func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
+func (r *Router) RegisterDataCallback(name string, f Callback) {
+	log.Infof("Router::RegisterDataCallback %s %p", name, f)
+	// TODO: lock
+	r.callbacks[name] = f
+}
+
+func (r *Router) UnregisterDataCallback(name string) {
+	log.Infof("Router::UnregisterDataCallback %s", name)
+	// TODO: lock
+	delete(r.callbacks, name)
+}
+
+func (r *Router) handle(name string, msg *Message) {
+	// TODO: lock
+	f, ok := r.callbacks[name]
+	if !ok {
+		log.Warnf("%s has no callback registered", name)
+		return
+	}
+	if f == nil {
+		log.Errorf("%s has nil callback", name)
+		return
+	}
+	// log.Infof("handling message with name %s", name)
+	f(msg.Data)
+}
+
+func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
 	var shm shm.Shm
 	if kc.UseShm && remote.Host == r.localAddr.Host {
 		var err error
@@ -115,6 +150,13 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
 			return i, err
 		}
 		r.monitor.Ingress(int64(msg.Length), remote)
-		r.bufferPool.require(remote.WithName(name)) <- msg
+		switch t {
+		case ConnCollective:
+			r.bufferPool.require(remote.WithName(name)) <- msg
+		case ConnPeerToPeer:
+			r.handle(name, msg)
+		default:
+			log.Infof("no handler for type %s", t)
+		}
 	}
 }

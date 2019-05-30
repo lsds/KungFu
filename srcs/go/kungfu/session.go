@@ -127,6 +127,16 @@ func (sess *session) Warmup() int {
 	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
 }
 
+func (sess *session) RegisterDataCallback(name string, f rch.Callback) int {
+	sess.router.RegisterDataCallback(name, f)
+	return 0
+}
+
+func (sess *session) UnregisterDataCallback(name string) int {
+	sess.router.UnregisterDataCallback(name)
+	return 0
+}
+
 func (sess *session) AllReduce(w Workspace) int {
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
@@ -143,6 +153,14 @@ func (sess *session) Broadcast(w Workspace) int {
 	return code(sess.runGraphs(w, g))
 }
 
+func (sess *session) SendTo(rank int, w Workspace) int {
+	if rank < 0 || len(sess.cluster.Peers) <= rank {
+		return code(errInvalidRank)
+	}
+	peer := sess.cluster.Peers[rank]
+	return code(sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnPeerToPeer))
+}
+
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	if len(sess.cluster.Peers) == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)
@@ -152,9 +170,9 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	var recvCount int
 	sendTo := func(peer plan.PeerSpec) {
 		if recvCount == 0 {
-			sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data)
+			sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective)
 		} else {
-			sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf.Data)
+			sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf.Data, rch.ConnCollective)
 		}
 	}
 
@@ -197,14 +215,13 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		}
 	}
 
-	myRank := sess.myRank
 	for _, g := range graphs {
-		prevs := g.Prevs(myRank)
-		if g.IsSelfLoop(myRank) {
+		prevs := g.Prevs(sess.myRank)
+		if g.IsSelfLoop(sess.myRank) {
 			par(prevs, recvOnto)
 		} else {
 			if len(prevs) > 1 {
-				log.Errorf("more than once recvInto detected at node %d", myRank)
+				log.Errorf("more than once recvInto detected at node %d", sess.myRank)
 			}
 			if len(prevs) == 0 && recvCount == 0 {
 				w.RecvBuf.CopyFrom(w.SendBuf)
@@ -212,7 +229,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 				seq(prevs, recvInto) // len(prevs) == 1 is expected
 			}
 		}
-		par(g.Nexts(myRank), sendTo)
+		par(g.Nexts(sess.myRank), sendTo)
 	}
 	return nil
 }
@@ -236,6 +253,10 @@ func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []st
 	}
 	return nil
 }
+
+var (
+	errInvalidRank = errors.New("invalid rank")
+)
 
 func code(err error) int {
 	if err == nil {

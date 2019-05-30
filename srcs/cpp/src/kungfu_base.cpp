@@ -13,6 +13,10 @@ void invoke_callback(callback_t *f) { (*f)(); }
 
 void delete_callback(callback_t *f) { delete f; }
 
+void invoke_data_callback(data_callback_t *f, void *data) { (*f)(data); }
+
+void delete_data_callback(data_callback_t *f) { delete f; }
+
 // TODO: use std::apply from c++17
 
 template <typename Args, typename Op>
@@ -58,9 +62,13 @@ void _call_std_transform_2_tpl(const Args &args)
 void std_transform_2(const void *input_1, const void *input_2, void *output,
                      int n, int dtype, int binary_op)
 {
+    if (dtype == kungfu::type_encoder::value<kungfu::float16>() &&
+        binary_op == kungfu::op_encoder::value<kungfu::op_sum>()) {
+        float16_sum(output, input_1, input_2, n);
+        return;
+    }
 
     const auto args = std::make_tuple(input_1, input_2, output, n, binary_op);
-
     switch (dtype) {
     case kungfu::type_encoder::value<uint8_t>():
         _call_std_transform_2_tpl<uint8_t>(args);

@@ -26,7 +26,7 @@ func parseIPv4(host string) uint32 {
 	return a | b | c | d
 }
 
-func newConnection(remote, local plan.NetAddr) (Connection, error) {
+func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	conn, err := func() (net.Conn, error) {
 		if remote.Host == local.Host {
 			addr := net.UnixAddr{remote.SockFile(), "unix"}
@@ -41,7 +41,7 @@ func newConnection(remote, local plan.NetAddr) (Connection, error) {
 		return nil, err
 	}
 	h := connectionHeader{
-		Type:    uint16(ConnCollective),
+		Type:    uint16(t),
 		SrcIPv4: parseIPv4(local.Host), // parseIPv4 :: str -> uint32
 		SrcPort: local.Port,
 	}
