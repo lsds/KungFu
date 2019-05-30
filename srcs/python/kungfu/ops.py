@@ -66,7 +66,7 @@ def save_model(variables):
     import tensorflow as tf
     var_names  = [var.name for var in variables]
     var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
-    return _op_lib.save_model(variables, type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes, var_names=var_names)
+    return _op_lib.save_model(variables, var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
 
 
 def request_model(peer_ranks, variables, request_model_type):
@@ -80,13 +80,11 @@ def request_model(peer_ranks, variables, request_model_type):
     if request_model_type == 'async':
         print("Using asynchronous model request.")
         request_model = _op_lib.async_request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
-                                            type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
-                                             var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
+                                            var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
     elif request_model_type == 'sync':
         print("Using synchronous model request.")
         request_model = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
-                                            type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
-                                             var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
+                                            var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
     else:
         raise Exception("Invalid type of synchronization strategy")
         
