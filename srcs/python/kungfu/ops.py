@@ -77,6 +77,10 @@ def request_model(peer_ranks, variables, request_model_type):
     var_dtypes = [var.dtype for var in variables]
 
     var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
+    
+    # Remove self rank from the list
+    peer_ranks.remove(_get_self_rank())
+    
     if request_model_type == 'async_cpu':
         print("Using asynchronous model request with CPU model averaging.")
         request_model = _op_lib.async_request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
@@ -86,6 +90,7 @@ def request_model(peer_ranks, variables, request_model_type):
         request_model = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
                                             var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
     elif request_model_type == 'async_gpu':
+        print("Doing round robin peer selection at the moment!!")
         print("Using asynchronous model request with GPU model averaging.")
         request_model = _op_lib.async_request_model_averaging_gpu(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
                                             type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,

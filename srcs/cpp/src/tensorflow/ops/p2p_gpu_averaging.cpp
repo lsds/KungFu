@@ -215,8 +215,11 @@ class AsyncRequestModelAveragingGpu : public OpKernel
             OP_REQUIRES_OK(context,
                         context->allocate_output(i, shapes_[i], &outputs[i]));
         }
-        int destination = dist(engine);
-        while (destination == self_rank_) { destination = dist(engine); }
+        // int destination = dist(engine);
+        // while (destination == self_rank_) { destination = dist(engine); }
+
+        // ranks_ do not include self rank
+        int destination = ranks_[gs % ranks_.size()];
 
         // Fill in the model Buffer with response from random peer
         if (modelBuf == nullptr) {
