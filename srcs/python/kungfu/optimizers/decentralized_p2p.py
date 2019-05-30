@@ -48,18 +48,35 @@ class DecentralizedP2P(KungFuOptimizer):
         
         grads, variables = zip(*grads_and_vars)
 
-        apply_avg_model = request_model([i for i in range(_get_num_peers())], variables, 
-                                                       self.request_model_type)
 
-        # assign_ops = [tf.assign(v, 0.5 * (v + other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
+        if self.request_model_type == 'sync_cpu' or self.request_model_type == 'async_cpu':
+            apply_avg_model = request_model([i for i in range(_get_num_peers())], variables, 
+                                                        self.request_model_type)
 
-        apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs) 
-        save_model_op = save_model(variables)
+            # assign_ops = [tf.assign(v, 0.5 * (v + other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
 
-        with tf.control_dependencies([apply_avg_model]):
-            with tf.control_dependencies([apply_op]):
-                with tf.control_dependencies([save_model_op]):
-                    return tf.group(apply_op)
+            apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs) 
+            save_model_op = save_model(variables)
+
+            with tf.control_dependencies([apply_avg_model]):
+                with tf.control_dependencies([apply_op]):
+                    with tf.control_dependencies([save_model_op]):
+                        return tf.group(apply_op)
+        elif self.request_model_type == 'sync_gpu' or self.request_model_type == 'async_gpu':
+            other_peer_vars = request_model([i for i in range(_get_num_peers())], variables, 
+                                            self.request_model_type)
+
+            assign_ops = [tf.assign(v, 0.5 * (v + other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
+
+            apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs) 
+            save_model_op = save_model(variables)
+
+            with tf.control_dependencies(assign_ops):
+                with tf.control_dependencies([apply_op]):
+                    with tf.control_dependencies([save_model_op]):
+                         return tf.group(apply_op)            
+        else:
+            raise Exception("DecentralizedP2P optimizer does not support provided request model type.")
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         return grads_and_vars_to_negotiate

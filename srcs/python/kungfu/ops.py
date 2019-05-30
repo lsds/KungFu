@@ -77,14 +77,24 @@ def request_model(peer_ranks, variables, request_model_type):
     var_dtypes = [var.dtype for var in variables]
 
     var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
-    if request_model_type == 'async':
-        print("Using asynchronous model request.")
+    if request_model_type == 'async_cpu':
+        print("Using asynchronous model request with CPU model averaging.")
         request_model = _op_lib.async_request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
                                             var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
-    elif request_model_type == 'sync':
-        print("Using synchronous model request.")
+    elif request_model_type == 'sync_cpu':
+        print("Using synchronous model request with CPU model averaging.")
         request_model = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
                                             var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
+    elif request_model_type == 'async_gpu':
+        print("Using asynchronous model request with GPU model averaging.")
+        request_model = _op_lib.async_request_model_averaging_gpu(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
+                                            type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
+                                            var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
+    elif request_model_type == 'sync_gpu':
+        print("Using synchronous model request with GPU model averaging.")
+        request_model = _op_lib.request_model_averaging_gpu(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
+                                        type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
+                                        var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
     else:
         raise Exception("Invalid type of synchronization strategy")
         
