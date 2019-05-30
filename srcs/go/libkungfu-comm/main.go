@@ -4,8 +4,8 @@ import (
 	"os"
 	"reflect"
 	"unsafe"
-	//"fmt"
-	//"time"
+	"fmt"
+	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -92,7 +92,15 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 	}
 
 	go func() {
-		sess.RequestModel(rank, toBuffer(model, count, dtype))
+		isMonitoring := os.Getenv("REQUEST_LATENCY_MEASUREMENT")
+		if isMonitoring == "true" {
+			start := time.Now()
+			sess.RequestModel(rank, toBuffer(model, count, dtype))
+			elapsed := time.Since(start)
+    		fmt.Printf("Request took %s\n", elapsed)
+		} else {
+		   sess.RequestModel(rank, toBuffer(model, count, dtype))
+		}
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
