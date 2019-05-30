@@ -67,7 +67,8 @@ func (r *Router) Request(a plan.Addr, t ConnType, model *kb.Buffer) error {
 	   return err	
 	}
 
-	r.monitor.Egress(int64(msg.Length), a.NetAddr())
+	r.monitor.Ingress(int64(msg.Length), a.NetAddr())
+
 	return nil
 }
 
@@ -197,7 +198,7 @@ func (r *Router) handleSynch(name string, msg *Message, conn net.Conn) {
 		log.Errorf("Could not write variable from store to connection: %s", name)
 		utils.ExitErr(err)
 	}
-
+	r.monitor.Egress(int64(m.Length), a.NetAddr())
 }
 
 func (r *Router) UpdateModelStore(updateName string, model *kb.Buffer) error {
