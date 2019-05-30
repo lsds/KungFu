@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from kungfu.ops import broadcast, save_model, request_vars
+from kungfu.ops import broadcast, save_model, request_model
 from .core import KungFuOptimizer
 
 
@@ -20,16 +20,16 @@ class DecentralizedP2P(KungFuOptimizer):
 
     def __init__(self,
                  optimizer,
-                 type_of_decentralized_synchronization,
+                 request_model_type,
                  name=None,
                  use_locking=False,
                  device_dense='',
                  device_sparse=''):
         super(DecentralizedP2P, self).__init__(optimizer, name, use_locking,
                                      device_dense, device_sparse)
-        if type_of_decentralized_synchronization is None:
+        if request_model_type is None:
            raise Exception("Type of decentralized synchronization not specified.") 
-        self.type_of_decentralized_synchronization = type_of_decentralized_synchronization
+        self.request_model_type = request_model_type
 
     @staticmethod
     def get_initializer():
@@ -48,23 +48,15 @@ class DecentralizedP2P(KungFuOptimizer):
         
         grads, variables = zip(*grads_and_vars)
 
-        fill_avg_model_vars_using_other = request_vars([i for i in range(_get_num_peers())], variables, 
-                                                       self.type_of_decentralized_synchronization)
-
-        # Make configurable momentum
-        momentum = 0
-        if isinstance(self._optimizer, tf.train.MomentumOptimizer):
-            print("Using momentum optimizer")
-            momentum = self._optimizer._momentum
-        else:
-            raise Exception("Optimizer is not an instance of tf.train.MomentumOptimizer")
+        apply_avg_model = request_model([i for i in range(_get_num_peers())], variables, 
+                                                       self.request_model_type)
 
         # assign_ops = [tf.assign(v, 0.5 * (v + other_v)) for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
 
         apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs) 
         save_model_op = save_model(variables)
 
-        with tf.control_dependencies([fill_avg_model_vars_using_other]):
+        with tf.control_dependencies([apply_avg_model]):
             with tf.control_dependencies([apply_op]):
                 with tf.control_dependencies([save_model_op]):
                     return tf.group(apply_op)

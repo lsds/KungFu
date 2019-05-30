@@ -240,7 +240,7 @@ class SaveModel : public OpKernel
 
 REGISTER_KERNEL_BUILDER(Name("SaveModel").Device(DEVICE_CPU), SaveModel);
 
-REGISTER_OP("RequestModelWithPrefetch")
+REGISTER_OP("AsyncRequestModel")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
@@ -252,7 +252,7 @@ REGISTER_OP("RequestModelWithPrefetch")
     .Attr("dtypes: list(type)")
     .Input("vars: NumTensors * T");
 
-class RequestModelWithPrefetch : public OpKernel
+class AsyncRequestModel : public OpKernel
 {
 
     using OpKernel::OpKernel;
@@ -312,7 +312,7 @@ class RequestModelWithPrefetch : public OpKernel
     }
 
   public:
-    explicit RequestModelWithPrefetch(OpKernelConstruction *context)
+    explicit AsyncRequestModel(OpKernelConstruction *context)
         : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0),
           modelBuf(nullptr), alreadyRequesting(false)
     {
@@ -321,7 +321,7 @@ class RequestModelWithPrefetch : public OpKernel
             (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
     }
 
-    ~RequestModelWithPrefetch() { free(modelBuf); }
+    ~AsyncRequestModel() { free(modelBuf); }
 
     void Compute(OpKernelContext *context) override
     {
@@ -381,6 +381,6 @@ class RequestModelWithPrefetch : public OpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("RequestModelWithPrefetch").Device(DEVICE_CPU),
-                        RequestModelWithPrefetch);
+REGISTER_KERNEL_BUILDER(Name("AsyncRequestModel").Device(DEVICE_CPU),
+                        AsyncRequestModel);
 }  // namespace tensorflow
