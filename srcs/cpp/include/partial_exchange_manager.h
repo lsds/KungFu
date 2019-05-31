@@ -117,7 +117,7 @@ class partial_exchange_manager
         }
 
         if (new_fraction == -1) {
-            return Plan(-1, );
+            return Plan(-1, ...TODO...);
         }
 
         std::vector<partition> newPartitions = bin_pack(new_fraction * total_size_bytes_);
