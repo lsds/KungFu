@@ -12,6 +12,8 @@
 #include <vector>
 
 
+#include "partition.h"
+
 /* Off-line bin packing algorithm
    1. Best-fit decreasing NO
    2. First-fit decreasing YES
@@ -20,125 +22,106 @@
 */
 class partial_exchange_manager
 {
-    int32_t countGradients;
+    std::vector<std::pair<int, int>> schedule_;
+    std::vector<tensor_meta> tensors_;
 
-    std::mutex constructionMutex;
-    std::mutex partitionAccessMutex;
+    int32_t count_gradients_;
+    int32_t total_size_bytes_;
 
-    int32_t total_size_gradients;
-    std::unordered_set<int> repartition_ids;
+    std::mutex mu_;
 
-  
-    void bin_pack()
+
+    std::vector<partition> bin_pack(int32_t budget)
     {   
-        auto grt = [](tensor_meta *t1, tensor_meta *t2) {
-            return t1->size > t2->size ||
-                (t1->size == t2->size && t1->name > t2->name);
-        };
-        std::sort(tensors.begin(), tensors.end(), grt);
-
-        if (tensors[0]->size > budget) {
-            std::cout << "Infeasible to bin-pack the tensors with small "
-                        "budget. Provide higher fraction."
-                    << std::endl;
-            throw "Infeasible to bin-pack the tensors with small budget. "
-                "Provide higher fraction.";
-            return;
+        if(tensors_.size() != count_gradients_) {
+            throw "Some tensors have not been added to the Partial Exchange Manager";
         }
 
-        partitions.push_back(new partition(this->bin_counter, budget));
+        auto grt = [](tensor_meta t1, tensor_meta t2) {
+            return t1.size > t2.size ||
+                (t1.size == t2.size && t1.name > t2.name);
+        };
+        std::sort(tensors_.begin(), tensors_.end(), grt);
 
-        for (const tensor_meta* t : tensors) {
+        if (tensors_[0].size > budget) {
+            throw "Infeasible to bin-pack: provide higher fraction.";
+        }
+
+        int bin_counter = 1;
+        std::vector<partition> partitions;
+        partitions.push_back(partition(bin_counter, budget));
+
+        for (const tensor_meta t : tensors_) {
             bool currPartitionFilled   = false;
             int32_t currPartitionIndex = 0;
 
             while (!currPartitionFilled) {
                 if (currPartitionIndex == partitions.size()) {
-                    partition* newPartition = new partition(++this->bin_counter, budget);
-                    newPartition->put(t);
+                    partition newPartition = partition(++bin_counter, budget);
+                    newPartition.put(t);
                     partitions.push_back(newPartition);
                     currPartitionFilled = true;
-                } else if (partitions[currPartitionIndex]->put(t)) {
+                } else if (partitions[currPartitionIndex].put(t)) {
                     currPartitionFilled = true;
                 } else {
                     currPartitionIndex++;
                 }
             }
         }
-    }
-
-    void print_partition_info()
-    {
-        std::cout << "Initial total number of tensors: " << countGradients
-                  << std::endl;
-        int32_t countTensorsFromParts = 0;
-        std::cout << "Total number of partitions: " << bin_counter << std::endl;
-        for (int i = 0; i < bin_counter; i++) {
-            std::cout << "Partition: " << std::endl;
-            std::cout << *partitions[i] << std::endl;
-            countTensorsFromParts += partitions[i]->tensorNames.size();
-        }
-        std::cout << "Total number of tensors in partitions: "
-                  << countTensorsFromParts << std::endl;
-        if (countGradients != countTensorsFromParts) {
-            throw "Bin packing error: tensor names are not unique.";
-        }
+        return partitions;
     }
 
   public:
-    int32_t budget;
 
-    std::vector<tensor_meta *> tensors;
-    std::vector<partition *> partitions;
+    partial_exchange_manager() : count_gradients_(0), total_size_bytes_(0) {}
 
-    // Indicates the number of partitions
-    int32_t bin_counter;
-    float current_fraction;
+    ~partial_exchange_manager() {}
 
-    partial_exchange_manager() : 
-            budget(0), countGradients(0), bin_counter(1), 
-            current_fraction(0), total_size_gradients(0) {}
+    void addSchedule(std::vector<int> steps, std::vector<int> fractions) {
+        std::lock_guard<std::mutex> l(mu_);
+        if(steps.size() != fractions.size()) {
+            throw "Invalid schedule: number of steps must equal number of fractions";
+        }
+        for(int i = 0; i < steps.size(); i++) {
+            schedule_.push_back({steps[i], fractions[i]});
+        }
+    }
 
-    ~partial_exchange_manager()
-    {
-        
+    void addGlobalTensorInfo(int count_gradients, int total_size_bytes) {
+        std::lock_guard<std::mutex> l(mu_);
+        count_gradients_  = count_gradients;
+        total_size_bytes_ = total_size_bytes_; 
     }
 
     void addTensorInfo(std::string name, const int32_t size)
     {
-        std::lock_guard<std::mutex> lock(constructionMutex);
-        tensor_meta *t_m = new tensor_meta(name, size);
+        std::lock_guard<std::mutex> l(mu_);
+        tensor_meta t_m(name, size);
 
-        tensors.push_back(t_m);
-    }
-
-    bool isReadyForNegotiation(const std::string tensor_name, int32_t global_step)
-    {
-        std::lock_guard<std::mutex> lock(partitionAccessMutex);
-        auto partitionSet = partitions[global_step % partitions.size()]->tensorNames;
-        return partitionSet.find(tensor_name) != partitionSet.end();
+        tensors_.push_back(t_m);
     }
 
 
-    void repartition(float new_fraction, int repartition_id) {
-        std::lock_guard<std::mutex> partitionAccessLock(partitionAccessMutex);
-        std::lock_guard<std::mutex> constructionLock(constructionMutex);
+    void repartition(int gs) {
+        std::lock_guard<std::mutex> l(mu_);        
 
-        if(repartition_ids.find(repartition_id) != repartition_ids.end()) {
-            // present
-            return;
+
+        int new_fraction = -1;
+        int next_repartitioning_step = -1;
+        for(int i = 0; i < schedule_.size(); i++) {
+            int schedule_gs   = schedule_[i][0];
+            int schedule_frac = schedule_[i][1];
+            if(schedule_gs == gs) {
+                new_fraction = schedule_frac;
+            } 
         }
 
-        repartition_ids.insert(repartition_id);
-        
-        
-        this->budget = new_fraction * this->total_size_gradients;
-        this->current_fraction = new_fraction;
+        if (new_fraction == -1) {
+            return Plan(-1, );
+        }
 
-        partitions.clear();
+        std::vector<partition> newPartitions = bin_pack(new_fraction * total_size_bytes_);
 
-        // Restore bin counter
-        this->bin_counter = 1;
-        bin_pack();
+        return Plan(next_repart_step, newPartitions);
     }
 };

@@ -7,19 +7,19 @@
 #include <mutex>
 #include <queue>
 
+#include <partition.h>
+
 namespace tensorflow
 {
 REGISTER_OP("PartialNegotiatorWithSchedule")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
-    .Attr("budget: int")
     .Attr("tensor_size: int")
-    .Attr("count_gradients: int")
     .Attr("total_size: int")
+    .Attr("count_gradients: int")
     .Attr("steps: list(int)")
     .Attr("fractions: list(float)")
-    .Attr("fraction: float")
-    .Input("allgradients: T")
+    .Input("grads: T")
     .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
@@ -30,84 +30,34 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
 
-    void printSchedule() {
-        std::cout << "Print Schedule C++" << std::endl;
-        std::cout << "Steps" << std::endl;
-        for(int step : steps) {
-            std::cout << "Step" << step << std::endl;
-        }  
-        std::cout << "Fractions" << std::endl;
-        for(float f : fractions) {
-            std::cout << "Fraction" << f << std::endl;
-        }   
-    }
-
   public:
     std::string input_tensor_name_;
-    int32_t tensorSize_;
-    int32_t count_gradients_;
-    int32_t budget;
-    float find_epoch_denominator_;
-    float initial_fraction_;
-    int32_t total_size_;
 
     std::vector<int> steps;
     std::vector<float> fractions;
 
-    int repartition_id = 0;
+    Plan plan;
 
     explicit PartialNegotiatorWithSchedule(OpKernelConstruction *context)
         : AsyncOpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
-                                                 &input_tensor_name_));
-        OP_REQUIRES(
-            context, input_tensor_name_.size() >= 0,
-            errors::InvalidArgument("input_tensor_name must not be empty"));
+        // Tensor info
+        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name", &input_tensor_name_));
+        OP_REQUIRES_OK(context, context->GetAttr("tensor_size", &tensor_size_));        
 
-        OP_REQUIRES_OK(context, context->GetAttr("budget", &budget));
-        OP_REQUIRES(context, budget > 0,
-                    errors::InvalidArgument("budget must be greater than 0"));
-
-        OP_REQUIRES_OK(context, context->GetAttr("tensor_size", &tensorSize_));
-        OP_REQUIRES(
-            context, tensorSize_ > 0,
-            errors::InvalidArgument("tensor size must be greater than 0"));
-
+        // Schedule
         OP_REQUIRES_OK(context, context->GetAttr("steps", &steps));
-        OP_REQUIRES(
-            context, steps.size() > 0,
-            errors::InvalidArgument("steps size must be greater than 0"));
-
         OP_REQUIRES_OK(context, context->GetAttr("fractions", &fractions));
-        OP_REQUIRES(
-            context, fractions.size() > 0,
-            errors::InvalidArgument("fractions size must be greater than 0"));
 
+        // Global gradient tensors info
+        int32_t count_gradients;
+        int32_t total_size_bytes;
+        OP_REQUIRES_OK(context, context->GetAttr("count_gradients", &count_gradients));
+        OP_REQUIRES_OK(context, context->GetAttr("total_size", &total_size_byte));
 
-        OP_REQUIRES_OK(context, context->GetAttr("fraction", &initial_fraction_));
-        OP_REQUIRES(
-            context, initial_fraction_ > 0,
-            errors::InvalidArgument("initial_fraction must be greater than 0"));
-
-        OP_REQUIRES_OK(context,
-                       context->GetAttr("count_gradients", &count_gradients_));
-        OP_REQUIRES(
-            context, count_gradients_ > 0,
-            errors::InvalidArgument("gradient count must be greater than 0"));
-
-        OP_REQUIRES_OK(context, context->GetAttr("total_size", &total_size_));
-        OP_REQUIRES(
-            context, total_size_ > 0,
-            errors::InvalidArgument("total size of all gradients must be greater than 0"));
-
-        _partial_exchange_manager->setCountGradients(count_gradients_);
-        _partial_exchange_manager->setTotalSize(total_size_);
-        _partial_exchange_manager->setBudget(budget);
-        _partial_exchange_manager->addTensorInfo(input_tensor_name_,
-                                                 tensorSize_);
-        
-        _partial_exchange_manager->setFraction(initial_fraction_);
+        _partial_exchange_manager->addSchedule(steps, fractions);
+        _partial_exchange_manager->addGlobalTensorInfo(count_gradients, total_size_bytes);
+        _partial_exchange_manager->addTensorInfo(input_tensor_name_, tensor_size_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -120,30 +70,26 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, gradients.shape(), &output));
 
-        int64_t gs = (int64_t) _kungfu_world->GetGlobalStep();
+        int64_t gs = (int64_t) _kungfu_world->GetGlobalStep();    
 
-        if(gs == steps[repartition_id]) {
-            std::cout << "Repartition ID " << repartition_id << " with fraction " << fractions[repartition_id] << std::endl;
-
-            _partial_exchange_manager->repartition(fractions[repartition_id], repartition_id);
-            repartition_id++;
+        if(gs == plan.next_repartition_step) {
+           plan = _partial_exchange_manager->repartition(gs);
         }
-    
 
-        if (_partial_exchange_manager->isReadyForNegotiation(
-                input_tensor_name_, _kungfu_world->GetGlobalStep())) {
+        partition current_partition = plan.partitions[gs];
+        if (current_partition.tensorNames.find(input_tensor_name_) != current_partition.tensorNames.end()) {
             _kungfu_world->AllReduce(gradients.tensor_data().data(),
                                      (void *)(output->tensor_data().data()),
                                      gradients.NumElements(),
                                      to_kungfu_type(gradients.dtype()),
                                      KungFu_SUM, input_tensor_name_.c_str(), done);
-            // Because it is synchronous, the done callback will signal when the
-            // value held
-            // in the memory where output points to is ready to be used.
         } else {
             *output = gradients;
             done();
         }
+
+
+       
     }
 };
 

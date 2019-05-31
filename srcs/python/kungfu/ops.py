@@ -60,6 +60,34 @@ def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
 
+def _bin_pack(sizes, budget, adjust_budget=False):
+    lst = list(reversed(sorted([(size, name)
+                                for name, size in sizes.items()])))
+    if adjust_budget:
+        budget = max(budget, lst[0][0])
+    else:
+        if lst[0][0] > budget:
+            print("Suggested budget fraction is %f" %
+                  (lst[0][0] / sum([s[1] for s in sizes.items()])))
+            raise RuntimeError("Budget is too small %f. Largest tensor is %f" %
+                               (budget, lst[0][0]))
+
+    budgets = []
+    indexes = dict()
+    for size, name in lst:
+        ok = False
+        for i, b in enumerate(budgets):
+            if b >= size:
+                budgets[i] -= size
+                indexes[name] = i
+                ok = True
+                break
+        if not ok:
+            budgets.append(budget - size)
+            indexes[name] = len(budgets) - 1
+    return indexes, len(budgets)
+
+
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
@@ -70,7 +98,6 @@ def merge_received(t):
                                   shape=t.shape,
                                   dtype=t.dtype)
 
-
 def broadcast(t):
     return _op_lib.broadcast(t)
 
@@ -78,9 +105,8 @@ def broadcast(t):
 def all_reduce(t):
     return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
-# Based on Andrei - Octavian Brabete
+# Andrei - Octavian Brabete
 def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average, fraction, find_epoch_denominator):
-    # Take full gradient name for unicity
     tensor_size = t.shape.num_elements() * t.dtype.size
     if accumulate:
         import json, os
@@ -93,13 +119,15 @@ def partial_exchange_all_reduce(t, budget, count_gradients, accumulate, average,
                                           tensor_size=tensor_size, count_gradients=count_gradients, 
                                           find_epoch_denominator=find_epoch_denominator, fraction=fraction)
 
-def partial_exchange_all_reduce_with_schedule(t, budget, total_size, count_gradients, steps, fractions):
+def partial_exchange_all_reduce_with_schedule(t, total_size, count_gradients, steps, fractions):
     tensor_size = t.shape.num_elements() * t.dtype.size
-    return _op_lib.partial_negotiator_with_schedule(t, total_size=total_size, input_tensor_name=t.name, budget=budget, 
-                                        tensor_size=tensor_size, count_gradients=count_gradients, 
-                                        steps=steps, fractions=fractions,
-                                        fraction=fractions[0])
-
+    return _op_lib.partial_negotiator_with_schedule(t, 
+                                                    input_tensor_name=t.name, 
+                                                    tensor_size=tensor_size, 
+                                                    total_size=total_size,
+                                                    count_gradients=count_gradients, 
+                                                    steps=steps, 
+                                                    fractions=fractions)
 
 # Based on Guo Li
 def partial_exchange_all_reduce_front_end_partitioning(t, index, partitions, accumulate=False, average=False):
@@ -134,19 +162,14 @@ def start_gpu_group(*args, **kwargs):
 # Based on Andrei-Octavian Brabete, Dynamic Partitioning done within C++ operator
 def partial_exchange_group_all_reduce_with_schedule(ts, batch_size, num_train, schedule):
     steps, fractions = _parse_schedule(schedule, batch_size, num_train)
-    steps[0] = 1
-    fraction = fractions[0]
-
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
-    budget     = int(fraction * total_size)
-
 
     trained_steps_op = tf.Variable(tf.zeros([], tf.int32))
     modify_trained_steps_op = tf.assign(
             trained_steps_op, global_step_modifier(trained_steps_op))
     
     with tf.control_dependencies([modify_trained_steps_op]):
-        return [partial_exchange_all_reduce_with_schedule(t, budget, total_size, len(ts), steps, fractions) for t in ts]
+        return [partial_exchange_all_reduce_with_schedule(t, total_size, len(ts), steps, fractions) for t in ts]
 
 
 
@@ -324,35 +347,6 @@ def group_all_reduce(ts):
     print('USING CPU GROUP ALL REDUCE')
     return cpu_group_all_reduce(ts)
 
-
-def _bin_pack(sizes, budget, adjust_budget=False):
-    lst = list(reversed(sorted([(size, name)
-                                for name, size in sizes.items()])))
-    if adjust_budget:
-        budget = max(budget, lst[0][0])
-    else:
-        if lst[0][0] > budget:
-            print("Suggested budget fraction is %f" %
-                  (lst[0][0] / sum([s[1] for s in sizes.items()])))
-            raise RuntimeError("Budget is too small %f. Largest tensor is %f" %
-                               (budget, lst[0][0]))
-
-    budgets = []
-    indexes = dict()
-    for size, name in lst:
-        ok = False
-        for i, b in enumerate(budgets):
-            if b >= size:
-                budgets[i] -= size
-                indexes[name] = i
-                ok = True
-                break
-        if not ok:
-            budgets.append(budget - size)
-            indexes[name] = len(budgets) - 1
-    return indexes, len(budgets)
-
-
 def partial_exchange_with_gpu_allreduce(ts,
                                         fraction=0.3,
                                         accumulate=False,
@@ -390,11 +384,9 @@ def partial_exchange_with_gpu_allreduce(ts,
     with tf.control_dependencies([advance_gs]):
         return reordered_cond_ops
 
-
 def _concat(ts):
     import tensorflow as tf
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
-
 
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     import tensorflow as tf

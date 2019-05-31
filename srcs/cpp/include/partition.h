@@ -27,13 +27,25 @@ class partition
         return os;
     }
 
-    bool put(const tensor_meta* t)
+    bool put(const tensor_meta t)
     {
-        if (current_cost + t->size > budget) return false;
+        if (current_cost + t.size > budget) return false;
 
-        tensorNames.insert(t->name);
-        current_cost += t->size;
+        tensorNames.insert(t.name);
+        current_cost += t.size;
 
         return true;
     }
+};
+
+class Plan {
+    public:
+        Plan() : next_repartition_step(1) {}
+        Plan(int s, std::vector<partition> parts) {
+            next_repartition_step = s;
+            parts = partitions;
+        }
+
+        int next_repartition_step;
+        std::vector<partition> partitions;
 };
