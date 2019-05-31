@@ -78,8 +78,7 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     request_avg_ops = []
     var_shapes = [var.shape for var in variables]
 
-    var_sizes = [var.shape.num_elements()
-                 for var in variables]  # number of floats it has
+    var_sizes = [var.shape.num_elements() for var in variables]
 
     # Remove self rank from the list
     peer_ranks.remove(_get_self_rank())
@@ -104,7 +103,7 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
             var_sizes=var_sizes,
             peer_selection_strategy=peer_selection_strategy)
     else:
-        raise Exception("Invalid type of synchronization strategy")
+        raise Exception("Invalid type of model request mode.")
 
     return model_averaging
 
@@ -114,8 +113,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     request_avg_ops = []
     var_shapes = [var.shape for var in variables]
 
-    var_sizes = [var.shape.num_elements()
-                 for var in variables]  # number of floats it has
+    var_sizes = [var.shape.num_elements() for var in variables]
 
     # Remove self rank from the list
     peer_ranks.remove(_get_self_rank())
@@ -141,7 +139,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
             shapes=var_shapes,
             peer_selection_strategy=peer_selection_strategy)
     else:
-        raise Exception("Invalid type of synchronization strategy")
+        raise Exception("Invalid type of model request mode")
 
     return request_model
 
