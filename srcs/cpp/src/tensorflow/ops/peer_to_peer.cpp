@@ -65,7 +65,7 @@ REGISTER_OP("ModelAveraging")
     .Attr("ranks: list(int)")
     .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
-    .Attr("dtype_size_bytes: int")
+    .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
     .Input("vars: NumTensors * T");
 
@@ -115,7 +115,7 @@ class ModelAveraging : public OpKernel
 
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
-                       context->GetAttr("dtype_size_bytes", &dtype_size_bytes_));
+                       context->GetAttr("var_type_size", &var_type_size_));
 
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
@@ -158,9 +158,9 @@ class ModelAveraging : public OpKernel
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
             std::copy((unsigned char *)other.tensor_data().data(),
                       (unsigned char *)other.tensor_data().data() +
-                          var_sizes_[i] * dtype_size_bytes_,
+                          var_sizes_[i] * var_type_size_,
                       (unsigned char *)input.tensor_data().data());
-            offset += var_sizes_[i] * dtype_size_bytes_;
+            offset += var_sizes_[i] * var_type_size_;
         }
     }
 };
@@ -174,7 +174,7 @@ REGISTER_OP("AsyncModelAveraging")
     .Attr("ranks: list(int)")
     .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
-    .Attr("dtype_size_bytes: int")
+    .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
     .Input("vars: NumTensors * T");
 
@@ -217,7 +217,7 @@ class AsyncModelAveraging : public OpKernel
 
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
-                       context->GetAttr("dtype_size_bytes", &dtype_size_bytes_));
+                       context->GetAttr("var_type_size", &var_type_size_));
 
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
@@ -285,9 +285,9 @@ class AsyncModelAveraging : public OpKernel
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
                 std::copy((unsigned char *)other.tensor_data().data(),
                           (unsigned char *)other.tensor_data().data() +
-                              var_sizes_[i] * dtype_size_bytes_,
+                              var_sizes_[i] * var_type_size_,
                           (unsigned char *)input.tensor_data().data());
-                offset += var_sizes_[i] * dtype_size_bytes_;
+                offset += var_sizes_[i] * var_type_size_;
             }
         }
     }
@@ -299,7 +299,7 @@ REGISTER_KERNEL_BUILDER(Name("AsyncModelAveraging").Device(DEVICE_CPU),
 REGISTER_OP("SaveModel")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("NumTensors: int")
-    .Attr("dtype_size_bytes: int")
+    .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
     .Input("vars: NumTensors * T");
 
@@ -328,8 +328,8 @@ class SaveModel : public OpKernel
                         "number of variable sizes must be greater than 0"));
 
         OP_REQUIRES_OK(context,
-                       context->GetAttr("dtype_size_bytes", &dtype_size_bytes_));
-        OP_REQUIRES(context, dtype_size_bytes_ > 0,
+                       context->GetAttr("var_type_size", &var_type_size_));
+        OP_REQUIRES(context, var_type_size_ > 0,
                     errors::InvalidArgument(
                         "data type size in bytes must be greater than 0"));
 
@@ -392,7 +392,7 @@ class RequestModel : public OpKernel
     int self_rank_;
     std::vector<int> ranks_;
     PeerSelectionStrategy *peerSelector_;
-    int model_size_;
+    int num_model_vars_;
     std::vector<TensorShapeProto> shapes_;
     std::vector<int> var_sizes_;
     int var_type_size_;
@@ -496,10 +496,10 @@ class AsyncRequestModel : public OpKernel
     int self_rank_;
     std::vector<int> ranks_;
     PeerSelectionStrategy *peerSelector_;
-    int model_size_;
+    int num_model_vars_;
     std::vector<TensorShapeProto> shapes_;
     std::vector<int> var_sizes_;
-    int var_type_size;
+    int var_type_size_;
     int total_var_size_;
     unsigned char *modelBuf_;
     unsigned char *prefetchBuf;
