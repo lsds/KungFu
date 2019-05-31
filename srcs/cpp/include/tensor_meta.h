@@ -7,10 +7,10 @@ class tensor_meta
 {
 
   public:
-    const std::string name;
-    const int32_t size;
+    std::string name;
+    int32_t size;
 
-    tensor_meta(std::string &name, int32_t size) : name(name), size(size) {}
+    tensor_meta(std::string name, int32_t size) : name(name), size(size) {}
 
     friend std::ostream &operator<<(std::ostream &o, const tensor_meta &t)
     {

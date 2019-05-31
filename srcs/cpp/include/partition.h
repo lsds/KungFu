@@ -10,8 +10,8 @@ class partition
 {
 
   public:
-    const int32_t index;
-    const int32_t budget;
+    int32_t index;
+    int32_t budget;
     int32_t current_cost;
     std::unordered_set<std::string> tensorNames;
 
@@ -44,6 +44,13 @@ class Plan {
         Plan(int s, std::vector<partition> parts) {
             next_repartition_step = s;
             parts = partitions;
+        }
+
+        friend std::ostream &operator<<(std::ostream &os, const Plan &p)
+        {
+            os << "Plan{next_repartition_step=" << p.next_repartition_step << "}";
+            os << "Plan{#partitions=" << p.partitions.size() << "}";
+            return os;
         }
 
         int next_repartition_step;

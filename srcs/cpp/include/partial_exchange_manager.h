@@ -22,7 +22,8 @@
 */
 class partial_exchange_manager
 {
-    std::vector<std::pair<int, int>> schedule_;
+    std::unordered_map<int, float> schedule_;
+    std::unordered_map<int, int> stepToNextStep_;
     std::vector<tensor_meta> tensors_;
 
     int32_t count_gradients_;
@@ -30,14 +31,34 @@ class partial_exchange_manager
 
     std::mutex mu_;
 
+    void print_maps() {
+        std::cout << "Schedule" << std::endl;
+        std::unordered_map<int, float>::iterator it;
+        for ( it = schedule_.begin(); it != schedule_.end(); it++ )
+        {
+            std::cout << it->first  
+                    << ':'
+                    << it->second
+                    << std::endl ;
+        }
+        std::cout << "Step to NextStep" << std::endl;
+        std::unordered_map<int, int>::iterator itNxt;
+        for ( itNxt = stepToNextStep_.begin(); itNxt != stepToNextStep_.end(); itNxt++ )
+        {
+            std::cout << itNxt->first  
+                    << ':'
+                    << itNxt->second
+                    << std::endl ;
+        }
+    }
 
     std::vector<partition> bin_pack(int32_t budget)
     {   
-        if(tensors_.size() != count_gradients_) {
+        if((int) tensors_.size() != count_gradients_) {
             throw "Some tensors have not been added to the Partial Exchange Manager";
         }
 
-        auto grt = [](tensor_meta t1, tensor_meta t2) {
+        auto grt = [](tensor_meta& t1, tensor_meta& t2) {
             return t1.size > t2.size ||
                 (t1.size == t2.size && t1.name > t2.name);
         };
@@ -56,7 +77,7 @@ class partial_exchange_manager
             int32_t currPartitionIndex = 0;
 
             while (!currPartitionFilled) {
-                if (currPartitionIndex == partitions.size()) {
+                if (currPartitionIndex == (int) partitions.size()) {
                     partition newPartition = partition(++bin_counter, budget);
                     newPartition.put(t);
                     partitions.push_back(newPartition);
@@ -77,13 +98,16 @@ class partial_exchange_manager
 
     ~partial_exchange_manager() {}
 
-    void addSchedule(std::vector<int> steps, std::vector<int> fractions) {
+    void addSchedule(std::vector<int>& steps, std::vector<float>& fractions) {
         std::lock_guard<std::mutex> l(mu_);
         if(steps.size() != fractions.size()) {
             throw "Invalid schedule: number of steps must equal number of fractions";
         }
-        for(int i = 0; i < steps.size(); i++) {
-            schedule_.push_back({steps[i], fractions[i]});
+        int step = -1;
+        for(int i = 0; i < (int) steps.size(); i++) {
+            schedule_[steps[i]] = fractions[i];
+            stepToNextStep_[step] = steps[i];
+            step = steps[i];
         }
     }
 
@@ -102,26 +126,33 @@ class partial_exchange_manager
     }
 
 
-    void repartition(int gs) {
+    Plan repartition(int gs) {
         std::lock_guard<std::mutex> l(mu_);        
 
+        print_maps();
 
-        int new_fraction = -1;
+        float new_fraction = -1;
+        if (schedule_.find(gs) == schedule_.end()) {
+            std::cout << "gs " << gs << " not in schedule map. " << std::endl;
+            throw;
+        } else {
+            new_fraction = schedule_[new_fraction];
+        }
+
         int next_repartitioning_step = -1;
-        for(int i = 0; i < schedule_.size(); i++) {
-            int schedule_gs   = schedule_[i][0];
-            int schedule_frac = schedule_[i][1];
-            if(schedule_gs == gs) {
-                new_fraction = schedule_frac;
-            } 
+        if (stepToNextStep_.find(gs) == stepToNextStep_.end()) {
+            std::cout << "gs " << gs << " not in step to next step map. " << std::endl;
+            throw;  
+        } else {
+            next_repartitioning_step = stepToNextStep_[gs];
         }
 
         if (new_fraction == -1) {
-            return Plan(-1, ...TODO...);
+            return Plan(-1, std::vector<partition>());
         }
 
         std::vector<partition> newPartitions = bin_pack(new_fraction * total_size_bytes_);
 
-        return Plan(next_repart_step, newPartitions);
+        return Plan(next_repartitioning_step, newPartitions);
     }
 };

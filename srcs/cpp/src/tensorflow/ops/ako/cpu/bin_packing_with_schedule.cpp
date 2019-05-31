@@ -43,7 +43,8 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
     {
         // Tensor info
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name", &input_tensor_name_));
-        OP_REQUIRES_OK(context, context->GetAttr("tensor_size", &tensor_size_));        
+        int32_t tensor_size;
+        OP_REQUIRES_OK(context, context->GetAttr("tensor_size", &tensor_size));        
 
         // Schedule
         OP_REQUIRES_OK(context, context->GetAttr("steps", &steps));
@@ -53,11 +54,11 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
         int32_t count_gradients;
         int32_t total_size_bytes;
         OP_REQUIRES_OK(context, context->GetAttr("count_gradients", &count_gradients));
-        OP_REQUIRES_OK(context, context->GetAttr("total_size", &total_size_byte));
+        OP_REQUIRES_OK(context, context->GetAttr("total_size", &total_size_bytes));
 
         _partial_exchange_manager->addSchedule(steps, fractions);
         _partial_exchange_manager->addGlobalTensorInfo(count_gradients, total_size_bytes);
-        _partial_exchange_manager->addTensorInfo(input_tensor_name_, tensor_size_);
+        _partial_exchange_manager->addTensorInfo(input_tensor_name_, tensor_size);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -72,7 +73,10 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
 
         int64_t gs = (int64_t) _kungfu_world->GetGlobalStep();    
 
+        std::cout << "Current plan is: " << plan << std::endl;
+
         if(gs == plan.next_repartition_step) {
+           if(gs == 1) { gs = 0; }
            plan = _partial_exchange_manager->repartition(gs);
         }
 
