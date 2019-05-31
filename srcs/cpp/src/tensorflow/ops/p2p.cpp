@@ -9,45 +9,52 @@
 #include <mutex>
 #include <random>
 
-class PeerSelectionStrategy {
-   public:
-      virtual int getDestinationPeer(int gs) = 0;
+class PeerSelectionStrategy
+{
+  public:
+    virtual int getDestinationPeer(int gs) = 0;
 };
 
-class RandomSelector : public PeerSelectionStrategy {
+class RandomSelector : public PeerSelectionStrategy
+{
     std::random_device random_device;
     std::mt19937 engine{random_device()};
     std::uniform_int_distribution<int> dist;
 
     int self_rank_;
     std::vector<int> ranks_;
-    public:
-        RandomSelector(int self_rank, std::vector<int> ranks) : self_rank_(-1) {
-            self_rank_ = self_rank;
-            ranks_ = ranks;
-            dist  = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
-        }
 
-        int getDestinationPeer(int _gs) { 
-            int destination = ranks_[dist(engine)];
-            while (destination == self_rank_) { destination = ranks_[dist(engine)]; }
-            return destination;
-        }
+  public:
+    RandomSelector(int self_rank, std::vector<int> ranks) : self_rank_(-1)
+    {
+        self_rank_ = self_rank;
+        ranks_     = ranks;
+        dist       = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
+    }
 
+    int getDestinationPeer(int _gs)
+    {
+        int destination = ranks_[dist(engine)];
+        while (destination == self_rank_) {
+            destination = ranks_[dist(engine)];
+        }
+        return destination;
+    }
 };
 
-class RoundRobinSelector : public PeerSelectionStrategy {
+class RoundRobinSelector : public PeerSelectionStrategy
+{
     int self_rank_;
     std::vector<int> ranks_;
-    public:
-        RoundRobinSelector(int self_rank, std::vector<int> ranks) : self_rank_(-1) {
-            ranks_     = ranks;
-            self_rank_ = self_rank;
-        }
 
-        int getDestinationPeer(int gs) { 
-            return ranks_[gs % ranks_.size()];
-        }
+  public:
+    RoundRobinSelector(int self_rank, std::vector<int> ranks) : self_rank_(-1)
+    {
+        ranks_     = ranks;
+        self_rank_ = self_rank;
+    }
+
+    int getDestinationPeer(int gs) { return ranks_[gs % ranks_.size()]; }
 };
 
 namespace tensorflow
@@ -71,7 +78,8 @@ class ModelAveraging : public OpKernel
     PeerSelectionStrategy *peerSelector;
 
     // Used for the buffer
-    std::vector<int> var_sizes_;  // The vector of the numbers of weights in each variable
+    std::vector<int>
+        var_sizes_;  // The vector of the numbers of weights in each variable
     int var_type_size_;
     int total_var_size;  // The total number of elements of all variables.
 
@@ -83,15 +91,16 @@ class ModelAveraging : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
         std::string peer_selection_strategy;
-        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy", &peer_selection_strategy));
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
+                                                 &peer_selection_strategy));
         if (peer_selection_strategy == "random") {
             peerSelector = new RandomSelector(self_rank_, ranks_);
-        } else if(peer_selection_strategy == "roundrobin") {
+        } else if (peer_selection_strategy == "roundrobin") {
             peerSelector = new RoundRobinSelector(self_rank_, ranks_);
         } else {
-            throw "Unsupported peer selection strategy: " + peer_selection_strategy;
+            throw "Unsupported peer selection strategy: " +
+                peer_selection_strategy;
         }
-        
 
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
@@ -114,8 +123,9 @@ class ModelAveraging : public OpKernel
         modelBuf = (unsigned char *)malloc(total_var_size * var_type_size_);
     }
 
-    ~ModelAveraging() { 
-        free(modelBuf); 
+    ~ModelAveraging()
+    {
+        free(modelBuf);
         delete peerSelector;
     }
 
@@ -187,13 +197,15 @@ class AsyncModelAveraging : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
         std::string peer_selection_strategy;
-        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy", &peer_selection_strategy));
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
+                                                 &peer_selection_strategy));
         if (peer_selection_strategy == "random") {
             peerSelector = new RandomSelector(self_rank_, ranks_);
-        } else if(peer_selection_strategy == "roundrobin") {
+        } else if (peer_selection_strategy == "roundrobin") {
             peerSelector = new RoundRobinSelector(self_rank_, ranks_);
         } else {
-            throw "Unsupported peer selection strategy: " + peer_selection_strategy;
+            throw "Unsupported peer selection strategy: " +
+                peer_selection_strategy;
         }
 
         // Used for the buffer
@@ -217,8 +229,9 @@ class AsyncModelAveraging : public OpKernel
         prefetchBuf = (unsigned char *)malloc(total_var_size * var_type_size_);
     }
 
-    ~AsyncModelAveraging() { 
-        free(modelBuf); 
+    ~AsyncModelAveraging()
+    {
+        free(modelBuf);
         delete peerSelector;
     }
 
@@ -375,7 +388,6 @@ class RequestModel : public OpKernel
 
     using OpKernel::OpKernel;
 
-
     int self_rank_;
     std::vector<int> ranks_;
     PeerSelectionStrategy *peerSelector;
@@ -398,13 +410,15 @@ class RequestModel : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
         std::string peer_selection_strategy;
-        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy", &peer_selection_strategy));
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
+                                                 &peer_selection_strategy));
         if (peer_selection_strategy == "random") {
             peerSelector = new RandomSelector(self_rank_, ranks_);
-        } else if(peer_selection_strategy == "roundrobin") {
+        } else if (peer_selection_strategy == "roundrobin") {
             peerSelector = new RoundRobinSelector(self_rank_, ranks_);
         } else {
-            throw "Unsupported peer selection strategy: " + peer_selection_strategy;
+            throw "Unsupported peer selection strategy: " +
+                peer_selection_strategy;
         }
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
@@ -433,9 +447,10 @@ class RequestModel : public OpKernel
         modelBuf = (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
     }
 
-    ~RequestModel() { 
-        free(modelBuf); 
-        delete peerSelector;    
+    ~RequestModel()
+    {
+        free(modelBuf);
+        delete peerSelector;
     }
 
     void Compute(OpKernelContext *context) override
@@ -510,13 +525,15 @@ class AsyncRequestModel : public OpKernel
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
         std::string peer_selection_strategy;
-        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy", &peer_selection_strategy));
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
+                                                 &peer_selection_strategy));
         if (peer_selection_strategy == "random") {
             peerSelector = new RandomSelector(self_rank_, ranks_);
-        } else if(peer_selection_strategy == "roundrobin") {
+        } else if (peer_selection_strategy == "roundrobin") {
             peerSelector = new RoundRobinSelector(self_rank_, ranks_);
         } else {
-            throw "Unsupported peer selection strategy: " + peer_selection_strategy;
+            throw "Unsupported peer selection strategy: " +
+                peer_selection_strategy;
         }
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
@@ -546,8 +563,9 @@ class AsyncRequestModel : public OpKernel
             (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
     }
 
-    ~AsyncRequestModel() { 
-        free(modelBuf); 
+    ~AsyncRequestModel()
+    {
+        free(modelBuf);
         delete peerSelector;
     }
 
@@ -559,7 +577,7 @@ class AsyncRequestModel : public OpKernel
             OP_REQUIRES_OK(
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
-        
+
         int destination = peerSelector->getDestinationPeer(gs);
 
         // Fill in the model Buffer with response from random peer

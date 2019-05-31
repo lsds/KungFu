@@ -13,6 +13,7 @@ from kungfu.helpers.mnist import load_datasets
 
 import kungfu as kf
 
+
 def get_number_of_trainable_parameters():
     return np.sum(
         [np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
@@ -31,9 +32,8 @@ def measure(f, name=None):
     return result
 
 
-
 # Source: https://www.kaggle.com/danyfang/mnist-competition
-def LeNet5(x):    
+def LeNet5(x):
     # Hyperparameters
     mu = 0
     sigma = 0.1
@@ -108,8 +108,8 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     optimizer = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.9)
 
     if kungfu_strategy == 'p2p':
-        from kungfu.optimizers import P2PModelAveraging
-        optimizer = P2PModelAveraging(optimizer)
+        from kungfu.optimizers import PeerModelAveraging
+        optimizer = PeerModelAveraging(optimizer)
     else:
         from kungfu.optimizers import ParallelOptimizer
         print("Using parallel optimizer")
@@ -133,8 +133,8 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, n_batches, batch_size,
 
         initializer = None
         if kungfu_strategy == 'p2p':
-            from kungfu.optimizers import P2PModelAveraging
-            initializer = P2PModelAveraging.get_initializer()
+            from kungfu.optimizers import PeerModelAveraging
+            initializer = PeerModelAveraging.get_initializer()
         else:
             initializer = kf.distributed_variables_initializer()
 
@@ -157,7 +157,8 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, n_batches, batch_size,
                     sess.run(train_step, feed_dict={x: batch_xs, y: batch_ys})
 
             # Measure throughput
-            timeEpoch = timeit.timeit(lambda: feed_batches(n_batches), number=1)
+            timeEpoch = timeit.timeit(lambda: feed_batches(n_batches),
+                                      number=1)
             img_sec = len(mnist.train.images) / timeEpoch
             print('Epoch #%d: %.1f img/sec per CPU' % (epoch_i, img_sec))
             img_secs.append(img_sec)
@@ -257,7 +258,6 @@ def show_trainable_variables_info():
           (tot_vars, tot_dim, show_size(tot_size)))
 
 
-
 def main():
     args = parse_args()
     x, y_, train_step, acc = build_train_ops(args.kungfu_strategy,
@@ -272,7 +272,8 @@ def main():
     measure(
         lambda: train_mnist(x, y_, mnist, train_step, acc, args.n_epochs, args.
                             n_batches, args.batch_size, args.
-                            val_accuracy_target, args.kungfu_strategy), 'train')
+                            val_accuracy_target, args.kungfu_strategy),
+        'train')
 
 
 measure(main, 'main')

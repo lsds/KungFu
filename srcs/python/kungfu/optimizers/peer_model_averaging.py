@@ -14,7 +14,8 @@ def _get_num_peers():
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
     return len(cluster_spec['Peers'])
 
-class P2PModelAveraging(KungFuOptimizer):
+
+class PeerModelAveraging(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
 
     def __init__(self,
@@ -26,10 +27,10 @@ class P2PModelAveraging(KungFuOptimizer):
                  use_locking=False,
                  device_dense='',
                  device_sparse=''):
-        super(P2PModelAveraging, self).__init__(optimizer, name, use_locking,
-                                               device_dense, device_sparse)
-        self.request_mode            = request_mode
-        self.model_averaging_device  = model_averaging_device
+        super(PeerModelAveraging, self).__init__(optimizer, name, use_locking,
+                                                 device_dense, device_sparse)
+        self.request_mode = request_mode
+        self.model_averaging_device = model_averaging_device
         self.peer_selection_strategy = peer_selection_strategy
 
     @staticmethod
@@ -52,8 +53,7 @@ class P2PModelAveraging(KungFuOptimizer):
         if self.model_averaging_device == 'cpu':
             apply_avg_model = model_averaging(
                 [i for i in range(_get_num_peers())], variables,
-                self.request_mode,
-                self.peer_selection_strategy)
+                self.request_mode, self.peer_selection_strategy)
 
             apply_op = self._optimizer.apply_gradients(grads_and_vars,
                                                        **kwargs)
@@ -66,8 +66,7 @@ class P2PModelAveraging(KungFuOptimizer):
         elif self.model_averaging_device == 'gpu':
             other_peer_vars = request_model(
                 [i for i in range(_get_num_peers())], variables,
-                self.request_mode,
-                self.peer_selection_strategy)
+                self.request_mode, self.peer_selection_strategy)
 
             assign_ops = [
                 tf.assign(v, 0.5 * (v + other_v))
@@ -84,7 +83,7 @@ class P2PModelAveraging(KungFuOptimizer):
                         return tf.group(apply_op)
         else:
             raise Exception(
-                "P2PModelAveraging optimizer does not support provided request model type."
+                "PeerModelAveraging optimizer does not support provided request model type."
             )
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
