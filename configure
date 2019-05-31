@@ -12,10 +12,7 @@ BUILD_TENSORFLOW_OPS=0
 BUILD_TOOLS=0
 VERBOSE=0
 
-NCCL_HOME=$HOME/local/nccl
-if [ -f $NCCL_HOME/include/nccl.h ]; then
-    WITH_NCCL=$NCCL_HOME
-fi
+DEFAULT_NCCL_HOME=$HOME/local/nccl
 
 MPI_HOME=$HOME/local/openmpi
 if [ -f $MPI_HOME/include/mpi.h ]; then
@@ -45,8 +42,10 @@ parse_args() {
             WITH_MPI=$MPI_HOME
             ;;
         --with-nccl)
-            # FIXME: parse --with-nccl
-            WITH_NCCL=$NCCL_HOME
+            WITH_NCCL=$DEFAULT_NCCL_HOME
+            ;;
+        --with-nccl=*)
+            WITH_NCCL="${i#*=}"
             ;;
         --verbose)
             VERBOSE=1
@@ -57,6 +56,11 @@ parse_args() {
             ;;
         esac
     done
+
+    if [ ! -z $WITH_NCCL && ! -f $WITH_NCCL/include/nccl.h ]; then
+        echo "$WITH_NCCL/include/nccl.h NOT exist"
+        exit 1
+    fi
 }
 
 CMAKE_FLAGS=

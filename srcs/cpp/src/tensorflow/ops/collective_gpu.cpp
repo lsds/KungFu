@@ -1,3 +1,5 @@
+#include <thread>
+
 #include <tensorflow/core/framework/common_shape_fns.h>
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
@@ -31,6 +33,13 @@ class StartGpuGroup : public OpKernel
 REGISTER_KERNEL_BUILDER(Name("StartGpuGroup").Device(DEVICE_CPU),
                         StartGpuGroup);
 
+void spin_wait(const std::function<bool()> &cond, int ns = 100)
+{
+    while (!cond()) {
+        std::this_thread::sleep_for(std::chrono::nanoseconds(ns));
+    }
+}
+
 REGISTER_OP("AllReduceGpu")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
@@ -60,13 +69,26 @@ class AllReduceGpu : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
 
+        auto device_context = context->op_device_context();
+        auto executor       = device_context->stream()->parent();
+        auto ready_event    = new perftools::gputools::Event(executor);
+        ready_event->Init();
+        device_context->stream()->ThenRecordEvent(ready_event);
+
         kungfu::tensorflow::_world_gpu->AllReduce(
-            [stream = context->op_device_context()->stream()]() {
-                stream->BlockHostUntilDone();
+            [ready_event = ready_event] {
+                spin_wait([ready_event = ready_event] {
+                    return ready_event->PollForStatus() !=
+                           perftools::gputools::Event::Status::kPending;
+                });
             },
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            input_tensor_name_.c_str(), done);
+            input_tensor_name_.c_str(),
+            [=] {
+                delete ready_event;
+                done();
+            });
     }
 };
 
