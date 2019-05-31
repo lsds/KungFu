@@ -29,8 +29,6 @@ REGISTER_OP("PartialNegotiatorWithSchedule")
 class PartialNegotiatorWithSchedule : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
-    using CPUDevice = Eigen::ThreadPoolDevice;
-
 
     void printSchedule() {
         std::cout << "Print Schedule C++" << std::endl;
@@ -43,6 +41,7 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
             std::cout << "Fraction" << f << std::endl;
         }   
     }
+
   public:
     std::string input_tensor_name_;
     int32_t tensorSize_;
@@ -108,8 +107,6 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
         _partial_exchange_manager->addTensorInfo(input_tensor_name_,
                                                  tensorSize_);
         
-
-        //printSchedule();
         _partial_exchange_manager->setFraction(initial_fraction_);
     }
 
@@ -124,8 +121,7 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
                        context->allocate_output(0, gradients.shape(), &output));
 
         int64_t gs = (int64_t) _kungfu_world->GetGlobalStep();
-        //std::cout << "Global Step" << gs << std::endl;
-        // discard the first one 
+
         if(gs == steps[repartition_id]) {
             std::cout << "Repartition ID " << repartition_id << " with fraction " << fractions[repartition_id] << std::endl;
 
