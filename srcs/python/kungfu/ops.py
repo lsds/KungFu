@@ -66,7 +66,6 @@ def send_to(rank, t):
 
 def save_model(variables):
     import tensorflow as tf
-    var_names = [var.name for var in variables]
     var_sizes = [var.shape.num_elements()
                  for var in variables]  # number of floats it has
     return _op_lib.save_model(variables,
@@ -74,12 +73,10 @@ def save_model(variables):
                               var_sizes=var_sizes)
 
 
-def model_averaging(peer_ranks, variables, mode):
+def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     import tensorflow as tf
     request_avg_ops = []
-    var_names = [var.name for var in variables]
     var_shapes = [var.shape for var in variables]
-    var_dtypes = [var.dtype for var in variables]
 
     var_sizes = [var.shape.num_elements()
                  for var in variables]  # number of floats it has
@@ -95,7 +92,8 @@ def model_averaging(peer_ranks, variables, mode):
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
             var_type_size=variables[0].dtype.size,
-            var_sizes=var_sizes)
+            var_sizes=var_sizes,
+            peer_selection_strategy=peer_selection_strategy)
     elif mode == 'sync':
         print("Applying model averaging with a model requested synchronously.")
         model_averaging = _op_lib.model_averaging(
@@ -103,19 +101,18 @@ def model_averaging(peer_ranks, variables, mode):
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
             var_type_size=variables[0].dtype.size,
-            var_sizes=var_sizes)
+            var_sizes=var_sizes,
+            peer_selection_strategy=peer_selection_strategy)
     else:
         raise Exception("Invalid type of synchronization strategy")
 
     return model_averaging
 
 
-def request_model(peer_ranks, variables, mode):
+def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     import tensorflow as tf
     request_avg_ops = []
-    var_names = [var.name for var in variables]
     var_shapes = [var.shape for var in variables]
-    var_dtypes = [var.dtype for var in variables]
 
     var_sizes = [var.shape.num_elements()
                  for var in variables]  # number of floats it has
@@ -124,7 +121,6 @@ def request_model(peer_ranks, variables, mode):
     peer_ranks.remove(_get_self_rank())
 
     if mode == 'async':
-        print("Doing round robin peer selection at the moment!!")
         print("Request a model synchronously.")
         request_model = _op_lib.async_request_model(
             variables,
@@ -132,9 +128,8 @@ def request_model(peer_ranks, variables, mode):
             ranks=peer_ranks,
             type_size_bytes=variables[0].dtype.size,
             var_sizes=var_sizes,
-            var_names=var_names,
             shapes=var_shapes,
-            dtypes=var_dtypes)
+            peer_selection_strategy=peer_selection_strategy)
     elif mode == 'sync':
         print("Request a model asynchronously.")
         request_model = _op_lib.request_model(
@@ -143,9 +138,8 @@ def request_model(peer_ranks, variables, mode):
             ranks=peer_ranks,
             type_size_bytes=variables[0].dtype.size,
             var_sizes=var_sizes,
-            var_names=var_names,
             shapes=var_shapes,
-            dtypes=var_dtypes)
+            peer_selection_strategy=peer_selection_strategy)
     else:
         raise Exception("Invalid type of synchronization strategy")
 

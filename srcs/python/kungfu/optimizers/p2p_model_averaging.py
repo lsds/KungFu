@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from kungfu.ops import broadcast, save_model, request_model
+from kungfu.ops import broadcast, save_model, request_model, model_averaging
 from .core import KungFuOptimizer
 
 
@@ -14,24 +14,23 @@ def _get_num_peers():
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
     return len(cluster_spec['Peers'])
 
-
-class DecentralizedP2P(KungFuOptimizer):
+class P2PModelAveraging(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
 
     def __init__(self,
                  optimizer,
                  model_averaging_device="cpu",
                  request_mode="sync",
+                 peer_selection_strategy="random",
                  name=None,
                  use_locking=False,
                  device_dense='',
                  device_sparse=''):
-        super(DecentralizedP2P, self).__init__(optimizer, name, use_locking,
+        super(P2PModelAveraging, self).__init__(optimizer, name, use_locking,
                                                device_dense, device_sparse)
-        if request_model_type is None:
-            raise Exception(
-                "Type of decentralized synchronization not specified.")
-        self.request_model_type = request_model_type
+        self.request_mode            = request_mode
+        self.model_averaging_device  = model_averaging_device
+        self.peer_selection_strategy = peer_selection_strategy
 
     @staticmethod
     def get_initializer():
@@ -53,7 +52,8 @@ class DecentralizedP2P(KungFuOptimizer):
         if self.model_averaging_device == 'cpu':
             apply_avg_model = model_averaging(
                 [i for i in range(_get_num_peers())], variables,
-                self.request_mode)
+                self.request_mode,
+                self.peer_selection_strategy)
 
             apply_op = self._optimizer.apply_gradients(grads_and_vars,
                                                        **kwargs)
@@ -66,7 +66,8 @@ class DecentralizedP2P(KungFuOptimizer):
         elif self.model_averaging_device == 'gpu':
             other_peer_vars = request_model(
                 [i for i in range(_get_num_peers())], variables,
-                self.request_mode)
+                self.request_mode,
+                self.peer_selection_strategy)
 
             assign_ops = [
                 tf.assign(v, 0.5 * (v + other_v))
@@ -83,7 +84,7 @@ class DecentralizedP2P(KungFuOptimizer):
                         return tf.group(apply_op)
         else:
             raise Exception(
-                "DecentralizedP2P optimizer does not support provided request model type."
+                "P2PModelAveraging optimizer does not support provided request model type."
             )
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):

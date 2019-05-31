@@ -9,12 +9,54 @@
 #include <mutex>
 #include <random>
 
+class PeerSelectionStrategy {
+   public:
+      virtual int getDestinationPeer(int gs) = 0;
+};
+
+class RandomSelector : public PeerSelectionStrategy {
+    std::random_device random_device;
+    std::mt19937 engine{random_device()};
+    std::uniform_int_distribution<int> dist;
+
+    int self_rank_;
+    std::vector<int> ranks_;
+    public:
+        RandomSelector(int self_rank, std::vector<int> ranks) : self_rank_(-1) {
+            self_rank_ = self_rank;
+            ranks_ = ranks;
+            dist  = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
+        }
+
+        int getDestinationPeer(int _gs) { 
+            int destination = ranks_[dist(engine)];
+            while (destination == self_rank_) { destination = ranks_[dist(engine)]; }
+            return destination;
+        }
+
+};
+
+class RoundRobinSelector : public PeerSelectionStrategy {
+    int self_rank_;
+    std::vector<int> ranks_;
+    public:
+        RoundRobinSelector(int self_rank, std::vector<int> ranks) : self_rank_(-1) {
+            ranks_     = ranks;
+            self_rank_ = self_rank;
+        }
+
+        int getDestinationPeer(int gs) { 
+            return ranks_[gs % ranks_.size()];
+        }
+};
+
 namespace tensorflow
 {
 REGISTER_OP("ModelAveraging")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
+    .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
     .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
@@ -24,25 +66,32 @@ class ModelAveraging : public OpKernel
 {
     using OpKernel::OpKernel;
 
-    std::random_device random_device;
-    std::mt19937 engine{random_device()};
-    std::uniform_int_distribution<int> dist;
-
     int self_rank_;
     std::vector<int> ranks_;
+    PeerSelectionStrategy *peerSelector;
 
     // Used for the buffer
-    std::vector<int>
-        var_sizes_;  // The vector of the numbers of weights in each variable
+    std::vector<int> var_sizes_;  // The vector of the numbers of weights in each variable
     int var_type_size_;
     int total_var_size;  // The total number of elements of all variables.
 
     unsigned char *modelBuf;
+    int gs;
 
     void check_attrs(OpKernelConstruction *context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        std::string peer_selection_strategy;
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy", &peer_selection_strategy));
+        if (peer_selection_strategy == "random") {
+            peerSelector = new RandomSelector(self_rank_, ranks_);
+        } else if(peer_selection_strategy == "roundrobin") {
+            peerSelector = new RoundRobinSelector(self_rank_, ranks_);
+        } else {
+            throw "Unsupported peer selection strategy: " + peer_selection_strategy;
+        }
+        
 
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
@@ -58,20 +107,22 @@ class ModelAveraging : public OpKernel
 
   public:
     explicit ModelAveraging(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size(0),
+        : OpKernel(context), var_type_size_(0), total_var_size(0), gs(0),
           modelBuf(nullptr)
     {
         check_attrs(context);
         modelBuf = (unsigned char *)malloc(total_var_size * var_type_size_);
-        dist     = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
     }
 
-    ~ModelAveraging() { free(modelBuf); }
+    ~ModelAveraging() { 
+        free(modelBuf); 
+        delete peerSelector;
+    }
 
     void Compute(OpKernelContext *context) override
     {
-        int destination = dist(engine);
-        while (destination == self_rank_) { destination = dist(engine); }
+        gs++;
+        int destination = peerSelector->getDestinationPeer(gs);
 
         // Fill in the model Buffer with response from random peer
         _kungfu_world->Request(destination, (void *)modelBuf, total_var_size,
@@ -102,6 +153,7 @@ REGISTER_OP("AsyncModelAveraging")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
+    .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
     .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
@@ -112,13 +164,9 @@ class AsyncModelAveraging : public OpKernel
 
     using OpKernel::OpKernel;
 
-    std::random_device random_device;
-    std::mt19937 engine{random_device()};
-    std::uniform_int_distribution<int> dist;
-
     int self_rank_;
-
     std::vector<int> ranks_;
+    PeerSelectionStrategy *peerSelector;
 
     // Used for the buffer
     std::vector<int> var_sizes_;
@@ -138,6 +186,15 @@ class AsyncModelAveraging : public OpKernel
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        std::string peer_selection_strategy;
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy", &peer_selection_strategy));
+        if (peer_selection_strategy == "random") {
+            peerSelector = new RandomSelector(self_rank_, ranks_);
+        } else if(peer_selection_strategy == "roundrobin") {
+            peerSelector = new RoundRobinSelector(self_rank_, ranks_);
+        } else {
+            throw "Unsupported peer selection strategy: " + peer_selection_strategy;
+        }
 
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
@@ -158,17 +215,17 @@ class AsyncModelAveraging : public OpKernel
     {
         check_attrs(context);
         prefetchBuf = (unsigned char *)malloc(total_var_size * var_type_size_);
-        dist        = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
     }
 
-    ~AsyncModelAveraging() { free(modelBuf); }
+    ~AsyncModelAveraging() { 
+        free(modelBuf); 
+        delete peerSelector;
+    }
 
     void Compute(OpKernelContext *context) override
     {
         gs++;
-
-        int destination = dist(engine);
-        while (destination == self_rank_) { destination = dist(engine); }
+        int destination = peerSelector->getDestinationPeer(gs);
 
         // Fill in the model Buffer with response from random peer
         if (modelBuf == nullptr) {
@@ -304,12 +361,11 @@ REGISTER_OP("RequestModel")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
+    .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
     .Attr("type_size_bytes: int")
     .Attr("var_sizes: list(int)")
-    .Attr("var_names: list(string)")
     .Attr("shapes: list(shape)")
-    .Attr("dtypes: list(type)")
     .Input("vars: NumTensors * T")
     .Output("outputs: NumTensors * T")
     .SetShapeFn(shape_inference::UnchangedShape);
@@ -319,18 +375,14 @@ class RequestModel : public OpKernel
 
     using OpKernel::OpKernel;
 
-    std::random_device random_device;
-    std::mt19937 engine{random_device()};
-    std::uniform_int_distribution<int> dist;
 
     int self_rank_;
-
     std::vector<int> ranks_;
+    PeerSelectionStrategy *peerSelector;
+
     int model_size_;
 
-    std::vector<std::string> var_names_;
     std::vector<TensorShapeProto> shapes_;
-    std::vector<DataType> dtypes_;
 
     // Used for the buffer
     std::vector<int> var_sizes_;
@@ -339,16 +391,23 @@ class RequestModel : public OpKernel
 
     unsigned char *modelBuf;
 
-    // std::mutex mu_;
+    int gs;
 
     void check_attrs(OpKernelConstruction *context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
-        OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        std::string peer_selection_strategy;
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy", &peer_selection_strategy));
+        if (peer_selection_strategy == "random") {
+            peerSelector = new RandomSelector(self_rank_, ranks_);
+        } else if(peer_selection_strategy == "roundrobin") {
+            peerSelector = new RoundRobinSelector(self_rank_, ranks_);
+        } else {
+            throw "Unsupported peer selection strategy: " + peer_selection_strategy;
+        }
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context, context->GetAttr("dtypes", &dtypes_));
         OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
 
         // Used for the buffer
@@ -356,12 +415,8 @@ class RequestModel : public OpKernel
         OP_REQUIRES_OK(context,
                        context->GetAttr("type_size_bytes", &type_size_bytes_));
 
-        OP_REQUIRES(context, var_names_.size() > 0,
-                    errors::InvalidArgument("var_names_ must not be empty"));
         OP_REQUIRES(context, shapes_.size() > 0,
                     errors::InvalidArgument("shapes_ must not be empty"));
-        OP_REQUIRES(context, dtypes_.size() > 0,
-                    errors::InvalidArgument("dtypes_ must not be empty"));
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
@@ -371,26 +426,28 @@ class RequestModel : public OpKernel
 
   public:
     explicit RequestModel(OpKernelConstruction *context)
-        : OpKernel(context), type_size_bytes_(0), total_buf_size_(0),
+        : OpKernel(context), type_size_bytes_(0), total_buf_size_(0), gs(0),
           modelBuf(nullptr)
     {
         check_attrs(context);
         modelBuf = (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
-        dist     = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
     }
 
-    ~RequestModel() { free(modelBuf); }
+    ~RequestModel() { 
+        free(modelBuf); 
+        delete peerSelector;    
+    }
 
     void Compute(OpKernelContext *context) override
     {
+        gs++;
         std::vector<Tensor *> outputs(model_size_, nullptr);
         for (int i = 0; i < model_size_; i++) {
             OP_REQUIRES_OK(
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        int destination = dist(engine);
-        while (destination == self_rank_) { destination = dist(engine); }
+        int destination = peerSelector->getDestinationPeer(gs);
 
         // Fill in the model Buffer with response from random peer
         _kungfu_world->Request(destination, (void *)modelBuf, total_buf_size_,
@@ -399,7 +456,7 @@ class RequestModel : public OpKernel
         int offset = 0;
         for (int i = 0; i < var_sizes_.size(); i++) {
             std::copy(offset + modelBuf,
-                      offset + modelBuf + var_sizes_[i] * type_sizßßße_bytes_,
+                      offset + modelBuf + var_sizes_[i] * type_size_bytes_,
                       (unsigned char *)outputs[i]->tensor_data().data());
             offset += var_sizes_[i] * type_size_bytes_;
         }
@@ -412,12 +469,11 @@ REGISTER_OP("AsyncRequestModel")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
+    .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
     .Attr("type_size_bytes: int")
     .Attr("var_sizes: list(int)")
-    .Attr("var_names: list(string)")
     .Attr("shapes: list(shape)")
-    .Attr("dtypes: list(type)")
     .Input("vars: NumTensors * T")
     .Output("outputs: NumTensors * T")
     .SetShapeFn(shape_inference::UnchangedShape);
@@ -427,18 +483,13 @@ class AsyncRequestModel : public OpKernel
 
     using OpKernel::OpKernel;
 
-    std::random_device random_device;
-    std::mt19937 engine{random_device()};
-    std::uniform_int_distribution<int> dist;
-
     int self_rank_;
-
     std::vector<int> ranks_;
+    PeerSelectionStrategy *peerSelector;
+
     int model_size_;
 
-    std::vector<std::string> var_names_;
     std::vector<TensorShapeProto> shapes_;
-    std::vector<DataType> dtypes_;
 
     // Used for the buffer
     std::vector<int> var_sizes_;
@@ -457,11 +508,18 @@ class AsyncRequestModel : public OpKernel
     void check_attrs(OpKernelConstruction *context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
-        OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        std::string peer_selection_strategy;
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy", &peer_selection_strategy));
+        if (peer_selection_strategy == "random") {
+            peerSelector = new RandomSelector(self_rank_, ranks_);
+        } else if(peer_selection_strategy == "roundrobin") {
+            peerSelector = new RoundRobinSelector(self_rank_, ranks_);
+        } else {
+            throw "Unsupported peer selection strategy: " + peer_selection_strategy;
+        }
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context, context->GetAttr("dtypes", &dtypes_));
         OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
 
         // Used for the buffer
@@ -469,12 +527,8 @@ class AsyncRequestModel : public OpKernel
         OP_REQUIRES_OK(context,
                        context->GetAttr("type_size_bytes", &type_size_bytes_));
 
-        OP_REQUIRES(context, var_names_.size() > 0,
-                    errors::InvalidArgument("var_names_ must not be empty"));
         OP_REQUIRES(context, shapes_.size() > 0,
                     errors::InvalidArgument("shapes_ must not be empty"));
-        OP_REQUIRES(context, dtypes_.size() > 0,
-                    errors::InvalidArgument("dtypes_ must not be empty"));
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
@@ -490,10 +544,12 @@ class AsyncRequestModel : public OpKernel
         check_attrs(context);
         prefetchBuf =
             (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
-        dist = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
     }
 
-    ~AsyncRequestModel() { free(modelBuf); }
+    ~AsyncRequestModel() { 
+        free(modelBuf); 
+        delete peerSelector;
+    }
 
     void Compute(OpKernelContext *context) override
     {
@@ -503,11 +559,8 @@ class AsyncRequestModel : public OpKernel
             OP_REQUIRES_OK(
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
-        // int destination = dist(engine);
-        // while (destination == self_rank_) { destination = dist(engine); }
-
-        // ranks_ do not include self rank
-        int destination = ranks_[gs % ranks_.size()];
+        
+        int destination = peerSelector->getDestinationPeer(gs);
 
         // Fill in the model Buffer with response from random peer
         if (modelBuf == nullptr) {
