@@ -126,7 +126,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
             variables,
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
-            type_size_bytes=variables[0].dtype.size,
+            var_type_size=variables[0].dtype.size,
             var_sizes=var_sizes,
             shapes=var_shapes,
             peer_selection_strategy=peer_selection_strategy)
@@ -136,7 +136,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
             variables,
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
-            type_size_bytes=variables[0].dtype.size,
+            var_type_size=variables[0].dtype.size,
             var_sizes=var_sizes,
             shapes=var_shapes,
             peer_selection_strategy=peer_selection_strategy)
