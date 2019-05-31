@@ -58,7 +58,7 @@ REGISTER_OP("ModelAveraging")
     .Attr("ranks: list(int)")
     .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
-    .Attr("var_type_size: int")
+    .Attr("dtype_size_bytes: int")
     .Attr("var_sizes: list(int)")
     .Input("vars: NumTensors * T");
 
@@ -72,7 +72,7 @@ class ModelAveraging : public OpKernel
 
     // Used for the buffer
     std::vector<int> var_sizes_;  // The vector of the numbers of weights in each variable
-    int var_type_size_;
+    int dtype_size_bytes_;
     int total_var_size;  // The total number of elements of all variables.
 
     unsigned char *modelBuf;
@@ -96,7 +96,7 @@ class ModelAveraging : public OpKernel
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
-                       context->GetAttr("var_type_size", &var_type_size_));
+                       context->GetAttr("dtype_size_bytes", &dtype_size_bytes_));
 
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
@@ -107,11 +107,11 @@ class ModelAveraging : public OpKernel
 
   public:
     explicit ModelAveraging(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size(0), gs(0),
+        : OpKernel(context), dtype_size_bytes_(0), total_var_size(0), gs(0),
           modelBuf(nullptr)
     {
         check_attrs(context);
-        modelBuf = (unsigned char *)malloc(total_var_size * var_type_size_);
+        modelBuf = (unsigned char *)malloc(total_var_size * dtype_size_bytes_);
     }
 
     ~ModelAveraging() { 
@@ -133,15 +133,15 @@ class ModelAveraging : public OpKernel
             Tensor &input = (Tensor &)context->input(i);
             Tensor other(input.dtype(), input.shape());
             std::copy(offset + modelBuf,
-                      offset + modelBuf + var_sizes_[i] * var_type_size_,
+                      offset + modelBuf + var_sizes_[i] * dtype_size_bytes_,
                       (unsigned char *)other.tensor_data().data());
             auto other_flt = other.flat<float>();
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
             std::copy((unsigned char *)other.tensor_data().data(),
                       (unsigned char *)other.tensor_data().data() +
-                          var_sizes_[i] * var_type_size_,
+                          var_sizes_[i] * dtype_size_bytes_,
                       (unsigned char *)input.tensor_data().data());
-            offset += var_sizes_[i] * var_type_size_;
+            offset += var_sizes_[i] * dtype_size_bytes_;
         }
     }
 };
@@ -155,7 +155,7 @@ REGISTER_OP("AsyncModelAveraging")
     .Attr("ranks: list(int)")
     .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
-    .Attr("var_type_size: int")
+    .Attr("dtype_size_bytes: int")
     .Attr("var_sizes: list(int)")
     .Input("vars: NumTensors * T");
 
@@ -170,7 +170,7 @@ class AsyncModelAveraging : public OpKernel
 
     // Used for the buffer
     std::vector<int> var_sizes_;
-    int var_type_size_;
+    int dtype_size_bytes_;
     int total_var_size;
 
     unsigned char *modelBuf;
@@ -199,7 +199,7 @@ class AsyncModelAveraging : public OpKernel
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
-                       context->GetAttr("var_type_size", &var_type_size_));
+                       context->GetAttr("dtype_size_bytes", &dtype_size_bytes_));
 
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
@@ -210,11 +210,11 @@ class AsyncModelAveraging : public OpKernel
 
   public:
     explicit AsyncModelAveraging(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), var_type_size_(0), total_var_size(0),
+        : OpKernel(context), gs(0), dtype_size_bytes_(0), total_var_size(0),
           modelBuf(nullptr), isRequesting(false)
     {
         check_attrs(context);
-        prefetchBuf = (unsigned char *)malloc(total_var_size * var_type_size_);
+        prefetchBuf = (unsigned char *)malloc(total_var_size * dtype_size_bytes_);
     }
 
     ~AsyncModelAveraging() { 
@@ -229,7 +229,7 @@ class AsyncModelAveraging : public OpKernel
 
         // Fill in the model Buffer with response from random peer
         if (modelBuf == nullptr) {
-            modelBuf = (unsigned char *)malloc(total_var_size * var_type_size_);
+            modelBuf = (unsigned char *)malloc(total_var_size * dtype_size_bytes_);
 
             _kungfu_world->Request(destination, (void *)modelBuf,
                                    total_var_size,
@@ -237,10 +237,10 @@ class AsyncModelAveraging : public OpKernel
             prefetchCallback = [&, modelBuf = modelBuf,
                                 prefetchBuf    = prefetchBuf,
                                 total_var_size = total_var_size,
-                                var_type_size_ = var_type_size_]() {
+                                dtype_size_bytes_ = dtype_size_bytes_]() {
                 std::lock_guard<std::mutex> l(mu_);
                 std::copy(prefetchBuf,
-                          prefetchBuf + total_var_size * var_type_size_,
+                          prefetchBuf + total_var_size * dtype_size_bytes_,
                           (unsigned char *)modelBuf);
                 isRequesting = false;
             };
@@ -262,15 +262,15 @@ class AsyncModelAveraging : public OpKernel
                 Tensor &input = (Tensor &)context->input(i);
                 Tensor other(input.dtype(), input.shape());
                 std::copy(offset + modelBuf,
-                          offset + modelBuf + var_sizes_[i] * var_type_size_,
+                          offset + modelBuf + var_sizes_[i] * dtype_size_bytes_,
                           (unsigned char *)other.tensor_data().data());
                 auto other_flt = other.flat<float>();
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
                 std::copy((unsigned char *)other.tensor_data().data(),
                           (unsigned char *)other.tensor_data().data() +
-                              var_sizes_[i] * var_type_size_,
+                              var_sizes_[i] * dtype_size_bytes_,
                           (unsigned char *)input.tensor_data().data());
-                offset += var_sizes_[i] * var_type_size_;
+                offset += var_sizes_[i] * dtype_size_bytes_;
             }
         }
     }
@@ -282,7 +282,7 @@ REGISTER_KERNEL_BUILDER(Name("AsyncModelAveraging").Device(DEVICE_CPU),
 REGISTER_OP("SaveModel")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("NumTensors: int")
-    .Attr("var_type_size: int")
+    .Attr("dtype_size_bytes: int")
     .Attr("var_sizes: list(int)")
     .Input("vars: NumTensors * T");
 
@@ -292,7 +292,7 @@ class SaveModel : public OpKernel
 
     std::vector<int> var_sizes_;
 
-    int var_type_size_;
+    int dtype_size_bytes_;
     int total_var_size;
 
     unsigned char *modelBuf;
@@ -302,7 +302,7 @@ class SaveModel : public OpKernel
 
   public:
     explicit SaveModel(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), var_type_size_(0), total_var_size(0),
+        : OpKernel(context), gs(0), dtype_size_bytes_(0), total_var_size(0),
           isSaving(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
@@ -311,8 +311,8 @@ class SaveModel : public OpKernel
                         "number of variable sizes must be greater than 0"));
 
         OP_REQUIRES_OK(context,
-                       context->GetAttr("var_type_size", &var_type_size_));
-        OP_REQUIRES(context, var_type_size_ > 0,
+                       context->GetAttr("dtype_size_bytes", &dtype_size_bytes_));
+        OP_REQUIRES(context, dtype_size_bytes_ > 0,
                     errors::InvalidArgument(
                         "data type size in bytes must be greater than 0"));
 
@@ -320,7 +320,7 @@ class SaveModel : public OpKernel
         total_var_size = 0;
         for (int s : var_sizes_) { total_var_size += s; }
 
-        modelBuf = (unsigned char *)malloc(total_var_size * var_type_size_);
+        modelBuf = (unsigned char *)malloc(total_var_size * dtype_size_bytes_);
     }
 
     ~SaveModel() { free(modelBuf); }
@@ -337,9 +337,9 @@ class SaveModel : public OpKernel
             const Tensor &input = context->input(i);
             std::copy((unsigned char *)input.tensor_data().data(),
                       (unsigned char *)input.tensor_data().data() +
-                          var_sizes_[i] * var_type_size_,
+                          var_sizes_[i] * dtype_size_bytes_,
                       modelBuf + offset);
-            offset += var_sizes_[i] * var_type_size_;
+            offset += var_sizes_[i] * dtype_size_bytes_;
         }
 
         if (!isSaving.load()) {
@@ -363,7 +363,7 @@ REGISTER_OP("RequestModel")
     .Attr("ranks: list(int)")
     .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
-    .Attr("type_size_bytes: int")
+    .Attr("dtype_size_bytes: int")
     .Attr("var_sizes: list(int)")
     .Attr("shapes: list(shape)")
     .Input("vars: NumTensors * T")
@@ -380,14 +380,14 @@ class RequestModel : public OpKernel
     std::vector<int> ranks_;
     PeerSelectionStrategy *peerSelector;
 
-    int model_size_;
+    int num_model_vars_;
 
     std::vector<TensorShapeProto> shapes_;
 
     // Used for the buffer
     std::vector<int> var_sizes_;
-    int type_size_bytes_;
-    int total_buf_size_;
+    int dtype_size_bytes_;
+    int model_buf_size_bytes_;
 
     unsigned char *modelBuf;
 
@@ -408,29 +408,29 @@ class RequestModel : public OpKernel
         }
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
+        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &num_model_vars_));
 
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
-                       context->GetAttr("type_size_bytes", &type_size_bytes_));
+                       context->GetAttr("dtype_size_bytes", &dtype_size_bytes_));
 
         OP_REQUIRES(context, shapes_.size() > 0,
                     errors::InvalidArgument("shapes_ must not be empty"));
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
-        total_buf_size_ = 0;
-        for (int s : var_sizes_) { total_buf_size_ += s; }
+        model_buf_size_bytes_ = 0;
+        for (int s : var_sizes_) { model_buf_size_bytes_ += s; }
     }
 
   public:
     explicit RequestModel(OpKernelConstruction *context)
-        : OpKernel(context), type_size_bytes_(0), total_buf_size_(0), gs(0),
+        : OpKernel(context), dtype_size_bytes_(0), model_buf_size_bytes_(0), gs(0),
           modelBuf(nullptr)
     {
         check_attrs(context);
-        modelBuf = (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
+        modelBuf = (unsigned char *)malloc(model_buf_size_bytes_ * dtype_size_bytes_);
     }
 
     ~RequestModel() { 
@@ -441,8 +441,8 @@ class RequestModel : public OpKernel
     void Compute(OpKernelContext *context) override
     {
         gs++;
-        std::vector<Tensor *> outputs(model_size_, nullptr);
-        for (int i = 0; i < model_size_; i++) {
+        std::vector<Tensor *> outputs(num_model_vars_, nullptr);
+        for (int i = 0; i < num_model_vars_; i++) {
             OP_REQUIRES_OK(
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
@@ -450,15 +450,15 @@ class RequestModel : public OpKernel
         int destination = peerSelector->getDestinationPeer(gs);
 
         // Fill in the model Buffer with response from random peer
-        _kungfu_world->Request(destination, (void *)modelBuf, total_buf_size_,
+        _kungfu_world->Request(destination, (void *)modelBuf, model_buf_size_bytes_,
                                to_kungfu_type(context->input(0).dtype()));
 
         int offset = 0;
         for (int i = 0; i < var_sizes_.size(); i++) {
             std::copy(offset + modelBuf,
-                      offset + modelBuf + var_sizes_[i] * type_size_bytes_,
+                      offset + modelBuf + var_sizes_[i] * dtype_size_bytes_,
                       (unsigned char *)outputs[i]->tensor_data().data());
-            offset += var_sizes_[i] * type_size_bytes_;
+            offset += var_sizes_[i] * dtype_size_bytes_;
         }
     }
 };
@@ -471,7 +471,7 @@ REGISTER_OP("AsyncRequestModel")
     .Attr("ranks: list(int)")
     .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
-    .Attr("type_size_bytes: int")
+    .Attr("dtype_size_bytes: int")
     .Attr("var_sizes: list(int)")
     .Attr("shapes: list(shape)")
     .Input("vars: NumTensors * T")
@@ -487,14 +487,14 @@ class AsyncRequestModel : public OpKernel
     std::vector<int> ranks_;
     PeerSelectionStrategy *peerSelector;
 
-    int model_size_;
+    int num_model_vars_;
 
     std::vector<TensorShapeProto> shapes_;
 
     // Used for the buffer
     std::vector<int> var_sizes_;
-    int type_size_bytes_;
-    int total_buf_size_;
+    int dtype_size_bytes_;
+    int model_buf_size_bytes_;
 
     unsigned char *modelBuf;
     unsigned char *prefetchBuf;
@@ -520,30 +520,30 @@ class AsyncRequestModel : public OpKernel
         }
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &model_size_));
+        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &num_model_vars_));
 
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
-                       context->GetAttr("type_size_bytes", &type_size_bytes_));
+                       context->GetAttr("dtype_size_bytes", &dtype_size_bytes_));
 
         OP_REQUIRES(context, shapes_.size() > 0,
                     errors::InvalidArgument("shapes_ must not be empty"));
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
-        total_buf_size_ = 0;
-        for (int s : var_sizes_) { total_buf_size_ += s; }
+        model_buf_size_bytes_ = 0;
+        for (int s : var_sizes_) { model_buf_size_bytes_ += s; }
     }
 
   public:
     explicit AsyncRequestModel(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), type_size_bytes_(0), total_buf_size_(0),
+        : OpKernel(context), gs(0), dtype_size_bytes_(0), model_buf_size_bytes_(0),
           modelBuf(nullptr), alreadyRequesting(false)
     {
         check_attrs(context);
         prefetchBuf =
-            (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
+            (unsigned char *)malloc(model_buf_size_bytes_ * dtype_size_bytes_);
     }
 
     ~AsyncRequestModel() { 
@@ -554,8 +554,8 @@ class AsyncRequestModel : public OpKernel
     void Compute(OpKernelContext *context) override
     {
         gs++;
-        std::vector<Tensor *> outputs(model_size_, nullptr);
-        for (int i = 0; i < model_size_; i++) {
+        std::vector<Tensor *> outputs(num_model_vars_, nullptr);
+        for (int i = 0; i < num_model_vars_; i++) {
             OP_REQUIRES_OK(
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
@@ -565,28 +565,28 @@ class AsyncRequestModel : public OpKernel
         // Fill in the model Buffer with response from random peer
         if (modelBuf == nullptr) {
             modelBuf =
-                (unsigned char *)malloc(total_buf_size_ * type_size_bytes_);
+                (unsigned char *)malloc(model_buf_size_bytes_ * dtype_size_bytes_);
 
             _kungfu_world->Request(destination, (void *)modelBuf,
-                                   total_buf_size_,
+                                   model_buf_size_bytes_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetchCallback = [&, modelBuf = modelBuf,
                                 prefetchBuf      = prefetchBuf,
-                                total_buf_size_  = total_buf_size_,
-                                type_size_bytes_ = type_size_bytes_]() {
+                                model_buf_size_bytes_  = model_buf_size_bytes_,
+                                dtype_size_bytes_ = dtype_size_bytes_]() {
                 std::lock_guard<std::mutex> l(mu_);
                 std::copy(prefetchBuf,
-                          prefetchBuf + total_buf_size_ * type_size_bytes_,
+                          prefetchBuf + model_buf_size_bytes_ * dtype_size_bytes_,
                           (unsigned char *)modelBuf);
                 alreadyRequesting = false;
             };
         }
 
         if (!alreadyRequesting.load()) {
-            // no other goroutine spawned in background
+            //  Don't create a request if there is already one running.
             alreadyRequesting = true;
             _kungfu_world->Request(
-                destination, (void *)prefetchBuf, total_buf_size_,
+                destination, (void *)prefetchBuf, model_buf_size_bytes_,
                 to_kungfu_type(context->input(0).dtype()), prefetchCallback);
         }
 
@@ -595,9 +595,9 @@ class AsyncRequestModel : public OpKernel
             int offset = 0;
             for (int i = 0; i < var_sizes_.size(); i++) {
                 std::copy(offset + modelBuf,
-                          offset + modelBuf + var_sizes_[i] * type_size_bytes_,
+                          offset + modelBuf + var_sizes_[i] * dtype_size_bytes_,
                           (unsigned char *)outputs[i]->tensor_data().data());
-                offset += var_sizes_[i] * type_size_bytes_;
+                offset += var_sizes_[i] * dtype_size_bytes_;
             }
         }
     }

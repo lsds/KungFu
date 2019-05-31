@@ -12,8 +12,7 @@ type ConnType uint16
 const (
 	ConnControl    ConnType 	   = 0
 	ConnCollective ConnType 	   = 1
-	ConnPeerToPeer ConnType        = 2
-	ConnSynchPeerToPeer ConnType   = 3
+	ConnPeerToPeer ConnType   = 2
 )
 
 var endian = binary.LittleEndian

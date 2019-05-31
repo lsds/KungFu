@@ -216,9 +216,9 @@ def parse_args():
     parser.add_argument(
         '--kungfu-strategy',
         type=str,
-        default='plain',  # Plain SyncSGD
+        default='sync_sgd',
         help=
-        'Specify KungFu strategy: \'plain\' or \'ako\' if --use-kungfu flag is set'
+        'Specify KungFu strategy: \'sync_sgd\' or \'p2p\' if --use-kungfu flag is set'
     )
     parser.add_argument('--ako-partitions',
                         type=int,

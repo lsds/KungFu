@@ -69,7 +69,7 @@ def save_model(variables):
     var_sizes = [var.shape.num_elements()
                  for var in variables]  # number of floats it has
     return _op_lib.save_model(variables,
-                              var_type_size=variables[0].dtype.size,
+                              dtype_size_bytes=variables[0].dtype.size,
                               var_sizes=var_sizes)
 
 
@@ -91,7 +91,7 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
             variables,
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
-            var_type_size=variables[0].dtype.size,
+            dtype_size_bytes=variables[0].dtype.size,
             var_sizes=var_sizes,
             peer_selection_strategy=peer_selection_strategy)
     elif mode == 'sync':
@@ -100,7 +100,7 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
             variables,
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
-            var_type_size=variables[0].dtype.size,
+            dtype_size_bytes=variables[0].dtype.size,
             var_sizes=var_sizes,
             peer_selection_strategy=peer_selection_strategy)
     else:
@@ -126,7 +126,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
             variables,
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
-            type_size_bytes=variables[0].dtype.size,
+            dtype_size_bytes=variables[0].dtype.size,
             var_sizes=var_sizes,
             shapes=var_shapes,
             peer_selection_strategy=peer_selection_strategy)
@@ -136,7 +136,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
             variables,
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
-            type_size_bytes=variables[0].dtype.size,
+            dtype_size_bytes=variables[0].dtype.size,
             var_sizes=var_sizes,
             shapes=var_shapes,
             peer_selection_strategy=peer_selection_strategy)

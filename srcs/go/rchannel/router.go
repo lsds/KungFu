@@ -4,7 +4,6 @@ import (
 	"net"
 	"os"
 	"fmt"
-	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -23,8 +22,6 @@ type Router struct {
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
 
-	callbacks       map[string]Callback
-	callbacksMutex  sync.Mutex
 	modelStore      *ModelStore
 }
 
@@ -34,7 +31,6 @@ func NewRouter(self plan.PeerSpec) *Router {
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
-		callbacks:  make(map[string]Callback),
 		modelStore: NewModelStore(),
 	}
 }
@@ -137,38 +133,7 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 
 var newShm = shm.New
 
-func (r *Router) RegisterDataCallback(name string, f Callback) {
-	r.callbacksMutex.Lock()
-	defer r.callbacksMutex.Unlock()
-	log.Infof("Router::RegisterDataCallback %s %p", name, f)
-	r.callbacks[name] = f
-}
-
-func (r *Router) UnregisterDataCallback(name string) {
-	r.callbacksMutex.Lock()
-	defer r.callbacksMutex.Unlock()
-	log.Infof("Router::UnregisterDataCallback %s", name)
-	delete(r.callbacks, name)
-}
-
-func (r *Router) handle(name string, msg *Message) {
-	r.callbacksMutex.Lock()
-	defer r.callbacksMutex.Unlock()
-	
-	f, ok := r.callbacks[name]
-	if !ok {
-		log.Warnf("%s has no callback registered", name)
-		return
-	}
-	if f == nil {
-		log.Errorf("%s has nil callback", name)
-		return
-	}
-	log.Infof("handling message with name %+v", msg)
-	f(msg)
-}
-
-func (r *Router) handleSync(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
+func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
 	r.modelStore.modelStoreMutex.Lock()
 	defer r.modelStore.modelStoreMutex.Unlock()
 
@@ -226,9 +191,7 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, er
 		case ConnCollective:
 			r.bufferPool.require(remote.WithName(name)) <- msg
 		case ConnPeerToPeer:
-			r.handle(name, msg)
-		case ConnSynchPeerToPeer:
-			r.handleSync(name, msg, conn, remote)
+			r.handlePeerToPeerConn(name, msg, conn, remote)
 		default:
 			log.Infof("no handler for type %s", t)
 		}

@@ -25,13 +25,13 @@ func NewModelStore() *ModelStore {
 
 
 
-func (store *ModelStore) UpdateModelStore(updateName string, model *kb.Buffer) error {
+func (store *ModelStore) UpdateModelStore(modelVersionName string, model *kb.Buffer) error {
 	store.modelStoreMutex.Lock()
 	defer store.modelStoreMutex.Unlock()
 
 
 	if store.modelStore == nil {
-		log.Warnf("%s has no entry in the store. Initializing storage for this variable.", updateName)
+		log.Warnf("%s has no entry in the store. Initializing storage for this variable.", modelVersionName)
 		newBuf := kb.NewBuffer(model.Count, model.Type)
 		newBuf.CopyFrom(model)
 		store.modelStore = newBuf

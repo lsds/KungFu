@@ -71,20 +71,10 @@ extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, const char *name,
                            DoneCallback done);
 
-extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
-                        KungFu_Datatype dtype, const char *name,
-                        DoneCallback done);
-extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
-                        KungFu_Datatype dtype, const char *name);
-
 extern int KungfuRequest(int destinationRank, void *model, int count, KungFu_Datatype dtype, DoneCallback done);
 extern int KungfuRequest(int destinationRank, void *model, int count, KungFu_Datatype dtype);
 extern int KungfuUpdateModelStore(const char *name, const void *model, int count,
                                   KungFu_Datatype dtype, DoneCallback done);
-
-extern int KungfuRegisterDataCallback(const char *name, DataCallback handle);
-
-extern int KungfuUnregisterDataCallback(const char *name);
 
 extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
@@ -115,18 +105,6 @@ class kungfu_world
 
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
 
-    int SendTo(int32_t rank, const void *sendbuf, int count,
-               KungFu_Datatype dtype, const char *name, DoneCallback done)
-    {
-        return KungfuSendTo(rank, sendbuf, count, dtype, name, done);
-    }
-
-    int SendTo(int32_t rank, const void *sendbuf, int count,
-               KungFu_Datatype dtype, const char *name)
-    {
-        return KungfuSendTo(rank, sendbuf, count, dtype, name);
-    }
-
     int Request(int destinationRank, void *model, int count, KungFu_Datatype dtype, DoneCallback done)
     {
         return KungfuRequest(destinationRank, model, count, dtype, done);
@@ -140,16 +118,6 @@ class kungfu_world
     int UpdateModelStore(const char *name, const void *model, int count,
                                   KungFu_Datatype dtype, DoneCallback done)  {
         return KungfuUpdateModelStore(name, model, count, dtype, done);
-    }
-
-    int RegisterDataCallback(const char *name, DataCallback handle)
-    {
-        return KungfuRegisterDataCallback(name, handle);
-    }
-
-    int UnregisterDataCallback(const char *name)
-    {
-        return KungfuUnregisterDataCallback(name);
     }
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,

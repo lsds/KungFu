@@ -126,16 +126,6 @@ func (sess *session) Warmup() int {
 	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
 }
 
-func (sess *session) RegisterDataCallback(name string, f rch.Callback) int {
-	sess.router.RegisterDataCallback(name, f)
-	return 0
-}
-
-func (sess *session) UnregisterDataCallback(name string) int {
-	sess.router.UnregisterDataCallback(name)
-	return 0
-}
-
 func (sess *session) AllReduce(w Workspace) int {
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
@@ -152,21 +142,12 @@ func (sess *session) Broadcast(w Workspace) int {
 	return code(sess.runGraphs(w, g))
 }
 
-func (sess *session) SendTo(rank int, w Workspace) int {
-	if rank < 0 || len(sess.cluster.Peers) <= rank {
-		return code(errInvalidRank)
-	}
-	peer := sess.cluster.Peers[rank]
-	return code(sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnPeerToPeer))
-}
-
-
 func (sess *session) RequestModel(rank int, model *kb.Buffer) int {
 	if rank < 0 || len(sess.cluster.Peers) <= rank {
 		return code(errInvalidRank)
 	}
 	peer := sess.cluster.Peers[rank]
-	return code(sess.router.Request(peer.NetAddr.WithName("ModelRequestInGo"), rch.ConnSynchPeerToPeer, model))
+	return code(sess.router.Request(peer.NetAddr.WithName("ModelRequestInGo"), rch.ConnPeerToPeer, model))
 }
 
 func (sess *session) UpdateModelStore(updateName string, model *kb.Buffer) int {

@@ -81,10 +81,10 @@ func (c *tcpConnection) Send(name string, m Message) error {
 	return m.WriteTo(c.conn)
 }
 
-func (c *tcpConnection) Read(name string, m Message) error {
+func (c *tcpConnection) Read(msgName string, m Message) error {
 	c.Lock()
 	defer c.Unlock()
-	bs := []byte(name)
+	bs := []byte(msgName)
 	mh := messageHeader{
 		NameLength: uint32(len(bs)),
 		Name:       bs,
