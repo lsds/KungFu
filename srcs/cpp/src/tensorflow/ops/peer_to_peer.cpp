@@ -25,11 +25,11 @@ class RandomSelector : public PeerSelectionStrategy
     std::vector<int> ranks_;
 
   public:
-    RandomSelector(int self_rank, std::vector<int> ranks) : self_rank_(-1)
+    RandomSelector(int self_rank, std::vector<int> ranks)
+        : self_rank_(self_rank)
     {
-        self_rank_ = self_rank;
-        ranks_     = ranks;
-        dist       = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
+        ranks_ = ranks;
+        dist   = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
     }
 
     int getDestinationPeer(int _gs)
@@ -48,10 +48,10 @@ class RoundRobinSelector : public PeerSelectionStrategy
     std::vector<int> ranks_;
 
   public:
-    RoundRobinSelector(int self_rank, std::vector<int> ranks) : self_rank_(-1)
+    RoundRobinSelector(int self_rank, std::vector<int> ranks)
+        : self_rank_(self_rank)
     {
-        ranks_     = ranks;
-        self_rank_ = self_rank;
+        ranks_ = ranks;
     }
 
     int getDestinationPeer(int gs) { return ranks_[gs % ranks_.size()]; }
