@@ -48,6 +48,7 @@ _op_lib, _has_gpu = _load_and_init_op_lib()
 def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
+
 def _get_self_rank():
     import os
     return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
@@ -58,58 +59,105 @@ def _get_num_peers():
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
     return len(cluster_spec['Peers'])
 
+
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
 
 def save_model(variables):
     import tensorflow as tf
-    var_names  = [var.name for var in variables]
-    var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
-    return _op_lib.save_model(variables, var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
+    var_names = [var.name for var in variables]
+    var_sizes = [var.shape.num_elements()
+                 for var in variables]  # number of floats it has
+    return _op_lib.save_model(variables,
+                              var_type_size=variables[0].dtype.size,
+                              var_sizes=var_sizes)
 
 
-def request_model(peer_ranks, variables, request_model_type):
+def model_averaging(peer_ranks, variables, mode):
     import tensorflow as tf
     request_avg_ops = []
-    var_names  = [var.name for var in variables]
+    var_names = [var.name for var in variables]
     var_shapes = [var.shape for var in variables]
     var_dtypes = [var.dtype for var in variables]
 
-    var_sizes  = [var.shape.num_elements() for var in variables] # number of floats it has
-    
+    var_sizes = [var.shape.num_elements()
+                 for var in variables]  # number of floats it has
+
     # Remove self rank from the list
     peer_ranks.remove(_get_self_rank())
-    
-    if request_model_type == 'async_cpu':
-        print("Using asynchronous model request with CPU model averaging.")
-        request_model = _op_lib.async_request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
-                                            var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
-    elif request_model_type == 'sync_cpu':
-        print("Using synchronous model request with CPU model averaging.")
-        request_model = _op_lib.request_model(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
-                                            var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
-    elif request_model_type == 'async_gpu':
-        print("Doing round robin peer selection at the moment!!")
-        print("Using asynchronous model request with GPU model averaging.")
-        request_model = _op_lib.async_request_model_averaging_gpu(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
-                                            type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
-                                            var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
-    elif request_model_type == 'sync_gpu':
-        print("Using synchronous model request with GPU model averaging.")
-        request_model = _op_lib.request_model_averaging_gpu(variables, self_rank=_get_self_rank(), ranks=peer_ranks,
-                                        type_size_bytes=variables[0].dtype.size, var_sizes=var_sizes,
-                                        var_names=var_names, shapes=var_shapes, dtypes=var_dtypes)
+
+    if mode == 'async':
+        print(
+            "Applying model averaging with a model requested asynchronously.")
+        model_averaging = _op_lib.async_model_averaging(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes)
+    elif mode == 'sync':
+        print("Applying model averaging with a model requested synchronously.")
+        model_averaging = _op_lib.model_averaging(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes)
     else:
         raise Exception("Invalid type of synchronization strategy")
-        
+
+    return model_averaging
+
+
+def request_model(peer_ranks, variables, mode):
+    import tensorflow as tf
+    request_avg_ops = []
+    var_names = [var.name for var in variables]
+    var_shapes = [var.shape for var in variables]
+    var_dtypes = [var.dtype for var in variables]
+
+    var_sizes = [var.shape.num_elements()
+                 for var in variables]  # number of floats it has
+
+    # Remove self rank from the list
+    peer_ranks.remove(_get_self_rank())
+
+    if mode == 'async':
+        print("Doing round robin peer selection at the moment!!")
+        print("Request a model synchronously.")
+        request_model = _op_lib.async_request_model(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            type_size_bytes=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            var_names=var_names,
+            shapes=var_shapes,
+            dtypes=var_dtypes)
+    elif mode == 'sync':
+        print("Request a model asynchronously.")
+        request_model = _op_lib.request_model(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            type_size_bytes=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            var_names=var_names,
+            shapes=var_shapes,
+            dtypes=var_dtypes)
+    else:
+        raise Exception("Invalid type of synchronization strategy")
+
     return request_model
+
 
 def merge_received(t):
     return _op_lib.merge_received(t,
                                   input_tensor_name=t.name,
                                   shape=t.shape,
                                   dtype=t.dtype)
+
 
 def broadcast(t):
     return _op_lib.broadcast(t)
@@ -326,7 +374,8 @@ def ako_p2p(gradients, fraction):
     """Partial gradient exchange using Ako P2P"""
     import tensorflow as tf
 
-    print("Constructing Ako P2P negotiator with budget fraction %f." % fraction)
+    print("Constructing Ako P2P negotiator with budget fraction %f." %
+          fraction)
 
     total_size = sum([_tensor_size(t) for t in gradients])
     budget = int(fraction * total_size)
@@ -347,7 +396,6 @@ def ako_p2p(gradients, fraction):
     with tf.control_dependencies(send_ops):
         merged_grads = [merge_received(g) for g in gradients]
         return merged_grads
-
 
 
 def _concat(ts):
