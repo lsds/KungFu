@@ -71,11 +71,11 @@ class PartialNegotiator : public AsyncOpKernel
             context, count_gradients_ > 0,
             errors::InvalidArgument("gradient count must be greater than 0"));
 
-        // _partial_exchange_manager->setCountGradients(count_gradients_);
-        // _partial_exchange_manager->setBudget(budget);
-        // _partial_exchange_manager->addTensorInfo(input_tensor_name_,
-        //                                          tensorSize_);
-        // _partial_exchange_manager->setFraction(initial_fraction_);
+        _partial_exchange_manager->setCountGradients(count_gradients_);
+        _partial_exchange_manager->setBudget(budget);
+        _partial_exchange_manager->addTensorInfo(input_tensor_name_,
+                                                 tensorSize_);
+        _partial_exchange_manager->setFraction(initial_fraction_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -97,9 +97,6 @@ class PartialNegotiator : public AsyncOpKernel
                                      gradients.NumElements(),
                                      to_kungfu_type(gradients.dtype()),
                                      KungFu_SUM, input_tensor_name_.c_str(), done);
-            // Because it is synchronous, the done callback will signal when the
-            // value held
-            // in the memory where output points to is ready to be used.
         } else {
             *output = gradients;
             done();
