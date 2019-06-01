@@ -87,7 +87,7 @@ func (c *tcpConnection) Read(msgName string, m Message) error {
 
 	var mh messageHeader
 	mh.ReadFrom(c.conn)
-	if mh.Name != msgName { 
+	if string(mh.Name) != msgName { 
 		return errors.New("No match between message header name and message name.")
 	}
 	return m.ReadInto(c.conn)

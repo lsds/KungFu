@@ -16,15 +16,6 @@ type ModelStore struct {
 
 }
 
-func NewModelStore() *ModelStore {
-    s := &ModelStore{
-			modelStore : nil,
-	}
-	return s
-}
-
-
-
 func (store *ModelStore) UpdateModelStore(modelVersionName string, model *kb.Buffer) error {
 	store.modelStoreMutex.Lock()
 	defer store.modelStoreMutex.Unlock()

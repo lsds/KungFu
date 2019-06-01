@@ -68,9 +68,6 @@ def save_model(variables):
 
 def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     import tensorflow as tf
-    request_avg_ops = []
-    var_shapes = [var.shape for var in variables]
-
     var_sizes = [var.shape.num_elements() for var in variables]
 
     # Remove self rank from the list
@@ -103,7 +100,6 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
 
 def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     import tensorflow as tf
-    request_avg_ops = []
     var_shapes = [var.shape for var in variables]
 
     var_sizes = [var.shape.num_elements() for var in variables]
