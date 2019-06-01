@@ -40,19 +40,19 @@ class partition
 
 class Plan {
     public:
-        Plan() : next_repartition_step(1) {}
+        Plan() : next_repartition_step_(1) {}
         Plan(int s, std::vector<partition> parts) {
-            next_repartition_step = s;
-            parts = partitions;
+            next_repartition_step_ = s;
+            partitions_ = parts;
         }
 
         friend std::ostream &operator<<(std::ostream &os, const Plan &p)
         {
-            os << "Plan{next_repartition_step=" << p.next_repartition_step << "}";
-            os << "Plan{#partitions=" << p.partitions.size() << "}";
+            os << "Plan{next_repartition_step=" << p.next_repartition_step_ << ", ";
+            os << "#partitions=" << p.partitions_.size() << "}";
             return os;
         }
 
-        int next_repartition_step;
-        std::vector<partition> partitions;
+        int next_repartition_step_;
+        std::vector<partition> partitions_;
 };

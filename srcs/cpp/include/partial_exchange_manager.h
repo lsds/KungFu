@@ -23,15 +23,15 @@
 class partial_exchange_manager
 {
     std::unordered_map<int, float> schedule_;
-    std::unordered_map<int, int> stepToNextStep_;
+    std::vector<int> repartition_steps_;
     std::vector<tensor_meta> tensors_;
 
-    int32_t count_gradients_;
-    int32_t total_size_bytes_;
+    size_t count_gradients_;
+    size_t total_size_bytes_;
 
     std::mutex mu_;
 
-    void print_maps() {
+    void print_schedule() {
         std::cout << "Schedule" << std::endl;
         std::unordered_map<int, float>::iterator it;
         for ( it = schedule_.begin(); it != schedule_.end(); it++ )
@@ -41,18 +41,9 @@ class partial_exchange_manager
                     << it->second
                     << std::endl ;
         }
-        std::cout << "Step to NextStep" << std::endl;
-        std::unordered_map<int, int>::iterator itNxt;
-        for ( itNxt = stepToNextStep_.begin(); itNxt != stepToNextStep_.end(); itNxt++ )
-        {
-            std::cout << itNxt->first  
-                    << ':'
-                    << itNxt->second
-                    << std::endl ;
-        }
     }
 
-    std::vector<partition> bin_pack(int32_t budget)
+    std::vector<partition> bin_pack(float budget)
     {   
         if((int) tensors_.size() != count_gradients_) {
             throw "Some tensors have not been added to the Partial Exchange Manager";
@@ -65,8 +56,13 @@ class partial_exchange_manager
         std::sort(tensors_.begin(), tensors_.end(), grt);
 
         if (tensors_[0].size > budget) {
+            std::cout << "Infeasible to bin-pack: provide higher fraction." << std::endl;
+            std::cout << "budget=" << budget << ", max tensor size=" << tensors_[0].size << std::endl;
+            
             throw "Infeasible to bin-pack: provide higher fraction.";
         }
+
+        //std::cout << "Partitioning budget is " << budget << std::endl;
 
         int bin_counter = 1;
         std::vector<partition> partitions;
@@ -89,6 +85,7 @@ class partial_exchange_manager
                 }
             }
         }
+
         return partitions;
     }
 
@@ -101,20 +98,21 @@ class partial_exchange_manager
     void addSchedule(std::vector<int>& steps, std::vector<float>& fractions) {
         std::lock_guard<std::mutex> l(mu_);
         if(steps.size() != fractions.size()) {
+            std::cout << "Invalid schedule: number of steps must equal number of fractions" << std::endl;
             throw "Invalid schedule: number of steps must equal number of fractions";
         }
-        int step = -1;
-        for(int i = 0; i < (int) steps.size(); i++) {
+
+        repartition_steps_ = std::vector<int>(steps.size(), UINT32_MAX);
+        for(size_t i = 0; i < steps.size(); i++) {
             schedule_[steps[i]] = fractions[i];
-            stepToNextStep_[step] = steps[i];
-            step = steps[i];
+            repartition_steps_[i] = steps[i];
         }
     }
 
-    void addGlobalTensorInfo(int count_gradients, int total_size_bytes) {
+    void addGlobalTensorInfo(size_t count_gradients, size_t total_size_bytes) {
         std::lock_guard<std::mutex> l(mu_);
         count_gradients_  = count_gradients;
-        total_size_bytes_ = total_size_bytes_; 
+        total_size_bytes_ = total_size_bytes; 
     }
 
     void addTensorInfo(std::string name, const int32_t size)
@@ -126,33 +124,34 @@ class partial_exchange_manager
     }
 
 
-    Plan repartition(int gs) {
+    Plan repartition(int64_t gs) {
         std::lock_guard<std::mutex> l(mu_);        
 
-        print_maps();
+        size_t next_step = UINT32_MAX;
+        for(size_t i = 0; i < repartition_steps_.size() - 1; i++)  {
+            if (gs == repartition_steps_[i]) { 
+                next_step = repartition_steps_[i + 1]; 
+                break;
+            }
+        }
 
+        
         float new_fraction = -1;
         if (schedule_.find(gs) == schedule_.end()) {
             std::cout << "gs " << gs << " not in schedule map. " << std::endl;
             throw;
         } else {
-            new_fraction = schedule_[new_fraction];
+            new_fraction = schedule_[gs];
         }
 
-        int next_repartitioning_step = -1;
-        if (stepToNextStep_.find(gs) == stepToNextStep_.end()) {
-            std::cout << "gs " << gs << " not in step to next step map. " << std::endl;
-            throw;  
-        } else {
-            next_repartitioning_step = stepToNextStep_[gs];
-        }
+        print_schedule();
 
         if (new_fraction == -1) {
-            return Plan(-1, std::vector<partition>());
+            return Plan(next_step, std::vector<partition>());
         }
 
-        std::vector<partition> newPartitions = bin_pack(new_fraction * total_size_bytes_);
+        std::vector<partition> new_partitions = bin_pack(new_fraction * total_size_bytes_);
 
-        return Plan(next_repartitioning_step, newPartitions);
+        return Plan(next_step, new_partitions);
     }
 };

@@ -51,13 +51,13 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
         OP_REQUIRES_OK(context, context->GetAttr("fractions", &fractions));
 
         // Global gradient tensors info
-        int32_t count_gradients;
-        int32_t total_size_bytes;
+        int count_gradients;
+        int total_size_bytes;
         OP_REQUIRES_OK(context, context->GetAttr("count_gradients", &count_gradients));
         OP_REQUIRES_OK(context, context->GetAttr("total_size", &total_size_bytes));
 
         _partial_exchange_manager->addSchedule(steps, fractions);
-        _partial_exchange_manager->addGlobalTensorInfo(count_gradients, total_size_bytes);
+        _partial_exchange_manager->addGlobalTensorInfo((size_t) count_gradients, (size_t)total_size_bytes);
         _partial_exchange_manager->addTensorInfo(input_tensor_name_, tensor_size);
     }
 
@@ -73,14 +73,13 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
 
         int64_t gs = (int64_t) _kungfu_world->GetGlobalStep();    
 
-        std::cout << "Current plan is: " << plan << std::endl;
-
-        if(gs == plan.next_repartition_step) {
-           if(gs == 1) { gs = 0; }
+        if(gs == plan.next_repartition_step_) {
            plan = _partial_exchange_manager->repartition(gs);
         }
 
-        partition current_partition = plan.partitions[gs];
+        //std::cout << "Current plan is: " << plan << std::endl;
+
+        partition current_partition = plan.partitions_[gs % plan.partitions_.size()];
         if (current_partition.tensorNames.find(input_tensor_name_) != current_partition.tensorNames.end()) {
             _kungfu_world->AllReduce(gradients.tensor_data().data(),
                                      (void *)(output->tensor_data().data()),
@@ -90,10 +89,7 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
         } else {
             *output = gradients;
             done();
-        }
-
-
-       
+        }       
     }
 };
 

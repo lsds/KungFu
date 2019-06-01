@@ -162,6 +162,7 @@ def start_gpu_group(*args, **kwargs):
 # Based on Andrei-Octavian Brabete, Dynamic Partitioning done within C++ operator
 def partial_exchange_group_all_reduce_with_schedule(ts, batch_size, num_train, schedule):
     steps, fractions = _parse_schedule(schedule, batch_size, num_train)
+    steps[0] = 1 # The first global step is 1
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
 
     trained_steps_op = tf.Variable(tf.zeros([], tf.int32))
@@ -189,6 +190,11 @@ def partial_exchange_group_all_reduce(ts, batch_size, num_train, fraction=0.3, a
     with tf.control_dependencies([modify_trained_steps_op]):
         return [partial_exchange_all_reduce(t, budget, len(ts), accumulate, average, fraction, num_train / (batch_size * get_num_peers())) for t in ts]
 
+def _try_as_int(s):
+    try:
+        return int(s)
+    except ValueError:
+        return float(s)
 
 def _parse_schedule(schedule, batch_size, num_train):
     # schedule is of the form
@@ -198,7 +204,7 @@ def _parse_schedule(schedule, batch_size, num_train):
     print("Batch size: " + str(batch_size))
     to_gs = lambda epoch: int(epoch * num_train / (batch_size * get_num_peers(
     )))
-    pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
+    pairs = [(to_gs(_try_as_int(t.split(":")[0])), float(t.split(":")[1]))
              for t in tokens]
     steps, fractions = zip(*pairs)
     steps, fractions = list(steps), list(fractions)
