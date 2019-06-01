@@ -23,7 +23,7 @@ type ContainerInfo struct {
 	ClusterSpec *plan.ClusterSpec
 }
 
-func ParseEnv(np int) (*ContainerInfo, error) {
+func ParseEnv() (*ContainerInfo, error) {
 	idx, err := requireInt(TaskIndexEnvKey)
 	if err != nil {
 		return nil, err
