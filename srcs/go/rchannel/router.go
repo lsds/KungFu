@@ -31,7 +31,7 @@ func NewRouter(self plan.PeerSpec) *Router {
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
-		modelStore: NewModelStore(),
+		modelStore: &ModelStore{},
 	}
 }
 
