@@ -10,13 +10,6 @@ import tensorflow as tf
 from kungfu.helpers.ako_partitioner import AkoPartitioner
 from kungfu.helpers.bin_pack_partitioner import BinPackPartitioner
 
-
-def get_num_peers():
-    import json, os
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    num_peers = len(cluster_spec['Peers'])
-    return num_peers
-
 def get_num_peers():
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
