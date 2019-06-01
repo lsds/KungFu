@@ -53,13 +53,6 @@ def _get_self_rank():
     import os
     return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
 
-
-def _get_num_peers():
-    import json, os
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    return len(cluster_spec['Peers'])
-
-
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
@@ -360,35 +353,6 @@ def partial_exchange_with_gpu_allreduce(ts,
 
     with tf.control_dependencies([advance_gs]):
         return reordered_cond_ops
-
-
-def ako_p2p(gradients, fraction):
-    """Partial gradient exchange using Ako P2P"""
-    import tensorflow as tf
-
-    print("Constructing Ako P2P negotiator with budget fraction %f." %
-          fraction)
-
-    total_size = sum([_tensor_size(t) for t in gradients])
-    budget = int(fraction * total_size)
-    indexes, num_partitions = _bin_pack(
-        dict((t.name, _tensor_size(t)) for t in gradients), budget)
-    groups = [[] for _ in range(num_partitions)]
-    for t in gradients:
-        groups[indexes[t.name]].append(t)
-
-    send_ops = []
-    for dest_rank in range(_get_num_peers()):
-        k = dest_rank % num_partitions
-        group_k = groups[k]
-        for g in group_k:
-            send_op = send_to(dest_rank, g)
-            send_ops.append(send_op)
-
-    with tf.control_dependencies(send_ops):
-        merged_grads = [merge_received(g) for g in gradients]
-        return merged_grads
-
 
 def _concat(ts):
     import tensorflow as tf

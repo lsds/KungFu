@@ -71,8 +71,8 @@ extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, const char *name,
                            DoneCallback done);
 
-extern int KungfuRequest(int destinationRank, void *model, int count, KungFu_Datatype dtype, DoneCallback done);
-extern int KungfuRequest(int destinationRank, void *model, int count, KungFu_Datatype dtype);
+extern int KungfuRequest(int destRank, void *model, int count, KungFu_Datatype dtype, DoneCallback done);
+extern int KungfuRequest(int destRank, void *model, int count, KungFu_Datatype dtype);
 extern int KungfuUpdateModelStore(const char *name, const void *model, int count,
                                   KungFu_Datatype dtype, DoneCallback done);
 
@@ -105,14 +105,14 @@ class kungfu_world
 
     void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
 
-    int Request(int destinationRank, void *model, int count, KungFu_Datatype dtype, DoneCallback done)
+    int Request(int destRank, void *model, int count, KungFu_Datatype dtype, DoneCallback done)
     {
-        return KungfuRequest(destinationRank, model, count, dtype, done);
+        return KungfuRequest(destRank, model, count, dtype, done);
     }
 
-    int Request(int destinationRank, void *model, int count, KungFu_Datatype dtype)
+    int Request(int destRank, void *model, int count, KungFu_Datatype dtype)
     {
-        return KungfuRequest(destinationRank, model, count, dtype);
+        return KungfuRequest(destRank, model, count, dtype);
     }
 
     int UpdateModelStore(const char *name, const void *model, int count,

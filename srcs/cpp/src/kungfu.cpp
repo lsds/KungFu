@@ -13,18 +13,18 @@ int KungfuInit(KungFu_AllReduceAlgo algo)
 
 int KungfuFinalize() { return GoKungfuFinalize(); }
 
-int KungfuRequest(int destinationRank, 
+int KungfuRequest(int destRank, 
                  void *model, int count,
                  KungFu_Datatype dtype, DoneCallback done)
 {
-    return GoKungfuRequest(destinationRank, (void *) model, GoInt(count), GoInt(dtype), new CallbackWrapper(done));
+    return GoKungfuRequest(destRank, (void *) model, GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
-int KungfuRequest(int destinationRank, 
+int KungfuRequest(int destRank, 
                  void *model, int count,
                  KungFu_Datatype dtype)
 {
-    return GoKungfuRequest(destinationRank, (void *) model, GoInt(count), GoInt(dtype), nullptr);
+    return GoKungfuRequest(destRank, (void *) model, GoInt(count), GoInt(dtype), nullptr);
 }
 
 
