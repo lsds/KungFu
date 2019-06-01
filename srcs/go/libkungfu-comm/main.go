@@ -9,6 +9,7 @@ import (
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -56,8 +57,7 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 	}
 
 	go func() {
-		isMonitoring := os.Getenv("REQUEST_LATENCY_MEASUREMENT")
-		if isMonitoring == "true" {
+		if kc.LatencyMonitoring {
 			start := time.Now()
 			sess.RequestModel(rank, toBuffer(model, count, dtype))
 			elapsed := time.Since(start)
