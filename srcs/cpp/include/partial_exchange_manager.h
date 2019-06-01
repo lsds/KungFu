@@ -45,7 +45,7 @@ class partial_exchange_manager
 
     std::vector<partition> bin_pack(float budget)
     {   
-        if((int) tensors_.size() != count_gradients_) {
+        if(tensors_.size() != count_gradients_) {
             throw "Some tensors have not been added to the Partial Exchange Manager";
         }
 
