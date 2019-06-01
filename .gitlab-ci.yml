@@ -71,6 +71,6 @@ format test:
   - apk add git go
 
   script:
-  - gofmt -w src/
+  - gofmt -w .
   # TODO: check cpp and python format
   - git diff --exit-code
