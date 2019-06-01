@@ -150,9 +150,9 @@ func (sess *session) RequestModel(rank int, model *kb.Buffer) int {
 	return code(sess.router.Request(peer.NetAddr.WithName("ModelRequestInGo"), rch.ConnPeerToPeer, model))
 }
 
-func (sess *session) UpdateModelStore(updateName string, model *kb.Buffer) int {
-	// updateName includes the global step at which the entire model update is done
-	 return code(sess.router.UpdateModelStore(updateName, model))
+func (sess *session) UpdateModelStore(modelVersionName string, model *kb.Buffer) int {
+	// modelVersionName includes the global step at which the entire model update is done
+	 return code(sess.router.UpdateModelStore(modelVersionName, model))
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {

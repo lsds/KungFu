@@ -14,8 +14,8 @@ import (
 // Connection is a simplex logical connection from one peer to another
 type Connection interface {
 	io.Closer
-	Send(name string, m Message) error
-	Read(name string, m Message) error 
+	Send(msgName string, m Message) error
+	Read(msgName string, m Message) error 
 }
 
 func parseIPv4(host string) uint32 {
@@ -67,10 +67,10 @@ type tcpConnection struct {
 	conn net.Conn
 }
 
-func (c *tcpConnection) Send(name string, m Message) error {
+func (c *tcpConnection) Send(msgName string, m Message) error {
 	c.Lock()
 	defer c.Unlock()
-	bs := []byte(name)
+	bs := []byte(msgName)
 	mh := messageHeader{
 		NameLength: uint32(len(bs)),
 		Name:       bs,
