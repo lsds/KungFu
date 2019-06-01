@@ -50,6 +50,7 @@ IF(KUNGFU_BUILD_TF_OPS)
     ADD_TF_OP_LIB(kungfu_tensorflow_ops #
                   srcs/cpp/src/tensorflow/ops/common.cpp
                   srcs/cpp/src/tensorflow/ops/collective.cpp
+                  srcs/cpp/src/tensorflow/ops/p2p.cpp
                   srcs/cpp/src/tensorflow/ops/bin_packing_with_schedule.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
