@@ -17,7 +17,7 @@
 /* Off-line bin packing algorithm
    1. Best-fit decreasing NO
    2. First-fit decreasing YES
-   Bin packing algorithm based on:
+   bin_pack() function based on:
    https://www.youtube.com/watch?v=uDdMuUWf6h4 
 */
 class partial_exchange_manager
@@ -61,8 +61,6 @@ class partial_exchange_manager
             
             throw "Infeasible to bin-pack: provide higher fraction.";
         }
-
-        //std::cout << "Partitioning budget is " << budget << std::endl;
 
         int bin_counter = 1;
         std::vector<partition> partitions;
