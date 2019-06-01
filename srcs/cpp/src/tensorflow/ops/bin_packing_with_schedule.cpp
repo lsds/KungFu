@@ -77,8 +77,6 @@ class PartialNegotiatorWithSchedule : public AsyncOpKernel
            plan = _partial_exchange_manager->repartition(gs);
         }
 
-        //std::cout << "Current plan is: " << plan << std::endl;
-
         partition current_partition = plan.partitions_[gs % plan.partitions_.size()];
         if (current_partition.tensorNames.find(input_tensor_name_) != current_partition.tensorNames.end()) {
             _kungfu_world->AllReduce(gradients.tensor_data().data(),
