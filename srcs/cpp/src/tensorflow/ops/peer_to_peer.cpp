@@ -118,6 +118,7 @@ class HybridModelAveraging : public AsyncOpKernel
     std::vector<int> steps_;
     std::vector<std::string> strategies_;
     int KF_INTERVAL = 10;
+    bool changed = false;
 
   public:
     explicit HybridModelAveraging(OpKernelConstruction *context)
@@ -170,6 +171,10 @@ class HybridModelAveraging : public AsyncOpKernel
             }
             done();
         } else {
+            if(!changed) {
+                std::cout << "Changing to KungFu at global step " + std::to_string(gs) << std::endl;
+                changed = true;
+            }
             if (gs % KF_INTERVAL == 0) {
                 for (int i = 0; i < var_sizes_.size(); i++) {
                     const Tensor &input = context->input(i);
