@@ -237,16 +237,16 @@ class AsyncModelAveraging : public OpKernel
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetchCallback = [
-                    &, mb = modelBuf_->data(), pb = prefetchBuf_->data(),
+                    &, mb = modelBuf_.get(), pb = prefetchBuf_.get(),
                     total_var_size_ = total_var_size_,
                     var_type_size_  = var_type_size_
             ]()
             {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy((unsigned char *)pb,
-                          (unsigned char *)pb +
+                std::copy((unsigned char *)pb->data(),
+                          (unsigned char *)pb->data() +
                               total_var_size_ * var_type_size_,
-                          (unsigned char *)mb);
+                          (unsigned char *)mb->data());
                 isRequesting = false;
             };
         }
@@ -525,16 +525,16 @@ class AsyncRequestModel : public OpKernel
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetchCallback = [
-                    &, mb = modelBuf_->data(), pb = prefetchBuf_->data(),
+                    &, mb = modelBuf_.get(), pb = prefetchBuf_.get(),
                     total_var_size_ = total_var_size_,
                     var_type_size_  = var_type_size_
             ]()
             {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy((unsigned char *)pb,
-                          (unsigned char *)pb +
+                std::copy((unsigned char *)pb->data(),
+                          (unsigned char *)pb->data() +
                               total_var_size_ * var_type_size_,
-                          (unsigned char *)mb);
+                          (unsigned char *)mb->data());
                 isRequesting = false;
             };
         }
