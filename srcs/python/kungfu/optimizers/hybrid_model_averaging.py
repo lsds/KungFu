@@ -26,7 +26,7 @@ def _parse_schedule(schedule, num_train, batch_size):
     tokens = schedule.split(",")
     print("Num train: " + str(num_train))
     print("Batch size: " + str(batch_size))
-    to_gs = lambda epoch: int(epoch * num_train / (batch_size * _get_num_peers()))
+    to_gs = lambda epoch: int(epoch * num_train / batch_size)
     pairs = [(to_gs(_try_as_int(t.split(":")[0])), t.split(":")[1])
              for t in tokens]
     steps, strategies = zip(*pairs)
