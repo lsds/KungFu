@@ -52,8 +52,6 @@ class ModelBuffer
     }
 
     void *data() const { return (void *) data_.data(); }
-
-    bool empty() { return data_.empty(); }
 };
 
 }  // namespace tensorflow

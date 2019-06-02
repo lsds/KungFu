@@ -46,9 +46,7 @@ class RoundRobinSelector : public SelectionStrategy
     const std::vector<int> values_;
 
   public:
-    RoundRobinSelector(const std::vector<int> &values) : values_(values), t_(0)
-    {
-    }
+    RoundRobinSelector(const std::vector<int> &values) : values_(values), t_(0) {}
 
     int next()
     {
@@ -107,12 +105,9 @@ class ModelAveraging : public OpKernel
     // The pointer to the model buffer
     std::unique_ptr<ModelBuffer> modelBuf_;
 
-    // The current global step
-    int gs;
-
   public:
     explicit ModelAveraging(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -136,11 +131,9 @@ class ModelAveraging : public OpKernel
         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
-    ~ModelAveraging() {}
 
     void Compute(OpKernelContext *context) override
     {
-        gs++;
         int destination = _peer_selection_strategy->next();
 
         _kungfu_world->Request(destination, modelBuf_->data(), total_var_size_,
@@ -191,14 +184,13 @@ class AsyncModelAveraging : public OpKernel
     std::unique_ptr<ModelBuffer> prefetchBuf_;
     std::function<void()> prefetchCallback;
 
-    int gs;
 
     std::mutex mu_;
     std::atomic<bool> isRequesting;
 
   public:
     explicit AsyncModelAveraging(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), var_type_size_(0), total_var_size_(0),
+        : OpKernel(context), var_type_size_(0), total_var_size_(0),
           isRequesting(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
@@ -223,11 +215,9 @@ class AsyncModelAveraging : public OpKernel
         prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
-    ~AsyncModelAveraging() {}
 
     void Compute(OpKernelContext *context) override
     {
-        gs++;
         int destination = _peer_selection_strategy->next();
 
         if (modelBuf_.get() == nullptr) {
@@ -298,12 +288,13 @@ class SaveModel : public OpKernel
 
     std::unique_ptr<ModelBuffer> modelBuf_;
 
-    int gs;
     std::atomic<bool> isSaving;
+
+    int gs;
 
   public:
     explicit SaveModel(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), var_type_size_(0), total_var_size_(0),
+        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0),
           isSaving(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
@@ -322,7 +313,6 @@ class SaveModel : public OpKernel
         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
-    ~SaveModel() {}
 
     void Compute(OpKernelContext *context) override
     {
@@ -376,11 +366,10 @@ class RequestModel : public OpKernel
     int var_type_size_;
     int total_var_size_;
     std::unique_ptr<ModelBuffer> modelBuf_;
-    int gs;
 
   public:
     explicit RequestModel(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -411,11 +400,9 @@ class RequestModel : public OpKernel
         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
-    ~RequestModel() {}
 
     void Compute(OpKernelContext *context) override
     {
-        gs++;
         std::vector<Tensor *> outputs(num_model_vars_, nullptr);
         for (int i = 0; i < num_model_vars_; i++) {
             OP_REQUIRES_OK(
@@ -466,14 +453,13 @@ class AsyncRequestModel : public OpKernel
     std::unique_ptr<ModelBuffer> modelBuf_;
     std::unique_ptr<ModelBuffer> prefetchBuf_;
     std::function<void()> prefetchCallback;
-    int gs;
 
     std::mutex mu_;
     std::atomic<bool> isRequesting;
 
   public:
     explicit AsyncRequestModel(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), var_type_size_(0), total_var_size_(0),
+        : OpKernel(context), var_type_size_(0), total_var_size_(0),
           isRequesting(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
@@ -505,11 +491,9 @@ class AsyncRequestModel : public OpKernel
         prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
-    ~AsyncRequestModel() {}
 
     void Compute(OpKernelContext *context) override
     {
-        gs++;
         std::vector<Tensor *> outputs(num_model_vars_, nullptr);
         for (int i = 0; i < num_model_vars_; i++) {
             OP_REQUIRES_OK(
