@@ -9,16 +9,18 @@
 #include <mutex>
 #include <random>
 
+#include "model_buffer.hpp"
+
 class SelectionStrategy
 {
   public:
-    void setGlobalStep(int gs) {
-        gs_ = gs;
-    }
-   
-    virtual int getDestinationPeer() = 0;
-  protected:
-    int gs_;
+    virtual ~SelectionStrategy() {}
+
+    virtual int next() = 0;
+
+    // Factory method
+    static SelectionStrategy *create(const std::string &name,
+                                     const std::vector<int> &values);
 };
 
 class RandomSelector : public SelectionStrategy
@@ -27,35 +29,46 @@ class RandomSelector : public SelectionStrategy
     std::mt19937 engine{random_device()};
     std::uniform_int_distribution<int> dist;
 
-    int self_rank_;
-    std::vector<int> ranks_;
+    const std::vector<int> values_;
 
   public:
-    RandomSelector(int self_rank, std::vector<int> ranks)
-        : self_rank_(self_rank), ranks_(ranks)
+    RandomSelector(const std::vector<int> &values) : values_(values)
     {
-        dist   = std::uniform_int_distribution<int>(0, ranks_.size() - 1);
+        dist = std::uniform_int_distribution<int>(0, values.size() - 1);
     }
 
-    int getDestinationPeer()
-    {
-        // Assumes self_rank already excluded from ranks_
-        int destination = ranks_[dist(engine)];
-        return destination;
-    }
+    int next() { return values_.at(dist(engine)); }
 };
 
 class RoundRobinSelector : public SelectionStrategy
 {
-    int self_rank_;
-    std::vector<int> ranks_;
+    int t_;
+    const std::vector<int> values_;
 
   public:
-    RoundRobinSelector(int self_rank, std::vector<int> ranks)
-        : self_rank_(self_rank), ranks_(ranks) {}
+    RoundRobinSelector(const std::vector<int> &values) : values_(values), t_(0)
+    {
+    }
 
-    int getDestinationPeer() { return ranks_[gs_ % ranks_.size()]; }
+    int next()
+    {
+        const int now = t_;
+        t_            = (t_ + 1) % values_.size();
+        return values_.at(now);
+    }
 };
+
+SelectionStrategy *SelectionStrategy::create(const std::string &name,
+                                             const std::vector<int> &values)
+{
+    if (name == "random") {
+        return new RandomSelector(values);
+    } else if (name == "roundrobin") {
+        return new RoundRobinSelector(values);
+    } else {
+        throw std::invalid_argument("unsupported selection strategy: " + name);
+    }
+}
 
 namespace tensorflow
 {
@@ -92,26 +105,24 @@ class ModelAveraging : public OpKernel
     int total_var_size_;
 
     // The pointer to the model buffer
-    std::vector<unsigned char> modelBuf_;
+    ModelBuffer modelBuf_;
 
     // The current global step
     int gs;
 
-    void check_attrs(OpKernelConstruction *context)
+  public:
+    explicit ModelAveraging(OpKernelConstruction *context)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        OP_REQUIRES(context, ranks_.size() > 0,
+                    errors::InvalidArgument("ranks must not be empty"));
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        if (peer_selection_strategy == "random") {
-            _peer_selection_strategy.reset(new RandomSelector(self_rank_, ranks_));
-        } else if (peer_selection_strategy == "roundrobin") {
-            _peer_selection_strategy.reset(new RoundRobinSelector(self_rank_, ranks_));
-        } else {
-            throw "Unsupported peer selection strategy: " +
-                peer_selection_strategy;
-        }
+        _peer_selection_strategy.reset(
+            SelectionStrategy::create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
@@ -120,16 +131,10 @@ class ModelAveraging : public OpKernel
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
-        total_var_size_ = 0;
-        for (int var_size : var_sizes_) { total_var_size_ += var_size; }
-    }
-
-  public:
-    explicit ModelAveraging(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0)
-    {
-        check_attrs(context);
-        modelBuf_ = std::vector<unsigned char>(total_var_size_ * var_type_size_);
+        total_var_size_ =
+            std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
+        modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
+        modelBuf_.resize(total_var_size_ * var_type_size_);
     }
 
     ~ModelAveraging() {}
@@ -137,19 +142,16 @@ class ModelAveraging : public OpKernel
     void Compute(OpKernelContext *context) override
     {
         gs++;
-        _peer_selection_strategy->setGlobalStep(gs);
-        int destination = _peer_selection_strategy->getDestinationPeer();
+        int destination = _peer_selection_strategy->next();
 
-        _kungfu_world->Request(destination, (void *)&modelBuf_[0], total_var_size_,
+        _kungfu_world->Request(destination, modelBuf_.data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
         int offset = 0;
         for (int i = 0; i < var_sizes_.size(); i++) {
             Tensor &input = (Tensor &)context->input(i);
             Tensor other(input.dtype(), input.shape());
-            std::copy(offset + &modelBuf_[0],
-                      offset + &modelBuf_[0] + var_sizes_[i] * var_type_size_,
-                      (unsigned char *)other.tensor_data().data());
+            modelBuf_.copyTo(i, other);
             auto other_flt = other.flat<float>();
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
             std::copy((unsigned char *)other.tensor_data().data(),
@@ -186,8 +188,8 @@ class AsyncModelAveraging : public OpKernel
     int var_type_size_;
     int total_var_size_;
 
-    std::vector<unsigned char> modelBuf_;
-    std::vector<unsigned char> prefetchBuf;
+    ModelBuffer modelBuf_;
+    ModelBuffer prefetchBuf_;
     std::function<void()> prefetchCallback;
 
     int gs;
@@ -195,21 +197,20 @@ class AsyncModelAveraging : public OpKernel
     std::mutex mu_;
     std::atomic<bool> isRequesting;
 
-    void check_attrs(OpKernelConstruction *context)
+  public:
+    explicit AsyncModelAveraging(OpKernelConstruction *context)
+        : OpKernel(context), gs(0), var_type_size_(0), total_var_size_(0),
+          isRequesting(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        OP_REQUIRES(context, ranks_.size() > 0,
+                    errors::InvalidArgument("ranks must not be empty"));
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        if (peer_selection_strategy == "random") {
-            _peer_selection_strategy.reset(new RandomSelector(self_rank_, ranks_));
-        } else if (peer_selection_strategy == "roundrobin") {
-            _peer_selection_strategy.reset(new RoundRobinSelector(self_rank_, ranks_));
-        } else {
-            throw "Unsupported peer selection strategy: " +
-                peer_selection_strategy;
-        }
+        _peer_selection_strategy.reset(
+            SelectionStrategy::create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
@@ -218,17 +219,10 @@ class AsyncModelAveraging : public OpKernel
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
-        total_var_size_ = 0;
-        for (int var_size : var_sizes_) { total_var_size_ += var_size; }
-    }
-
-  public:
-    explicit AsyncModelAveraging(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), var_type_size_(0), total_var_size_(0),
-          isRequesting(false)
-    {
-        check_attrs(context);
-        prefetchBuf = std::vector<unsigned char>(total_var_size_ * var_type_size_);
+        total_var_size_ =
+            std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
+        prefetchBuf_ = ModelBuffer(var_sizes_, var_type_size_);
+        prefetchBuf_.resize(total_var_size_ * var_type_size_);
     }
 
     ~AsyncModelAveraging() {}
@@ -236,23 +230,26 @@ class AsyncModelAveraging : public OpKernel
     void Compute(OpKernelContext *context) override
     {
         gs++;
-        _peer_selection_strategy->setGlobalStep(gs);
-        int destination = _peer_selection_strategy->getDestinationPeer();
+        int destination = _peer_selection_strategy->next();
 
         if (modelBuf_.empty()) {
-            modelBuf_ = std::vector<unsigned char>(total_var_size_ * var_type_size_);
+            modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
+            modelBuf_.resize(total_var_size_ * var_type_size_);
 
-            _kungfu_world->Request(destination, (void *)&modelBuf_[0],
+            _kungfu_world->Request(destination, modelBuf_.data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
-            prefetchCallback = [&, modelBuf_ = modelBuf_,
-                                prefetchBuf     = prefetchBuf,
-                                total_var_size_ = total_var_size_,
-                                var_type_size_  = var_type_size_]() {
+            prefetchCallback = [
+                    &, modelBuf = modelBuf_, prefetchBuf = prefetchBuf_,
+                    total_var_size_ = total_var_size_,
+                    var_type_size_  = var_type_size_
+            ]()
+            {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy(&prefetchBuf[0],
-                          &prefetchBuf[0] + total_var_size_ * var_type_size_,
-                          (unsigned char *)&modelBuf_[0]);
+                std::copy((unsigned char *)prefetchBuf.data(),
+                          (unsigned char *)prefetchBuf.data() +
+                              total_var_size_ * var_type_size_,
+                          (unsigned char *)modelBuf.data());
                 isRequesting = false;
             };
         }
@@ -260,7 +257,7 @@ class AsyncModelAveraging : public OpKernel
         if (!isRequesting.load()) {
             isRequesting = true;
             _kungfu_world->Request(
-                destination, (void *)&prefetchBuf[0], total_var_size_,
+                destination, prefetchBuf_.data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetchCallback);
         }
 
@@ -270,9 +267,7 @@ class AsyncModelAveraging : public OpKernel
             for (int i = 0; i < var_sizes_.size(); i++) {
                 Tensor &input = (Tensor &)context->input(i);
                 Tensor other(input.dtype(), input.shape());
-                std::copy(offset + &modelBuf_[0],
-                          offset + &modelBuf_[0] + var_sizes_[i] * var_type_size_,
-                          (unsigned char *)other.tensor_data().data());
+                modelBuf_.copyTo(i, other);
                 auto other_flt = other.flat<float>();
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
                 std::copy((unsigned char *)other.tensor_data().data(),
@@ -304,7 +299,7 @@ class SaveModel : public OpKernel
     int var_type_size_;
     int total_var_size_;
 
-    std::vector<unsigned char> modelBuf_;
+    ModelBuffer modelBuf_;
 
     int gs;
     std::atomic<bool> isSaving;
@@ -325,10 +320,10 @@ class SaveModel : public OpKernel
                     errors::InvalidArgument(
                         "data type size in bytes must be greater than 0"));
 
-        total_var_size_ = 0;
-        for (int var_size : var_sizes_) { total_var_size_ += var_size; }
-
-        modelBuf_ = std::vector<unsigned char>(total_var_size_ * var_type_size_);
+        total_var_size_ =
+            std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
+        modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
+        modelBuf_.resize(total_var_size_ * var_type_size_);
     }
 
     ~SaveModel() {}
@@ -340,14 +335,9 @@ class SaveModel : public OpKernel
                     errors::InvalidArgument(
                         "Wrong number of inputs for operator SaveModel"));
 
-        int offset = 0;
         for (int i = 0; i < var_sizes_.size(); i++) {
             const Tensor &input = context->input(i);
-            std::copy((unsigned char *)input.tensor_data().data(),
-                      (unsigned char *)input.tensor_data().data() +
-                          var_sizes_[i] * var_type_size_,
-                      &modelBuf_[0] + offset);
-            offset += var_sizes_[i] * var_type_size_;
+            modelBuf_.copyFrom(i, input);
         }
 
         if (!isSaving.load()) {
@@ -355,7 +345,7 @@ class SaveModel : public OpKernel
             std::string updateName =
                 "ModelStoreUpdateAtGlobalStep " + std::to_string(gs);
             _kungfu_world->UpdateModelStore(
-                updateName.c_str(), (void *)&modelBuf_[0], total_var_size_,
+                updateName.c_str(), modelBuf_.data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()),
                 [&]() { isSaving = false; });
         }
@@ -389,27 +379,26 @@ class RequestModel : public OpKernel
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
-    std::vector<unsigned char> modelBuf_;
+    ModelBuffer modelBuf_;
     int gs;
 
-    void check_attrs(OpKernelConstruction *context)
+  public:
+    explicit RequestModel(OpKernelConstruction *context)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        OP_REQUIRES(context, ranks_.size() > 0,
+                    errors::InvalidArgument("ranks must not be empty"));
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        if (peer_selection_strategy == "random") {
-            _peer_selection_strategy.reset(new RandomSelector(self_rank_, ranks_));
-        } else if (peer_selection_strategy == "roundrobin") {
-            _peer_selection_strategy.reset(new RoundRobinSelector(self_rank_, ranks_));
-        } else {
-            throw "Unsupported peer selection strategy: " +
-                peer_selection_strategy;
-        }
+        _peer_selection_strategy.reset(
+            SelectionStrategy::create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &num_model_vars_));
+        OP_REQUIRES_OK(context,
+                       context->GetAttr("NumTensors", &num_model_vars_));
 
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
@@ -421,16 +410,10 @@ class RequestModel : public OpKernel
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
-        total_var_size_ = 0;
-        for (int var_size : var_sizes_) { total_var_size_ += var_size; }
-    }
-
-  public:
-    explicit RequestModel(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0)
-    {
-        check_attrs(context);
-        modelBuf_ = std::vector<unsigned char>(total_var_size_ * var_type_size_);
+        total_var_size_ =
+            std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
+        modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
+        modelBuf_.resize(total_var_size_ * var_type_size_);
     }
 
     ~RequestModel() {}
@@ -444,19 +427,15 @@ class RequestModel : public OpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        _peer_selection_strategy->setGlobalStep(gs);
-        int destination = _peer_selection_strategy->getDestinationPeer();
+        int destination = _peer_selection_strategy->next();
 
         // Fill in the model Buffer with response from random peer
-        _kungfu_world->Request(destination, (void *)&modelBuf_[0], total_var_size_,
+        _kungfu_world->Request(destination, (void *)modelBuf_.data(),
+                               total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
-        int offset = 0;
         for (int i = 0; i < var_sizes_.size(); i++) {
-            std::copy(offset + &modelBuf_[0],
-                      offset + &modelBuf_[0] + var_sizes_[i] * var_type_size_,
-                      (unsigned char *)outputs[i]->tensor_data().data());
-            offset += var_sizes_[i] * var_type_size_;
+            modelBuf_.copyTo(i, *outputs[i]);
         }
     }
 };
@@ -489,32 +468,32 @@ class AsyncRequestModel : public OpKernel
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
-    std::vector<unsigned char> modelBuf_;
-    std::vector<unsigned char> prefetchBuf;
+    ModelBuffer modelBuf_;
+    ModelBuffer prefetchBuf_;
     std::function<void()> prefetchCallback;
     int gs;
 
     std::mutex mu_;
     std::atomic<bool> isRequesting;
 
-    void check_attrs(OpKernelConstruction *context)
+  public:
+    explicit AsyncRequestModel(OpKernelConstruction *context)
+        : OpKernel(context), gs(0), var_type_size_(0), total_var_size_(0),
+          isRequesting(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        OP_REQUIRES(context, ranks_.size() > 0,
+                    errors::InvalidArgument("ranks must not be empty"));
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        if (peer_selection_strategy == "random") {
-            _peer_selection_strategy.reset(new RandomSelector(self_rank_, ranks_));
-        } else if (peer_selection_strategy == "roundrobin") {
-            _peer_selection_strategy.reset(new RoundRobinSelector(self_rank_, ranks_));
-        } else {
-            throw "Unsupported peer selection strategy: " +
-                peer_selection_strategy;
-        }
+        _peer_selection_strategy.reset(
+            SelectionStrategy::create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &num_model_vars_));
+        OP_REQUIRES_OK(context,
+                       context->GetAttr("NumTensors", &num_model_vars_));
 
         // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
@@ -526,17 +505,10 @@ class AsyncRequestModel : public OpKernel
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
-        total_var_size_ = 0;
-        for (int var_size : var_sizes_) { total_var_size_ += var_size; }
-    }
-
-  public:
-    explicit AsyncRequestModel(OpKernelConstruction *context)
-        : OpKernel(context), gs(0), var_type_size_(0), total_var_size_(0),
-          isRequesting(false)
-    {
-        check_attrs(context);
-        prefetchBuf = std::vector<unsigned char>(total_var_size_ * var_type_size_);
+        total_var_size_ =
+            std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
+        prefetchBuf_ = ModelBuffer(var_sizes_, var_type_size_);
+        prefetchBuf_.resize(total_var_size_ * var_type_size_);
     }
 
     ~AsyncRequestModel() {}
@@ -550,23 +522,26 @@ class AsyncRequestModel : public OpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        _peer_selection_strategy->setGlobalStep(gs);
-        int destination = _peer_selection_strategy->getDestinationPeer();
+        int destination = _peer_selection_strategy->next();
 
         if (modelBuf_.empty()) {
-            modelBuf_ = std::vector<unsigned char>(total_var_size_ * var_type_size_);
+            modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
+            modelBuf_.resize(total_var_size_ * var_type_size_);
 
-            _kungfu_world->Request(destination, (void *)&modelBuf_[0],
+            _kungfu_world->Request(destination, (void *)modelBuf_.data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
-            prefetchCallback = [&, modelBuf_ = modelBuf_,
-                                prefetchBuf     = prefetchBuf,
-                                total_var_size_ = total_var_size_,
-                                var_type_size_  = var_type_size_]() {
+            prefetchCallback = [
+                    &, modelBuf_ = modelBuf_, prefetchBuf_ = prefetchBuf_,
+                    total_var_size_ = total_var_size_,
+                    var_type_size_  = var_type_size_
+            ]()
+            {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy(&prefetchBuf[0],
-                          &prefetchBuf[0] + total_var_size_ * var_type_size_,
-                          (unsigned char *)&modelBuf_[0]);
+                std::copy((unsigned char *)prefetchBuf_.data(),
+                          (unsigned char *)prefetchBuf_.data() +
+                              total_var_size_ * var_type_size_,
+                          (unsigned char *)modelBuf_.data());
                 isRequesting = false;
             };
         }
@@ -574,18 +549,14 @@ class AsyncRequestModel : public OpKernel
         if (!isRequesting.load()) {
             isRequesting = true;
             _kungfu_world->Request(
-                destination, (void *)&prefetchBuf[0], total_var_size_,
+                destination, (void *)prefetchBuf_.data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetchCallback);
         }
 
         {
             std::lock_guard<std::mutex> l(mu_);
-            int offset = 0;
             for (int i = 0; i < var_sizes_.size(); i++) {
-                std::copy(offset + &modelBuf_[0],
-                          offset + &modelBuf_[0] + var_sizes_[i] * var_type_size_,
-                          (unsigned char *)outputs[i]->tensor_data().data());
-                offset += var_sizes_[i] * var_type_size_;
+                modelBuf_.copyTo(i, *outputs[i]);
             }
         }
     }
