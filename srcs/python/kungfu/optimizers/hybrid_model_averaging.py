@@ -46,6 +46,7 @@ class HybridPeerModelAveraging(KungFuOptimizer):
                  schedule,
                  num_train,
                  batch_size,
+                 all_reduce_interval=10,
                  model_averaging_device="cpu",
                  request_mode="sync",
                  peer_selection_strategy="random",
@@ -62,6 +63,7 @@ class HybridPeerModelAveraging(KungFuOptimizer):
         self.request_mode = request_mode
         self.model_averaging_device = model_averaging_device
         self.peer_selection_strategy = peer_selection_strategy
+        self.all_reduce_interval = all_reduce_interval
         self.steps, self.strategies = _parse_schedule(schedule, num_train, batch_size)
 
     @staticmethod
@@ -85,7 +87,8 @@ class HybridPeerModelAveraging(KungFuOptimizer):
             apply_avg_model = model_averaging_with_schedule(
                 [i for i in range(_get_num_peers())], variables,
                 self.request_mode, self.peer_selection_strategy,
-                self.steps, self.strategies)
+                self.steps, self.strategies,
+                self.all_reduce_interval)
 
             apply_op = self._optimizer.apply_gradients(grads_and_vars,
                                                        **kwargs)

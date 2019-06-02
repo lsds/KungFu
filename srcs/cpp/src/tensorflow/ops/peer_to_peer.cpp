@@ -82,6 +82,7 @@ REGISTER_OP("HybridModelAveraging")
     .Attr("var_sizes: list(int)")
     .Attr("var_names: list(string)")
     .Attr("steps: list(int)")
+    .Attr("all_reduce_interval: int")
     .Attr("strategies: list(string)")
     .Input("vars: NumTensors * T");
 
@@ -117,12 +118,12 @@ class HybridModelAveraging : public AsyncOpKernel
     int gs;
     std::vector<int> steps_;
     std::vector<std::string> strategies_;
-    int KF_INTERVAL = 10;
+    int all_reduce_interval_;
     bool changed = false;
 
   public:
     explicit HybridModelAveraging(OpKernelConstruction *context)
-        : AsyncOpKernel(context), var_type_size_(0), total_var_size_(0), gs(0)
+        : AsyncOpKernel(context), var_type_size_(0), total_var_size_(0), gs(0), all_reduce_interval_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -147,6 +148,7 @@ class HybridModelAveraging : public AsyncOpKernel
         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
         allReduceBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
+        OP_REQUIRES_OK(context, context->GetAttr("all_reduce_interval", &all_reduce_interval_));
         OP_REQUIRES_OK(context, context->GetAttr("steps", &steps_));
         OP_REQUIRES_OK(context, context->GetAttr("strategies", &strategies_));        
     }
@@ -175,7 +177,7 @@ class HybridModelAveraging : public AsyncOpKernel
                 std::cout << "Changing to KungFu at global step " + std::to_string(gs) << std::endl;
                 changed = true;
             }
-            if (gs % KF_INTERVAL == 0) {
+            if (gs % all_reduce_interval_ == 0) {
                 for (int i = 0; i < var_sizes_.size(); i++) {
                     const Tensor &input = context->input(i);
                     allReduceBuf_->copyFrom(i, input);

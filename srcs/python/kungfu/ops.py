@@ -65,7 +65,7 @@ def save_model(variables):
                               var_type_size=variables[0].dtype.size,
                               var_sizes=var_sizes)
 
-def model_averaging_with_schedule(peer_ranks, variables, mode, peer_selection_strategy, steps, strategies):
+def model_averaging_with_schedule(peer_ranks, variables, mode, peer_selection_strategy, steps, strategies, all_reduce_interval):
     import tensorflow as tf
     var_sizes = [var.shape.num_elements() for var in variables]
     var_names = [var.name for var in variables]
@@ -86,7 +86,8 @@ def model_averaging_with_schedule(peer_ranks, variables, mode, peer_selection_st
             var_names=var_names,
             peer_selection_strategy=peer_selection_strategy,
             steps=steps,
-            strategies=strategies)
+            strategies=strategies,
+            all_reduce_interval=all_reduce_interval)
     else:
         raise Exception("Invalid type of model request mode.")
 
