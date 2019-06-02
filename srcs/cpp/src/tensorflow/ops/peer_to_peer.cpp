@@ -112,6 +112,7 @@ class HybridModelAveraging : public AsyncOpKernel
 
     // The pointer to the model buffer
     std::unique_ptr<ModelBuffer> modelBuf_;
+    std::unique_ptr<ModelBuffer> allReduceBuf_;
 
     int gs;
     std::vector<int> steps_;
@@ -143,12 +144,10 @@ class HybridModelAveraging : public AsyncOpKernel
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
-
+        allReduceBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
         OP_REQUIRES_OK(context, context->GetAttr("steps", &steps_));
-        OP_REQUIRES_OK(context, context->GetAttr("strategies", &strategies_));
-
-
+        OP_REQUIRES_OK(context, context->GetAttr("strategies", &strategies_));        
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -173,34 +172,33 @@ class HybridModelAveraging : public AsyncOpKernel
         } else {
             if (gs % KF_INTERVAL == 0) {
                 for (int i = 0; i < var_sizes_.size(); i++) {
-                    Tensor &input = (Tensor &)context->input(i);
-
-                    std::function<void()> cb;
-                    if (i == var_sizes_.size()) {
-                        cb = [&, done=done, input=input]() {
-                                Tensor other = input;
-                                auto other_flt = other.flat<float>();
-                                other_flt = (1 / (ranks_.size() + 1)) * other_flt;
-                                std::copy(other.tensor_data().begin(), other.tensor_data().end(),
-                                          (char *)input.tensor_data().begin());
-                                done();
-                        };
-                    } else {
-                        cb = [&, input=input]() {
-                                Tensor other = input;
-                                auto other_flt = other.flat<float>();
-                                other_flt = (1 / (ranks_.size() + 1)) * other_flt;
-                                std::copy(other.tensor_data().begin(), other.tensor_data().end(),
-                                          (char *)input.tensor_data().begin());
-                        };
-                    }   
-                    
-                    _kungfu_world->AllReduce(
-                            input.tensor_data().data(), 
-                            (void *) input.tensor_data().data(), // all-reduce result here
-                            input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-                            var_names_[i].c_str(), cb);
+                    const Tensor &input = context->input(i);
+                    allReduceBuf_->copyFrom(i, input);
                 }
+                
+                std::function<void()> cb = [&, done=done, context=context]() {
+                    for (int i = 0; i < var_sizes_.size(); i++) {
+                        Tensor &input = (Tensor &)context->input(i);
+                        
+                        Tensor other(input.dtype(), input.shape());
+                        allReduceBuf_->copyTo(i, other);
+                        
+                        auto other_flt = other.flat<float>();
+                        other_flt = (1.0 / (float)(ranks_.size() + 1.0)) * other_flt;
+                        std::copy(other.tensor_data().begin(), other.tensor_data().end(),
+                                    (unsigned char *)input.tensor_data().begin());
+                    }
+
+                    done();
+                };
+
+                std::string allReduceName = "AllReduceGlobalStep" + std::to_string(gs);
+                _kungfu_world->AllReduce(
+                        allReduceBuf_->data(), 
+                        (void *) allReduceBuf_->data(), // all-reduce result here
+                        total_var_size_, to_kungfu_type(context->input(0).dtype()), 
+                        KungFu_SUM,
+                        allReduceName.c_str(), cb);
             } else {
                 done();
             }
