@@ -178,21 +178,26 @@ class HybridModelAveraging : public AsyncOpKernel
                     std::function<void()> cb;
                     if (i == var_sizes_.size()) {
                         cb = [&, done=done, input=input]() {
-                                auto input_flt = input.flat<float>();
-                                input_flt = (1 / (ranks_.size() + 1)) * input_flt;
+                                Tensor other = input;
+                                auto other_flt = other.flat<float>();
+                                other_flt = (1 / (ranks_.size() + 1)) * other_flt;
+                                std::copy(other.tensor_data().begin(), other.tensor_data().end(),
+                                          (char *)input.tensor_data().begin());
                                 done();
                         };
                     } else {
                         cb = [&, input=input]() {
-                                auto input_flt = input.flat<float>();
-                                input_flt = (1 / (ranks_.size() + 1)) * input_flt;
+                                Tensor other = input;
+                                auto other_flt = other.flat<float>();
+                                other_flt = (1 / (ranks_.size() + 1)) * other_flt;
+                                std::copy(other.tensor_data().begin(), other.tensor_data().end(),
+                                          (char *)input.tensor_data().begin());
                         };
                     }   
                     
-
                     _kungfu_world->AllReduce(
                             input.tensor_data().data(), 
-                            (void *)(input.tensor_data().data()), // all-reduce result here
+                            (void *) input.tensor_data().data(), // all-reduce result here
                             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
                             var_names_[i].c_str(), cb);
                 }
