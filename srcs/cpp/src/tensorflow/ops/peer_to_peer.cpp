@@ -171,17 +171,34 @@ class HybridModelAveraging : public AsyncOpKernel
             }
             done();
         } else {
-            // if (gs % KF_INTERVAL == 0) {
-            //     for (int i = 0; i < var_sizes_.size(); i++) {
-            //         Tensor &input = (Tensor &)context->input(i);
-            //         _kungfu_world->AllReduce(
-            //                 input.tensor_data().data(), 
-            //                 (void *)(input.tensor_data().data()), // all-reduce result here
-            //                 input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            //                 var_names_[i].c_str(), done);
-            //     }
-            // }
-            done();
+            if (gs % KF_INTERVAL == 0) {
+                for (int i = 0; i < var_sizes_.size(); i++) {
+                    Tensor &input = (Tensor &)context->input(i);
+
+                    std::function<void()> cb;
+                    if (i == var_sizes_.size()) {
+                        cb = [&, done=done, input=input]() {
+                                auto input_flt = input.flat<float>();
+                                input_flt = (1 / (ranks_.size() + 1)) * input_flt;
+                                done();
+                        };
+                    } else {
+                        cb = [&, input=input]() {
+                                auto input_flt = input.flat<float>();
+                                input_flt = (1 / (ranks_.size() + 1)) * input_flt;
+                        };
+                    }   
+                    
+
+                    _kungfu_world->AllReduce(
+                            input.tensor_data().data(), 
+                            (void *)(input.tensor_data().data()), // all-reduce result here
+                            input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
+                            var_names_[i].c_str(), cb);
+                }
+            } else {
+                done();
+            }
         }
     }
 };
