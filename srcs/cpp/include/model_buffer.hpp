@@ -30,8 +30,6 @@ class ModelBuffer
     }
 
   public:
-    ModelBuffer() {}
-
     ModelBuffer(const std::vector<int> &var_sizes, int dtype_size)
         : offsets_(_build_offsets(var_sizes, dtype_size)),
           // offsets_.size() == var_sizes_.size() + 1
