@@ -230,7 +230,7 @@ class AsyncModelAveraging : public OpKernel
         gs++;
         int destination = _peer_selection_strategy->next();
 
-        if (modelBuf_->empty()) {
+        if (modelBuf_.get() == nullptr) {
             modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
             _kungfu_world->Request(destination, modelBuf_->data(),
@@ -518,7 +518,7 @@ class AsyncRequestModel : public OpKernel
 
         int destination = _peer_selection_strategy->next();
 
-        if (modelBuf_->empty()) {
+        if (modelBuf_.get() == nullptr) {
             modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
             _kungfu_world->Request(destination, modelBuf_->data(),
