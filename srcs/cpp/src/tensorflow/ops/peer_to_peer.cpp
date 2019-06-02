@@ -521,7 +521,7 @@ class AsyncRequestModel : public OpKernel
         if (modelBuf_->empty()) {
             modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, (void *)modelBuf_->data(),
+            _kungfu_world->Request(destination, modelBuf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetchCallback = [
@@ -542,7 +542,7 @@ class AsyncRequestModel : public OpKernel
         if (!isRequesting.load()) {
             isRequesting = true;
             _kungfu_world->Request(
-                destination, (void *)prefetchBuf_->data(), total_var_size_,
+                destination, prefetchBuf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetchCallback);
         }
 
