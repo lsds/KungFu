@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"reflect"
+	"time"
 	"unsafe"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -44,35 +47,41 @@ func GoKungfuRank() int {
 	return sess.Rank()
 }
 
-//export GoKungfuRegisterDataCallback
-func GoKungfuRegisterDataCallback(name *C.char, handle *C.data_callback_t) int {
-	sess := kungfu.CurrentSession()
-	return sess.RegisterDataCallback(C.GoString(name), func(data []byte) {
-		C.invoke_data_callback(handle, unsafe.Pointer(&data[0]))
-	})
-}
-
-//export GoKungfuUnregisterDataCallback
-func GoKungfuUnregisterDataCallback(name *C.char) int {
-	sess := kungfu.CurrentSession()
-	return sess.UnregisterDataCallback(C.GoString(name))
-}
-
-//export GoKungfuSendTo
-func GoKungfuSendTo(rank int, sendBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, name *C.char, done *C.callback_t) int {
-	w := kf.Workspace{
-		SendBuf: toBuffer(sendBuf, count, dtype),
-		Name:    C.GoString(name),
-	}
+//export GoKungfuRequest
+func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 
 	if done == nil {
 		// Synchronous case
-		return sess.SendTo(rank, w)
+		return sess.RequestModel(rank, toBuffer(model, count, dtype))
 	}
+
 	go func() {
-		// Asynchronous case
-		sess.SendTo(rank, w)
+		if kc.LatencyMonitoring {
+			start := time.Now()
+			sess.RequestModel(rank, toBuffer(model, count, dtype))
+			elapsed := time.Since(start)
+			fmt.Printf("Request took %s\n", elapsed)
+		} else {
+			sess.RequestModel(rank, toBuffer(model, count, dtype))
+		}
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+
+}
+
+//export GoKungfuUpdateModelStore
+func GoKungfuUpdateModelStore(name *C.char, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+	sess := kungfu.CurrentSession()
+
+	if done == nil {
+		return sess.UpdateModelStore(C.GoString(name), toBuffer(model, count, dtype))
+	}
+
+	go func() {
+		sess.UpdateModelStore(C.GoString(name), toBuffer(model, count, dtype))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()

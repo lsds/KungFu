@@ -23,7 +23,7 @@ func newConnectionPool() *ConnectionPool {
 	return &ConnectionPool{
 		conns: make(map[string]Connection),
 
-		connRetryCount:  40,
+		connRetryCount:  200,
 		connRetryPeriod: 500 * time.Millisecond,
 	}
 }
