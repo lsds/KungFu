@@ -1,3 +1,4 @@
 from .parallel import ParallelOptimizer
 from .monitoring_parallel import MonitoringParallelOptimizer
 from .peer_model_averaging import PeerModelAveraging
+from .hybrid_model_averaging import HybridPeerModelAveraging
