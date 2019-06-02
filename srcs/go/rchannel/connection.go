@@ -1,10 +1,10 @@
 package rchannel
 
 import (
+	"errors"
 	"io"
 	"net"
 	"sync"
-	"errors"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -15,7 +15,7 @@ import (
 type Connection interface {
 	io.Closer
 	Send(msgName string, m Message) error
-	Read(msgName string, m Message) error 
+	Read(msgName string, m Message) error
 }
 
 func parseIPv4(host string) uint32 {
@@ -87,7 +87,7 @@ func (c *tcpConnection) Read(msgName string, m Message) error {
 
 	var mh messageHeader
 	mh.ReadFrom(c.conn)
-	if string(mh.Name) != msgName { 
+	if string(mh.Name) != msgName {
 		return errors.New("No match between message header name and message name.")
 	}
 	return m.ReadInto(c.conn)
@@ -133,7 +133,6 @@ func (c *shmConnection) Send(name string, m Message) error {
 	}
 	return mt.WriteTo(c.conn)
 }
-
 
 func (c *shmConnection) Read(name string, m Message) error {
 	return errors.New("Unsupported shared memory read")

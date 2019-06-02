@@ -1,9 +1,9 @@
 package rchannel
 
 import (
+	"fmt"
 	"net"
 	"os"
-	"fmt"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -22,7 +22,7 @@ type Router struct {
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
 
-	modelStore      *ModelStore
+	modelStore *ModelStore
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -53,14 +53,14 @@ func (r *Router) Request(a plan.Addr, t ConnType, model *kb.Buffer) error {
 	if err := ch.Send(Message{}); err != nil {
 		return err
 	}
-	
+
 	msg := Message{
 		Length: uint32(model.Count * model.Type.Size()),
 		Data:   model.Data,
 	}
 
 	if err := ch.Receive(msg); err != nil {
-	   return err	
+		return err
 	}
 
 	r.monitor.Ingress(int64(msg.Length), a.NetAddr())
@@ -170,7 +170,6 @@ func (r *Router) UpdateModelStore(updateName string, model *kb.Buffer) error {
 	err := r.modelStore.UpdateModelStore(updateName, model)
 	return err
 }
-
 
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
 	var shm shm.Shm

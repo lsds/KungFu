@@ -1,8 +1,8 @@
 package kungfubase
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -55,7 +55,7 @@ func (b *Buffer) Slice(begin, end int) *Buffer {
 
 func (b *Buffer) CopyFrom(c *Buffer) {
 	bSize := b.Count * b.Type.Size()
-	cSize := c.Count * c.Type.Size() 
+	cSize := c.Count * c.Type.Size()
 	if bSize != cSize {
 		errMsg := fmt.Sprintf("Copy from failure. Buffers have different sizes: %d vs. %d", bSize, cSize)
 		utils.ExitErr(errors.New(errMsg))

@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"reflect"
-	"unsafe"
-	"fmt"
 	"time"
+	"unsafe"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -61,9 +61,9 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 			start := time.Now()
 			sess.RequestModel(rank, toBuffer(model, count, dtype))
 			elapsed := time.Since(start)
-    		fmt.Printf("Request took %s\n", elapsed)
+			fmt.Printf("Request took %s\n", elapsed)
 		} else {
-		   sess.RequestModel(rank, toBuffer(model, count, dtype))
+			sess.RequestModel(rank, toBuffer(model, count, dtype))
 		}
 		C.invoke_callback(done)
 		C.delete_callback(done)
@@ -75,9 +75,9 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 //export GoKungfuUpdateModelStore
 func GoKungfuUpdateModelStore(name *C.char, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-	
+
 	if done == nil {
-	   return sess.UpdateModelStore(C.GoString(name), toBuffer(model, count, dtype))
+		return sess.UpdateModelStore(C.GoString(name), toBuffer(model, count, dtype))
 	}
 
 	go func() {

@@ -37,7 +37,7 @@ var (
 	EnableMonitoring  = false
 	ShowDebugLog      = false
 	LatencyMonitoring = false
-	MonitoringPeriod = 1 * time.Second
+	MonitoringPeriod  = 1 * time.Second
 )
 
 func init() {

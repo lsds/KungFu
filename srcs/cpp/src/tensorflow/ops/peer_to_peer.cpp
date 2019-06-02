@@ -46,7 +46,9 @@ class RoundRobinSelector : public SelectionStrategy
     const std::vector<int> values_;
 
   public:
-    RoundRobinSelector(const std::vector<int> &values) : values_(values), t_(0) {}
+    RoundRobinSelector(const std::vector<int> &values) : values_(values), t_(0)
+    {
+    }
 
     int next()
     {
@@ -131,7 +133,6 @@ class ModelAveraging : public OpKernel
         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
-
     void Compute(OpKernelContext *context) override
     {
         int destination = _peer_selection_strategy->next();
@@ -146,10 +147,9 @@ class ModelAveraging : public OpKernel
             modelBuf_->copyTo(i, other);
             auto other_flt = other.flat<float>();
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
-            std::copy((unsigned char *)other.tensor_data().data(),
-                      (unsigned char *)other.tensor_data().data() +
-                          var_sizes_[i] * var_type_size_,
-                      (unsigned char *)input.tensor_data().data());
+            std::copy(other.tensor_data().begin(),
+                      other.tensor_data().end(),
+                      input.tensor_data().begin());
             offset += var_sizes_[i] * var_type_size_;
         }
     }
@@ -184,7 +184,6 @@ class AsyncModelAveraging : public OpKernel
     std::unique_ptr<ModelBuffer> prefetchBuf_;
     std::function<void()> prefetchCallback;
 
-
     std::mutex mu_;
     std::atomic<bool> isRequesting;
 
@@ -214,7 +213,6 @@ class AsyncModelAveraging : public OpKernel
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
         prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
-
 
     void Compute(OpKernelContext *context) override
     {
@@ -257,10 +255,9 @@ class AsyncModelAveraging : public OpKernel
                 modelBuf_->copyTo(i, other);
                 auto other_flt = other.flat<float>();
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
-                std::copy((unsigned char *)other.tensor_data().data(),
-                          (unsigned char *)other.tensor_data().data() +
-                              var_sizes_[i] * var_type_size_,
-                          (unsigned char *)input.tensor_data().data());
+                std::copy(other.tensor_data().begin(),
+                          other.tensor_data().end(),
+                          input.tensor_data().begin());
                 offset += var_sizes_[i] * var_type_size_;
             }
         }
@@ -312,7 +309,6 @@ class SaveModel : public OpKernel
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
-
 
     void Compute(OpKernelContext *context) override
     {
@@ -399,7 +395,6 @@ class RequestModel : public OpKernel
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
-
 
     void Compute(OpKernelContext *context) override
     {
@@ -490,7 +485,6 @@ class AsyncRequestModel : public OpKernel
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
         prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
-
 
     void Compute(OpKernelContext *context) override
     {
