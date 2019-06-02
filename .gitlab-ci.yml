@@ -4,6 +4,7 @@ image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
 stages:
 - test
+- lint
 
 unit test:
   stage: test
@@ -60,3 +61,16 @@ python2 test:
   - |
     PYTHON=$(which python) \
     ./scripts/tests/run-train-tests.sh
+
+format test:
+  stage: lint
+  image: alpine:3.9
+
+  before_script:
+  - apk update
+  - apk add git go
+
+  script:
+  - gofmt -w .
+  # TODO: check cpp and python format
+  - git diff --exit-code
