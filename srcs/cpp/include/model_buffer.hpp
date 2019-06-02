@@ -13,7 +13,7 @@ namespace tensorflow
 class ModelBuffer
 {
     // the prefix sum of var_sizes_ scaled by dtype size.
-    std::vector<int> offsets_;
+    const std::vector<int> offsets_;
 
     std::vector<char> data_;
 
@@ -51,9 +51,7 @@ class ModelBuffer
                   (char *)(t.tensor_data().data()));
     }
 
-    void *data() const { return (void *)data_.data(); }
-
-    void resize(int new_size) { data_.resize(new_size); }
+    void *data() const { return (void *) data_.data(); }
 
     bool empty() { return data_.empty(); }
 };

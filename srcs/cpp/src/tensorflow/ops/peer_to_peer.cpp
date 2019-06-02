@@ -105,7 +105,7 @@ class ModelAveraging : public OpKernel
     int total_var_size_;
 
     // The pointer to the model buffer
-    ModelBuffer modelBuf_;
+    std::unique_ptr<ModelBuffer> modelBuf_;
 
     // The current global step
     int gs;
@@ -133,8 +133,7 @@ class ModelAveraging : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
-        modelBuf_.resize(total_var_size_ * var_type_size_);
+        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     ~ModelAveraging() {}
@@ -144,14 +143,14 @@ class ModelAveraging : public OpKernel
         gs++;
         int destination = _peer_selection_strategy->next();
 
-        _kungfu_world->Request(destination, modelBuf_.data(), total_var_size_,
+        _kungfu_world->Request(destination, modelBuf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
         int offset = 0;
         for (int i = 0; i < var_sizes_.size(); i++) {
             Tensor &input = (Tensor &)context->input(i);
             Tensor other(input.dtype(), input.shape());
-            modelBuf_.copyTo(i, other);
+            modelBuf_->copyTo(i, other);
             auto other_flt = other.flat<float>();
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
             std::copy((unsigned char *)other.tensor_data().data(),
@@ -188,8 +187,8 @@ class AsyncModelAveraging : public OpKernel
     int var_type_size_;
     int total_var_size_;
 
-    ModelBuffer modelBuf_;
-    ModelBuffer prefetchBuf_;
+    std::unique_ptr<ModelBuffer> modelBuf_;
+    std::unique_ptr<ModelBuffer> prefetchBuf_;
     std::function<void()> prefetchCallback;
 
     int gs;
@@ -221,8 +220,7 @@ class AsyncModelAveraging : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        prefetchBuf_ = ModelBuffer(var_sizes_, var_type_size_);
-        prefetchBuf_.resize(total_var_size_ * var_type_size_);
+        prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     ~AsyncModelAveraging() {}
@@ -232,24 +230,23 @@ class AsyncModelAveraging : public OpKernel
         gs++;
         int destination = _peer_selection_strategy->next();
 
-        if (modelBuf_.empty()) {
-            modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
-            modelBuf_.resize(total_var_size_ * var_type_size_);
+        if (modelBuf_->empty()) {
+            modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, modelBuf_.data(),
+            _kungfu_world->Request(destination, modelBuf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetchCallback = [
-                    &, modelBuf = modelBuf_, prefetchBuf = prefetchBuf_,
+                    &, mb = modelBuf_->data(), pb = prefetchBuf_->data(),
                     total_var_size_ = total_var_size_,
                     var_type_size_  = var_type_size_
             ]()
             {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy((unsigned char *)prefetchBuf.data(),
-                          (unsigned char *)prefetchBuf.data() +
+                std::copy((unsigned char *)pb,
+                          (unsigned char *)pb +
                               total_var_size_ * var_type_size_,
-                          (unsigned char *)modelBuf.data());
+                          (unsigned char *)mb);
                 isRequesting = false;
             };
         }
@@ -257,7 +254,7 @@ class AsyncModelAveraging : public OpKernel
         if (!isRequesting.load()) {
             isRequesting = true;
             _kungfu_world->Request(
-                destination, prefetchBuf_.data(), total_var_size_,
+                destination, prefetchBuf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetchCallback);
         }
 
@@ -267,7 +264,7 @@ class AsyncModelAveraging : public OpKernel
             for (int i = 0; i < var_sizes_.size(); i++) {
                 Tensor &input = (Tensor &)context->input(i);
                 Tensor other(input.dtype(), input.shape());
-                modelBuf_.copyTo(i, other);
+                modelBuf_->copyTo(i, other);
                 auto other_flt = other.flat<float>();
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
                 std::copy((unsigned char *)other.tensor_data().data(),
@@ -299,7 +296,7 @@ class SaveModel : public OpKernel
     int var_type_size_;
     int total_var_size_;
 
-    ModelBuffer modelBuf_;
+    std::unique_ptr<ModelBuffer> modelBuf_;
 
     int gs;
     std::atomic<bool> isSaving;
@@ -322,8 +319,7 @@ class SaveModel : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
-        modelBuf_.resize(total_var_size_ * var_type_size_);
+        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     ~SaveModel() {}
@@ -337,7 +333,7 @@ class SaveModel : public OpKernel
 
         for (int i = 0; i < var_sizes_.size(); i++) {
             const Tensor &input = context->input(i);
-            modelBuf_.copyFrom(i, input);
+            modelBuf_->copyFrom(i, input);
         }
 
         if (!isSaving.load()) {
@@ -345,7 +341,7 @@ class SaveModel : public OpKernel
             std::string updateName =
                 "ModelStoreUpdateAtGlobalStep " + std::to_string(gs);
             _kungfu_world->UpdateModelStore(
-                updateName.c_str(), modelBuf_.data(), total_var_size_,
+                updateName.c_str(), modelBuf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()),
                 [&]() { isSaving = false; });
         }
@@ -379,7 +375,7 @@ class RequestModel : public OpKernel
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
-    ModelBuffer modelBuf_;
+    std::unique_ptr<ModelBuffer> modelBuf_;
     int gs;
 
   public:
@@ -412,8 +408,7 @@ class RequestModel : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
-        modelBuf_.resize(total_var_size_ * var_type_size_);
+        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     ~RequestModel() {}
@@ -430,12 +425,12 @@ class RequestModel : public OpKernel
         int destination = _peer_selection_strategy->next();
 
         // Fill in the model Buffer with response from random peer
-        _kungfu_world->Request(destination, (void *)modelBuf_.data(),
+        _kungfu_world->Request(destination, (void *)modelBuf_->data(),
                                total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
         for (int i = 0; i < var_sizes_.size(); i++) {
-            modelBuf_.copyTo(i, *outputs[i]);
+            modelBuf_->copyTo(i, *outputs[i]);
         }
     }
 };
@@ -468,8 +463,8 @@ class AsyncRequestModel : public OpKernel
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
-    ModelBuffer modelBuf_;
-    ModelBuffer prefetchBuf_;
+    std::unique_ptr<ModelBuffer> modelBuf_;
+    std::unique_ptr<ModelBuffer> prefetchBuf_;
     std::function<void()> prefetchCallback;
     int gs;
 
@@ -507,8 +502,7 @@ class AsyncRequestModel : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        prefetchBuf_ = ModelBuffer(var_sizes_, var_type_size_);
-        prefetchBuf_.resize(total_var_size_ * var_type_size_);
+        prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     ~AsyncRequestModel() {}
@@ -524,24 +518,23 @@ class AsyncRequestModel : public OpKernel
 
         int destination = _peer_selection_strategy->next();
 
-        if (modelBuf_.empty()) {
-            modelBuf_ = ModelBuffer(var_sizes_, var_type_size_);
-            modelBuf_.resize(total_var_size_ * var_type_size_);
+        if (modelBuf_->empty()) {
+            modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, (void *)modelBuf_.data(),
+            _kungfu_world->Request(destination, (void *)modelBuf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetchCallback = [
-                    &, modelBuf_ = modelBuf_, prefetchBuf_ = prefetchBuf_,
+                    &, mb = modelBuf_->data(), pb = prefetchBuf_->data(),
                     total_var_size_ = total_var_size_,
                     var_type_size_  = var_type_size_
             ]()
             {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy((unsigned char *)prefetchBuf_.data(),
-                          (unsigned char *)prefetchBuf_.data() +
+                std::copy((unsigned char *)pb,
+                          (unsigned char *)pb +
                               total_var_size_ * var_type_size_,
-                          (unsigned char *)modelBuf_.data());
+                          (unsigned char *)mb);
                 isRequesting = false;
             };
         }
@@ -549,14 +542,14 @@ class AsyncRequestModel : public OpKernel
         if (!isRequesting.load()) {
             isRequesting = true;
             _kungfu_world->Request(
-                destination, (void *)prefetchBuf_.data(), total_var_size_,
+                destination, (void *)prefetchBuf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetchCallback);
         }
 
         {
             std::lock_guard<std::mutex> l(mu_);
             for (int i = 0; i < var_sizes_.size(); i++) {
-                modelBuf_.copyTo(i, *outputs[i]);
+                modelBuf_->copyTo(i, *outputs[i]);
             }
         }
     }
