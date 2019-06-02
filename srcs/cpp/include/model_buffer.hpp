@@ -1,11 +1,11 @@
 #pragma once
+#include <algorithm>
+#include <vector>
+
 #include <tensorflow/core/framework/common_shape_fns.h>
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
-
-#include <algorithm>
-#include <vector>
 
 namespace tensorflow
 {
@@ -51,7 +51,7 @@ class ModelBuffer
                   (char *)(t.tensor_data().data()));
     }
 
-    void *data() const { return (void *) data_.data(); }
+    char *data() { return data_.data(); }
 };
 
 }  // namespace tensorflow

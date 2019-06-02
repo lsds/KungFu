@@ -1,13 +1,13 @@
+#include <limits>
+#include <mutex>
+#include <random>
+
 #include <tensorflow/core/framework/common_shape_fns.h>
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
 
 #include <kungfu_tensorflow_ops.h>
-
-#include <limits>
-#include <mutex>
-#include <random>
 
 #include "model_buffer.hpp"
 
@@ -46,7 +46,7 @@ class RoundRobinSelector : public SelectionStrategy
     const std::vector<int> values_;
 
   public:
-    RoundRobinSelector(const std::vector<int> &values) : values_(values), t_(0)
+    RoundRobinSelector(const std::vector<int> &values) : t_(0), values_(values)
     {
     }
 
@@ -140,17 +140,14 @@ class ModelAveraging : public OpKernel
         _kungfu_world->Request(destination, modelBuf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
-        int offset = 0;
         for (int i = 0; i < var_sizes_.size(); i++) {
             Tensor &input = (Tensor &)context->input(i);
             Tensor other(input.dtype(), input.shape());
             modelBuf_->copyTo(i, other);
             auto other_flt = other.flat<float>();
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
-            std::copy(other.tensor_data().begin(),
-                      other.tensor_data().end(),
-                      input.tensor_data().begin());
-            offset += var_sizes_[i] * var_type_size_;
+            std::copy(other.tensor_data().begin(), other.tensor_data().end(),
+                      (char *)input.tensor_data().begin());
         }
     }
 };
@@ -224,12 +221,10 @@ class AsyncModelAveraging : public OpKernel
             _kungfu_world->Request(destination, modelBuf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
-            prefetchCallback = [
-                    &, mb = modelBuf_.get(), pb = prefetchBuf_.get(),
-                    total_var_size_ = total_var_size_,
-                    var_type_size_  = var_type_size_
-            ]()
-            {
+            prefetchCallback = [&, mb = modelBuf_.get(),
+                                pb              = prefetchBuf_.get(),
+                                total_var_size_ = total_var_size_,
+                                var_type_size_  = var_type_size_]() {
                 std::lock_guard<std::mutex> l(mu_);
                 std::copy((unsigned char *)pb->data(),
                           (unsigned char *)pb->data() +
@@ -248,7 +243,6 @@ class AsyncModelAveraging : public OpKernel
 
         {
             std::lock_guard<std::mutex> l(mu_);
-            int offset = 0;
             for (int i = 0; i < var_sizes_.size(); i++) {
                 Tensor &input = (Tensor &)context->input(i);
                 Tensor other(input.dtype(), input.shape());
@@ -257,8 +251,7 @@ class AsyncModelAveraging : public OpKernel
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
                 std::copy(other.tensor_data().begin(),
                           other.tensor_data().end(),
-                          input.tensor_data().begin());
-                offset += var_sizes_[i] * var_type_size_;
+                          (char *)input.tensor_data().begin());
             }
         }
     }
@@ -291,8 +284,8 @@ class SaveModel : public OpKernel
 
   public:
     explicit SaveModel(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0),
-          isSaving(false)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0),
+          isSaving(false), gs(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES(context, var_sizes_.size() > 0,
@@ -329,7 +322,7 @@ class SaveModel : public OpKernel
             _kungfu_world->UpdateModelStore(
                 updateName.c_str(), modelBuf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()),
-                [&]() { isSaving = false; });
+                [&] { isSaving = false; });
         }
     }
 };
@@ -502,17 +495,14 @@ class AsyncRequestModel : public OpKernel
             _kungfu_world->Request(destination, modelBuf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
-            prefetchCallback = [
-                    &, mb = modelBuf_.get(), pb = prefetchBuf_.get(),
-                    total_var_size_ = total_var_size_,
-                    var_type_size_  = var_type_size_
-            ]()
-            {
+            prefetchCallback = [&, mb = modelBuf_.get(),
+                                pb              = prefetchBuf_.get(),
+                                total_var_size_ = total_var_size_,
+                                var_type_size_  = var_type_size_]() {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy((unsigned char *)pb->data(),
-                          (unsigned char *)pb->data() +
-                              total_var_size_ * var_type_size_,
-                          (unsigned char *)mb->data());
+                std::copy(pb->data(),
+                          pb->data() + total_var_size_ * var_type_size_,
+                          mb->data());
                 isRequesting = false;
             };
         }
