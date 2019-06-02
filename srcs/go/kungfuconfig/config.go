@@ -9,13 +9,14 @@ import (
 )
 
 const (
-	LogConfigVarsEnvKey    = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
-	RunWarmupEnvKey        = `KUNGFU_CONFIG_RUN_WARMUP`
-	UseShmEnvKey           = `KUNGFU_CONFIG_USE_SHM`
-	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
-	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
-	ShowDebugLogEnvKey     = `KUNGFU_CONFIG_SHOW_DEBUG_LOG`
-	ConfigServerEnvKey     = `KUNGFU_CONFIG_SERVER`
+	LogConfigVarsEnvKey     = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
+	RunWarmupEnvKey         = `KUNGFU_CONFIG_RUN_WARMUP`
+	UseShmEnvKey            = `KUNGFU_CONFIG_USE_SHM`
+	EnableMonitoringEnvKey  = `KUNGFU_CONFIG_ENABLE_MONITORING`
+	MonitoringPeriodEnvKey  = `KUNGFU_CONFIG_MONITORING_PERIOD`
+	ShowDebugLogEnvKey      = `KUNGFU_CONFIG_SHOW_DEBUG_LOG`
+	ConfigServerEnvKey      = `KUNGFU_CONFIG_SERVER`
+	LatencyMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_LATENCY_MONITORING`
 )
 
 var ConfigEnvKeys = []string{
@@ -26,15 +27,17 @@ var ConfigEnvKeys = []string{
 	MonitoringPeriodEnvKey,
 	ShowDebugLogEnvKey,
 	ConfigServerEnvKey,
+	LatencyMonitoringEnvKey,
 }
 
 var (
-	RunWarmup        = false
-	UseShm           = false
-	LogConfigVars    = false
-	EnableMonitoring = false
-	ShowDebugLog     = false
-	MonitoringPeriod = 1 * time.Second
+	RunWarmup         = false
+	UseShm            = false
+	LogConfigVars     = false
+	EnableMonitoring  = false
+	ShowDebugLog      = false
+	LatencyMonitoring = false
+	MonitoringPeriod  = 1 * time.Second
 )
 
 func init() {
@@ -52,6 +55,9 @@ func init() {
 	}
 	if val := os.Getenv(ShowDebugLogEnvKey); len(val) > 0 {
 		ShowDebugLog = isTrue(val)
+	}
+	if val := os.Getenv(LatencyMonitoringEnvKey); len(val) > 0 {
+		LatencyMonitoring = isTrue(val)
 	}
 	if val := os.Getenv(LogConfigVarsEnvKey); len(val) > 0 {
 		LogConfigVars = isTrue(val)

@@ -49,8 +49,88 @@ def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
 
+def _get_self_rank():
+    import os
+    return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
+
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
+
+
+def save_model(variables):
+    import tensorflow as tf
+    var_sizes = [var.shape.num_elements()
+                 for var in variables]  # number of floats it has
+    return _op_lib.save_model(variables,
+                              var_type_size=variables[0].dtype.size,
+                              var_sizes=var_sizes)
+
+
+def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
+    import tensorflow as tf
+    var_sizes = [var.shape.num_elements() for var in variables]
+
+    # Remove self rank from the list
+    peer_ranks.remove(_get_self_rank())
+
+    if mode == 'async':
+        print(
+            "Applying model averaging with a model requested asynchronously.")
+        model_averaging = _op_lib.async_model_averaging(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            peer_selection_strategy=peer_selection_strategy)
+    elif mode == 'sync':
+        print("Applying model averaging with a model requested synchronously.")
+        model_averaging = _op_lib.model_averaging(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            peer_selection_strategy=peer_selection_strategy)
+    else:
+        raise Exception("Invalid type of model request mode.")
+
+    return model_averaging
+
+
+def request_model(peer_ranks, variables, mode, peer_selection_strategy):
+    import tensorflow as tf
+    var_shapes = [var.shape for var in variables]
+
+    var_sizes = [var.shape.num_elements() for var in variables]
+
+    # Remove self rank from the list
+    peer_ranks.remove(_get_self_rank())
+
+    if mode == 'async':
+        print("Request a model synchronously.")
+        request_model = _op_lib.async_request_model(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            shapes=var_shapes,
+            peer_selection_strategy=peer_selection_strategy)
+    elif mode == 'sync':
+        print("Request a model asynchronously.")
+        request_model = _op_lib.request_model(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            shapes=var_shapes,
+            peer_selection_strategy=peer_selection_strategy)
+    else:
+        raise Exception("Invalid type of model request mode")
+
+    return request_model
 
 
 def merge_received(t):
@@ -269,7 +349,6 @@ def partial_exchange_with_gpu_allreduce(ts,
 
     with tf.control_dependencies([advance_gs]):
         return reordered_cond_ops
-
 
 def _concat(ts):
     import tensorflow as tf

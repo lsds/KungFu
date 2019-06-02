@@ -13,22 +13,23 @@ int KungfuInit(KungFu_AllReduceAlgo algo)
 
 int KungfuFinalize() { return GoKungfuFinalize(); }
 
-int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
-                 KungFu_Datatype dtype, const char *name, DoneCallback done)
+int KungfuRequest(int destRank, 
+                 void *model, int count,
+                 KungFu_Datatype dtype, DoneCallback done)
 {
-    return GoKungfuSendTo(rank, (void *)sendbuf, GoInt(count), GoInt(dtype),
-                          (char *)name, new CallbackWrapper(done));
+    return GoKungfuRequest(destRank, (void *) model, GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
-int KungfuRegisterDataCallback(const char *name, DataCallback handle)
+int KungfuRequest(int destRank, 
+                 void *model, int count,
+                 KungFu_Datatype dtype)
 {
-    return GoKungfuRegisterDataCallback((char *)name,
-                                        new data_callback_s(handle));
+    return GoKungfuRequest(destRank, (void *) model, GoInt(count), GoInt(dtype), nullptr);
 }
 
-int KungfuUnregisterDataCallback(const char *name)
-{
-    return GoKungfuUnregisterDataCallback((char *)name);
+
+int KungfuUpdateModelStore(const char *name, const void *model, int count, KungFu_Datatype dtype, DoneCallback done)  {
+    return GoKungfuUpdateModelStore((char *) name, (void *) model, GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
 int KungfuReduce(const void *sendbuf, void *recvbuf, int count,

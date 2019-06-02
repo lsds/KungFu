@@ -1,6 +1,7 @@
 package rchannel
 
 import (
+	"errors"
 	"io"
 	"net"
 	"sync"
@@ -13,7 +14,8 @@ import (
 // Connection is a simplex logical connection from one peer to another
 type Connection interface {
 	io.Closer
-	Send(name string, m Message) error
+	Send(msgName string, m Message) error
+	Read(msgName string, m Message) error
 }
 
 func parseIPv4(host string) uint32 {
@@ -65,10 +67,10 @@ type tcpConnection struct {
 	conn net.Conn
 }
 
-func (c *tcpConnection) Send(name string, m Message) error {
+func (c *tcpConnection) Send(msgName string, m Message) error {
 	c.Lock()
 	defer c.Unlock()
-	bs := []byte(name)
+	bs := []byte(msgName)
 	mh := messageHeader{
 		NameLength: uint32(len(bs)),
 		Name:       bs,
@@ -77,6 +79,18 @@ func (c *tcpConnection) Send(name string, m Message) error {
 		return err
 	}
 	return m.WriteTo(c.conn)
+}
+
+func (c *tcpConnection) Read(msgName string, m Message) error {
+	c.Lock()
+	defer c.Unlock()
+
+	var mh messageHeader
+	mh.ReadFrom(c.conn)
+	if string(mh.Name) != msgName {
+		return errors.New("No match between message header name and message name.")
+	}
+	return m.ReadInto(c.conn)
 }
 
 func (c *tcpConnection) Close() error {
@@ -118,4 +132,8 @@ func (c *shmConnection) Send(name string, m Message) error {
 		Length: m.Length,
 	}
 	return mt.WriteTo(c.conn)
+}
+
+func (c *shmConnection) Read(name string, m Message) error {
+	return errors.New("Unsupported shared memory read")
 }
