@@ -147,9 +147,8 @@ class ModelAveraging : public OpKernel
             modelBuf_->copyTo(i, other);
             auto other_flt = other.flat<float>();
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
-            std::copy(other.tensor_data().begin(),
-                      other.tensor_data().end(),
-                      input.tensor_data().begin());
+            std::copy(other.tensor_data().begin(), other.tensor_data().end(),
+                      (unsigned char *)input.tensor_data().begin());
             offset += var_sizes_[i] * var_type_size_;
         }
     }
@@ -257,7 +256,7 @@ class AsyncModelAveraging : public OpKernel
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
                 std::copy(other.tensor_data().begin(),
                           other.tensor_data().end(),
-                          input.tensor_data().begin());
+                          (unsigned char *)input.tensor_data().begin());
                 offset += var_sizes_[i] * var_type_size_;
             }
         }
