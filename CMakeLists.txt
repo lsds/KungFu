@@ -48,7 +48,6 @@ IF(KUNGFU_BUILD_TF_OPS)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_init kungfu)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops #
-                  srcs/cpp/src/tensorflow/ops/common.cpp
                   srcs/cpp/src/tensorflow/ops/collective.cpp
                   srcs/cpp/src/tensorflow/ops/peer_to_peer.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)

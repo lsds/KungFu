@@ -53,6 +53,7 @@ def _get_self_rank():
     import os
     return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
 
+
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
@@ -154,16 +155,6 @@ def all_reduce_gpu(t):
 
 def global_variance(t):
     return _op_lib.global_variance(t)
-
-
-def global_step_modifier(step):
-    print('global_step_modifier is deprecated and will be removed soon')
-    return _op_lib.global_step_modifier(step)
-
-
-def set_num_gradients(n):
-    print('set_num_gradients is deprecated and will be removed soon')
-    return _op_lib.set_num_gradients(n)
 
 
 def start_gpu_group(*args, **kwargs):
@@ -349,6 +340,7 @@ def partial_exchange_with_gpu_allreduce(ts,
 
     with tf.control_dependencies([advance_gs]):
         return reordered_cond_ops
+
 
 def _concat(ts):
     import tensorflow as tf
