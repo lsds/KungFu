@@ -116,15 +116,17 @@ class HybridPeerModelAveraging(KungFuOptimizer):
             ]
 
 
-            change_op = tf.cond(self._trained_steps < self.steps[1], 
-                                lambda: avg_ops,
-                                lambda: peers_avg_ops)
+            change_ops = [
+                            tf.cond(self._trained_steps < self.steps[1], 
+                            lambda: tf.assign(v, 0.5 * (v + other_v)),
+                            lambda: tf.assign(v, float(1.0/_get_num_peers()) * other_v))
+                        for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)]
 
             apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
             save_model_op = save_model(variables)
 
             with tf.control_dependencies([self._modify_trained_steps]):
-                with tf.control_dependencies(peers_avg_ops):
+                with tf.control_dependencies(change_ops):
                     with tf.control_dependencies([apply_op]):
                         with tf.control_dependencies([save_model_op]):
                             return tf.group(apply_op)

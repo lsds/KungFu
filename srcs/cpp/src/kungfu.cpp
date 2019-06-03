@@ -32,6 +32,10 @@ int KungfuUpdateModelStore(const char *name, const void *model, int count, KungF
     return GoKungfuUpdateModelStore((char *) name, (void *) model, GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
+int KungfuUpdateModelStore(const char *name, const void *model, int count, KungFu_Datatype dtype)  {
+    return GoKungfuUpdateModelStore((char *) name, (void *) model, GoInt(count), GoInt(dtype), nullptr);
+}
+
 int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
                  KungFu_Datatype dtype, KungFu_Op op, const char *name,
                  DoneCallback done)

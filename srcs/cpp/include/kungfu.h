@@ -75,6 +75,8 @@ extern int KungfuRequest(int destRank, void *model, int count, KungFu_Datatype d
 extern int KungfuRequest(int destRank, void *model, int count, KungFu_Datatype dtype);
 extern int KungfuUpdateModelStore(const char *model_version_name, const void *model, int count,
                                   KungFu_Datatype dtype, DoneCallback done);
+extern int KungfuUpdateModelStore(const char *model_version_name, const void *model, int count,
+                                  KungFu_Datatype dtype);
 
 extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
@@ -118,6 +120,11 @@ class kungfu_world
     int UpdateModelStore(const char *model_version_name, const void *model, int count,
                                   KungFu_Datatype dtype, DoneCallback done)  {
         return KungfuUpdateModelStore(model_version_name, model, count, dtype, done);
+    }
+
+    int UpdateModelStore(const char *model_version_name, const void *model, int count,
+                                  KungFu_Datatype dtype)  {
+        return KungfuUpdateModelStore(model_version_name, model, count, dtype);
     }
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,

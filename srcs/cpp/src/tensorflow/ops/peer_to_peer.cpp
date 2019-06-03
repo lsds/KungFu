@@ -315,15 +315,14 @@ class SaveModel : public OpKernel
             modelBuf_->copyFrom(i, input);
         }
 
-        if (!isSaving.load()) {
-            isSaving = true;
-            std::string updateName =
-                "ModelStoreUpdateAtGlobalStep " + std::to_string(gs);
-            _kungfu_world->UpdateModelStore(
-                updateName.c_str(), modelBuf_->data(), total_var_size_,
-                to_kungfu_type(context->input(0).dtype()),
-                [&] { isSaving = false; });
-        }
+        // if (!isSaving.load()) {
+        //     isSaving = true;
+        std::string updateName =
+            "ModelStoreUpdateAtGlobalStep " + std::to_string(gs);
+        _kungfu_world->UpdateModelStore(
+            updateName.c_str(), modelBuf_->data(), total_var_size_,
+            to_kungfu_type(context->input(0).dtype())); // [&] { isSaving = false; }
+       // }
     }
 };
 
@@ -410,14 +409,13 @@ class HybridRequestModel : public OpKernel
     {
         gs++;
         std::vector<Tensor *> outputs(num_model_vars_, nullptr);
+        
         for (int i = 0; i < num_model_vars_; i++) {
             OP_REQUIRES_OK(
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
         int destination = _peer_selection_strategy->next();
-
-
 
         if (gs < steps_[1]) {
             // Fill in the model Buffer with response from random peer
