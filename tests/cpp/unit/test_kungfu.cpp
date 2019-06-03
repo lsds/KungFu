@@ -3,20 +3,9 @@
 TEST(kungfu_test, test_type_size)
 {
     ASSERT_EQ(kungfu_type_size(KungFu_INT32), static_cast<uint32_t>(4));
+    ASSERT_EQ(kungfu_type_size(KungFu_FLOAT16), static_cast<uint32_t>(2));
     ASSERT_EQ(kungfu_type_size(KungFu_FLOAT), static_cast<uint32_t>(4));
     ASSERT_EQ(kungfu_type_size(KungFu_DOUBLE), static_cast<uint32_t>(8));
-}
-
-TEST(kungfu_test, test_life_cycle)
-{
-    {
-        int code = KungfuInit(KungFu_StarAllReduce);
-        ASSERT_EQ(code, 0);
-    }
-    {
-        int code = KungfuFinalize();
-        ASSERT_EQ(code, 0);
-    }
 }
 
 TEST(kungfu_test, test_transform)
