@@ -80,8 +80,9 @@ class HybridPeerModelAveraging(KungFuOptimizer):
         variables = g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         for v in variables:
             ops.append(tf.assign(v, broadcast(v)))
+        print("Using HybridPeerModelAveraging initializer.")
         with tf.control_dependencies(ops):
-            return save_model(tf.trainable_variables())
+            return save_model(tf.trainable_variables()[:-1])
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
@@ -101,6 +102,8 @@ class HybridPeerModelAveraging(KungFuOptimizer):
                 self.strategies)
 
 
+            # ps = [tf.Print(o, [o], message="Hello x") for o in other_peer_vars]
+
             avg_ops = [
                 tf.assign(v, 0.5 * (v + other_v))
                 for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)
@@ -108,7 +111,7 @@ class HybridPeerModelAveraging(KungFuOptimizer):
 
 
             peers_avg_ops = [
-                tf.assign(v, float(1/_get_num_peers()) * other_v)
+                tf.assign(v, float(1.0/_get_num_peers()) * other_v)
                  for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)
             ]
 
