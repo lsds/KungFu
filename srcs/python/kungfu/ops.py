@@ -65,33 +65,6 @@ def save_model(variables):
                               var_type_size=variables[0].dtype.size,
                               var_sizes=var_sizes)
 
-def model_averaging_with_schedule(peer_ranks, variables, mode, peer_selection_strategy, steps, strategies, all_reduce_interval):
-    import tensorflow as tf
-    var_sizes = [var.shape.num_elements() for var in variables]
-    var_names = [var.name for var in variables]
-
-    # Remove self rank from the list
-    peer_ranks.remove(_get_self_rank())
-
-    if mode == 'async':
-       raise Exception("Unsupported async model averaging wth schedule")
-    elif mode == 'sync':
-        print("Applying hybrid model averaging with a model requested synchronously.")
-        model_averaging = _op_lib.hybrid_model_averaging(
-            variables,
-            self_rank=_get_self_rank(),
-            ranks=peer_ranks,
-            var_type_size=variables[0].dtype.size,
-            var_sizes=var_sizes,
-            var_names=var_names,
-            peer_selection_strategy=peer_selection_strategy,
-            steps=steps,
-            strategies=strategies,
-            all_reduce_interval=all_reduce_interval)
-    else:
-        raise Exception("Invalid type of model request mode.")
-
-    return model_averaging
 
 def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     import tensorflow as tf
@@ -125,6 +98,36 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     return model_averaging
 
 
+def request_model_with_schedule(peer_ranks, variables, mode, peer_selection_strategy, steps, strategies):
+    import tensorflow as tf
+    var_shapes = [var.shape for var in variables]
+    var_names = [var.name for var in variables]
+    var_sizes = [var.shape.num_elements() for var in variables]
+
+    # Remove self rank from the list
+    peer_ranks.remove(_get_self_rank())
+
+    if mode == 'async':
+        raise Exception("Invalid type of model request mode: GPU")
+    elif mode == 'sync':
+        print("Request a model asynchronously.")
+        request_model = _op_lib.hybrid_request_model(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            var_names=var_names,
+            shapes=var_shapes,
+            peer_selection_strategy=peer_selection_strategy,
+            steps=steps,
+            strategies=strategies)
+    else:
+        raise Exception("Invalid type of model request mode")
+
+    return request_model
+
+
 def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     import tensorflow as tf
     var_shapes = [var.shape for var in variables]
@@ -135,7 +138,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     peer_ranks.remove(_get_self_rank())
 
     if mode == 'async':
-        print("Request a model synchronously.")
+        print("Request a model asynchronously.")
         request_model = _op_lib.async_request_model(
             variables,
             self_rank=_get_self_rank(),
@@ -145,7 +148,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
             shapes=var_shapes,
             peer_selection_strategy=peer_selection_strategy)
     elif mode == 'sync':
-        print("Request a model asynchronously.")
+        print("Request a model synchronously.")
         request_model = _op_lib.request_model(
             variables,
             self_rank=_get_self_rank(),

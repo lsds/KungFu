@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from kungfu.ops import broadcast, save_model, request_model, model_averaging_with_schedule
+from kungfu.ops import broadcast, save_model, request_model, request_model_with_schedule, global_step_modifier
 from .core import KungFuOptimizer
 
 
@@ -66,6 +66,11 @@ class HybridPeerModelAveraging(KungFuOptimizer):
         self.all_reduce_interval = all_reduce_interval
         self.steps, self.strategies = _parse_schedule(schedule, num_train, batch_size)
 
+        self._trained_steps = tf.Variable(tf.zeros([], tf.int32))
+        self._modify_trained_steps = tf.assign(
+            self._trained_steps, global_step_modifier(self._trained_steps))
+
+
     @staticmethod
     def get_initializer():
         g = tf.get_default_graph()
@@ -83,25 +88,43 @@ class HybridPeerModelAveraging(KungFuOptimizer):
 
         grads, variables = zip(*grads_and_vars)
 
+        
         if self.model_averaging_device == 'cpu':
-            apply_avg_model = model_averaging_with_schedule(
+            raise Exception(
+                "PeerModelAveraging optimizer does not support CPU request model type."
+            )
+        elif self.model_averaging_device == 'gpu':
+            other_peer_vars = request_model_with_schedule(
                 [i for i in range(_get_num_peers())], variables,
                 self.request_mode, self.peer_selection_strategy,
-                self.steps, self.strategies,
-                self.all_reduce_interval)
+                self.steps,
+                self.strategies)
 
-            apply_op = self._optimizer.apply_gradients(grads_and_vars,
-                                                       **kwargs)
+
+            avg_ops = [
+                tf.assign(v, 0.5 * (v + other_v))
+                for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)
+            ]
+
+
+            peers_avg_ops = [
+                tf.assign(v, float(1/_get_num_peers()) * other_v)
+                 for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)
+            ]
+
+
+            change_op = tf.cond(self._trained_steps < self.steps[1], 
+                                lambda: avg_ops,
+                                lambda: peers_avg_ops)
+
+            apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
             save_model_op = save_model(variables)
 
-            with tf.control_dependencies([apply_avg_model]):
-                with tf.control_dependencies([apply_op]):
-                    with tf.control_dependencies([save_model_op]):
-                        return tf.group(apply_op)
-        elif self.model_averaging_device == 'gpu':
-            raise Exception(
-                "PeerModelAveraging optimizer does not support GPU request model type."
-            )
+            with tf.control_dependencies([self._modify_trained_steps]):
+                with tf.control_dependencies(peers_avg_ops):
+                    with tf.control_dependencies([apply_op]):
+                        with tf.control_dependencies([save_model_op]):
+                            return tf.group(apply_op)
         else:
             raise Exception(
                 "PeerModelAveraging optimizer does not support provided request model type."

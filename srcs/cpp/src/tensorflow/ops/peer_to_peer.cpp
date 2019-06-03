@@ -72,149 +72,149 @@ SelectionStrategy *SelectionStrategy::create(const std::string &name,
 
 namespace tensorflow
 {
-REGISTER_OP("HybridModelAveraging")
-    .Attr("T: {float32}")
-    .Attr("self_rank: int")
-    .Attr("ranks: list(int)")
-    .Attr("peer_selection_strategy: string")
-    .Attr("NumTensors: int")
-    .Attr("var_type_size: int")
-    .Attr("var_sizes: list(int)")
-    .Attr("var_names: list(string)")
-    .Attr("steps: list(int)")
-    .Attr("all_reduce_interval: int")
-    .Attr("strategies: list(string)")
-    .Input("vars: NumTensors * T");
+// REGISTER_OP("HybridModelAveraging")
+//     .Attr("T: {float32}")
+//     .Attr("self_rank: int")
+//     .Attr("ranks: list(int)")
+//     .Attr("peer_selection_strategy: string")
+//     .Attr("NumTensors: int")
+//     .Attr("var_type_size: int")
+//     .Attr("var_sizes: list(int)")
+//     .Attr("var_names: list(string)")
+//     .Attr("steps: list(int)")
+//     .Attr("all_reduce_interval: int")
+//     .Attr("strategies: list(string)")
+//     .Input("vars: NumTensors * T");
 
-class HybridModelAveraging : public AsyncOpKernel
-{
-    using OpKernel::OpKernel;
+// class HybridModelAveraging : public AsyncOpKernel
+// {
+//     using OpKernel::OpKernel;
 
-    // My rank in the peer topology
-    int self_rank_;
+//     // My rank in the peer topology
+//     int self_rank_;
 
-    // My peer ranks (excluding myself)
-    std::vector<int> ranks_;
+//     // My peer ranks (excluding myself)
+//     std::vector<int> ranks_;
 
-    // Peer rank selection strategy
-    std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
+//     // Peer rank selection strategy
+//     std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
 
-    // The vectors of the variable size (in bytes)
-    std::vector<int> var_sizes_;
+//     // The vectors of the variable size (in bytes)
+//     std::vector<int> var_sizes_;
 
-    // The vector of variable names
-    std::vector<std::string> var_names_;
+//     // The vector of variable names
+//     std::vector<std::string> var_names_;
 
-    // The size of each variable (in bytes)
-    int var_type_size_;
+//     // The size of each variable (in bytes)
+//     int var_type_size_;
 
-    // The total size of variables (in bytes)
-    int total_var_size_;
+//     // The total size of variables (in bytes)
+//     int total_var_size_;
 
-    // The pointer to the model buffer
-    std::unique_ptr<ModelBuffer> modelBuf_;
-    std::unique_ptr<ModelBuffer> allReduceBuf_;
+//     // The pointer to the model buffer
+//     std::unique_ptr<ModelBuffer> modelBuf_;
+//     std::unique_ptr<ModelBuffer> allReduceBuf_;
 
-    int gs;
-    std::vector<int> steps_;
-    std::vector<std::string> strategies_;
-    int all_reduce_interval_;
-    bool changed = false;
+//     int gs;
+//     std::vector<int> steps_;
+//     std::vector<std::string> strategies_;
+//     int all_reduce_interval_;
+//     bool changed = false;
 
-  public:
-    explicit HybridModelAveraging(OpKernelConstruction *context)
-        : AsyncOpKernel(context), var_type_size_(0), total_var_size_(0), gs(0), all_reduce_interval_(0)
-    {
-        OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
-        OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
-        OP_REQUIRES(context, ranks_.size() > 0,
-                    errors::InvalidArgument("ranks must not be empty"));
-        std::string peer_selection_strategy;
-        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
-                                                 &peer_selection_strategy));
-        _peer_selection_strategy.reset(
-            SelectionStrategy::create(peer_selection_strategy, ranks_));
+//   public:
+//     explicit HybridModelAveraging(OpKernelConstruction *context)
+//         : AsyncOpKernel(context), var_type_size_(0), total_var_size_(0), gs(0), all_reduce_interval_(0)
+//     {
+//         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
+//         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+//         OP_REQUIRES(context, ranks_.size() > 0,
+//                     errors::InvalidArgument("ranks must not be empty"));
+//         std::string peer_selection_strategy;
+//         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
+//                                                  &peer_selection_strategy));
+//         _peer_selection_strategy.reset(
+//             SelectionStrategy::create(peer_selection_strategy, ranks_));
 
-        OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
-        OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
-        OP_REQUIRES_OK(context,
-                       context->GetAttr("var_type_size", &var_type_size_));
+//         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
+//         OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
+//         OP_REQUIRES_OK(context,
+//                        context->GetAttr("var_type_size", &var_type_size_));
 
-        OP_REQUIRES(context, ranks_.size() > 0,
-                    errors::InvalidArgument("ranks_ must not be empty"));
+//         OP_REQUIRES(context, ranks_.size() > 0,
+//                     errors::InvalidArgument("ranks_ must not be empty"));
 
-        total_var_size_ =
-            std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
-        allReduceBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+//         total_var_size_ =
+//             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
+//         modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+//         allReduceBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-        OP_REQUIRES_OK(context, context->GetAttr("all_reduce_interval", &all_reduce_interval_));
-        OP_REQUIRES_OK(context, context->GetAttr("steps", &steps_));
-        OP_REQUIRES_OK(context, context->GetAttr("strategies", &strategies_));        
-    }
+//         OP_REQUIRES_OK(context, context->GetAttr("all_reduce_interval", &all_reduce_interval_));
+//         OP_REQUIRES_OK(context, context->GetAttr("steps", &steps_));
+//         OP_REQUIRES_OK(context, context->GetAttr("strategies", &strategies_));        
+//     }
 
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
-    {
-        gs++;
-        int destination = _peer_selection_strategy->next();
+//     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+//     {
+//         gs++;
+//         int destination = _peer_selection_strategy->next();
 
-        if (gs < steps_[1]) {
-           _kungfu_world->Request(destination, modelBuf_->data(), total_var_size_,
-                                to_kungfu_type(context->input(0).dtype()));
+//         if (gs < steps_[1]) {
+//            _kungfu_world->Request(destination, modelBuf_->data(), total_var_size_,
+//                                 to_kungfu_type(context->input(0).dtype()));
 
-            for (int i = 0; i < var_sizes_.size(); i++) {
-                Tensor &input = (Tensor &)context->input(i);
-                Tensor other(input.dtype(), input.shape());
-                modelBuf_->copyTo(i, other);
-                auto other_flt = other.flat<float>();
-                other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
-                std::copy(other.tensor_data().begin(), other.tensor_data().end(),
-                        (char *)input.tensor_data().begin());
-            }
-            done();
-        } else {
-            if(!changed) {
-                std::cout << "Changing to KungFu at global step " + std::to_string(gs) << std::endl;
-                changed = true;
-            }
-            if (gs % all_reduce_interval_ == 0) {
-                for (int i = 0; i < var_sizes_.size(); i++) {
-                    const Tensor &input = context->input(i);
-                    allReduceBuf_->copyFrom(i, input);
-                }
+//             for (int i = 0; i < var_sizes_.size(); i++) {
+//                 Tensor &input = (Tensor &)context->input(i);
+//                 Tensor other(input.dtype(), input.shape());
+//                 modelBuf_->copyTo(i, other);
+//                 auto other_flt = other.flat<float>();
+//                 other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
+//                 std::copy(other.tensor_data().begin(), other.tensor_data().end(),
+//                         (char *)input.tensor_data().begin());
+//             }
+//             done();
+//         } else {
+//             if(!changed) {
+//                 std::cout << "Changing to KungFu at global step " + std::to_string(gs) << std::endl;
+//                 changed = true;
+//             }
+//             if (gs % all_reduce_interval_ == 0) {
+//                 for (int i = 0; i < var_sizes_.size(); i++) {
+//                     const Tensor &input = context->input(i);
+//                     allReduceBuf_->copyFrom(i, input);
+//                 }
                 
-                std::function<void()> cb = [&, done=done, context=context]() {
-                    for (int i = 0; i < var_sizes_.size(); i++) {
-                        Tensor &input = (Tensor &)context->input(i);
+//                 std::function<void()> cb = [&, done=done, context=context]() {
+//                     for (int i = 0; i < var_sizes_.size(); i++) {
+//                         Tensor &input = (Tensor &)context->input(i);
                         
-                        Tensor other(input.dtype(), input.shape());
-                        allReduceBuf_->copyTo(i, other);
+//                         Tensor other(input.dtype(), input.shape());
+//                         allReduceBuf_->copyTo(i, other);
                         
-                        auto other_flt = other.flat<float>();
-                        other_flt = (1.0 / (float)(ranks_.size() + 1.0)) * other_flt;
-                        std::copy(other.tensor_data().begin(), other.tensor_data().end(),
-                                    (unsigned char *)input.tensor_data().begin());
-                    }
+//                         auto other_flt = other.flat<float>();
+//                         other_flt = (1.0 / (float)(ranks_.size() + 1.0)) * other_flt;
+//                         std::copy(other.tensor_data().begin(), other.tensor_data().end(),
+//                                     (unsigned char *)input.tensor_data().begin());
+//                     }
 
-                    done();
-                };
+//                     done();
+//                 };
 
-                std::string allReduceName = "AllReduceGlobalStep" + std::to_string(gs);
-                _kungfu_world->AllReduce(
-                        allReduceBuf_->data(), 
-                        (void *) allReduceBuf_->data(), // all-reduce result here
-                        total_var_size_, to_kungfu_type(context->input(0).dtype()), 
-                        KungFu_SUM,
-                        allReduceName.c_str(), cb);
-            } else {
-                done();
-            }
-        }
-    }
-};
+//                 std::string allReduceName = "AllReduceGlobalStep" + std::to_string(gs);
+//                 _kungfu_world->AllReduce(
+//                         allReduceBuf_->data(), 
+//                         (void *) allReduceBuf_->data(), // all-reduce result here
+//                         total_var_size_, to_kungfu_type(context->input(0).dtype()), 
+//                         KungFu_SUM,
+//                         allReduceName.c_str(), cb);
+//             } else {
+//                 done();
+//             }
+//         }
+//     }
+// };
 
-REGISTER_KERNEL_BUILDER(Name("HybridModelAveraging").Device(DEVICE_CPU),
-                        HybridModelAveraging);
+// REGISTER_KERNEL_BUILDER(Name("HybridModelAveraging").Device(DEVICE_CPU),
+//                         HybridModelAveraging);
 
 
 REGISTER_OP("ModelAveraging")
@@ -473,6 +473,137 @@ class SaveModel : public OpKernel
 };
 
 REGISTER_KERNEL_BUILDER(Name("SaveModel").Device(DEVICE_CPU), SaveModel);
+
+/*--------------------------------Start--------------------------------------------------------*/
+
+REGISTER_OP("HybridRequestModel")
+    .Attr("T: {float32}")
+    .Attr("self_rank: int")
+    .Attr("ranks: list(int)")
+    .Attr("peer_selection_strategy: string")
+    .Attr("NumTensors: int")
+    .Attr("var_type_size: int")
+    .Attr("var_sizes: list(int)")
+    .Attr("shapes: list(shape)")
+    .Attr("var_names: list(string)")
+    .Attr("steps: list(int)")
+    .Attr("strategies: list(string)")
+    .Input("vars: NumTensors * T")
+    .Output("outputs: NumTensors * T")
+    .SetShapeFn(shape_inference::UnchangedShape);
+
+class HybridRequestModel : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+    int self_rank_;
+    std::vector<int> ranks_;
+    std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
+    int num_model_vars_;
+    std::vector<TensorShapeProto> shapes_;
+    std::vector<int> var_sizes_;
+    int var_type_size_;
+    int total_var_size_;
+    std::unique_ptr<ModelBuffer> modelBuf_;
+
+    std::vector<std::string> var_names_;
+
+    int gs;
+    std::vector<int> steps_;
+    std::vector<std::string> strategies_;
+    bool changed = false;
+
+  public:
+    explicit HybridRequestModel(OpKernelConstruction *context)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0), gs(0)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
+        OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
+        OP_REQUIRES(context, ranks_.size() > 0,
+                    errors::InvalidArgument("ranks must not be empty"));
+        std::string peer_selection_strategy;
+        OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
+                                                 &peer_selection_strategy));
+        _peer_selection_strategy.reset(
+            SelectionStrategy::create(peer_selection_strategy, ranks_));
+
+        OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
+        OP_REQUIRES_OK(context,
+                       context->GetAttr("NumTensors", &num_model_vars_));
+
+        // Used for the buffer
+        OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
+        OP_REQUIRES_OK(context,
+                       context->GetAttr("var_type_size", &var_type_size_));
+
+        OP_REQUIRES(context, shapes_.size() > 0,
+                    errors::InvalidArgument("shapes_ must not be empty"));
+        OP_REQUIRES(context, ranks_.size() > 0,
+                    errors::InvalidArgument("ranks_ must not be empty"));
+
+        total_var_size_ =
+            std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
+        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+
+
+        OP_REQUIRES_OK(context, context->GetAttr("var_names", &var_names_));
+        OP_REQUIRES_OK(context, context->GetAttr("steps", &steps_));
+        OP_REQUIRES_OK(context, context->GetAttr("strategies", &strategies_));  
+    }
+
+    void Compute(OpKernelContext *context) override
+    {
+        gs++;
+        std::vector<Tensor *> outputs(num_model_vars_, nullptr);
+        for (int i = 0; i < num_model_vars_; i++) {
+            OP_REQUIRES_OK(
+                context, context->allocate_output(i, shapes_[i], &outputs[i]));
+        }
+
+        int destination = _peer_selection_strategy->next();
+
+
+        if (gs < steps_[1]) {
+            // Fill in the model Buffer with response from random peer
+            _kungfu_world->Request(destination, (void *)modelBuf_->data(),
+                                total_var_size_,
+                                to_kungfu_type(context->input(0).dtype()));
+
+            for (int i = 0; i < var_sizes_.size(); i++) {
+                modelBuf_->copyTo(i, *outputs[i]);
+            }
+        } else {
+            if(!changed) {
+                std::cout << "Changing to KungFu at global step " + std::to_string(gs) << std::endl;
+                changed = true;
+            }
+
+            for (int i = 0; i < var_sizes_.size(); i++) {
+                const Tensor &input = context->input(i);
+                modelBuf_->copyFrom(i, input);
+            }
+        
+            std::string allReduceName = "AllReduceGlobalStep" + std::to_string(gs);
+            _kungfu_world->AllReduce(
+                    modelBuf_->data(), 
+                    (void *) modelBuf_->data(), // all-reduce result here
+                    total_var_size_, to_kungfu_type(context->input(0).dtype()), 
+                    KungFu_SUM,
+                    allReduceName.c_str());
+
+            for (int i = 0; i < var_sizes_.size(); i++) {
+                modelBuf_->copyTo(i, *outputs[i]);
+            }
+        }
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("HybridRequestModel").Device(DEVICE_CPU), HybridRequestModel);
+
+
+
+/*--------------------------------------End-------------------------------------------------*/
+
 
 REGISTER_OP("RequestModel")
     .Attr("T: {float32}")
