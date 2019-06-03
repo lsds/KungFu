@@ -67,7 +67,7 @@ def save_model(variables):
                               var_sizes=var_sizes)
 
 
-def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
+def request_average_model(peer_ranks, variables, mode, peer_selection_strategy):
     import tensorflow as tf
     var_sizes = [var.shape.num_elements() for var in variables]
 
@@ -77,7 +77,8 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     if mode == 'async':
         print(
             "Applying model averaging with a model requested asynchronously.")
-        model_averaging = _op_lib.async_model_averaging(
+        # FIXME: async request average model
+        avg_model = _op_lib.async_model_averaging(
             variables,
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
@@ -85,8 +86,8 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
             var_sizes=var_sizes,
             peer_selection_strategy=peer_selection_strategy)
     elif mode == 'sync':
-        print("Applying model averaging with a model requested synchronously.")
-        model_averaging = _op_lib.model_averaging(
+        print("Request an average model synchronously.")
+        avg_model = _op_lib.request_average_model(
             variables,
             self_rank=_get_self_rank(),
             ranks=peer_ranks,
@@ -96,7 +97,7 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     else:
         raise Exception("Invalid type of model request mode.")
 
-    return model_averaging
+    return avg_model
 
 
 def request_model(peer_ranks, variables, mode, peer_selection_strategy):
