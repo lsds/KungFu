@@ -48,14 +48,14 @@ int kungfu_world::UpdateModelStore(const char *name, const void *model,
 int kungfu_world::Request(int destRank, void *model, int count,
                           KungFu_Datatype dtype)
 {
-    return GoKungfuRequest(destRank, (void *)model, GoInt(count), GoInt(dtype),
+    return GoKungfuRequest(destRank, model, GoInt(count), GoInt(dtype),
                            nullptr);
 }
 
 int kungfu_world::Request(int destRank, void *model, int count,
                           KungFu_Datatype dtype, DoneCallback done)
 {
-    return GoKungfuRequest(destRank, (void *)model, GoInt(count), GoInt(dtype),
+    return GoKungfuRequest(destRank, model, GoInt(count), GoInt(dtype),
                            new CallbackWrapper(done));
 }
 
