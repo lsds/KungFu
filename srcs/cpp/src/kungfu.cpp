@@ -64,7 +64,7 @@ int kungfu_world::Reduce(const void *sendbuf, void *recvbuf, int count,
                          DoneCallback done)
 {
     return GoKungfuReduce((void *)sendbuf, recvbuf, GoInt(count), GoInt(dtype),
-                          GoInt(op), (char *)name, nullptr);
+                          GoInt(op), (char *)name, new CallbackWrapper(done));
 }
 
 int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
