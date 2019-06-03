@@ -37,11 +37,12 @@ int kungfu_world::Rank() const { return GoKungfuRank(); }
 
 int kungfu_world::ClusterSize() const { return GoKungfuClusterSize(); }
 
-int kungfu_world::Request(int destRank, void *model, int count,
-                          KungFu_Datatype dtype, DoneCallback done)
+int kungfu_world::UpdateModelStore(const char *name, const void *model,
+                                   int count, KungFu_Datatype dtype,
+                                   DoneCallback done)
 {
-    return GoKungfuRequest(destRank, (void *)model, GoInt(count), GoInt(dtype),
-                           new CallbackWrapper(done));
+    return GoKungfuUpdateModelStore((char *)name, (void *)model, GoInt(count),
+                                    GoInt(dtype), new CallbackWrapper(done));
 }
 
 int kungfu_world::Request(int destRank, void *model, int count,
@@ -51,12 +52,19 @@ int kungfu_world::Request(int destRank, void *model, int count,
                            nullptr);
 }
 
-int kungfu_world::UpdateModelStore(const char *name, const void *model,
-                                   int count, KungFu_Datatype dtype,
-                                   DoneCallback done)
+int kungfu_world::Request(int destRank, void *model, int count,
+                          KungFu_Datatype dtype, DoneCallback done)
 {
-    return GoKungfuUpdateModelStore((char *)name, (void *)model, GoInt(count),
-                                    GoInt(dtype), new CallbackWrapper(done));
+    return GoKungfuRequest(destRank, (void *)model, GoInt(count), GoInt(dtype),
+                           new CallbackWrapper(done));
+}
+
+int kungfu_world::Reduce(const void *sendbuf, void *recvbuf, int count,
+                         KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                         DoneCallback done)
+{
+    return GoKungfuReduce((void *)sendbuf, recvbuf, GoInt(count), GoInt(dtype),
+                          GoInt(op), (char *)name, nullptr);
 }
 
 int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,

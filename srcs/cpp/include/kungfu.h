@@ -51,7 +51,6 @@ extern void order_group_wait(order_group_t *);
 
 #include <functional>
 typedef std::function<void()> DoneCallback;
-typedef std::function<void(void *)> DataCallback;
 
 class kungfu_world
 {
@@ -64,12 +63,18 @@ class kungfu_world
 
     int ClusterSize() const;
 
+    int UpdateModelStore(const char *model_version_name, const void *model,
+                         int count, KungFu_Datatype dtype, DoneCallback done);
+
+    // p2p APIs
     int Request(int destRank, void *model, int count, KungFu_Datatype dtype);
     int Request(int destRank, void *model, int count, KungFu_Datatype dtype,
                 DoneCallback done);
 
-    int UpdateModelStore(const char *model_version_name, const void *model,
-                         int count, KungFu_Datatype dtype, DoneCallback done);
+    // collective APIs
+    int Reduce(const void *sendbuf, void *recvbuf, int count,
+               KungFu_Datatype dtype, KungFu_Op op, const char *name,
+               DoneCallback done);
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name);
