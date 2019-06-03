@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from kungfu.ops import broadcast, save_model, request_model, model_averaging
+from kungfu.ops import broadcast, save_model, request_model, request_average_model
 from .core import KungFuOptimizer
 
 
@@ -64,7 +64,7 @@ class PeerModelAveraging(KungFuOptimizer):
                                                        **kwargs)
             save_model_op = save_model(variables)
 
-            with tf.control_dependencies([assign_ops]):
+            with tf.control_dependencies(assign_ops):
                 with tf.control_dependencies([apply_op]):
                     with tf.control_dependencies([save_model_op]):
                         return tf.group(apply_op)

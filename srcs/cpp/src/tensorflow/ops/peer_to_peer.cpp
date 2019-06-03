@@ -81,7 +81,8 @@ REGISTER_OP("RequestAverageModel")
     .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
     .Input("vars: NumTensors * T")
-    .Output("outputs: NumTensors * T");
+    .Output("outputs: NumTensors * T")
+    .SetShapeFn(shape_inference::UnchangedShape);
 
 class RequestAverageModel : public OpKernel
 {
@@ -109,7 +110,7 @@ class RequestAverageModel : public OpKernel
     std::unique_ptr<ModelBuffer> modelBuf_;
 
   public:
-    explicit ModelAveraging(OpKernelConstruction *context)
+    explicit RequestAverageModel(OpKernelConstruction *context)
         : OpKernel(context), var_type_size_(0), total_var_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
@@ -140,21 +141,20 @@ class RequestAverageModel : public OpKernel
         _kungfu_world->Request(destination, modelBuf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
-        auto offset = sizeof(float);
         for (int i = 0; i < var_sizes_.size(); i++) {
             const Tensor &input = context->input(i);
             Tensor *output      = nullptr;
             OP_REQUIRES_OK(context,
                         context->allocate_output(i, input.shape(), &output));
 
-            float* input_ptr = input.tensor_data().data();
-            float* other_ptr = modelBuf_->data() + modelBuf_->offsets()[i];
-            float* output_ptr = output->tensor_data().data();
+            float* input_ptr = (float*) input.tensor_data().data();
+            float* other_ptr = (float*) (modelBuf_->data() + modelBuf_->offsets()[i]);
+            float* output_ptr = (float*) output->tensor_data().data();
             for (int j = 0; j < var_sizes_[i]; j++) {
-                output_ptr = 0.5 * (*input_ptr + *other_ptr);
-                output_ptr += offset;
-                input_ptr += offset;
-                other_ptr += offset;
+                *output_ptr = 0.5 * (*input_ptr + *other_ptr);
+                output_ptr += 1;
+                input_ptr += 1;
+                other_ptr += 1;
             }
         }
     }
