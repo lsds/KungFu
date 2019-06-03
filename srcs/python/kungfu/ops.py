@@ -134,13 +134,6 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     return request_model
 
 
-def merge_received(t):
-    return _op_lib.merge_received(t,
-                                  input_tensor_name=t.name,
-                                  shape=t.shape,
-                                  dtype=t.dtype)
-
-
 def broadcast(t):
     return _op_lib.broadcast(t)
 
