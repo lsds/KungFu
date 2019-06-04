@@ -99,6 +99,7 @@ clang tidy:
   # image: ubuntu:disco
 
   before_script:
+  - apt update
   - apt install -y clang clang-format clang-tidy jq
 
   script:
