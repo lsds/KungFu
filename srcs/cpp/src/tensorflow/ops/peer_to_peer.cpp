@@ -142,13 +142,13 @@ class ModelAveraging : public OpKernel
                                to_kungfu_type(context->input(0).dtype()));
 
         for (int i = 0; i < var_sizes_.size(); i++) {
-            Tensor &input = (Tensor &)context->input(i);
+            const Tensor &input = context->input(i);
             Tensor other(input.dtype(), input.shape());
             model_buf_->copyTo(i, other);
             auto other_flt = other.flat<float>();
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
             std::copy(other.tensor_data().begin(), other.tensor_data().end(),
-                      (char *)input.tensor_data().begin());
+                      const_cast<char *>(input.tensor_data().begin()));
         }
     }
 };
@@ -227,10 +227,9 @@ class AsyncModelAveraging : public OpKernel
                                   total_var_size_ = total_var_size_,
                                   var_type_size_  = var_type_size_]() {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy((unsigned char *)pb->data(),
-                          (unsigned char *)pb->data() +
-                              total_var_size_ * var_type_size_,
-                          (unsigned char *)mb->data());
+                std::copy(pb->data(),
+                          pb->data() + total_var_size_ * var_type_size_,
+                          mb->data());
                 is_requesting_ = false;
             };
         }
@@ -245,14 +244,14 @@ class AsyncModelAveraging : public OpKernel
         {
             std::lock_guard<std::mutex> l(mu_);
             for (int i = 0; i < var_sizes_.size(); i++) {
-                Tensor &input = (Tensor &)context->input(i);
+                const Tensor &input = context->input(i);
                 Tensor other(input.dtype(), input.shape());
                 model_buf_->copyTo(i, other);
                 auto other_flt = other.flat<float>();
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
                 std::copy(other.tensor_data().begin(),
                           other.tensor_data().end(),
-                          (char *)input.tensor_data().begin());
+                          const_cast<char *>(input.tensor_data().begin()));
             }
         }
     }

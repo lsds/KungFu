@@ -41,7 +41,8 @@ int kungfu_world::UpdateModelStore(const char *name, const void *model,
                                    int count, KungFu_Datatype dtype,
                                    const DoneCallback &done)
 {
-    return GoKungfuUpdateModelStore((char *)name, (void *)model, GoInt(count),
+    return GoKungfuUpdateModelStore(const_cast<char *>(name),
+                                    const_cast<void *>(model), GoInt(count),
                                     GoInt(dtype), new CallbackWrapper(done));
 }
 
@@ -63,39 +64,41 @@ int kungfu_world::Reduce(const void *sendbuf, void *recvbuf, int count,
                          KungFu_Datatype dtype, KungFu_Op op, const char *name,
                          const DoneCallback &done)
 {
-    return GoKungfuReduce((void *)sendbuf, recvbuf, GoInt(count), GoInt(dtype),
-                          GoInt(op), (char *)name, new CallbackWrapper(done));
+    return GoKungfuReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
+                          GoInt(dtype), GoInt(op), const_cast<char *>(name),
+                          new CallbackWrapper(done));
 }
 
 int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
                             KungFu_Datatype dtype, KungFu_Op op,
                             const char *name)
 {
-    return GoKungfuAllReduce((void *)sendbuf, recvbuf, GoInt(count),
-                             GoInt(dtype), GoInt(op), (char *)name, nullptr);
+    return GoKungfuAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
+                             GoInt(dtype), GoInt(op), const_cast<char *>(name),
+                             nullptr);
 }
 
 int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
                             KungFu_Datatype dtype, KungFu_Op op,
                             const char *name, const DoneCallback &done)
 {
-    return GoKungfuAllReduce((void *)sendbuf, recvbuf, GoInt(count),
-                             GoInt(dtype), GoInt(op), (char *)name,
+    return GoKungfuAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
+                             GoInt(dtype), GoInt(op), const_cast<char *>(name),
                              new CallbackWrapper(done));
 }
 
 int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
                             KungFu_Datatype dtype, const char *name)
 {
-    return GoKungfuBroadcast((void *)sendbuf, recvbuf, GoInt(count),
-                             GoInt(dtype), (char *)name, nullptr);
+    return GoKungfuBroadcast(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
+                             GoInt(dtype), const_cast<char *>(name), nullptr);
 }
 
 int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
                             KungFu_Datatype dtype, const char *name,
                             const DoneCallback &done)
 {
-    return GoKungfuBroadcast((void *)sendbuf, recvbuf, GoInt(count),
-                             GoInt(dtype), (char *)name,
+    return GoKungfuBroadcast(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
+                             GoInt(dtype), const_cast<char *>(name),
                              new CallbackWrapper(done));
 }
