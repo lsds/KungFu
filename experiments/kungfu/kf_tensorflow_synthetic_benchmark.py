@@ -19,51 +19,36 @@ parser = argparse.ArgumentParser(
     description='TensorFlow Synthetic Benchmark',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('--model',
-                    type=str,
-                    default='ResNet50',
-                    help='model to benchmark')
-parser.add_argument('--batch-size',
-                    type=int,
-                    default=32,
-                    help='input batch size')
+parser.add_argument(
+    '--model', type=str, default='ResNet50', help='model to benchmark')
+parser.add_argument(
+    '--batch-size', type=int, default=32, help='input batch size')
 
 parser.add_argument(
     '--num-warmup-batches',
     type=int,
     default=10,
     help='number of warm-up batches that don\'t count towards benchmark')
-parser.add_argument('--num-batches-per-iter',
-                    type=int,
-                    default=10,
-                    help='number of batches per benchmark iteration')
-parser.add_argument('--num-iters',
-                    type=int,
-                    default=10,
-                    help='number of benchmark iterations')
+parser.add_argument(
+    '--num-batches-per-iter',
+    type=int,
+    default=10,
+    help='number of batches per benchmark iteration')
+parser.add_argument(
+    '--num-iters', type=int, default=10, help='number of benchmark iterations')
 
-parser.add_argument('--eager',
-                    action='store_true',
-                    default=False,
-                    help='enables eager execution')
-parser.add_argument('--no-cuda',
-                    action='store_true',
-                    default=False,
-                    help='disables CUDA training')
-parser.add_argument('--no-kungfu',
-                    action='store_true',
-                    default=False,
-                    help='disables kungfu')
-# FIXME: rename this file
-parser.add_argument('--dataset',
-                    type=str,
-                    default='synthetic',
-                    help='synthetic | imagenet')
-parser.add_argument('--data-dir', type=str, default='', help='dir to dataset')
-parser.add_argument('--data-records',
-                    type=int,
-                    default=1024,
-                    help='number of TFRecord files')
+parser.add_argument(
+    '--eager',
+    action='store_true',
+    default=False,
+    help='enables eager execution')
+parser.add_argument(
+    '--no-cuda',
+    action='store_true',
+    default=False,
+    help='disables CUDA training')
+parser.add_argument(
+    '--no-kungfu', action='store_true', default=False, help='disables kungfu')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -94,29 +79,16 @@ if args.kungfu:
  
 init = tf.global_variables_initializer()
 
-if args.dataset == 'imagenet':
-    from kungfu.helpers import imagenet
-    data, target = imagenet.create_dataset(args.data_dir, args.batch_size,
-                                           args.data_records)
-else:
-    data = tf.random_uniform([args.batch_size, 224, 224, 3])
-    target = tf.random_uniform([args.batch_size, 1],
-                               minval=0,
-                               maxval=999,
-                               dtype=tf.int64)
-
-
-def loss_and_accuracy():
-    logits = model(data, training=True)
-    loss = tf.losses.sparse_softmax_cross_entropy(target, logits)
-    correct_prediction = tf.equal(target, tf.argmax(logits, 1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    return loss, accuracy
+data = tf.random_uniform([args.batch_size, 224, 224, 3])
+target = tf.random_uniform([args.batch_size, 1],
+                           minval=0,
+                           maxval=999,
+                           dtype=tf.int64)
 
 
 def loss_function():
-    loss, _ = loss_and_accuracy()
-    return loss
+    logits = model(data, training=True)
+    return tf.losses.sparse_softmax_cross_entropy(target, logits)
 
 
 def log(s, nl=True):
@@ -128,7 +100,7 @@ log('Batch size: %d' % args.batch_size)
 device = '/gpu:0' if args.cuda else 'CPU'
 
 
-def run(benchmark_step, eval_step=None):
+def run(benchmark_step):
     # Warm-up
     log('Running warmup...')
     timeit.timeit(benchmark_step, number=args.num_warmup_batches)
@@ -141,9 +113,6 @@ def run(benchmark_step, eval_step=None):
         img_sec = args.batch_size * args.num_batches_per_iter / time
         log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
         img_secs.append(img_sec)
-        if eval_step:
-            loss, acc = eval_step()
-            print('loss: %f,accuracy: %s' % (loss, acc))
 
     # Results
     img_sec_mean = np.mean(img_secs)
@@ -153,12 +122,12 @@ def run(benchmark_step, eval_step=None):
 
 if tf.executing_eagerly():
     with tf.device(device):
-        run(lambda: opt.minimize(loss_function,
-                                 var_list=model.trainable_variables))
+        run(lambda: opt.minimize(
+            loss_function, var_list=model.trainable_variables))
 else:
     with tf.Session(config=config) as session:
         init.run()
 
-        loss, acc = loss_and_accuracy()
+        loss = loss_function()
         train_opt = opt.minimize(loss)
-        run(lambda: session.run(train_opt), lambda: session.run([loss, acc]))
+        run(lambda: session.run(train_opt))
