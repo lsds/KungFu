@@ -39,7 +39,8 @@ class AllReduce : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
         _kungfu_world->AllReduce(
-            input.tensor_data().data(), (void *)(output->tensor_data().data()),
+            input.tensor_data().data(),
+            const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
             input_tensor_name_.c_str(), done);
     }
@@ -65,7 +66,8 @@ class Broadcast : public AsyncOpKernel
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, input.shape(), &output));
         _kungfu_world->Broadcast(
-            input.tensor_data().data(), (void *)(output->tensor_data().data()),
+            input.tensor_data().data(),
+            const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), name().c_str(),
             done);
     }
@@ -88,12 +90,12 @@ class GradientNoise : public OpKernel
     using OpKernel::OpKernel;
 
     float alpha_;
-    float g_ema;
-    float s_ema;
+    float g_ema_;
+    float s_ema_;
 
   public:
     explicit GradientNoise(OpKernelConstruction *context)
-        : OpKernel(context), g_ema(0), s_ema(0)
+        : OpKernel(context), g_ema_(0), s_ema_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha_));
         OP_REQUIRES(context, alpha_ > 0,
@@ -104,61 +106,35 @@ class GradientNoise : public OpKernel
     {
         DCHECK_EQ(2, context->num_inputs());
 
-        Tensor &g_biased_tensor = (Tensor &)context->input(0);
-        Tensor &s_biased_tensor = (Tensor &)context->input(1);
+        const Tensor &g_biased_tensor = context->input(0);
+        const Tensor &s_biased_tensor = context->input(1);
 
         Tensor *output = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(
                                     0, g_biased_tensor.shape(), &output));
 
-        float g_current = (float)g_biased_tensor.scalar<float>()();
-        float s_current = (float)s_biased_tensor.scalar<float>()();
+        float g_current = g_biased_tensor.scalar<float>()();
+        float s_current = s_biased_tensor.scalar<float>()();
 
-        if (g_ema == 0.0) {
-            g_ema = g_current;
+        if (g_ema_ == 0.0) {
+            g_ema_ = g_current;
         } else {
-            g_ema = alpha_ * g_current + (1 - alpha_) * g_ema;
+            g_ema_ = alpha_ * g_current + (1 - alpha_) * g_ema_;
         }
 
-        if (s_ema == 0.0) {
-            s_ema = s_current;
+        if (s_ema_ == 0.0) {
+            s_ema_ = s_current;
         } else {
-            s_ema = alpha_ * s_current + (1 - alpha_) * s_ema;
+            s_ema_ = alpha_ * s_current + (1 - alpha_) * s_ema_;
         }
-        float gradient_noise = s_ema / g_ema;
+        float gradient_noise = s_ema_ / g_ema_;
 
-        float *y = static_cast<float *>((void *)output->tensor_data().data());
+        float *y = const_cast<float *>(output->scalar<float>().data());
         y[0]     = gradient_noise;
     }
 };
 
 REGISTER_KERNEL_BUILDER(Name("GradientNoise").Device(DEVICE_CPU),
                         GradientNoise);
-
-REGISTER_OP("Controller")
-    .Input("negotiated_gradients: float32")
-    .Output("output: float32")
-    .SetShapeFn(shape_inference::UnchangedShape);
-
-class Controller : public OpKernel
-{
-    using OpKernel::OpKernel;
-
-  public:
-    void Compute(OpKernelContext *context) override
-    {
-        DCHECK_EQ(1, context->num_inputs());
-
-        Tensor &negotiated_gradients = (Tensor &)context->input(0);
-
-        Tensor *output = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(
-                                    0, negotiated_gradients.shape(), &output));
-
-        *output = negotiated_gradients;
-    }
-};
-
-REGISTER_KERNEL_BUILDER(Name("Controller").Device(DEVICE_CPU), Controller);
 
 }  // namespace tensorflow

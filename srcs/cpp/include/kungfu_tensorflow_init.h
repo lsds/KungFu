@@ -19,8 +19,8 @@ namespace kungfu
 // order_group wraps order_group_t
 class order_group
 {
-    order_group_t *_og;
-    std::map<std::string, int> _ranks;
+    order_group_t *og_;
+    std::map<std::string, int> ranks_;
 
   public:
     using Task = DoneCallback;
@@ -29,9 +29,9 @@ class order_group
 
     ~order_group();
 
-    void start(const std::string &name, Task task);
+    void Start(const std::string &name, const Task &task);
 
-    void wait();
+    void Wait();
 };
 
 namespace tensorflow

@@ -16,28 +16,29 @@ class SelectionStrategy
   public:
     virtual ~SelectionStrategy() {}
 
-    virtual int next() = 0;
+    virtual int Next() = 0;
 
     // Factory method
-    static SelectionStrategy *create(const std::string &name,
+    static SelectionStrategy *Create(const std::string &name,
                                      const std::vector<int> &values);
 };
 
 class RandomSelector : public SelectionStrategy
 {
-    std::random_device random_device;
-    std::mt19937 engine{random_device()};
-    std::uniform_int_distribution<int> dist;
+    std::random_device random_device_;
+    std::mt19937 engine_{random_device_()};
+    std::uniform_int_distribution<int> dist_;
 
     const std::vector<int> values_;
 
   public:
-    RandomSelector(const std::vector<int> &values) : values_(values)
+    RandomSelector(const std::vector<int> &values)
+        : dist_(std::uniform_int_distribution<int>(0, values.size() - 1)),
+          values_(values)
     {
-        dist = std::uniform_int_distribution<int>(0, values.size() - 1);
     }
 
-    int next() { return values_.at(dist(engine)); }
+    int Next() { return values_.at(dist_(engine_)); }
 };
 
 class RoundRobinSelector : public SelectionStrategy
@@ -50,7 +51,7 @@ class RoundRobinSelector : public SelectionStrategy
     {
     }
 
-    int next()
+    int Next()
     {
         const int now = t_;
         t_            = (t_ + 1) % values_.size();
@@ -58,7 +59,7 @@ class RoundRobinSelector : public SelectionStrategy
     }
 };
 
-SelectionStrategy *SelectionStrategy::create(const std::string &name,
+SelectionStrategy *SelectionStrategy::Create(const std::string &name,
                                              const std::vector<int> &values)
 {
     if (name == "random") {
@@ -93,7 +94,7 @@ class ModelAveraging : public OpKernel
     std::vector<int> ranks_;
 
     // Peer rank selection strategy
-    std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
+    std::unique_ptr<SelectionStrategy> peer_selection_strategy_;
 
     // The vectors of the variable size (in bytes)
     std::vector<int> var_sizes_;
@@ -105,7 +106,7 @@ class ModelAveraging : public OpKernel
     int total_var_size_;
 
     // The pointer to the model buffer
-    std::unique_ptr<ModelBuffer> modelBuf_;
+    std::unique_ptr<ModelBuffer> model_buf_;
 
   public:
     explicit ModelAveraging(OpKernelConstruction *context)
@@ -118,8 +119,8 @@ class ModelAveraging : public OpKernel
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        _peer_selection_strategy.reset(
-            SelectionStrategy::create(peer_selection_strategy, ranks_));
+        peer_selection_strategy_.reset(
+            SelectionStrategy::Create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
@@ -130,24 +131,24 @@ class ModelAveraging : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     void Compute(OpKernelContext *context) override
     {
-        int destination = _peer_selection_strategy->next();
+        int destination = peer_selection_strategy_->Next();
 
-        _kungfu_world->Request(destination, modelBuf_->data(), total_var_size_,
+        _kungfu_world->Request(destination, model_buf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
         for (int i = 0; i < var_sizes_.size(); i++) {
-            Tensor &input = (Tensor &)context->input(i);
+            const Tensor &input = context->input(i);
             Tensor other(input.dtype(), input.shape());
-            modelBuf_->copyTo(i, other);
+            model_buf_->copyTo(i, other);
             auto other_flt = other.flat<float>();
             other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
             std::copy(other.tensor_data().begin(), other.tensor_data().end(),
-                      (char *)input.tensor_data().begin());
+                      const_cast<char *>(input.tensor_data().begin()));
         }
     }
 };
@@ -171,23 +172,23 @@ class AsyncModelAveraging : public OpKernel
 
     int self_rank_;
     std::vector<int> ranks_;
-    std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
+    std::unique_ptr<SelectionStrategy> peer_selection_strategy_;
 
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
 
-    std::unique_ptr<ModelBuffer> modelBuf_;
-    std::unique_ptr<ModelBuffer> prefetchBuf_;
-    std::function<void()> prefetchCallback;
+    std::unique_ptr<ModelBuffer> model_buf_;
+    std::unique_ptr<ModelBuffer> prefetch_buf_;
+    std::function<void()> prefetch_callback_;
 
     std::mutex mu_;
-    std::atomic<bool> isRequesting;
+    std::atomic<bool> is_requesting_;
 
   public:
     explicit AsyncModelAveraging(OpKernelConstruction *context)
         : OpKernel(context), var_type_size_(0), total_var_size_(0),
-          isRequesting(false)
+          is_requesting_(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -196,8 +197,8 @@ class AsyncModelAveraging : public OpKernel
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        _peer_selection_strategy.reset(
-            SelectionStrategy::create(peer_selection_strategy, ranks_));
+        peer_selection_strategy_.reset(
+            SelectionStrategy::Create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
@@ -208,50 +209,49 @@ class AsyncModelAveraging : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        prefetch_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     void Compute(OpKernelContext *context) override
     {
-        int destination = _peer_selection_strategy->next();
+        int destination = peer_selection_strategy_->Next();
 
-        if (modelBuf_.get() == nullptr) {
-            modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        if (model_buf_.get() == nullptr) {
+            model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, modelBuf_->data(),
+            _kungfu_world->Request(destination, model_buf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
-            prefetchCallback = [&, mb = modelBuf_.get(),
-                                pb              = prefetchBuf_.get(),
-                                total_var_size_ = total_var_size_,
-                                var_type_size_  = var_type_size_]() {
+            prefetch_callback_ = [&, mb = model_buf_.get(),
+                                  pb              = prefetch_buf_.get(),
+                                  total_var_size_ = total_var_size_,
+                                  var_type_size_  = var_type_size_]() {
                 std::lock_guard<std::mutex> l(mu_);
-                std::copy((unsigned char *)pb->data(),
-                          (unsigned char *)pb->data() +
-                              total_var_size_ * var_type_size_,
-                          (unsigned char *)mb->data());
-                isRequesting = false;
+                std::copy(pb->data(),
+                          pb->data() + total_var_size_ * var_type_size_,
+                          mb->data());
+                is_requesting_ = false;
             };
         }
 
-        if (!isRequesting.load()) {
-            isRequesting = true;
+        if (!is_requesting_.load()) {
+            is_requesting_ = true;
             _kungfu_world->Request(
-                destination, prefetchBuf_->data(), total_var_size_,
-                to_kungfu_type(context->input(0).dtype()), prefetchCallback);
+                destination, prefetch_buf_->data(), total_var_size_,
+                to_kungfu_type(context->input(0).dtype()), prefetch_callback_);
         }
 
         {
             std::lock_guard<std::mutex> l(mu_);
             for (int i = 0; i < var_sizes_.size(); i++) {
-                Tensor &input = (Tensor &)context->input(i);
+                const Tensor &input = context->input(i);
                 Tensor other(input.dtype(), input.shape());
-                modelBuf_->copyTo(i, other);
+                model_buf_->copyTo(i, other);
                 auto other_flt = other.flat<float>();
                 other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
                 std::copy(other.tensor_data().begin(),
                           other.tensor_data().end(),
-                          (char *)input.tensor_data().begin());
+                          const_cast<char *>(input.tensor_data().begin()));
             }
         }
     }
@@ -276,16 +276,16 @@ class SaveModel : public OpKernel
     int var_type_size_;
     int total_var_size_;
 
-    std::unique_ptr<ModelBuffer> modelBuf_;
+    std::unique_ptr<ModelBuffer> model_buf_;
 
-    std::atomic<bool> isSaving;
+    std::atomic<bool> is_saving_;
 
-    int gs;
+    int gs_;
 
   public:
     explicit SaveModel(OpKernelConstruction *context)
         : OpKernel(context), var_type_size_(0), total_var_size_(0),
-          isSaving(false), gs(0)
+          is_saving_(false), gs_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES(context, var_sizes_.size() > 0,
@@ -300,29 +300,29 @@ class SaveModel : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     void Compute(OpKernelContext *context) override
     {
-        gs++;
         OP_REQUIRES(context, context->num_inputs() > 0,
                     errors::InvalidArgument(
                         "Wrong number of inputs for operator SaveModel"));
+        ++gs_;
 
         for (int i = 0; i < var_sizes_.size(); i++) {
             const Tensor &input = context->input(i);
-            modelBuf_->copyFrom(i, input);
+            model_buf_->copyFrom(i, input);
         }
 
-        if (!isSaving.load()) {
-            isSaving = true;
+        if (!is_saving_.load()) {
+            is_saving_ = true;
             std::string updateName =
-                "ModelStoreUpdateAtGlobalStep " + std::to_string(gs);
+                "ModelStoreUpdateAtGlobalStep " + std::to_string(gs_);
             _kungfu_world->UpdateModelStore(
-                updateName.c_str(), modelBuf_->data(), total_var_size_,
+                updateName.c_str(), model_buf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()),
-                [&] { isSaving = false; });
+                [&] { is_saving_ = false; });
         }
     }
 };
@@ -348,13 +348,13 @@ class RequestModel : public OpKernel
 
     int self_rank_;
     std::vector<int> ranks_;
-    std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
+    std::unique_ptr<SelectionStrategy> peer_selection_strategy_;
     int num_model_vars_;
     std::vector<TensorShapeProto> shapes_;
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
-    std::unique_ptr<ModelBuffer> modelBuf_;
+    std::unique_ptr<ModelBuffer> model_buf_;
 
   public:
     explicit RequestModel(OpKernelConstruction *context)
@@ -367,8 +367,8 @@ class RequestModel : public OpKernel
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        _peer_selection_strategy.reset(
-            SelectionStrategy::create(peer_selection_strategy, ranks_));
+        peer_selection_strategy_.reset(
+            SelectionStrategy::Create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
         OP_REQUIRES_OK(context,
@@ -386,7 +386,7 @@ class RequestModel : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     void Compute(OpKernelContext *context) override
@@ -397,15 +397,15 @@ class RequestModel : public OpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        int destination = _peer_selection_strategy->next();
+        int destination = peer_selection_strategy_->Next();
 
         // Fill in the model Buffer with response from random peer
-        _kungfu_world->Request(destination, (void *)modelBuf_->data(),
+        _kungfu_world->Request(destination, (void *)model_buf_->data(),
                                total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
         for (int i = 0; i < var_sizes_.size(); i++) {
-            modelBuf_->copyTo(i, *outputs[i]);
+            model_buf_->copyTo(i, *outputs[i]);
         }
     }
 };
@@ -432,23 +432,23 @@ class AsyncRequestModel : public OpKernel
 
     int self_rank_;
     std::vector<int> ranks_;
-    std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
+    std::unique_ptr<SelectionStrategy> peer_selection_strategy_;
     int num_model_vars_;
     std::vector<TensorShapeProto> shapes_;
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
-    std::unique_ptr<ModelBuffer> modelBuf_;
-    std::unique_ptr<ModelBuffer> prefetchBuf_;
-    std::function<void()> prefetchCallback;
+    std::unique_ptr<ModelBuffer> model_buf_;
+    std::unique_ptr<ModelBuffer> prefetch_buf_;
+    std::function<void()> prefetch_callback_;
 
     std::mutex mu_;
-    std::atomic<bool> isRequesting;
+    std::atomic<bool> is_requesting_;
 
   public:
     explicit AsyncRequestModel(OpKernelConstruction *context)
         : OpKernel(context), var_type_size_(0), total_var_size_(0),
-          isRequesting(false)
+          is_requesting_(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -457,8 +457,8 @@ class AsyncRequestModel : public OpKernel
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        _peer_selection_strategy.reset(
-            SelectionStrategy::create(peer_selection_strategy, ranks_));
+        peer_selection_strategy_.reset(
+            SelectionStrategy::Create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
         OP_REQUIRES_OK(context,
@@ -476,7 +476,7 @@ class AsyncRequestModel : public OpKernel
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        prefetch_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     void Compute(OpKernelContext *context) override
@@ -487,37 +487,37 @@ class AsyncRequestModel : public OpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        int destination = _peer_selection_strategy->next();
+        int destination = peer_selection_strategy_->Next();
 
-        if (modelBuf_.get() == nullptr) {
-            modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        if (model_buf_.get() == nullptr) {
+            model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, modelBuf_->data(),
+            _kungfu_world->Request(destination, model_buf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
-            prefetchCallback = [&, mb = modelBuf_.get(),
-                                pb              = prefetchBuf_.get(),
-                                total_var_size_ = total_var_size_,
-                                var_type_size_  = var_type_size_]() {
+            prefetch_callback_ = [&, mb = model_buf_.get(),
+                                  pb              = prefetch_buf_.get(),
+                                  total_var_size_ = total_var_size_,
+                                  var_type_size_  = var_type_size_]() {
                 std::lock_guard<std::mutex> l(mu_);
                 std::copy(pb->data(),
                           pb->data() + total_var_size_ * var_type_size_,
                           mb->data());
-                isRequesting = false;
+                is_requesting_ = false;
             };
         }
 
-        if (!isRequesting.load()) {
-            isRequesting = true;
+        if (!is_requesting_.load()) {
+            is_requesting_ = true;
             _kungfu_world->Request(
-                destination, prefetchBuf_->data(), total_var_size_,
-                to_kungfu_type(context->input(0).dtype()), prefetchCallback);
+                destination, prefetch_buf_->data(), total_var_size_,
+                to_kungfu_type(context->input(0).dtype()), prefetch_callback_);
         }
 
         {
             std::lock_guard<std::mutex> l(mu_);
             for (int i = 0; i < var_sizes_.size(); i++) {
-                modelBuf_->copyTo(i, *outputs[i]);
+                model_buf_->copyTo(i, *outputs[i]);
             }
         }
     }

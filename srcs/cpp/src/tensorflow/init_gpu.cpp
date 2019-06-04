@@ -30,7 +30,7 @@ int world<gpu>::AllReduce(DoneCallback ready, const void *sendbuf,
                           void *recvbuf, int count, KungFu_Datatype dtype,
                           KungFu_Op op, const char *name, DoneCallback done)
 {
-    _gpu_all_reduce_group->start(name, [=, comm = _gpu_collective.get()]() {
+    _gpu_all_reduce_group->Start(name, [=, comm = _gpu_collective.get()]() {
         ready();
         comm->all_reduce(sendbuf, recvbuf, count, dtype);
         done();
