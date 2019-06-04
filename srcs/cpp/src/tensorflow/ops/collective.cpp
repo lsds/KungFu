@@ -88,12 +88,12 @@ class GradientNoise : public OpKernel
     using OpKernel::OpKernel;
 
     float alpha_;
-    float g_ema;
-    float s_ema;
+    float g_ema_;
+    float s_ema_;
 
   public:
     explicit GradientNoise(OpKernelConstruction *context)
-        : OpKernel(context), g_ema(0), s_ema(0)
+        : OpKernel(context), g_ema_(0), s_ema_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha_));
         OP_REQUIRES(context, alpha_ > 0,
@@ -114,18 +114,18 @@ class GradientNoise : public OpKernel
         float g_current = (float)g_biased_tensor.scalar<float>()();
         float s_current = (float)s_biased_tensor.scalar<float>()();
 
-        if (g_ema == 0.0) {
-            g_ema = g_current;
+        if (g_ema_ == 0.0) {
+            g_ema_ = g_current;
         } else {
-            g_ema = alpha_ * g_current + (1 - alpha_) * g_ema;
+            g_ema_ = alpha_ * g_current + (1 - alpha_) * g_ema_;
         }
 
-        if (s_ema == 0.0) {
-            s_ema = s_current;
+        if (s_ema_ == 0.0) {
+            s_ema_ = s_current;
         } else {
-            s_ema = alpha_ * s_current + (1 - alpha_) * s_ema;
+            s_ema_ = alpha_ * s_current + (1 - alpha_) * s_ema_;
         }
-        float gradient_noise = s_ema / g_ema;
+        float gradient_noise = s_ema_ / g_ema_;
 
         float *y = static_cast<float *>((void *)output->tensor_data().data());
         y[0]     = gradient_noise;
