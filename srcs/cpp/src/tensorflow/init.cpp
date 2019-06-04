@@ -23,7 +23,7 @@ order_group::~order_group()
     del_order_group(_og);
 }
 
-void order_group::start(const std::string &name, Task task)
+void order_group::start(const std::string &name, const Task &task)
 {
     const int rank = _ranks.at(name);
     order_group_do_rank(_og, rank, new CallbackWrapper(task));

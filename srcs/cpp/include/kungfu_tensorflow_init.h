@@ -29,7 +29,7 @@ class order_group
 
     ~order_group();
 
-    void start(const std::string &name, Task task);
+    void start(const std::string &name, const Task &task);
 
     void wait();
 };
