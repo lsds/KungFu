@@ -16,7 +16,7 @@ class SelectionStrategy
   public:
     virtual ~SelectionStrategy() {}
 
-    virtual int next() = 0;
+    virtual int Next() = 0;
 
     // Factory method
     static SelectionStrategy *Create(const std::string &name,
@@ -38,7 +38,7 @@ class RandomSelector : public SelectionStrategy
     {
     }
 
-    int next() { return values_.at(dist_(engine_)); }
+    int Next() { return values_.at(dist_(engine_)); }
 };
 
 class RoundRobinSelector : public SelectionStrategy
@@ -51,7 +51,7 @@ class RoundRobinSelector : public SelectionStrategy
     {
     }
 
-    int next()
+    int Next()
     {
         const int now = t_;
         t_            = (t_ + 1) % values_.size();
@@ -136,7 +136,7 @@ class ModelAveraging : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
-        int destination = peer_selection_strategy_->next();
+        int destination = peer_selection_strategy_->Next();
 
         _kungfu_world->Request(destination, model_buf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
@@ -214,7 +214,7 @@ class AsyncModelAveraging : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
-        int destination = peer_selection_strategy_->next();
+        int destination = peer_selection_strategy_->Next();
 
         if (model_buf_.get() == nullptr) {
             model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
@@ -397,7 +397,7 @@ class RequestModel : public OpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        int destination = peer_selection_strategy_->next();
+        int destination = peer_selection_strategy_->Next();
 
         // Fill in the model Buffer with response from random peer
         _kungfu_world->Request(destination, (void *)model_buf_->data(),
@@ -487,7 +487,7 @@ class AsyncRequestModel : public OpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        int destination = peer_selection_strategy_->next();
+        int destination = peer_selection_strategy_->Next();
 
         if (model_buf_.get() == nullptr) {
             model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));

@@ -11,24 +11,23 @@ namespace kungfu
 {
 
 order_group::order_group(const std::vector<std::string> &names)
-    : _og(new_ranked_order_group(names.size()))
+    : og_(new_ranked_order_group(names.size()))
 {
     int idx = 0;
-    for (const auto &name : names) { _ranks[name] = idx++; }
+    for (const auto &name : names) { ranks_[name] = idx++; }
 }
 
 order_group::~order_group()
 {
-    wait();
-    del_order_group(_og);
+    Wait();
+    del_order_group(og_);
 }
 
-void order_group::start(const std::string &name, const Task &task)
+void order_group::Start(const std::string &name, const Task &task)
 {
-    const int rank = _ranks.at(name);
-    order_group_do_rank(_og, rank, new CallbackWrapper(task));
+    order_group_do_rank(og_, ranks_.at(name), new CallbackWrapper(task));
 }
 
-void order_group::wait() { order_group_wait(_og); }
+void order_group::Wait() { order_group_wait(og_); }
 
 }  // namespace kungfu

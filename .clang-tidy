@@ -45,7 +45,7 @@ CheckOptions:
   # https://clang.llvm.org/extra/clang-tidy/checks/readability-identifier-naming.html
   - key:             readability-identifier-naming.ClassCase
     value:           'CamelCase'
-  - key:             readability-identifier-naming.ClassMethodCase
+  - key:             readability-identifier-naming.MethodCase
     value:           'CamelCase'
   - key:             readability-identifier-naming.PrivateMemberCase
     value:           'lower_case'
