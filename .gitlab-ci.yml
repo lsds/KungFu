@@ -1,6 +1,5 @@
 # https://docs.gitlab.com/ce/ci/yaml/README.html
 
-image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
 stages:
 - test
@@ -8,6 +7,7 @@ stages:
 
 unit test:
   stage: test
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   script:
   - | # C++ test
@@ -20,6 +20,8 @@ unit test:
 
 integration test:
   stage: test
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
+
   script:
   - |
     ./configure --build-tests
@@ -29,6 +31,7 @@ integration test:
 
 system test:
   stage: test
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   before_script:
   - |
@@ -44,6 +47,7 @@ system test:
 
 python2 test:
   stage: test
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   before_script:
   - apt install -y python python-pip
@@ -61,7 +65,7 @@ python2 test:
     PYTHON=$(which python) \
     ./scripts/tests/run-train-tests.sh
 
-format test:
+go format test:
   stage: lint
   image: alpine:3.9
 
@@ -73,3 +77,32 @@ format test:
   - gofmt -w .
   # TODO: check cpp and python format
   - git diff --exit-code
+
+clang format test:
+  stage: lint
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
+  # TODO: use newer ubuntu image
+  # image: ubuntu:disco
+
+  before_script:
+  - apt install -y clang-format
+
+  script:
+  - clang-format -version
+  - ./scripts/clean-code.sh --format
+  - git diff --exit-code
+
+clang tidy:
+  stage: lint
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
+  # TODO: use newer ubuntu image
+  # image: ubuntu:disco
+
+  before_script:
+  - apt install -y clang-format clang-tidy
+
+  script:
+  - clang-format -version
+  - clang-tidy -version
+  - ./scripts/clean-code.sh --check
+  # - git diff

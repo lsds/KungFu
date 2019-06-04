@@ -23,14 +23,26 @@ fix() {
 }
 
 list_srcs() {
-    # find ./srcs -type f | grep .cpp$
     jq -r '.[].file' compile_commands.json
+}
+
+list_hdr_and_srcs() {
+    find ./srcs -type f | grep .cpp$
+    find ./srcs -type f | grep .hpp$
+    find ./srcs -type f | grep .h$
 }
 
 for_all() {
     for src in $(list_srcs); do
         echo "$1 $src"
         $1 $src
+    done
+}
+
+format_all() {
+    for src in $(list_hdr_and_srcs); do
+        echo "clang-format -i $src"
+        clang-format -i $src
     done
 }
 
@@ -44,6 +56,9 @@ fix_all() {
 
 main() {
     case $1 in
+    --format)
+        format_all
+        ;;
     --check)
         rebuild
         check_all
