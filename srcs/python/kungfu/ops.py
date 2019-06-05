@@ -322,12 +322,15 @@ def partial_exchange_with_gpu_allreduce(ts,
         groups[indexes[t.name]].append(t)
 
     # Start all groups
+    from collections.abc import Iterable
     reordered_cond_ops = [None] * len(ts)
     for i, partition in enumerate(groups):
         negotiated_partition = tf.cond(
             tf.equal(tf.mod(gs - 1, num_partitions), i),
             lambda partition=partition: gpu_group_all_reduce(partition),
             lambda partition=partition: partition)
+        if not isinstance(negotiated_partition, Iterable):
+            negotiated_partition = [negotiated_partition]
         for negotiated_grad, grad in zip(negotiated_partition, partition):
             reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 
