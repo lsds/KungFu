@@ -53,7 +53,7 @@ class AllReduceGpu : public OpKernel
             errors::InvalidArgument("input_tensor_name must not be empty"));
     }
 
-    void ComputeAsync(OpKernelContext *context) override
+    void Compute(OpKernelContext *context) override
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
