@@ -4,6 +4,7 @@
 #include <tensorflow/core/framework/shape_inference.h>
 #include <tensorflow/stream_executor/stream.h>
 
+#include <cuda_runtime.h>
 #include <kungfu_tensorflow_ops.h>
 
 namespace tensorflow
