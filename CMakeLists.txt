@@ -54,9 +54,13 @@ IF(KUNGFU_BUILD_TF_OPS)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
     IF(KUNGFU_HAVE_CUDA)
+        FIND_PACKAGE(CUDA REQUIRED)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE
                        srcs/cpp/src/tensorflow/ops/collective_inter_device.cpp)
         TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops cudart)
+        TARGET_INCLUDE_DIRECTORIES(kungfu_tensorflow_ops
+                                   PRIVATE ${CUDA_INCLUDE_DIRS})
+        TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops ${CUDA_LIBRARIES})
     ENDIF()
 
     IF(KUNGFU_USE_NCCL)
