@@ -1,5 +1,7 @@
 // https://www.tensorflow.org/extend/adding_an_op
 #pragma once
+#include <thread>
+
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
@@ -34,6 +36,13 @@ inline void add_tensor(Tensor &out, const void *a, const void *b)
 {
     std_transform_2(a, b, (void *)out.tensor_data().data(), out.NumElements(),
                     to_kungfu_type(out.dtype()), KungFu_SUM);
+}
+
+inline void spin_wait(const std::function<bool()> &cond, int ns = 100)
+{
+    while (!cond()) {
+        std::this_thread::sleep_for(std::chrono::nanoseconds(ns));
+    }
 }
 
 }  // namespace tensorflow

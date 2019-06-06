@@ -2,6 +2,7 @@
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
+#include <tensorflow/stream_executor/stream.h>
 
 #include <kungfu_tensorflow_ops.h>
 
@@ -13,6 +14,7 @@ namespace tensorflow
 REGISTER_OP("AllReduce")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
+    .Attr("wait_gpu: bool")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
@@ -20,6 +22,7 @@ REGISTER_OP("AllReduce")
 class AllReduce : public AsyncOpKernel
 {
     std::string input_tensor_name_;
+    bool wait_gpu_;
 
   public:
     explicit AllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
@@ -29,6 +32,7 @@ class AllReduce : public AsyncOpKernel
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
+        OP_REQUIRES_OK(context, context->GetAttr("wait_gpu", &wait_gpu_));
     }
 
   public:
@@ -38,6 +42,18 @@ class AllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
+        if (wait_gpu_) {
+            auto device_context = context->op_device_context();
+            auto executor       = device_context->stream()->parent();
+            auto ready_event    = new perftools::gputools::Event(executor);
+            ready_event->Init();
+            device_context->stream()->ThenRecordEvent(ready_event);
+
+            spin_wait([ready_event = ready_event] {
+                return ready_event->PollForStatus() !=
+                       perftools::gputools::Event::Status::kPending;
+            });
+        }
         _kungfu_world->AllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),

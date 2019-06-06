@@ -138,8 +138,8 @@ def broadcast(t):
     return _op_lib.broadcast(t)
 
 
-def all_reduce(t):
-    return _op_lib.all_reduce(t, input_tensor_name=t.name)
+def all_reduce(t, wait_gpu=False):
+    return _op_lib.all_reduce(t, input_tensor_name=t.name, wait_gpu=wait_gpu)
 
 
 def all_reduce_gpu(t):
@@ -331,7 +331,7 @@ def partial_exchange_with_gpu_allreduce(ts,
         if len(partition) == 1:
             negotiated_partition = [negotiated_partition]
         for i in range(len(partition)):
-            grad            = partition[i]
+            grad = partition[i]
             negotiated_grad = negotiated_partition[i]
             reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 
