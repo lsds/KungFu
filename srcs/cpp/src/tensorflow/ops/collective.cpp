@@ -36,8 +36,8 @@ class AllReduce : public AsyncOpKernel
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(0, input.shape(), &output));
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, input.shape(), &output), done);
         _kungfu_world->AllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
@@ -63,8 +63,8 @@ class Broadcast : public AsyncOpKernel
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(0, input.shape(), &output));
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, input.shape(), &output), done);
         _kungfu_world->Broadcast(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
