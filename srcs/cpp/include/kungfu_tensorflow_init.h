@@ -58,6 +58,9 @@ template <> class world<gpu>
     int AllReduce(DoneCallback ready, const void *sendbuf, void *recvbuf,
                   int count, KungFu_Datatype dtype, KungFu_Op op,
                   const char *name, DoneCallback done);
+
+    int AllReduce(const void *sendbuf, void *recvbuf, int count,
+                  KungFu_Datatype dtype, KungFu_Op op, const char *name);
 };
 
 extern std::unique_ptr<world<gpu>> _world_gpu;

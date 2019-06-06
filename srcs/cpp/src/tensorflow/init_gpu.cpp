@@ -38,5 +38,15 @@ int world<gpu>::AllReduce(DoneCallback ready, const void *sendbuf,
     return 0;
 }
 
+int world<gpu>::AllReduce(const void *sendbuf,
+                          void *recvbuf, int count, KungFu_Datatype dtype,
+                          KungFu_Op op, const char *name)
+{
+    _gpu_all_reduce_group->Start(name, [=, comm = _gpu_collective.get()]() {
+        comm->all_reduce(sendbuf, recvbuf, count, dtype);
+    });
+    return 0;
+}
+
 }  // namespace tensorflow
 }  // namespace kungfu
