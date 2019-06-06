@@ -143,7 +143,7 @@ def all_reduce(t):
 
 
 def all_reduce_gpu_via_cpu(t):
-    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
+    return _op_lib.all_reduce_gpu_via_cpu(t, input_tensor_name=t.name)
 
 
 def _all_reduce_gpu(t):
