@@ -328,7 +328,11 @@ def partial_exchange_with_gpu_allreduce(ts,
             tf.equal(tf.mod(gs - 1, num_partitions), i),
             lambda partition=partition: gpu_group_all_reduce(partition),
             lambda partition=partition: partition)
-        for negotiated_grad, grad in zip(negotiated_partition, partition):
+        if len(partition) == 1:
+            negotiated_partition = [negotiated_partition]
+        for i in range(len(partition)):
+            grad            = partition[i]
+            negotiated_grad = negotiated_partition[i]
             reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 
     with tf.control_dependencies([advance_gs]):
