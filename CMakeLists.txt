@@ -11,6 +11,7 @@ OPTION(KUNGFU_BUILD_TESTS "Build tests." OFF)
 OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
 OPTION(KUNGFU_BUILD_TOOLS "Build kungfu tools." OFF)
 OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
+OPTION(KUNGFU_ENABLE_NCCL "Enable NCCL." OFF)
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
@@ -36,7 +37,7 @@ TARGET_LINK_LIBRARIES(kungfu kungfu-comm kungfu-base)
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 ADD_CGO_DEPS(kungfu)
 
-IF(KUNGFU_USE_NCCL)
+IF(KUNGFU_ENABLE_NCCL)
     INCLUDE(cmake/nccl.cmake)
 ENDIF()
 
@@ -52,7 +53,7 @@ IF(KUNGFU_BUILD_TF_OPS)
                   srcs/cpp/src/tensorflow/ops/peer_to_peer.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
-    IF(KUNGFU_USE_NCCL)
+    IF(KUNGFU_ENABLE_NCCL)
         TARGET_SOURCES(kungfu_tensorflow_init
                        PRIVATE
                        srcs/cpp/src/tensorflow/init_gpu.cpp

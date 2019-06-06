@@ -101,7 +101,7 @@ add_cmake_flags() {
     fi
     if [ ! -z ${WITH_NCCL} ]; then
         add_cmake_flag NCCL_HOME ${WITH_NCCL}
-        add_cmake_flag KUNGFU_USE_NCCL 1
+        add_cmake_flag KUNGFU_ENABLE_NCCL 1
     fi
 }
 

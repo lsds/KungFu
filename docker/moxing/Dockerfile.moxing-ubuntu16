@@ -5,7 +5,7 @@ ADD . /KungFu
 # Install KungFu
 RUN cd KungFu && \
         ldconfig /usr/local/cuda-9.0/targets/x86_64-linux/lib/stubs && \
-        env KUNGFU_USE_NCCL=1 pip install --no-index --user -U . && \
+        env KUNGFU_ENABLE_NCCL=1 pip install --no-index --user -U . && \
         ldconfig && \
         ./scripts/go-install.sh
 

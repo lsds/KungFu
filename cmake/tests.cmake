@@ -96,7 +96,7 @@ IF(MPI_HOME)
     USE_MPI(fake-mpi-trainer)
 ENDIF()
 
-IF(KUNGFU_USE_NCCL)
+IF(KUNGFU_ENABLE_NCCL)
     ADD_TEST_BIN(fake-nccl-trainer
                  ${KUNGFU_TESTS_DIR}/integration/fake_nccl_trainer.cpp)
     USE_NCCL(fake-nccl-trainer)
@@ -106,7 +106,7 @@ ENDIF()
 IF(KUNGFU_BUILD_TF_OPS)
     ADD_TEST_BIN(fake-tf-agent
                  ${KUNGFU_TESTS_DIR}/integration/fake_tf_agent.cpp)
-    IF(KUNGFU_USE_NCCL)
+    IF(KUNGFU_ENABLE_NCCL)
         USE_NCCL(fake-tf-agent)
     ENDIF()
     TARGET_LINK_LIBRARIES(fake-tf-agent kungfu_tensorflow_ops)

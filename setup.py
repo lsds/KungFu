@@ -66,9 +66,9 @@ class CMakeBuild(build_ext):
                 'CMAKE_EXPORT_COMPILE_COMMANDS',
             ]))
 
-        use_nccl = os.getenv('KUNGFU_USE_NCCL')
+        use_nccl = os.getenv('KUNGFU_ENABLE_NCCL')
         if use_nccl:
-            cmake_args.append(cmake_flag('KUNGFU_USE_NCCL', use_nccl))
+            cmake_args.append(cmake_flag('KUNGFU_ENABLE_NCCL', use_nccl))
             nccl_home = os.getenv('NCCL_HOME')
             if nccl_home:
                 cmake_args.append(cmake_flag('NCCL_HOME', nccl_home))
