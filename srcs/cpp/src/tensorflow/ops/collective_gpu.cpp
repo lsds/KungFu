@@ -57,12 +57,15 @@ class AllReduceGpu : public AsyncOpKernel
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        OP_REQUIRES_OK_ASYNC(
-            context, context->allocate_output(0, input.shape(), &output), done);
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, input.shape(), &output));
 
         kungfu::tensorflow::_world_gpu->AllReduce(
             [stream = context->op_device_context()->stream()]() {
-                stream->BlockHostUntilDone();
+                // stream->BlockHostUntilDone();
+                cudaStream_t *cuda_stream = reinterpret_cast<cudaStream_t *>(
+                    stream->implementation()->GpuStreamMemberHack());
+                cuda_stream->sync();
             },
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
