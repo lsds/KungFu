@@ -17,12 +17,12 @@ REGISTER_OP("AllReduce")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
 
-class AllReduce : public AsyncOpKernel
+class AllReduce : public OpKernel
 {
     std::string input_tensor_name_;
 
   public:
-    explicit AllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
+    explicit AllReduce(OpKernelConstruction *context) : OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
@@ -32,17 +32,17 @@ class AllReduce : public AsyncOpKernel
     }
 
   public:
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    void Compute(OpKernelContext *context) override
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        OP_REQUIRES_OK_ASYNC(
-            context, context->allocate_output(0, input.shape(), &output), done);
+        OP_REQUIRES_OK(
+            context, context->allocate_output(0, input.shape(), &output));
         _kungfu_world->AllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            input_tensor_name_.c_str(), done);
+            input_tensor_name_.c_str());
     }
 };
 
