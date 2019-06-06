@@ -4,7 +4,6 @@
 #include <tensorflow/core/framework/shape_inference.h>
 #include <tensorflow/stream_executor/stream.h>
 
-#include <cuda_runtime.h>
 #include <kungfu_tensorflow_ops.h>
 
 namespace tensorflow
@@ -39,7 +38,7 @@ REGISTER_OP("AllReduceGpu")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
 
-class AllReduceGpu : public AsyncOpKernel
+class AllReduceGpu : public OpKernel
 {
     std::string input_tensor_name_;
 
@@ -54,27 +53,20 @@ class AllReduceGpu : public AsyncOpKernel
             errors::InvalidArgument("input_tensor_name must not be empty"));
     }
 
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    void ComputeAsync(OpKernelContext *context) override
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        OP_REQUIRES_OK_ASYNC(
-            context, context->allocate_output(0, input.shape(), &output), done);
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, input.shape(), &output));
 
-        const cudaStream_t *stream =
-            CHECK_NOTNULL(reinterpret_cast<const cudaStream_t *>(
-                context->op_device_context()
-                    ->stream()
-                    ->implementation()
-                    ->GpuStreamMemberHack()));
-
-        cudaStreamSynchronize(stream);
+        auto stream = context->op_device_context()->stream();
+        stream->BlockHostUntilDone();
 
         kungfu::tensorflow::_world_gpu->AllReduce(
-            []{},
             input.tensor_data().data(), (void *)(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            input_tensor_name_.c_str(), done);
+            input_tensor_name_.c_str());
     }
 };
 
