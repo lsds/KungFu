@@ -43,8 +43,7 @@ class AllReduceGpu : public OpKernel
     std::string input_tensor_name_;
 
   public:
-    explicit AllReduceGpu(OpKernelConstruction *context)
-        : AsyncOpKernel(context)
+    explicit AllReduceGpu(OpKernelConstruction *context) : OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
