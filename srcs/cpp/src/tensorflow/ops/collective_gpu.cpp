@@ -57,8 +57,8 @@ class AllReduceGpu : public AsyncOpKernel
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(0, input.shape(), &output));
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, input.shape(), &output), done);
 
         kungfu::tensorflow::_world_gpu->AllReduce(
             [stream = context->op_device_context()->stream()]() {
