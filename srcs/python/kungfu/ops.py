@@ -142,7 +142,11 @@ def all_reduce(t):
     return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
 
-def all_reduce_gpu(t):
+def all_reduce_gpu_via_cpu(t):
+    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
+
+
+def _all_reduce_gpu(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
 
 
@@ -255,10 +259,8 @@ def gpu_group_all_reduce(ts):
     names = [t.name for t in ts]
     names = list(sorted(names))  # FIXME: use topsort
     import tensorflow as tf
-    with tf.control_dependencies([
-            start_gpu_group(names),
-    ]):
-        return [all_reduce_gpu(t) for t in ts]
+    with tf.control_dependencies([start_gpu_group(names)]):
+        return [_all_reduce_gpu(t) for t in ts]
 
 
 def group_all_reduce(ts):
@@ -331,7 +333,7 @@ def partial_exchange_with_gpu_allreduce(ts,
         if len(partition) == 1:
             negotiated_partition = [negotiated_partition]
         for i in range(len(partition)):
-            grad            = partition[i]
+            grad = partition[i]
             negotiated_grad = negotiated_partition[i]
             reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 

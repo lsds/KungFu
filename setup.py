@@ -61,6 +61,7 @@ class CMakeBuild(build_ext):
             cmake_flag('PYTHON', sys.executable),
         ] + cmake_tf_ext_flags() + list(
             pass_env([
+                'KUNGFU_HAVE_CUDA',  # FIXME: auto check HAVE_CUDA
                 'KUNGFU_BUILD_TOOLS',
                 'CMAKE_VERBOSE_MAKEFILE',
                 'CMAKE_EXPORT_COMPILE_COMMANDS',
