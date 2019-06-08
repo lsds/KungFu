@@ -75,8 +75,20 @@ go format test:
 
   script:
   - gofmt -w .
-  # TODO: check cpp and python format
   - git diff --exit-code
+
+python format test:
+  stage: lint
+  image: alpine:3.9
+
+  before_script:
+  - apk update
+  - apk add python3
+  - pip3 install autoflake isort yapf # TODO: ping to version
+
+  script:
+  - ./scripts/clean-code.sh --fmt-py
+  - git diff # --exit-code
 
 clang format test:
   stage: lint
@@ -89,7 +101,7 @@ clang format test:
 
   script:
   - clang-format -version
-  - ./scripts/clean-code.sh --format
+  - ./scripts/clean-code.sh --fmt-cpp
   - git diff --exit-code
 
 clang tidy:
