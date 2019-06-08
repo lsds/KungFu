@@ -1,6 +1,6 @@
 import tensorflow as tf
-
 from kungfu.ops import group_all_reduce
+
 from .core import KungFuOptimizer
 
 

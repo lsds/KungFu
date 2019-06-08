@@ -1,6 +1,6 @@
 import tensorflow as tf
-
 from kungfu.ops import all_reduce, global_variance
+
 from .core import KungFuOptimizer
 
 
