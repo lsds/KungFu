@@ -131,13 +131,11 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 	return string(mh.Name), &msg, nil
 }
 
-var newShm = shm.New
-
 func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
-	r.modelStore.modelStoreMutex.Lock()
-	defer r.modelStore.modelStoreMutex.Unlock()
+	r.modelStore.Lock()
+	defer r.modelStore.Unlock()
 
-	modelBuffer := r.modelStore.modelStore
+	modelBuffer := r.modelStore.data
 
 	if modelBuffer == nil {
 		fmt.Println("Model buffer is nil")
@@ -167,9 +165,11 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 }
 
 func (r *Router) UpdateModelStore(updateName string, model *kb.Buffer) error {
-	err := r.modelStore.UpdateModelStore(updateName, model)
-	return err
+	r.modelStore.Update(updateName, model)
+	return nil
 }
+
+var newShm = shm.New
 
 func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
 	var shm shm.Shm
