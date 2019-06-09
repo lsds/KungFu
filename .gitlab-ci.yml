@@ -88,7 +88,7 @@ python format test:
 
   script:
   - ./scripts/clean-code.sh --fmt-py
-  - git diff # --exit-code
+  - git diff --exit-code
 
 clang format test:
   stage: lint
