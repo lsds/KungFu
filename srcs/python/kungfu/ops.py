@@ -81,15 +81,89 @@ def _bin_pack(sizes, budget, adjust_budget=False):
     return indexes, len(budgets)
 
 
+def _get_self_rank():
+    import os
+    return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
+
+
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
 
-def merge_received(t):
-    return _op_lib.merge_received(t,
-                                  input_tensor_name=t.name,
-                                  shape=t.shape,
-                                  dtype=t.dtype)
+def save_model(variables):
+    import tensorflow as tf
+    var_sizes = [var.shape.num_elements()
+                 for var in variables]  # number of floats it has
+    return _op_lib.save_model(variables,
+                              var_type_size=variables[0].dtype.size,
+                              var_sizes=var_sizes)
+
+
+def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
+    import tensorflow as tf
+    var_sizes = [var.shape.num_elements() for var in variables]
+
+    # Remove self rank from the list
+    peer_ranks.remove(_get_self_rank())
+
+    if mode == 'async':
+        print(
+            "Applying model averaging with a model requested asynchronously.")
+        model_averaging = _op_lib.async_model_averaging(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            peer_selection_strategy=peer_selection_strategy)
+    elif mode == 'sync':
+        print("Applying model averaging with a model requested synchronously.")
+        model_averaging = _op_lib.model_averaging(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            peer_selection_strategy=peer_selection_strategy)
+    else:
+        raise Exception("Invalid type of model request mode.")
+
+    return model_averaging
+
+
+def request_model(peer_ranks, variables, mode, peer_selection_strategy):
+    import tensorflow as tf
+    var_shapes = [var.shape for var in variables]
+
+    var_sizes = [var.shape.num_elements() for var in variables]
+
+    # Remove self rank from the list
+    peer_ranks.remove(_get_self_rank())
+
+    if mode == 'async':
+        print("Request a model synchronously.")
+        request_model = _op_lib.async_request_model(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            shapes=var_shapes,
+            peer_selection_strategy=peer_selection_strategy)
+    elif mode == 'sync':
+        print("Request a model asynchronously.")
+        request_model = _op_lib.request_model(
+            variables,
+            self_rank=_get_self_rank(),
+            ranks=peer_ranks,
+            var_type_size=variables[0].dtype.size,
+            var_sizes=var_sizes,
+            shapes=var_shapes,
+            peer_selection_strategy=peer_selection_strategy)
+    else:
+        raise Exception("Invalid type of model request mode")
+
+    return request_model
 
 def broadcast(t):
     return _op_lib.broadcast(t)
@@ -122,7 +196,6 @@ def partial_exchange_all_reduce_with_schedule(t, total_size, count_gradients, st
                                                     steps=steps, 
                                                     fractions=fractions)
 
-# Based on Guo Li
 def partial_exchange_all_reduce_front_end_partitioning(t, index, partitions, accumulate=False, average=False):
     # Take full gradient name for unicity
     tensor_size = t.shape.num_elements() * t.dtype.size
@@ -138,21 +211,11 @@ def global_variance(t):
     return _op_lib.global_variance(t)
 
 
-def global_step_modifier(step):
-    print('global_step_modifier is deprecated and will be removed soon')
-    return _op_lib.global_step_modifier(step)
-
-
-def set_num_gradients(n):
-    print('set_num_gradients is deprecated and will be removed soon')
-    return _op_lib.set_num_gradients(n)
-
-
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
 
-# Based on Andrei-Octavian Brabete, Dynamic Partitioning done within C++ operator
+# Andrei-Octavian Brabete, Dynamic Partitioning done within C++ operator
 def partial_exchange_group_all_reduce_with_schedule(ts, batch_size, num_train, schedule):
     steps, fractions = _parse_schedule(schedule, batch_size, num_train)
     steps[0] = 1 # The first global step is 1
@@ -167,7 +230,7 @@ def partial_exchange_group_all_reduce_with_schedule(ts, batch_size, num_train, s
 
 
 
-# Based on Andrei-Octavian Brabete, Partitioning done within C++ operator
+# Andrei-Octavian Brabete, Partitioning done within C++ operator
 def partial_exchange_group_all_reduce(ts, batch_size, num_train, fraction=0.3, accumulate=False, average="none"):
     import math
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])
@@ -207,7 +270,6 @@ def _parse_schedule(schedule, batch_size, num_train):
     return steps, fractions
 
 
-# Based on Guo Li, Partitioning in python
 def partial_exchange_group_all_reduce_front_end_partitioning(ts, fraction=0.3, accumulate=False, average="none"):
     import math
     total_size = sum([t.shape.num_elements() * t.dtype.size for t in ts])

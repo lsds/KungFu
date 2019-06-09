@@ -37,12 +37,6 @@ extern const KungFu_AllReduceAlgo KungFu_CliqueAllReduce;
 extern const KungFu_AllReduceAlgo KungFu_TreeAllReduce;
 // extern KungFu_AllReduceAlgo KungFu_DynamicAllReduce;
 
-extern int KungfuInit(KungFu_AllReduceAlgo algo);
-
-extern int KungfuFinalize();
-
-extern KungFu_AllReduceAlgo KungfuGetAlgoFromEnv();
-
 typedef struct CallbackWrapper callback_t;
 
 typedef struct order_group_s order_group_t;
@@ -57,42 +51,9 @@ extern void order_group_wait(order_group_t *);
 
 #include <functional>
 typedef std::function<void()> DoneCallback;
-typedef std::function<void(void *)> DataCallback;
-
-extern int KungfuReduce(const void *sendbuf, void *recvbuf, int count,
-                        KungFu_Datatype dtype, KungFu_Op op, const char *name,
-                        DoneCallback done);
-
-// broadcast the data from the current root in the first pair of graphs.
-extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
-                           KungFu_Datatype dtype, const char *name);
-
-extern int KungfuBroadcast(const void *sendbuf, void *recvbuf, int count,
-                           KungFu_Datatype dtype, const char *name,
-                           DoneCallback done);
-
-extern int KungfuSendTo(int32_t rank, const void *sendbuf, int count,
-                        KungFu_Datatype dtype, const char *name,
-                        DoneCallback done);
-
-extern int KungfuRegisterDataCallback(const char *name, DataCallback handle);
-
-extern int KungfuUnregisterDataCallback(const char *name);
-
-extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
-                           KungFu_Datatype dtype, KungFu_Op op,
-                           const char *name);
-
-extern int KungfuAllReduce(const void *sendbuf, void *recvbuf, int count,
-                           KungFu_Datatype dtype, KungFu_Op op,
-                           const char *name, DoneCallback done);
 
 class kungfu_world
 {
-    KungFu_AllReduceAlgo _algo;
-    int32_t _global_step;
-    int32_t _n_grads;
-
   public:
     kungfu_world();
 
@@ -102,52 +63,29 @@ class kungfu_world
 
     int ClusterSize() const;
 
-    int32_t AdvanceGlobalStep() { return ++_global_step; }
+    int UpdateModelStore(const char *model_version_name, const void *model,
+                         int count, KungFu_Datatype dtype, DoneCallback done);
 
-    int32_t GetGlobalStep() { return _global_step; }
+    // p2p APIs
+    int Request(int destRank, void *model, int count, KungFu_Datatype dtype);
+    int Request(int destRank, void *model, int count, KungFu_Datatype dtype,
+                DoneCallback done);
 
-    void SetNumGradients(int32_t n_grads) { _n_grads = n_grads; }
-
-    int SendTo(int32_t rank, const void *sendbuf, int count,
-               KungFu_Datatype dtype, const char *name, DoneCallback done)
-    {
-        return KungfuSendTo(rank, sendbuf, count, dtype, name, done);
-    }
-
-    int RegisterDataCallback(const char *name, DataCallback handle)
-    {
-        return KungfuRegisterDataCallback(name, handle);
-    }
-
-    int UnregisterDataCallback(const char *name)
-    {
-        return KungfuUnregisterDataCallback(name);
-    }
+    // collective APIs
+    int Reduce(const void *sendbuf, void *recvbuf, int count,
+               KungFu_Datatype dtype, KungFu_Op op, const char *name,
+               DoneCallback done);
 
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
-                  KungFu_Datatype dtype, KungFu_Op op, const char *name)
-    {
-        return KungfuAllReduce(sendbuf, recvbuf, count, dtype, op, name);
-    }
-
+                  KungFu_Datatype dtype, KungFu_Op op, const char *name);
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
-                  DoneCallback done)
-    {
-        return KungfuAllReduce(sendbuf, recvbuf, count, dtype, op, name, done);
-    }
+                  DoneCallback done);
 
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
-                  KungFu_Datatype dtype, const char *name)
-    {
-        return KungfuBroadcast(sendbuf, recvbuf, count, dtype, name);
-    }
-
+                  KungFu_Datatype dtype, const char *name);
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
-                  KungFu_Datatype dtype, const char *name, DoneCallback done)
-    {
-        return KungfuBroadcast(sendbuf, recvbuf, count, dtype, name, done);
-    }
+                  KungFu_Datatype dtype, const char *name, DoneCallback done);
 };
 
 #endif

@@ -121,6 +121,20 @@ func (m *Message) ReadFrom(r io.Reader) error {
 	return nil
 }
 
+func (m *Message) ReadInto(r io.Reader) error {
+	var length uint32
+	if err := binary.Read(r, endian, &length); err != nil {
+		return err
+	}
+	if length != m.Length {
+		return errors.New("Unexpected message length")
+	}
+	if err := readN(r, m.Data, int(m.Length)); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m Message) String() string {
 	return fmt.Sprintf("message{length=%d}", m.Length)
 }

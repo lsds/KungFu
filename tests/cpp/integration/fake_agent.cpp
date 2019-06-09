@@ -10,7 +10,7 @@
 
 bool is_root = getSelfRank() == 0;
 
-void test_AllReduce(int np)
+void test_AllReduce(kungfu_world &world, int np)
 {
     TRACE_SCOPE(__func__);
     using T     = int32_t;
@@ -22,7 +22,7 @@ void test_AllReduce(int np)
     std::iota(x.begin(), x.end(), 0);
 
     Waiter waiter;
-    KungfuAllReduce(x.data(), y.data(), n, dtype, KungFu_SUM, "test-tensor",
+    world.AllReduce(x.data(), y.data(), n, dtype, KungFu_SUM, "test-tensor",
                     [&waiter] { waiter.done(); });
     waiter.wait();
 
@@ -41,7 +41,7 @@ void test_AllReduce(int np)
     }
 }
 
-void bench_Reduce(int n, int m)
+void bench_Reduce(kungfu_world &world, int n, int m)
 {
     TRACE_SCOPE(__func__);
 
@@ -55,13 +55,13 @@ void bench_Reduce(int n, int m)
         Waiter waiter;
         // void *recvBuf = is_root ? y.data() : nullptr;
         void *recvBuf = y.data();  // TODO: allow nullptr for non-root
-        KungfuReduce(x.data(), recvBuf, n, dtype, KungFu_SUM, name.c_str(),
+        world.Reduce(x.data(), recvBuf, n, dtype, KungFu_SUM, name.c_str(),
                      [&waiter] { waiter.done(); });
         waiter.wait();
     }
 }
 
-void bench_AllReduce(int n, int m)
+void bench_AllReduce(kungfu_world &world, int n, int m)
 {
     TRACE_SCOPE(__func__);
 
@@ -73,7 +73,7 @@ void bench_AllReduce(int n, int m)
     for (int i = 0; i < m; ++i) {
         TRACE_SCOPE("KungfuAllReduce(async)");
         Waiter waiter;
-        KungfuAllReduce(x.data(), y.data(), n, dtype, KungFu_SUM, name.c_str(),
+        world.AllReduce(x.data(), y.data(), n, dtype, KungFu_SUM, name.c_str(),
                         [&waiter] { waiter.done(); });
         waiter.wait();
     }
@@ -86,17 +86,17 @@ int main(int argc, char *argv[])
 
     {
         const int np = getTestClusterSize();
-        test_AllReduce(np);
+        test_AllReduce(_kungfu_world, np);
     }
     {
         const int n = 100;
         const int m = 100;
-        bench_Reduce(n, m);
+        bench_Reduce(_kungfu_world, n, m);
     }
     {
         const int n = 100;
         const int m = 100;
-        bench_AllReduce(n, m);
+        bench_AllReduce(_kungfu_world, n, m);
     }
     return 0;
 }
