@@ -22,7 +22,9 @@ b = tf.Variable(tf.ones([]))
 barrier = all_reduce(b)
 
 optimizer = FakeOptimizer()
-opt = PeerModelAveraging(optimizer)
+opt = PeerModelAveraging(optimizer,
+                         request_mode='async',
+                         peer_selection_strategy='roundrobin')
 
 train_step = opt.apply_gradients(zip(gradients, variables))
 
@@ -31,7 +33,7 @@ with tf.Session() as sess:
     sess.run(init)
     sess.run(barrier)
 
-    n_iters = 11
+    n_iters = 40
     steps_per_iter = 10
 
     for _ in range(n_iters):
