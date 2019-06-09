@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import tensorflow as tf
+from kungfu.ops import all_reduce
 from kungfu.optimizers import PeerModelAveraging
 
 
@@ -11,11 +12,14 @@ class FakeOptimizer(object):
         return tf.group([tf.assign(v, v - g) for g, v in grads_and_vars])
 
 
-x = tf.Variable(tf.ones([3, 3, 3]))
+x = tf.Variable(tf.ones([10, 1024, 1024]))
 init = PeerModelAveraging.get_initializer()
 
 variables = [x]
 gradients = [tf.Variable(tf.zeros(x.shape)) for x in variables]
+
+b = tf.Variable(tf.ones([]))
+barrier = all_reduce(b)
 
 optimizer = FakeOptimizer()
 opt = PeerModelAveraging(optimizer)
@@ -25,6 +29,7 @@ train_step = opt.apply_gradients(zip(gradients, variables))
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     sess.run(init)
+    sess.run(barrier)
 
     n_iters = 11
     steps_per_iter = 10
