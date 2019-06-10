@@ -10,6 +10,7 @@ import (
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	monitor "github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -18,12 +19,14 @@ import (
 import "C"
 
 var kungfu *kf.Kungfu
+var monitoringSelector *monitor.MonitoringSelector
 
 //export GoKungfuInit
 func GoKungfuInit(algo C.KungFu_AllReduceAlgo) int {
 	var err error
 	config := kf.Config{Algo: kb.KungFu_AllReduceAlgo(algo)}
 	kungfu, err = kf.New(config)
+	monitoringSelector = monitor.NewMonitoringSelector()
 	if err != nil {
 		utils.ExitErr(err)
 	}
@@ -51,6 +54,8 @@ func GoKungfuRank() int {
 func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 
+	fmt.Println("Hereeee ")
+
 	if done == nil {
 		// Synchronous case
 		return sess.RequestModel(rank, toBuffer(model, count, dtype))
@@ -58,10 +63,13 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 
 	go func() {
 		if kc.LatencyMonitoring {
+			bestRank := monitoringSelector.PickBestPeer(rank)
+			fmt.Printf("Current rank is %d, changing to %d\n", rank, bestRank)
 			start := time.Now()
 			sess.RequestModel(rank, toBuffer(model, count, dtype))
 			elapsed := time.Since(start)
-			fmt.Printf("Request took %s\n", elapsed)
+			latency := float64(elapsed) * float64(time.Microsecond)
+			monitoringSelector.RegisterRequest(rank, latency)
 		} else {
 			sess.RequestModel(rank, toBuffer(model, count, dtype))
 		}
