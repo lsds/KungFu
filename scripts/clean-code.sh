@@ -32,6 +32,10 @@ list_hdr_and_srcs() {
     find ./srcs -type f | grep .h$
 }
 
+list_py_srcs() {
+    find ./srcs -type f | grep .py$
+}
+
 for_all() {
     for src in $(list_srcs); do
         echo "$1 $src"
@@ -39,7 +43,7 @@ for_all() {
     done
 }
 
-format_all() {
+fmt_all_cpp() {
     for src in $(list_hdr_and_srcs); do
         echo "clang-format -i $src"
         clang-format -i $src
@@ -54,10 +58,26 @@ fix_all() {
     for_all fix
 }
 
+fmt_py() {
+    autoflake -i $1
+    isort -y $1
+    yapf -i $1
+}
+
+fmt_all_py() {
+    for src in $(list_py_srcs); do
+        echo "fmt_py $src"
+        fmt_py $src
+    done
+}
+
 main() {
     case $1 in
-    --format)
-        format_all
+    --fmt-cpp)
+        fmt_all_cpp
+        ;;
+    --fmt-py)
+        fmt_all_py
         ;;
     --check)
         rebuild

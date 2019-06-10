@@ -43,8 +43,10 @@ def conv2d(x, W, strides=None):
 
 def max_pool(x, ksize):
     r, s = ksize
-    return tf.nn.max_pool(
-        x, ksize=[1, r, s, 1], strides=[1, r, s, 1], padding='SAME')
+    return tf.nn.max_pool(x,
+                          ksize=[1, r, s, 1],
+                          strides=[1, r, s, 1],
+                          padding='SAME')
 
 
 class Layer(object):

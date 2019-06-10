@@ -1,6 +1,6 @@
 import tensorflow as tf
+from kungfu.ops import broadcast, model_averaging, request_model, save_model
 
-from kungfu.ops import broadcast, save_model, request_model, model_averaging
 from .core import KungFuOptimizer
 
 
