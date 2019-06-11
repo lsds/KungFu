@@ -1,7 +1,6 @@
 package rchannel
 
 import (
-	//"fmt"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -9,22 +8,17 @@ import (
 )
 
 type ModelStore struct {
-	modelStore      *kb.Buffer
-	modelStoreMutex sync.Mutex
+	sync.Mutex
+
+	data *kb.Buffer
 }
 
-func (store *ModelStore) UpdateModelStore(modelVersionName string, model *kb.Buffer) error {
-	store.modelStoreMutex.Lock()
-	defer store.modelStoreMutex.Unlock()
-
-	if store.modelStore == nil {
+func (s *ModelStore) Update(modelVersionName string, model *kb.Buffer) {
+	s.Lock()
+	defer s.Unlock()
+	if s.data == nil {
 		log.Warnf("%s has no entry in the store. Initializing storage for this variable.", modelVersionName)
-		newBuf := kb.NewBuffer(model.Count, model.Type)
-		newBuf.CopyFrom(model)
-		store.modelStore = newBuf
-	} else {
-		store.modelStore.CopyFrom(model)
+		s.data = kb.NewBuffer(model.Count, model.Type)
 	}
-
-	return nil
+	s.data.CopyFrom(model)
 }
