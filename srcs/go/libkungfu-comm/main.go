@@ -68,12 +68,9 @@ func GoKungfuBarrier(done *C.callback_t) int {
 func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 
-	fmt.Println("Hereeee ")
-
 	f := func() {
 		if kc.LatencyMonitoring {
-			bestRank := monitoringSelector.PickBestPeer(rank)
-			fmt.Printf("Current rank is %d, changing to %d\n", rank, bestRank)
+			rank = monitoringSelector.PickBestPeer(rank)
 			start := time.Now()
 			sess.RequestModel(rank, toBuffer(model, count, dtype))
 			elapsed := time.Since(start)
