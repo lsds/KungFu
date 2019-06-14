@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"time"
@@ -67,45 +66,42 @@ func GoKungfuBarrier(done *C.callback_t) int {
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-
+	buf := toBuffer(model, count, dtype)
 	f := func() {
 		if kc.LatencyMonitoring {
 			rank = monitoringSelector.PickBestPeer(rank)
 			start := time.Now()
-			sess.RequestModel(rank, toBuffer(model, count, dtype))
+			sess.RequestModel(rank, buf)
 			elapsed := time.Since(start)
 			latency := float64(elapsed) * float64(time.Microsecond)
 			monitoringSelector.RegisterRequest(rank, latency)
 		} else {
-			sess.RequestModel(rank, toBuffer(model, count, dtype))
+			sess.RequestModel(rank, buf)
 		}
 	}
-
 	if done == nil {
 		// Synchronous case
 		f()
-		return 0		
+		return 0
 	}
-
 	go func() {
 		f()
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
 	return 0
-
 }
 
 //export GoKungfuUpdateModelStore
 func GoKungfuUpdateModelStore(name *C.char, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-
+	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
+	buf := toBuffer(model, count, dtype)
 	if done == nil {
-		return sess.UpdateModelStore(C.GoString(name), toBuffer(model, count, dtype))
+		return sess.UpdateModelStore(goName, buf)
 	}
-
 	go func() {
-		sess.UpdateModelStore(C.GoString(name), toBuffer(model, count, dtype))
+		sess.UpdateModelStore(goName, buf)
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()

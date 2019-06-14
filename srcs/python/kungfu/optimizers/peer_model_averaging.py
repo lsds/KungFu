@@ -32,9 +32,10 @@ class PeerModelAveraging(KungFuOptimizer):
         variables = g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         for v in variables:
             ops.append(tf.assign(v, broadcast(v)))
-        
+
         with tf.control_dependencies(ops):
-            with tf.control_dependencies([save_model(tf.trainable_variables())]):
+            with tf.control_dependencies(
+                [save_model(tf.trainable_variables())]):
                 return barrier()
 
     def apply_gradients(self, grads_and_vars, **kwargs):

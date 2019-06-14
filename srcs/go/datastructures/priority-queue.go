@@ -7,20 +7,20 @@ import (
 )
 
 type AggregatedMetric struct {
-	Rank int
+	Rank      int
 	Frequency int64
-	Latency float64
-	Index int
+	Latency   float64
+	Index     int
 }
 
 type PriorityQueue []*AggregatedMetric
 
 // High priority means low latency and small frequency
 func (pq PriorityQueue) Less(i, j int) bool {
-	return pq[i].Frequency < pq[j].Frequency || (pq[i].Frequency == pq[j].Frequency && pq[i].Latency < pq[j].Latency) 
+	return pq[i].Frequency < pq[j].Frequency || (pq[i].Frequency == pq[j].Frequency && pq[i].Latency < pq[j].Latency)
 }
 
-func NewPriorityQueue() *PriorityQueue{
+func NewPriorityQueue() *PriorityQueue {
 	pq := make(PriorityQueue, 0)
 	heap.Init(&pq)
 	return &pq
@@ -44,10 +44,10 @@ func (pq *PriorityQueue) Push(x interface{}) {
 }
 
 func (pq *PriorityQueue) Pop() interface{} {
-	old       := *pq
-	n    	  := len(old)
-	item 	  := old[n-1]
+	old := *pq
+	n := len(old)
+	item := old[n-1]
 	item.Index = -1
-	*pq 	   = old[0 : n-1]
+	*pq = old[0 : n-1]
 	return item
 }
