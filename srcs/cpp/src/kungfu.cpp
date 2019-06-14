@@ -46,7 +46,6 @@ int kungfu_world::UpdateModelStore(const char *name, const void *model,
                                     GoInt(dtype), new CallbackWrapper(done));
 }
 
-
 int kungfu_world::Barrier(const DoneCallback &done)
 {
     return GoKungfuBarrier(new CallbackWrapper(done));

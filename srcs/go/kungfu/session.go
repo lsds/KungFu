@@ -129,7 +129,7 @@ func (sess *session) Warmup() int {
 func (sess *session) Barrier() int {
 	k := len(sess.cluster.Peers)
 	count := k * 1
-	dtype := kb.KungFu_INT32
+	dtype := kb.KungFu_UINT8
 	w := Workspace{
 		SendBuf: kb.NewBuffer(count, dtype),
 		RecvBuf: kb.NewBuffer(count, dtype),

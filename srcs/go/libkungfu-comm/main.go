@@ -50,12 +50,9 @@ func GoKungfuRank() int {
 //export GoKungfuBarrier
 func GoKungfuBarrier(done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-
 	if done == nil {
-		sess.Barrier()
-		return 0
+		return sess.Barrier()
 	}
-
 	go func() {
 		sess.Barrier()
 		C.invoke_callback(done)

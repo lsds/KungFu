@@ -58,6 +58,10 @@ def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
 
+def barrier():
+    return _op_lib.kungfu_barrier()
+
+
 def save_model(variables):
     import tensorflow as tf
     var_sizes = [var.shape.num_elements()

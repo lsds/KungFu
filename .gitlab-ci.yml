@@ -29,7 +29,7 @@ integration test:
   - |
     ./scripts/tests/run-integration-tests.sh
 
-system test:
+python3 tests:
   stage: test
   image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
@@ -39,11 +39,10 @@ system test:
     ./scripts/download-mnist.sh
 
   script:
-  - |
-    cmake --version
-    pip3 install -vvv -U .
-  - |
-    ./scripts/tests/run-train-tests.sh
+  - cmake --version
+  - pip3 install -vvv -U .
+  - ./scripts/tests/run-op-tests.sh
+  - ./scripts/tests/run-train-tests.sh
 
 python2 test:
   stage: test

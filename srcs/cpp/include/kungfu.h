@@ -71,7 +71,7 @@ class kungfu_world
     int Request(int destRank, void *model, int count, KungFu_Datatype dtype);
     int Request(int destRank, void *model, int count, KungFu_Datatype dtype,
                 const DoneCallback &done);
-                
+
     // collective APIs
     int Barrier(const DoneCallback &done);
 
