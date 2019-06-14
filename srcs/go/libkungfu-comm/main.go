@@ -70,12 +70,7 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 
 	fmt.Println("Hereeee ")
 
-	if done == nil {
-		// Synchronous case
-		return sess.RequestModel(rank, toBuffer(model, count, dtype))
-	}
-
-	go func() {
+	f := func() {
 		if kc.LatencyMonitoring {
 			bestRank := monitoringSelector.PickBestPeer(rank)
 			fmt.Printf("Current rank is %d, changing to %d\n", rank, bestRank)
@@ -87,6 +82,16 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 		} else {
 			sess.RequestModel(rank, toBuffer(model, count, dtype))
 		}
+	}
+
+	if done == nil {
+		// Synchronous case
+		f()
+		return 0		
+	}
+
+	go func() {
+		f()
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
