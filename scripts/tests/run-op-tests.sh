@@ -13,7 +13,23 @@ fi
 
 . ./scripts/utils/measure.sh
 
+reset_go_mod() {
+    echo 'module github.com/lsds/KungFu' >go.mod
+    if [ -f go.sum ]; then
+        rm go.sum
+    fi
+}
+
 KUNGFU_PRUN=${ROOT}/bin/kungfu-prun
+
+ensure_kungfu_prun() {
+    if [ ! -f ${KUNGFU_PRUN} ]; then
+        reset_go_mod
+        ./configure --no-tests --build-tools && make
+    fi
+}
+
+ensure_kungfu_prun
 
 SCRIPT=${ROOT}/tests/python/test_operators.py
 
