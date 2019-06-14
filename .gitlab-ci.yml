@@ -50,6 +50,7 @@ python2 test:
   image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   before_script:
+  - apt update
   - apt install -y python python-pip
   - pip install tensorflow
   - |
