@@ -1,19 +1,9 @@
 import tensorflow as tf
+from kungfu.internal import _get_other_ranks
 from kungfu.ops import (broadcast, request_average_model, request_model,
                         save_model)
 
 from .core import KungFuOptimizer
-
-
-def _get_self_rank():
-    import os
-    return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
-
-
-def _get_num_peers():
-    import json, os
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    return len(cluster_spec['Peers'])
 
 
 class PeerModelAveraging(KungFuOptimizer):
@@ -30,9 +20,9 @@ class PeerModelAveraging(KungFuOptimizer):
                  device_sparse=''):
         super(PeerModelAveraging, self).__init__(optimizer, name, use_locking,
                                                  device_dense, device_sparse)
-        self.request_mode = request_mode
-        self.model_averaging_device = model_averaging_device
-        self.peer_selection_strategy = peer_selection_strategy
+        self._request_mode = request_mode
+        self._model_averaging_device = model_averaging_device
+        self._peer_selection_strategy = peer_selection_strategy
 
     @staticmethod
     def get_initializer():
@@ -46,51 +36,37 @@ class PeerModelAveraging(KungFuOptimizer):
         with tf.control_dependencies(ops):
             return save_model(tf.trainable_variables())
 
-    def apply_gradients(self, grads_and_vars, **kwargs):
-        """Calls this same method on the underlying optimizer."""
-
-        grads, variables = zip(*grads_and_vars)
-
-        if self.model_averaging_device == 'cpu':
-            avg_vars = request_average_model(
-                [i for i in range(_get_num_peers())], variables,
-                self.request_mode, self.peer_selection_strategy)
-
-            assign_ops = [
-                tf.assign(v, other_v)
-                for ((g, v), other_v) in zip(grads_and_vars, avg_vars)
+    def _average_ops(self, variables):
+        other_ranks = _get_other_ranks()
+        if self._model_averaging_device == 'cpu':
+            avg_vars = request_average_model(other_ranks, variables,
+                                             self._request_mode,
+                                             self._peer_selection_strategy)
+            return [
+                tf.assign(v, ave_v) for (v, ave_v) in zip(variables, avg_vars)
             ]
-
-            apply_op = self._optimizer.apply_gradients(grads_and_vars,
-                                                       **kwargs)
-            save_model_op = save_model(variables)
-
-            with tf.control_dependencies(assign_ops):
-                with tf.control_dependencies([apply_op]):
-                    with tf.control_dependencies([save_model_op]):
-                        return tf.group(apply_op)
-        elif self.model_averaging_device == 'gpu':
-            other_peer_vars = request_model(
-                [i for i in range(_get_num_peers())], variables,
-                self.request_mode, self.peer_selection_strategy)
-
-            assign_ops = [
+        elif self._model_averaging_device == 'gpu':
+            other_peer_vars = request_model(other_ranks, variables,
+                                            self._request_mode,
+                                            self._peer_selection_strategy)
+            return [
                 tf.assign(v, 0.5 * (v + other_v))
-                for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)
+                for (v, other_v) in zip(variables, other_peer_vars)
             ]
-
-            apply_op = self._optimizer.apply_gradients(grads_and_vars,
-                                                       **kwargs)
-            save_model_op = save_model(variables)
-
-            with tf.control_dependencies(assign_ops):
-                with tf.control_dependencies([apply_op]):
-                    with tf.control_dependencies([save_model_op]):
-                        return tf.group(apply_op)
         else:
             raise Exception(
                 "PeerModelAveraging optimizer does not support provided request model type."
             )
+
+    def apply_gradients(self, grads_and_vars, **kwargs):
+        variables = [v for g, v in grads_and_vars]
+        with tf.control_dependencies(self._average_ops(variables)):
+            # Calls this same method on the underlying optimizer.
+            apply_op = self._optimizer.apply_gradients(grads_and_vars,
+                                                       **kwargs)
+            with tf.control_dependencies([apply_op]):
+                with tf.control_dependencies([save_model(variables)]):
+                    return tf.identity(apply_op)
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         return grads_and_vars_to_negotiate

@@ -3,14 +3,9 @@ import platform
 import sysconfig
 from ctypes import cdll
 
+from kungfu.internal import _get_num_peers, _get_self_rank
+
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
-
-
-def get_num_peers():
-    import json, os
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    num_peers = len(cluster_spec['Peers'])
-    return num_peers
 
 
 def _load_op_lib(name):
@@ -49,11 +44,6 @@ def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
 
-def _get_self_rank():
-    import os
-    return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
-
-
 def send_to(rank, t):
     return _op_lib.send_to(rank, t, input_tensor_name=t.name)
 
@@ -67,73 +57,38 @@ def save_model(variables):
                               var_sizes=var_sizes)
 
 
+request_model_averages_ops = {
+    'async': _op_lib.async_model_averaging,
+    'sync': _op_lib.request_average_model
+}
+
+
 def request_average_model(peer_ranks, variables, mode,
                           peer_selection_strategy):
-    import tensorflow as tf
-    var_sizes = [var.shape.num_elements() for var in variables]
+    return request_model_averages_ops[mode](
+        variables,
+        self_rank=_get_self_rank(),
+        ranks=peer_ranks,
+        var_type_size=variables[0].dtype.size,
+        var_sizes=[var.shape.num_elements() for var in variables],
+        peer_selection_strategy=peer_selection_strategy)
 
-    # Remove self rank from the list
-    peer_ranks.remove(_get_self_rank())
 
-    if mode == 'async':
-        print(
-            "Applying model averaging with a model requested asynchronously.")
-        # FIXME: async request average model
-        avg_model = _op_lib.async_model_averaging(
-            variables,
-            self_rank=_get_self_rank(),
-            ranks=peer_ranks,
-            var_type_size=variables[0].dtype.size,
-            var_sizes=var_sizes,
-            peer_selection_strategy=peer_selection_strategy)
-    elif mode == 'sync':
-        print("Request an average model synchronously.")
-        avg_model = _op_lib.request_average_model(
-            variables,
-            self_rank=_get_self_rank(),
-            ranks=peer_ranks,
-            var_type_size=variables[0].dtype.size,
-            var_sizes=var_sizes,
-            peer_selection_strategy=peer_selection_strategy)
-    else:
-        raise Exception("Invalid type of model request mode.")
-
-    return avg_model
+request_model_ops = {
+    'async': _op_lib.async_request_model,
+    'sync': _op_lib.request_model
+}
 
 
 def request_model(peer_ranks, variables, mode, peer_selection_strategy):
-    import tensorflow as tf
-    var_shapes = [var.shape for var in variables]
-
-    var_sizes = [var.shape.num_elements() for var in variables]
-
-    # Remove self rank from the list
-    peer_ranks.remove(_get_self_rank())
-
-    if mode == 'async':
-        print("Request a model synchronously.")
-        request_model = _op_lib.async_request_model(
-            variables,
-            self_rank=_get_self_rank(),
-            ranks=peer_ranks,
-            var_type_size=variables[0].dtype.size,
-            var_sizes=var_sizes,
-            shapes=var_shapes,
-            peer_selection_strategy=peer_selection_strategy)
-    elif mode == 'sync':
-        print("Request a model asynchronously.")
-        request_model = _op_lib.request_model(
-            variables,
-            self_rank=_get_self_rank(),
-            ranks=peer_ranks,
-            var_type_size=variables[0].dtype.size,
-            var_sizes=var_sizes,
-            shapes=var_shapes,
-            peer_selection_strategy=peer_selection_strategy)
-    else:
-        raise Exception("Invalid type of model request mode")
-
-    return request_model
+    return request_model_ops[mode](
+        variables,
+        self_rank=_get_self_rank(),
+        ranks=peer_ranks,
+        var_type_size=variables[0].dtype.size,
+        var_sizes=[var.shape.num_elements() for var in variables],
+        shapes=[var.shape for var in variables],
+        peer_selection_strategy=peer_selection_strategy)
 
 
 def broadcast(t):
@@ -162,7 +117,7 @@ def _parse_schedule(schedule, batch_size, num_train):
     tokens = schedule.split(",")
     print("Num train: " + str(num_train))
     print("Batch size: " + str(batch_size))
-    to_gs = lambda epoch: int(epoch * num_train / (batch_size * get_num_peers(
+    to_gs = lambda epoch: int(epoch * num_train / (batch_size * _get_num_peers(
     )))
     pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
              for t in tokens]
