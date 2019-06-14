@@ -3,14 +3,9 @@ import platform
 import sysconfig
 from ctypes import cdll
 
+from kungfu.internal import _get_num_peers, _get_self_rank
+
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
-
-
-def get_num_peers():
-    import json, os
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    num_peers = len(cluster_spec['Peers'])
-    return num_peers
 
 
 def _load_op_lib(name):
@@ -47,11 +42,6 @@ _op_lib, _has_gpu = _load_and_init_op_lib()
 
 def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
-
-
-def _get_self_rank():
-    import os
-    return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
 
 
 def barrier():
@@ -160,7 +150,7 @@ def _parse_schedule(schedule, batch_size, num_train):
     tokens = schedule.split(",")
     print("Num train: " + str(num_train))
     print("Batch size: " + str(batch_size))
-    to_gs = lambda epoch: int(epoch * num_train / (batch_size * get_num_peers(
+    to_gs = lambda epoch: int(epoch * num_train / (batch_size * _get_num_peers(
     )))
     pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
              for t in tokens]
