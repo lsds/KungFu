@@ -73,6 +73,26 @@ SelectionStrategy *SelectionStrategy::Create(const std::string &name,
 
 namespace tensorflow
 {
+template <typename T> class AverageAssign
+{
+    const T alpha_;
+    const T beta_;
+
+  public:
+    AverageAssign(const T &ratio) : alpha_(ratio), beta_(1 - ratio) {}
+
+    void operator()(const Tensor &t, const void *data) const
+    {
+        const T *begin = reinterpret_cast<const T *>(t.tensor_data().data());
+        std::transform(begin, begin + t.NumElements(),
+                       reinterpret_cast<const T *>(data),
+                       const_cast<T *>(begin),
+                       [a = alpha_, b = beta_](const T &x, const T &y) {
+                           return a * x + b * y;
+                       });
+    }
+};
+
 REGISTER_OP("ModelAveraging")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
@@ -142,13 +162,8 @@ class ModelAveraging : public OpKernel
                                to_kungfu_type(context->input(0).dtype()));
 
         for (int i = 0; i < var_sizes_.size(); i++) {
-            const Tensor &input = context->input(i);
-            Tensor other(input.dtype(), input.shape());
-            model_buf_->copyTo(i, other);
-            auto other_flt = other.flat<float>();
-            other_flt      = 0.5 * (input.flat<float>() + other.flat<float>());
-            std::copy(other.tensor_data().begin(), other.tensor_data().end(),
-                      const_cast<char *>(input.tensor_data().begin()));
+            // FIXME: don't write to input tensor
+            AverageAssign<float>(0.5)(context->input(i), model_buf_->data(i));
         }
     }
 };
@@ -244,14 +259,9 @@ class AsyncModelAveraging : public OpKernel
         {
             std::lock_guard<std::mutex> l(mu_);
             for (int i = 0; i < var_sizes_.size(); i++) {
-                const Tensor &input = context->input(i);
-                Tensor other(input.dtype(), input.shape());
-                model_buf_->copyTo(i, other);
-                auto other_flt = other.flat<float>();
-                other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
-                std::copy(other.tensor_data().begin(),
-                          other.tensor_data().end(),
-                          const_cast<char *>(input.tensor_data().begin()));
+                // FIXME: don't write to input tensor
+                AverageAssign<float>(0.5)(context->input(i),
+                                          model_buf_->data(i));
             }
         }
     }
