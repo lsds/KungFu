@@ -54,10 +54,6 @@ def _get_self_rank():
     return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
 
 
-def send_to(rank, t):
-    return _op_lib.send_to(rank, t, input_tensor_name=t.name)
-
-
 def barrier():
     return _op_lib.kungfu_barrier()
 
