@@ -331,7 +331,7 @@ def partial_exchange_with_gpu_allreduce(ts,
         if len(partition) == 1:
             negotiated_partition = [negotiated_partition]
         for i in range(len(partition)):
-            grad            = partition[i]
+            grad = partition[i]
             negotiated_grad = negotiated_partition[i]
             reordered_cond_ops[name_order[grad.name]] = negotiated_grad
 

@@ -73,7 +73,7 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 //export GoKungfuUpdateModelStore
 func GoKungfuUpdateModelStore(name *C.char, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-	goName := C.GoString(name) // copy *C.char into go string before lambda
+	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
 	buf := toBuffer(model, count, dtype)
 	if done == nil {
 		return sess.UpdateModelStore(goName, buf)

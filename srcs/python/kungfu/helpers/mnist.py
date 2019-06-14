@@ -39,7 +39,10 @@ def load_mnist_data(data_dir, prefix, normalize, one_hot, padded=False):
 
 
 def load_datasets(data_dir, normalize=False, one_hot=False, padded=False):
-    train = load_mnist_data(
-        data_dir, 'train', normalize, one_hot, padded=padded)
+    train = load_mnist_data(data_dir,
+                            'train',
+                            normalize,
+                            one_hot,
+                            padded=padded)
     test = load_mnist_data(data_dir, 't10k', normalize, one_hot, padded=padded)
     return namedtuple('MnistDataSets', 'train test')(train, test)
