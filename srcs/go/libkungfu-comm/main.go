@@ -50,6 +50,20 @@ func GoKungfuRank() int {
 	return sess.Rank()
 }
 
+//export GoKungfuBarrier
+func GoKungfuBarrier(done *C.callback_t) int {
+	sess := kungfu.CurrentSession()
+	if done == nil {
+		return sess.Barrier()
+	}
+	go func() {
+		sess.Barrier()
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()

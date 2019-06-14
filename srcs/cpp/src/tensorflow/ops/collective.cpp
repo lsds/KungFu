@@ -7,6 +7,22 @@
 
 namespace tensorflow
 {
+REGISTER_OP("KungfuBarrier");
+
+class KungfuBarrier : public AsyncOpKernel
+{
+    using AsyncOpKernel::AsyncOpKernel;
+
+  public:
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        _kungfu_world->Barrier(done);
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("KungfuBarrier").Device(DEVICE_CPU),
+                        KungfuBarrier);
+
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
 // and reduce (by taking sum) with the peers, and finally returns a tensor with
 // exactly the same shape.

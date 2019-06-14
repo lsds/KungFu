@@ -1,18 +1,8 @@
 import tensorflow as tf
+from kungfu.internal import _get_num_peers, _get_self_rank
 from kungfu.ops import broadcast, model_averaging, request_model, save_model
 
 from .core import KungFuOptimizer
-
-
-def _get_self_rank():
-    import os
-    return int(os.getenv('KUNGFU_TEST_SELF_RANK'))
-
-
-def _get_num_peers():
-    import json, os
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    return len(cluster_spec['Peers'])
 
 
 class PeerModelAveraging(KungFuOptimizer):
