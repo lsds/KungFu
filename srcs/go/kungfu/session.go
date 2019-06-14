@@ -126,6 +126,19 @@ func (sess *session) Warmup() int {
 	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
 }
 
+func (sess *session) Barrier() int {
+	k := len(sess.cluster.Peers)
+	count := k * 1
+	dtype := kb.KungFu_INT32
+	w := Workspace{
+		SendBuf: kb.NewBuffer(count, dtype),
+		RecvBuf: kb.NewBuffer(count, dtype),
+		OP:      kb.KungFu_SUM,
+		Name:    "kungfu::barrier", // TODO: use tag
+	}
+	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
+}
+
 func (sess *session) AllReduce(w Workspace) int {
 	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
