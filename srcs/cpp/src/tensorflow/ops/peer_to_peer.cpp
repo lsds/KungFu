@@ -93,7 +93,7 @@ template <typename T> class AverageAssign
     }
 };
 
-REGISTER_OP("ModelAveraging")
+REGISTER_OP("RequestAverageModel")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
@@ -101,9 +101,11 @@ REGISTER_OP("ModelAveraging")
     .Attr("NumTensors: int")
     .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
-    .Input("vars: NumTensors * T");
+    .Input("vars: NumTensors * T")
+    .Output("outputs: NumTensors * T")
+    .SetShapeFn(shape_inference::UnchangedShape);
 
-class ModelAveraging : public OpKernel
+class RequestAverageModel : public OpKernel
 {
     using OpKernel::OpKernel;
 
@@ -114,7 +116,7 @@ class ModelAveraging : public OpKernel
     std::vector<int> ranks_;
 
     // Peer rank selection strategy
-    std::unique_ptr<SelectionStrategy> peer_selection_strategy_;
+    std::unique_ptr<SelectionStrategy> peer_selector_;
 
     // The vectors of the variable size (in bytes)
     std::vector<int> var_sizes_;
@@ -129,7 +131,7 @@ class ModelAveraging : public OpKernel
     std::unique_ptr<ModelBuffer> model_buf_;
 
   public:
-    explicit ModelAveraging(OpKernelConstruction *context)
+    explicit RequestAverageModel(OpKernelConstruction *context)
         : OpKernel(context), var_type_size_(0), total_var_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
@@ -139,8 +141,8 @@ class ModelAveraging : public OpKernel
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        peer_selection_strategy_.reset(
-            SelectionStrategy::Create(peer_selection_strategy, ranks_));
+        peer_selector_.reset(
+            SelectionStrategy::create(peer_selection_strategy, ranks_));
 
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
@@ -156,22 +158,34 @@ class ModelAveraging : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
-        int destination = peer_selection_strategy_->Next();
-
-        _kungfu_world->Request(destination, model_buf_->data(), total_var_size_,
+        int destination = peer_selector_->next();
+        _kungfu_world->Request(destination, modelBuf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
         for (int i = 0; i < var_sizes_.size(); i++) {
-            // FIXME: don't write to input tensor
-            AverageAssign<float>(0.5)(context->input(i), model_buf_->data(i));
+            const Tensor &input = context->input(i);
+            Tensor *output      = nullptr;
+            OP_REQUIRES_OK(context,
+                           context->allocate_output(i, input.shape(), &output));
+
+            float *input_ptr = (float *)input.tensor_data().data();
+            float *other_ptr =
+                (float *)(modelBuf_->data() + modelBuf_->offsets()[i]);
+            float *output_ptr = (float *)output->tensor_data().data();
+            for (int j = 0; j < var_sizes_[i]; j++) {
+                *output_ptr = 0.5 * (*input_ptr + *other_ptr);
+                output_ptr += 1;
+                input_ptr += 1;
+                other_ptr += 1;
+            }
         }
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("ModelAveraging").Device(DEVICE_CPU),
-                        ModelAveraging);
+REGISTER_KERNEL_BUILDER(Name("RequestAverageModel").Device(DEVICE_CPU),
+                        RequestAverageModel);
 
-REGISTER_OP("AsyncModelAveraging")
+REGISTER_OP("RequestModel")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
@@ -179,31 +193,28 @@ REGISTER_OP("AsyncModelAveraging")
     .Attr("NumTensors: int")
     .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
-    .Input("vars: NumTensors * T");
+    .Attr("shapes: list(shape)")
+    .Input("vars: NumTensors * T")
+    .Output("outputs: NumTensors * T")
+    .SetShapeFn(shape_inference::UnchangedShape);
 
-class AsyncModelAveraging : public OpKernel
+class RequestModel : public OpKernel
 {
     using OpKernel::OpKernel;
 
     int self_rank_;
     std::vector<int> ranks_;
-    std::unique_ptr<SelectionStrategy> peer_selection_strategy_;
-
+    std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
+    int num_model_vars_;
+    std::vector<TensorShapeProto> shapes_;
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
-
-    std::unique_ptr<ModelBuffer> model_buf_;
-    std::unique_ptr<ModelBuffer> prefetch_buf_;
-    std::function<void()> prefetch_callback_;
-
-    std::mutex mu_;
-    std::atomic<bool> is_requesting_;
+    std::unique_ptr<ModelBuffer> modelBuf_;
 
   public:
-    explicit AsyncModelAveraging(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0),
-          is_requesting_(false)
+    explicit RequestModel(OpKernelConstruction *context)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -215,60 +226,47 @@ class AsyncModelAveraging : public OpKernel
         peer_selection_strategy_.reset(
             SelectionStrategy::Create(peer_selection_strategy, ranks_));
 
+        OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
+        OP_REQUIRES_OK(context,
+                       context->GetAttr("NumTensors", &num_model_vars_));
+
+        // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
                        context->GetAttr("var_type_size", &var_type_size_));
 
+        OP_REQUIRES(context, shapes_.size() > 0,
+                    errors::InvalidArgument("shapes_ must not be empty"));
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        prefetch_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     void Compute(OpKernelContext *context) override
     {
-        int destination = peer_selection_strategy_->Next();
-
-        if (model_buf_.get() == nullptr) {
-            model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
-
-            _kungfu_world->Request(destination, model_buf_->data(),
-                                   total_var_size_,
-                                   to_kungfu_type(context->input(0).dtype()));
-            prefetch_callback_ = [&, mb = model_buf_.get(),
-                                  pb              = prefetch_buf_.get(),
-                                  total_var_size_ = total_var_size_,
-                                  var_type_size_  = var_type_size_]() {
-                std::lock_guard<std::mutex> l(mu_);
-                std::copy(pb->data(),
-                          pb->data() + total_var_size_ * var_type_size_,
-                          mb->data());
-                is_requesting_ = false;
-            };
+        std::vector<Tensor *> outputs(num_model_vars_, nullptr);
+        for (int i = 0; i < num_model_vars_; i++) {
+            OP_REQUIRES_OK(
+                context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        if (!is_requesting_.load()) {
-            is_requesting_ = true;
-            _kungfu_world->Request(
-                destination, prefetch_buf_->data(), total_var_size_,
-                to_kungfu_type(context->input(0).dtype()), prefetch_callback_);
-        }
+        int destination = _peer_selection_strategy->next();
 
-        {
-            std::lock_guard<std::mutex> l(mu_);
-            for (int i = 0; i < var_sizes_.size(); i++) {
-                // FIXME: don't write to input tensor
-                AverageAssign<float>(0.5)(context->input(i),
-                                          model_buf_->data(i));
-            }
+        // Fill in the model Buffer with response from random peer
+        _kungfu_world->Request(destination, (void *)modelBuf_->data(),
+                               total_var_size_,
+                               to_kungfu_type(context->input(0).dtype()));
+
+        for (int i = 0; i < var_sizes_.size(); i++) {
+            modelBuf_->copyTo(i, *outputs[i]);
         }
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("AsyncModelAveraging").Device(DEVICE_CPU),
-                        AsyncModelAveraging);
+REGISTER_KERNEL_BUILDER(Name("RequestModel").Device(DEVICE_CPU), RequestModel);
 
 REGISTER_OP("SaveModel")
     .Attr("T: {int32, int64, float16, float32, float64}")
@@ -339,7 +337,7 @@ class SaveModel : public OpKernel
 
 REGISTER_KERNEL_BUILDER(Name("SaveModel").Device(DEVICE_CPU), SaveModel);
 
-REGISTER_OP("RequestModel")
+REGISTER_OP("AsyncModelAveraging")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
     .Attr("ranks: list(int)")
@@ -347,28 +345,31 @@ REGISTER_OP("RequestModel")
     .Attr("NumTensors: int")
     .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
-    .Attr("shapes: list(shape)")
-    .Input("vars: NumTensors * T")
-    .Output("outputs: NumTensors * T")
-    .SetShapeFn(shape_inference::UnchangedShape);
+    .Input("vars: NumTensors * T");
 
-class RequestModel : public OpKernel
+class AsyncModelAveraging : public OpKernel
 {
     using OpKernel::OpKernel;
 
     int self_rank_;
     std::vector<int> ranks_;
-    std::unique_ptr<SelectionStrategy> peer_selection_strategy_;
-    int num_model_vars_;
-    std::vector<TensorShapeProto> shapes_;
+    std::unique_ptr<SelectionStrategy> _peer_selection_strategy;
+
     std::vector<int> var_sizes_;
     int var_type_size_;
     int total_var_size_;
-    std::unique_ptr<ModelBuffer> model_buf_;
+
+    std::unique_ptr<ModelBuffer> modelBuf_;
+    std::unique_ptr<ModelBuffer> prefetchBuf_;
+    std::function<void()> prefetchCallback;
+
+    std::mutex mu_;
+    std::atomic<bool> isRequesting;
 
   public:
-    explicit RequestModel(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0)
+    explicit AsyncModelAveraging(OpKernelConstruction *context)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0),
+          isRequesting(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -380,47 +381,66 @@ class RequestModel : public OpKernel
         peer_selection_strategy_.reset(
             SelectionStrategy::Create(peer_selection_strategy, ranks_));
 
-        OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
-        OP_REQUIRES_OK(context,
-                       context->GetAttr("NumTensors", &num_model_vars_));
-
-        // Used for the buffer
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES_OK(context,
                        context->GetAttr("var_type_size", &var_type_size_));
 
-        OP_REQUIRES(context, shapes_.size() > 0,
-                    errors::InvalidArgument("shapes_ must not be empty"));
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks_ must not be empty"));
 
         total_var_size_ =
             std::accumulate(var_sizes_.begin(), var_sizes_.end(), 0);
-        model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+        prefetchBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
     }
 
     void Compute(OpKernelContext *context) override
     {
-        std::vector<Tensor *> outputs(num_model_vars_, nullptr);
-        for (int i = 0; i < num_model_vars_; i++) {
-            OP_REQUIRES_OK(
-                context, context->allocate_output(i, shapes_[i], &outputs[i]));
+        int destination = _peer_selection_strategy->next();
+
+        if (modelBuf_.get() == nullptr) {
+            modelBuf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
+
+            _kungfu_world->Request(destination, modelBuf_->data(),
+                                   total_var_size_,
+                                   to_kungfu_type(context->input(0).dtype()));
+            prefetchCallback = [&, mb = modelBuf_.get(),
+                                pb              = prefetchBuf_.get(),
+                                total_var_size_ = total_var_size_,
+                                var_type_size_  = var_type_size_]() {
+                std::lock_guard<std::mutex> l(mu_);
+                std::copy((unsigned char *)pb->data(),
+                          (unsigned char *)pb->data() +
+                              total_var_size_ * var_type_size_,
+                          (unsigned char *)mb->data());
+                isRequesting = false;
+            };
         }
 
-        int destination = peer_selection_strategy_->Next();
+        if (!isRequesting.load()) {
+            isRequesting = true;
+            _kungfu_world->Request(
+                destination, prefetchBuf_->data(), total_var_size_,
+                to_kungfu_type(context->input(0).dtype()), prefetchCallback);
+        }
 
-        // Fill in the model Buffer with response from random peer
-        _kungfu_world->Request(destination, (void *)model_buf_->data(),
-                               total_var_size_,
-                               to_kungfu_type(context->input(0).dtype()));
-
-        for (int i = 0; i < var_sizes_.size(); i++) {
-            model_buf_->copyTo(i, *outputs[i]);
+        {
+            std::lock_guard<std::mutex> l(mu_);
+            for (int i = 0; i < var_sizes_.size(); i++) {
+                Tensor &input = (Tensor &)context->input(i);
+                Tensor other(input.dtype(), input.shape());
+                modelBuf_->copyTo(i, other);
+                auto other_flt = other.flat<float>();
+                other_flt = 0.5 * (input.flat<float>() + other.flat<float>());
+                std::copy(other.tensor_data().begin(),
+                          other.tensor_data().end(),
+                          (char *)input.tensor_data().begin());
+            }
         }
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("RequestModel").Device(DEVICE_CPU), RequestModel);
+REGISTER_KERNEL_BUILDER(Name("AsyncModelAveraging").Device(DEVICE_CPU),
+                        AsyncModelAveraging);
 
 REGISTER_OP("AsyncRequestModel")
     .Attr("T: {float32}")

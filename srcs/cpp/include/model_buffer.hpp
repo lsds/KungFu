@@ -52,6 +52,8 @@ class ModelBuffer
     char *data() { return data_.data(); }
 
     char *data(int i) { return data_.data() + offsets_.at(i); }
+
+    const std::vector<int> &offsets() { return offsets_; }
 };
 
 }  // namespace tensorflow

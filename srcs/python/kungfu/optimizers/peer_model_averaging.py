@@ -1,5 +1,6 @@
 import tensorflow as tf
-from kungfu.ops import broadcast, model_averaging, request_model, save_model
+from kungfu.ops import (broadcast, request_average_model, request_model,
+                        save_model)
 
 from .core import KungFuOptimizer
 
@@ -51,15 +52,20 @@ class PeerModelAveraging(KungFuOptimizer):
         grads, variables = zip(*grads_and_vars)
 
         if self.model_averaging_device == 'cpu':
-            apply_avg_model = model_averaging(
+            avg_vars = request_average_model(
                 [i for i in range(_get_num_peers())], variables,
                 self.request_mode, self.peer_selection_strategy)
+
+            assign_ops = [
+                tf.assign(v, other_v)
+                for ((g, v), other_v) in zip(grads_and_vars, avg_vars)
+            ]
 
             apply_op = self._optimizer.apply_gradients(grads_and_vars,
                                                        **kwargs)
             save_model_op = save_model(variables)
 
-            with tf.control_dependencies([apply_avg_model]):
+            with tf.control_dependencies(assign_ops):
                 with tf.control_dependencies([apply_op]):
                     with tf.control_dependencies([save_model_op]):
                         return tf.group(apply_op)
