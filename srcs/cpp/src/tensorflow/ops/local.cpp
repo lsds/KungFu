@@ -33,7 +33,7 @@ class SaveVariables : public AsyncOpKernel
         for (int i = 0; i < num_tensors_; ++i) {
             const Tensor &t = context->input(i);
             // TODO: get name from t
-            _kungfu_world->Save(names_[i].c_str(), t.tensor_data().data(),
+            _kungfu_world->Save(names_.at(i).c_str(), t.tensor_data().data(),
                                 t.NumElements(), to_kungfu_type(t.dtype()));
         }
         done();
