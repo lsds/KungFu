@@ -65,6 +65,8 @@ class kungfu_world
 
     // local API
     int Save(const char *name, const void *buf, int count,
+             KungFu_Datatype dtype);
+    int Save(const char *name, const void *buf, int count,
              KungFu_Datatype dtype, const DoneCallback &done);
 
     // p2p APIs

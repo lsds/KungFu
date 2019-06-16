@@ -3,7 +3,7 @@ import platform
 import sysconfig
 from ctypes import cdll
 
-from kungfu.internal import _get_num_peers, _get_self_rank
+from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
 
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
@@ -46,6 +46,10 @@ def _tensor_size(t):
 
 def barrier():
     return _op_lib.kungfu_barrier()
+
+
+def save_variables(variables):
+    return _op_lib.save_variables(variables, names=[v.name for v in variables])
 
 
 def save_model(variables):
@@ -122,6 +126,13 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
         raise Exception("Invalid type of model request mode")
 
     return request_model
+
+
+def adaptive_request_model(variables):
+    return _op_lib.adaptive_request_model(variables,
+                                          dtype=variables[0].dtype,
+                                          shapes=[v.shape for v in variables],
+                                          ranks=_get_other_ranks())
 
 
 def broadcast(t):

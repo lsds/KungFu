@@ -38,6 +38,13 @@ int kungfu_world::Rank() const { return GoKungfuRank(); }
 int kungfu_world::ClusterSize() const { return GoKungfuClusterSize(); }
 
 int kungfu_world::Save(const char *name, const void *buf, int count,
+                       KungFu_Datatype dtype)
+{
+    return GoKungfuSave(const_cast<char *>(name), const_cast<void *>(buf),
+                        GoInt(count), GoInt(dtype), nullptr);
+}
+
+int kungfu_world::Save(const char *name, const void *buf, int count,
                        KungFu_Datatype dtype, const DoneCallback &done)
 {
     return GoKungfuSave(const_cast<char *>(name), const_cast<void *>(buf),

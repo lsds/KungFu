@@ -31,7 +31,7 @@ func NewRouter(self plan.PeerSpec) *Router {
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
-		modelStore: &ModelStore{},
+		modelStore: newModelStore(),
 	}
 }
 
@@ -135,10 +135,9 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 	r.modelStore.Lock()
 	defer r.modelStore.Unlock()
 
-	modelBuffer := r.modelStore.data
-
+	modelBuffer := r.modelStore.data[name]
 	if modelBuffer == nil {
-		fmt.Println("Model buffer is nil")
+		utils.ExitErr(fmt.Errorf("Model buffer[%s] is nil", name))
 	}
 
 	bs := []byte(name)

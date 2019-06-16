@@ -31,13 +31,12 @@ ensure_kungfu_prun() {
 
 ensure_kungfu_prun
 
-SCRIPT=${ROOT}/tests/python/test_operators.py
-
 if [ $(uname -s) = "Darwin" ]; then
     export DYLD_LIBRARY_PATH=$(${PYTHON} -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
 
 run_operator_tests() {
+    local SCRIPT=$1
     for np in $(seq 4); do
         local hosts=127.0.0.1:$np
         $KUNGFU_PRUN \
@@ -48,4 +47,6 @@ run_operator_tests() {
     done
 }
 
-measure run_operator_tests
+measure run_operator_tests ${ROOT}/tests/python/test_operators.py
+measure run_operator_tests ${ROOT}/tests/python/test_save_variables.py
+# measure run_operator_tests ${ROOT}/tests/python/test_adaptive_p2p.py

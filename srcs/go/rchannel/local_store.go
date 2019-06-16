@@ -10,15 +10,24 @@ import (
 type ModelStore struct {
 	sync.Mutex
 
-	data *kb.Buffer
+	data map[string]*kb.Buffer
 }
 
-func (s *ModelStore) Update(modelVersionName string, model *kb.Buffer) {
+func newModelStore() *ModelStore {
+	return &ModelStore{
+		data: make(map[string]*kb.Buffer),
+	}
+}
+
+func (s *ModelStore) Update(name string, buf *kb.Buffer) {
 	s.Lock()
 	defer s.Unlock()
-	if s.data == nil {
-		log.Warnf("%s has no entry in the store. Initializing storage for this variable.", modelVersionName)
-		s.data = kb.NewBuffer(model.Count, model.Type)
+	if _, ok := s.data[name]; !ok {
+		log.Warnf("%s has no entry in the store, init as %s[%d].", name, buf.Type /* TODO: show dtype name*/, buf.Count)
+		s.data[name] = kb.NewBuffer(buf.Count, buf.Type)
+		// TODO: support GC
+	} else {
+		// TODO: check shape here
 	}
-	s.data.CopyFrom(model)
+	s.data[name].CopyFrom(buf)
 }
