@@ -22,7 +22,7 @@ type Router struct {
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
 
-	modelStore *ModelStore
+	localStore *LocalStore
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -31,7 +31,7 @@ func NewRouter(self plan.PeerSpec) *Router {
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
-		modelStore: newModelStore(),
+		localStore: newLocalStore(),
 	}
 }
 
@@ -128,10 +128,10 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 }
 
 func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
-	r.modelStore.Lock()
-	defer r.modelStore.Unlock()
+	r.localStore.Lock()
+	defer r.localStore.Unlock()
 
-	modelBuffer := r.modelStore.data[name]
+	modelBuffer := r.localStore.data[name]
 	if modelBuffer == nil {
 		utils.ExitErr(fmt.Errorf("Model buffer[%s] is nil", name))
 	}
@@ -160,7 +160,7 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 }
 
 func (r *Router) Save(name string, model *kb.Buffer) error {
-	r.modelStore.Update(name, model)
+	r.localStore.Emplace(name, model)
 	return nil
 }
 
