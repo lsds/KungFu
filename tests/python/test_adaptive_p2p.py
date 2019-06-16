@@ -15,7 +15,7 @@ def test_adaptive_request_variables():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(init)
-        for _ in range(10):
+        for _ in range(100):
             sess.run(op)
 
 

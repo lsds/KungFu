@@ -128,7 +128,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     return request_model
 
 
-def adaptive_request_variables(variables):
+def adaptive_request_variables(variables, window_size=10):
     ranks = _get_other_ranks()
     if len(ranks) == 0:
         return variables
@@ -137,7 +137,8 @@ def adaptive_request_variables(variables):
         dtype=variables[0].dtype,
         shapes=[v.shape for v in variables],
         names=[v.name for v in variables],
-        ranks=ranks)
+        ranks=ranks,
+        window_size=window_size)
 
 
 def broadcast(t):

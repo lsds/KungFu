@@ -16,6 +16,7 @@ REGISTER_OP("AdaptiveRequestVariables")
     .Attr("shapes: list(shape)")
     .Attr("names: list(string)")
     .Attr("ranks: list(int)")
+    .Attr("window_size: int")
     .Attr("NumTensors: int")
     .Input("vars: NumTensors * T")
     .Output("outputs: NumTensors * T")
@@ -30,6 +31,7 @@ class AdaptiveRequestVariables : public AsyncOpKernel
     std::vector<TensorShapeProto> shapes_;
     std::vector<std::string> names_;
     std::vector<int> ranks_;
+    int window_size_;
     std::unique_ptr<AdaptivePeerSelector> peer_selector_;
 
   public:
@@ -43,7 +45,10 @@ class AdaptiveRequestVariables : public AsyncOpKernel
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
         OP_REQUIRES(context, ranks_.size() > 0,
                     errors::InvalidArgument("ranks must not be empty"));
-        peer_selector_.reset(new AdaptivePeerSelector(ranks_));
+        OP_REQUIRES_OK(context, context->GetAttr("window_size", &window_size_));
+        OP_REQUIRES(context, window_size_,
+                    errors::InvalidArgument("window_size > 0 is required"));
+        peer_selector_.reset(new AdaptivePeerSelector(ranks_, window_size_));
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override

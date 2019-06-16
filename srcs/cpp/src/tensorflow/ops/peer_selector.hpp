@@ -1,5 +1,6 @@
 #pragma once
 #include <chrono>
+#include <queue>
 #include <vector>
 
 class AdaptivePeerSelector
@@ -11,7 +12,13 @@ class AdaptivePeerSelector
         int count;
         double mean;
 
-        weight() : count(0), mean(0.0) {}
+        weight() : weight(0, 0.0) {}
+
+        weight(double value) : weight(1, value) {}
+
+        weight(int count, double value) : count(count), mean(value) {}
+
+        double total() const { return count * mean; }
 
         bool operator<(const weight &w) const
         {
@@ -19,19 +26,29 @@ class AdaptivePeerSelector
                    (std::fabs(mean - w.mean) < 1e-6 && count < w.count);
         }
 
-        void add(double delta)
+        void operator+=(const weight &w)
         {
-            double tot = mean * count + delta;
-            ++count;
-            mean = tot / count;
+            double tot = total() + w.total();
+            count += w.count;
+            if (count) {
+                mean = tot / count;
+            } else {
+                mean = 0;
+            }
         }
+
+        weight operator-() const { return weight(-count, -mean); }
     };
 
     using Value = int;
 
     const std::vector<Value> values_;
     const std::map<Value, int> index_;
+    const int window_size_;
+
     std::vector<weight> weights_;
+    std::vector<weight> rolling_weights_;
+    std::queue<weight> window_;
 
     static std::map<Value, int> BuildIndex(const std::vector<Value> &values)
     {
@@ -46,22 +63,31 @@ class AdaptivePeerSelector
 
     int Next()
     {
-        const int idx = std::min_element(weights_.begin(), weights_.end()) -
-                        weights_.begin();
+        const int idx =
+            std::min_element(rolling_weights_.begin(), rolling_weights_.end()) -
+            rolling_weights_.begin();
         return values_.at(idx);
     }
 
     void Feedback(const Value &v, const duration_t &d)
     {
         const int idx = index_.at(v);
-        weights_.at(idx).add(d.count());
+        const weight w(d.count());
+        weights_.at(idx) += w;
+        rolling_weights_.at(idx) += w;
+        window_.push(w);
+        if (window_.size() > window_size_) {
+            const auto w = window_.front();
+            rolling_weights_.at(idx) += -w;
+        }
     }
 
   public:
-    AdaptivePeerSelector(const std::vector<Value> &values)
-        : values_(values), index_(BuildIndex(values))
+    AdaptivePeerSelector(const std::vector<Value> &values, int window_size)
+        : values_(values), index_(BuildIndex(values)), window_size_(window_size)
     {
         weights_.resize(values.size());
+        rolling_weights_.resize(values.size());
     }
 
     ~AdaptivePeerSelector() { ShowStat(); }
