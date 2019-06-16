@@ -319,10 +319,10 @@ class SaveModel : public OpKernel
             is_saving_ = true;
             std::string updateName =
                 "ModelStoreUpdateAtGlobalStep " + std::to_string(gs_);
-            _kungfu_world->UpdateModelStore(
-                updateName.c_str(), model_buf_->data(), total_var_size_,
-                to_kungfu_type(context->input(0).dtype()),
-                [&] { is_saving_ = false; });
+            _kungfu_world->Save(updateName.c_str(), model_buf_->data(),
+                                total_var_size_,
+                                to_kungfu_type(context->input(0).dtype()),
+                                [&] { is_saving_ = false; });
         }
     }
 };

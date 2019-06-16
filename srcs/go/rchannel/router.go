@@ -164,8 +164,8 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 	r.monitor.Egress(int64(m.Length), remote)
 }
 
-func (r *Router) UpdateModelStore(updateName string, model *kb.Buffer) error {
-	r.modelStore.Update(updateName, model)
+func (r *Router) Save(name string, model *kb.Buffer) error {
+	r.modelStore.Update(name, model)
 	return nil
 }
 

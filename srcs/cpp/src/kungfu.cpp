@@ -37,13 +37,11 @@ int kungfu_world::Rank() const { return GoKungfuRank(); }
 
 int kungfu_world::ClusterSize() const { return GoKungfuClusterSize(); }
 
-int kungfu_world::UpdateModelStore(const char *name, const void *model,
-                                   int count, KungFu_Datatype dtype,
-                                   const DoneCallback &done)
+int kungfu_world::Save(const char *name, const void *buf, int count,
+                       KungFu_Datatype dtype, const DoneCallback &done)
 {
-    return GoKungfuUpdateModelStore(const_cast<char *>(name),
-                                    const_cast<void *>(model), GoInt(count),
-                                    GoInt(dtype), new CallbackWrapper(done));
+    return GoKungfuSave(const_cast<char *>(name), const_cast<void *>(buf),
+                        GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
 int kungfu_world::Barrier(const DoneCallback &done)
