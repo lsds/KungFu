@@ -163,8 +163,8 @@ func (sess *session) RequestModel(rank int, model *kb.Buffer) int {
 	return code(sess.router.Request(peer.NetAddr.WithName("ModelRequestInGo"), rch.ConnPeerToPeer, model))
 }
 
-func (sess *session) Save(name string, model *kb.Buffer) int {
-	return code(sess.router.Save(name, model))
+func (sess *session) Save(name string, buf *kb.Buffer) int {
+	return code(sess.router.Save(name, buf))
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {

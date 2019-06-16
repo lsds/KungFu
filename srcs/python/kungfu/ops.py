@@ -128,11 +128,12 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     return request_model
 
 
-def adaptive_request_model(variables):
-    return _op_lib.adaptive_request_model(variables,
-                                          dtype=variables[0].dtype,
-                                          shapes=[v.shape for v in variables],
-                                          ranks=_get_other_ranks())
+def adaptive_request_variables(variables):
+    return _op_lib.adaptive_request_variables(
+        variables,
+        dtype=variables[0].dtype,
+        shapes=[v.shape for v in variables],
+        ranks=_get_other_ranks())
 
 
 def broadcast(t):

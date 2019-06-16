@@ -8,7 +8,7 @@
 namespace tensorflow
 {
 
-REGISTER_OP("AdaptiveRequestModel")
+REGISTER_OP("AdaptiveRequestVariables")
     .Attr("T: {float32}")
     .Attr("shapes: list(shape)")
     .Attr("dtype: type")  // FIXME: infer dtype from T
@@ -18,7 +18,7 @@ REGISTER_OP("AdaptiveRequestModel")
     .Output("outputs: NumTensors * T")
     .SetShapeFn(shape_inference::UnchangedShape);
 
-class AdaptiveRequestModel : public AsyncOpKernel
+class AdaptiveRequestVariables : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
 
@@ -27,7 +27,7 @@ class AdaptiveRequestModel : public AsyncOpKernel
     DataType dtype_;
 
   public:
-    explicit AdaptiveRequestModel(OpKernelConstruction *context)
+    explicit AdaptiveRequestVariables(OpKernelConstruction *context)
         : AsyncOpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("NumTensors", &num_tensors_));
@@ -43,12 +43,12 @@ class AdaptiveRequestModel : public AsyncOpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]),
                 done);
         }
-        LOG(WARNING) << "TODO : AdaptiveRequestModel::ComputeAsync";
+        LOG(WARNING) << "TODO : AdaptiveRequestVariables::ComputeAsync";
         done();
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("AdaptiveRequestModel").Device(DEVICE_CPU),
-                        AdaptiveRequestModel);
+REGISTER_KERNEL_BUILDER(Name("AdaptiveRequestVariables").Device(DEVICE_CPU),
+                        AdaptiveRequestVariables);
 
 }  // namespace tensorflow

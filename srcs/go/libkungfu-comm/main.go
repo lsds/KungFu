@@ -75,15 +75,15 @@ func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_D
 }
 
 //export GoKungfuSave
-func GoKungfuSave(name *C.char, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
-	buf := toBuffer(model, count, dtype)
+	b := toBuffer(buf, count, dtype)
 	if done == nil {
-		return sess.Save(goName, buf)
+		return sess.Save(goName, b)
 	}
 	go func() {
-		sess.Save(goName, buf)
+		sess.Save(goName, b)
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
