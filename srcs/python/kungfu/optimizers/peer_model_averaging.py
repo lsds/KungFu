@@ -1,6 +1,7 @@
 import tensorflow as tf
 from kungfu.internal import _get_num_peers, _get_self_rank
-from kungfu.ops import broadcast, model_averaging, request_model, save_model
+from kungfu.ops import (barrier, broadcast, model_averaging, request_model,
+                        save_model)
 
 from .core import KungFuOptimizer
 
@@ -33,7 +34,9 @@ class PeerModelAveraging(KungFuOptimizer):
         for v in variables:
             ops.append(tf.assign(v, broadcast(v)))
         with tf.control_dependencies(ops):
-            return save_model(tf.trainable_variables())
+            with tf.control_dependencies(
+                [save_model(tf.trainable_variables())]):
+                return barrier()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
