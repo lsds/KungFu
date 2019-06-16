@@ -44,8 +44,8 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 	return newChannel(a.Name, conn), nil
 }
 
-// RequestVar sends request name to given Addr
-func (r *Router) Request(a plan.Addr, t ConnType, model *kb.Buffer) error {
+// Request sends request name to given Addr
+func (r *Router) Request(a plan.Addr, t ConnType, buf *kb.Buffer) error {
 	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
@@ -53,18 +53,14 @@ func (r *Router) Request(a plan.Addr, t ConnType, model *kb.Buffer) error {
 	if err := ch.Send(Message{}); err != nil {
 		return err
 	}
-
 	msg := Message{
-		Length: uint32(model.Count * model.Type.Size()),
-		Data:   model.Data,
+		Length: uint32(buf.Count * buf.Type.Size()),
+		Data:   buf.Data,
 	}
-
 	if err := ch.Receive(msg); err != nil {
 		return err
 	}
-
 	r.monitor.Ingress(int64(msg.Length), a.NetAddr())
-
 	return nil
 }
 

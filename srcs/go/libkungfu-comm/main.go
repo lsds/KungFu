@@ -59,15 +59,16 @@ func GoKungfuBarrier(done *C.callback_t) int {
 }
 
 //export GoKungfuRequest
-func GoKungfuRequest(rank int, model unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-	buf := toBuffer(model, count, dtype)
+	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
+	b := toBuffer(buf, count, dtype)
 	if done == nil {
 		// Synchronous case
-		return sess.RequestModel(rank, buf)
+		return sess.Request(rank, goName, b)
 	}
 	go func() {
-		sess.RequestModel(rank, buf)
+		sess.Request(rank, goName, b)
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()

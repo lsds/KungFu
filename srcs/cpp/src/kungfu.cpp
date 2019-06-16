@@ -56,17 +56,18 @@ int kungfu_world::Barrier(const DoneCallback &done)
     return GoKungfuBarrier(new CallbackWrapper(done));
 }
 
-int kungfu_world::Request(int destRank, void *model, int count,
+int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
                           KungFu_Datatype dtype)
 {
-    return GoKungfuRequest(destRank, model, GoInt(count), GoInt(dtype),
-                           nullptr);
+    return GoKungfuRequest(destRank, const_cast<char *>(name), buf,
+                           GoInt(count), GoInt(dtype), nullptr);
 }
 
-int kungfu_world::Request(int destRank, void *model, int count,
+int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
                           KungFu_Datatype dtype, const DoneCallback &done)
 {
-    return GoKungfuRequest(destRank, model, GoInt(count), GoInt(dtype),
+    return GoKungfuRequest(destRank, const_cast<char *>(name), buf,
+                           GoInt(count), GoInt(dtype),
                            new CallbackWrapper(done));
 }
 
