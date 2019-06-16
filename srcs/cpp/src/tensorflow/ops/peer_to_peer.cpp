@@ -280,12 +280,10 @@ class SaveModel : public OpKernel
 
     std::atomic<bool> is_saving_;
 
-    int gs_;
-
   public:
     explicit SaveModel(OpKernelConstruction *context)
         : OpKernel(context), var_type_size_(0), total_var_size_(0),
-          is_saving_(false), gs_(0)
+          is_saving_(false)
     {
         OP_REQUIRES_OK(context, context->GetAttr("var_sizes", &var_sizes_));
         OP_REQUIRES(context, var_sizes_.size() > 0,
@@ -308,7 +306,6 @@ class SaveModel : public OpKernel
         OP_REQUIRES(context, context->num_inputs() > 0,
                     errors::InvalidArgument(
                         "Wrong number of inputs for operator SaveModel"));
-        ++gs_;
 
         for (int i = 0; i < var_sizes_.size(); i++) {
             const Tensor &input = context->input(i);
@@ -317,9 +314,7 @@ class SaveModel : public OpKernel
 
         if (!is_saving_.load()) {
             is_saving_ = true;
-            std::string updateName =
-                "ModelStoreUpdateAtGlobalStep " + std::to_string(gs_);
-            _kungfu_world->Save(updateName.c_str(), model_buf_->data(),
+            _kungfu_world->Save("all_variables", model_buf_->data(),
                                 total_var_size_,
                                 to_kungfu_type(context->input(0).dtype()),
                                 [&] { is_saving_ = false; });
