@@ -27,8 +27,12 @@ class AdaptivePeerModelAveraging(KungFuOptimizer):
         variables = g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         for v in variables:
             ops.append(tf.assign(v, broadcast(v)))
+        # Need trainable variables because the global variables
+        # contain one int64 and the operator complains that not all
+        # types are the same: 
+        # TypeError: Tensors in list passed to 'vars' of 'SaveVariables' Op have types
         with tf.control_dependencies(
-                [save_variables(variables)]):
+                [save_variables(tf.trainable_variables())]):
                 return barrier()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
