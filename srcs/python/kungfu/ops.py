@@ -128,7 +128,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     return request_model
 
 
-def adaptive_request_variables(variables, window_size=10):
+def adaptive_request_variables(variables, window_size):
     ranks = _get_other_ranks()
     if len(ranks) == 0:
         return variables
