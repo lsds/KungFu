@@ -10,6 +10,7 @@
 #include <kungfu_tensorflow_ops.h>
 
 #include "model_buffer.hpp"
+#include "peer_selector.hpp"
 
 class SelectionStrategy
 {
@@ -264,7 +265,7 @@ REGISTER_KERNEL_BUILDER(Name("AsyncModelAveraging").Device(DEVICE_CPU),
                         AsyncModelAveraging);
 
 REGISTER_OP("SaveModel")
-    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("T: {float32, float16}")
     .Attr("NumTensors: int")
     .Attr("var_type_size: int")
     .Attr("var_sizes: list(int)")
@@ -306,6 +307,7 @@ class SaveModel : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
+
         OP_REQUIRES(context, context->num_inputs() > 0,
                     errors::InvalidArgument(
                         "Wrong number of inputs for operator SaveModel"));
@@ -329,6 +331,7 @@ REGISTER_KERNEL_BUILDER(Name("SaveModel").Device(DEVICE_CPU), SaveModel);
 REGISTER_OP("RequestModel")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
+    .Attr("window_size: int")
     .Attr("ranks: list(int)")
     .Attr("peer_selection_strategy: string")
     .Attr("NumTensors: int")
@@ -345,7 +348,10 @@ class RequestModel : public OpKernel
 
     int self_rank_;
     std::vector<int> ranks_;
-    std::unique_ptr<SelectionStrategy> peer_selection_strategy_;
+
+    std::unique_ptr<AdaptivePeerSelector> peer_selector_;
+    int window_size_;
+
     int num_model_vars_;
     std::vector<TensorShapeProto> shapes_;
     std::vector<int> var_sizes_;
@@ -355,7 +361,7 @@ class RequestModel : public OpKernel
 
   public:
     explicit RequestModel(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0), window_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -364,8 +370,11 @@ class RequestModel : public OpKernel
         std::string peer_selection_strategy;
         OP_REQUIRES_OK(context, context->GetAttr("peer_selection_strategy",
                                                  &peer_selection_strategy));
-        peer_selection_strategy_.reset(
-            SelectionStrategy::Create(peer_selection_strategy, ranks_));
+        // peer_selection_strategy_.reset(
+        //     SelectionStrategy::Create(peer_selection_strategy, ranks_));
+        OP_REQUIRES_OK(context, context->GetAttr("window_size", &window_size_));
+        peer_selector_.reset(new AdaptivePeerSelector(ranks_, window_size_));
+
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
         OP_REQUIRES_OK(context,
@@ -394,12 +403,14 @@ class RequestModel : public OpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-        int destination = peer_selection_strategy_->Next();
 
-        // Fill in the model Buffer with response from random peer
-        _kungfu_world->Request(destination, MODEL_NAME,
-                               (void *)model_buf_->data(), total_var_size_,
-                               to_kungfu_type(context->input(0).dtype()));
+        peer_selector_->Do([&](int destination) {           
+            // Fill in the model Buffer with response from random peer
+            _kungfu_world->Request(destination, MODEL_NAME,
+                                (void *)model_buf_->data(), total_var_size_,
+                                to_kungfu_type(context->input(0).dtype()));
+            
+        });
 
         for (int i = 0; i < var_sizes_.size(); i++) {
             model_buf_->copyTo(i, *outputs[i]);

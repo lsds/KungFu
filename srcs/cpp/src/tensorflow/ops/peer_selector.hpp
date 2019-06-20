@@ -88,6 +88,7 @@ class AdaptivePeerSelector
     {
         weights_.resize(values.size());
         rolling_weights_.resize(values.size());
+        std::cout << "Using adaptive peer selector" << std::endl;
     }
 
     ~AdaptivePeerSelector() { ShowStat(); }

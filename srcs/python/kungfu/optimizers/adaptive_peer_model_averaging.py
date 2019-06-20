@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.ops import barrier, broadcast, save_variables, adaptive_request_variables
+from kungfu.ops import barrier, broadcast, save_model, adaptive_request_variables
 
 from .core import KungFuOptimizer
 
@@ -32,7 +32,7 @@ class AdaptivePeerModelAveraging(KungFuOptimizer):
         # types are the same: 
         # TypeError: Tensors in list passed to 'vars' of 'SaveVariables' Op have types
         with tf.control_dependencies(
-                [save_variables(tf.trainable_variables())]):
+                [save_model(tf.trainable_variables())]):
                 return barrier()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
@@ -50,7 +50,7 @@ class AdaptivePeerModelAveraging(KungFuOptimizer):
 
         apply_op = self._optimizer.apply_gradients(grads_and_vars,
                                                     **kwargs)
-        save_model_op = save_variables(variables)
+        save_model_op = save_model(variables)
 
         with tf.control_dependencies(assign_ops):
             with tf.control_dependencies([apply_op]):

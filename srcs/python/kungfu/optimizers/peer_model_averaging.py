@@ -13,6 +13,7 @@ class PeerModelAveraging(KungFuOptimizer):
                  model_averaging_device="cpu",
                  request_mode="sync",
                  peer_selection_strategy="random",
+                 window_size=10,
                  name=None,
                  use_locking=False,
                  device_dense='',
@@ -22,6 +23,7 @@ class PeerModelAveraging(KungFuOptimizer):
         self.request_mode = request_mode
         self.model_averaging_device = model_averaging_device
         self.peer_selection_strategy = peer_selection_strategy
+        self.window_size = window_size
 
     @staticmethod
     def get_initializer():
@@ -56,7 +58,7 @@ class PeerModelAveraging(KungFuOptimizer):
         elif self.model_averaging_device == 'gpu':
             other_peer_vars = request_model(
                 [i for i in range(_get_num_peers())], variables,
-                self.request_mode, self.peer_selection_strategy)
+                self.request_mode, self.peer_selection_strategy, self.window_size)
 
             assign_ops = [
                 tf.assign(v, 0.5 * (v + other_v))
