@@ -78,6 +78,7 @@ class AdaptivePeerSelector
         window_.push(std::make_pair(idx, w));
         if (window_.size() > window_size_) {
             const auto p = window_.front();
+            window_.pop();
             rolling_weights_.at(p.first) += -p.second;
         }
     }
