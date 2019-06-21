@@ -48,7 +48,7 @@ class AdaptivePeerSelector
 
     std::vector<weight> weights_;
     std::vector<weight> rolling_weights_;
-    std::queue<weight> window_;
+    std::queue<std::pair<Value, weight>> window_;
 
     static std::map<Value, int> BuildIndex(const std::vector<Value> &values)
     {
@@ -75,10 +75,10 @@ class AdaptivePeerSelector
         const weight w(d.count());
         weights_.at(idx) += w;
         rolling_weights_.at(idx) += w;
-        window_.push(w);
+        window_.push(std::make_pair(idx, w));
         if (window_.size() > window_size_) {
-            const auto w = window_.front();
-            rolling_weights_.at(idx) += -w;
+            const auto p = window_.front();
+            rolling_weights_.at(p.first) += -p.second;
         }
     }
 
