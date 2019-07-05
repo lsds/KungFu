@@ -44,27 +44,6 @@ python3 test:
   - ./scripts/tests/run-op-tests.sh
   - ./scripts/tests/run-train-tests.sh
 
-python2 test:
-  stage: test
-  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
-
-  before_script:
-  - apt update
-  - apt install -y python python-pip
-  - pip install tensorflow
-  - |
-    DATA_DIR=$HOME/var/data \
-    ./scripts/download-mnist.sh
-
-  script:
-  - cmake --version
-  - which python
-  - python --version
-  - pip install -vvv -U .
-  - |
-    PYTHON=$(which python) \
-    ./scripts/tests/run-train-tests.sh
-
 go format test:
   stage: lint
   image: alpine:3.9

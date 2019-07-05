@@ -361,7 +361,8 @@ class RequestModel : public OpKernel
 
   public:
     explicit RequestModel(OpKernelConstruction *context)
-        : OpKernel(context), var_type_size_(0), total_var_size_(0), window_size_(0)
+        : OpKernel(context), var_type_size_(0), total_var_size_(0),
+          window_size_(0)
     {
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_rank_));
         OP_REQUIRES_OK(context, context->GetAttr("ranks", &ranks_));
@@ -374,7 +375,6 @@ class RequestModel : public OpKernel
         //     SelectionStrategy::Create(peer_selection_strategy, ranks_));
         OP_REQUIRES_OK(context, context->GetAttr("window_size", &window_size_));
         peer_selector_.reset(new AdaptivePeerSelector(ranks_, window_size_));
-
 
         OP_REQUIRES_OK(context, context->GetAttr("shapes", &shapes_));
         OP_REQUIRES_OK(context,
@@ -403,13 +403,11 @@ class RequestModel : public OpKernel
                 context, context->allocate_output(i, shapes_[i], &outputs[i]));
         }
 
-
-        peer_selector_->Do([&](int destination) {           
+        peer_selector_->Do([&](int destination) {
             // Fill in the model Buffer with response from random peer
             _kungfu_world->Request(destination, MODEL_NAME,
-                                (void *)model_buf_->data(), total_var_size_,
-                                to_kungfu_type(context->input(0).dtype()));
-            
+                                   (void *)model_buf_->data(), total_var_size_,
+                                   to_kungfu_type(context->input(0).dtype()));
         });
 
         for (int i = 0; i < var_sizes_.size(); i++) {
