@@ -1,21 +1,28 @@
 package rchannel
 
 import (
+	"fmt"
 	"net"
 	"os"
 
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/shm"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
+
+type Callback func(*Message)
 
 type Router struct {
 	localAddr  plan.NetAddr
 	bufferPool *BufferPool
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
+
+	localStore *LocalStore
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -24,37 +31,59 @@ func NewRouter(self plan.PeerSpec) *Router {
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
+		localStore: newLocalStore(),
 	}
 }
 
 // getChannel returns the Channel of given Addr
-func (r *Router) getChannel(a plan.Addr) (*Channel, error) {
-	conn, err := r.connPool.get(a.NetAddr(), r.localAddr)
+func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
+	conn, err := r.connPool.get(a.NetAddr(), r.localAddr, t)
 	if err != nil {
 		return nil, err
 	}
 	return newChannel(a.Name, conn), nil
 }
 
+// Request sends request name to given Addr
+func (r *Router) Request(a plan.Addr, t ConnType, buf *kb.Buffer) error {
+	ch, err := r.getChannel(a, t)
+	if err != nil {
+		return err
+	}
+	if err := ch.Send(Message{}); err != nil {
+		return err
+	}
+	msg := Message{
+		Length: uint32(buf.Count * buf.Type.Size()),
+		Data:   buf.Data,
+	}
+	if err := ch.Receive(msg); err != nil {
+		return err
+	}
+	r.monitor.Ingress(int64(msg.Length), a.NetAddr())
+	return nil
+}
+
 // Send sends data in buf to given Addr
-func (r *Router) Send(a plan.Addr, buf []byte) error {
+func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
 	msg := Message{
 		Length: uint32(len(buf)),
 		Data:   buf,
 	}
-	if err := r.send(a, msg); err != nil {
+	if err := r.send(a, msg, t); err != nil {
 		log.Errorf("Router::Send failed: %v", err)
 		// TODO: retry
-		os.Exit(1)
+		if t == ConnCollective {
+			os.Exit(1)
+		}
 		// return err
 	}
 	r.monitor.Egress(int64(msg.Length), a.NetAddr())
 	return nil
 }
 
-func (r *Router) send(a plan.Addr, msg Message) error {
-	// log.Infof("%s::%s", "Router", "Send")
-	ch, err := r.getChannel(a)
+func (r *Router) send(a plan.Addr, msg Message, t ConnType) error {
+	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
 	}
@@ -80,6 +109,7 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 	}
 	var msg Message
 	if mh.BodyInShm != 0 {
+		log.Errorf("%s", "Should not get here")
 		var mt messageTail
 		if err := mt.ReadFrom(conn); err != nil {
 			return "", nil, err
@@ -97,9 +127,46 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 	return string(mh.Name), &msg, nil
 }
 
+func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
+	r.localStore.Lock()
+	defer r.localStore.Unlock()
+
+	modelBuffer := r.localStore.data[name]
+	if modelBuffer == nil {
+		utils.ExitErr(fmt.Errorf("Model buffer[%s] is nil", name))
+	}
+
+	bs := []byte(name)
+	mh := messageHeader{
+		NameLength: uint32(len(bs)),
+		Name:       bs,
+	}
+
+	if err := mh.WriteTo(conn); err != nil {
+		log.Errorf("Could not write variable from store to connection: %s", name)
+		utils.ExitErr(err)
+	}
+
+	m := Message{
+		Length: uint32(modelBuffer.Count * modelBuffer.Type.Size()),
+		Data:   modelBuffer.Data,
+	}
+
+	if err := m.WriteTo(conn); err != nil {
+		log.Errorf("Could not write variable from store to connection: %s", name)
+		utils.ExitErr(err)
+	}
+	r.monitor.Egress(int64(m.Length), remote)
+}
+
+func (r *Router) Save(name string, model *kb.Buffer) error {
+	r.localStore.Emplace(name, model)
+	return nil
+}
+
 var newShm = shm.New
 
-func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
+func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
 	var shm shm.Shm
 	if kc.UseShm && remote.Host == r.localAddr.Host {
 		var err error
@@ -114,6 +181,13 @@ func (r *Router) stream(conn net.Conn, remote plan.NetAddr) (int, error) {
 			return i, err
 		}
 		r.monitor.Ingress(int64(msg.Length), remote)
-		r.bufferPool.require(remote.WithName(name)) <- msg
+		switch t {
+		case ConnCollective:
+			r.bufferPool.require(remote.WithName(name)) <- msg
+		case ConnPeerToPeer:
+			r.handlePeerToPeerConn(name, msg, conn, remote)
+		default:
+			log.Infof("no handler for type %s", t)
+		}
 	}
 }

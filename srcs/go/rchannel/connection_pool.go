@@ -2,6 +2,7 @@ package rchannel
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -22,21 +23,24 @@ func newConnectionPool() *ConnectionPool {
 	return &ConnectionPool{
 		conns: make(map[string]Connection),
 
-		connRetryCount:  40,
+		connRetryCount:  200,
 		connRetryPeriod: 500 * time.Millisecond,
 	}
 }
 
-func (p *ConnectionPool) get(remote, local plan.NetAddr) (Connection, error) {
+func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	p.Lock()
 	defer p.Unlock()
 	tk := time.NewTicker(p.connRetryPeriod)
 	defer tk.Stop()
+	key := func(a plan.NetAddr, t ConnType) string {
+		return fmt.Sprintf("%s#%d", a, t)
+	}
 	for i := 0; i <= p.connRetryCount; i++ {
-		if conn, ok := p.conns[remote.String()]; !ok {
-			conn, err := newConnection(remote, local)
+		if conn, ok := p.conns[key(remote, t)]; !ok {
+			conn, err := newConnection(remote, local, t)
 			if err == nil {
-				p.conns[remote.String()] = conn
+				p.conns[key(remote, t)] = conn
 			}
 		} else {
 			return conn, nil

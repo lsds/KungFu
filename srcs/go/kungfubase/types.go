@@ -1,5 +1,12 @@
 package kungfubase
 
+import (
+	"errors"
+	"fmt"
+
+	"github.com/lsds/KungFu/srcs/go/utils"
+)
+
 // #include <kungfu.h>
 import "C"
 
@@ -12,6 +19,7 @@ const (
 type KungFu_Datatype C.KungFu_Datatype
 
 var (
+	KungFu_UINT8  = KungFu_Datatype(C.KungFu_UINT8)
 	KungFu_INT32  = KungFu_Datatype(C.KungFu_INT32)
 	KungFu_INT64  = KungFu_Datatype(C.KungFu_INT64)
 	KungFu_FLOAT  = KungFu_Datatype(C.KungFu_FLOAT)
@@ -47,6 +55,12 @@ func (b *Buffer) Slice(begin, end int) *Buffer {
 }
 
 func (b *Buffer) CopyFrom(c *Buffer) {
+	bSize := b.Count * b.Type.Size()
+	cSize := c.Count * c.Type.Size()
+	if bSize != cSize {
+		errMsg := fmt.Sprintf("Copy from failure. Buffers have different sizes: %d vs. %d", bSize, cSize)
+		utils.ExitErr(errors.New(errMsg))
+	}
 	copy(b.Data, c.Data)
 }
 

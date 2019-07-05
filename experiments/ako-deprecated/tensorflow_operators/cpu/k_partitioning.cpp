@@ -10,24 +10,22 @@
 namespace tensorflow
 {
 REGISTER_OP("AkoNegotiator")
-    .Input("allgradients: float32")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Input("allgradients: T")
     .Input("partition: int32")
     .Input("partitioncount: int32")
-    .Output("output: float32")
+    .Output("output: T")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
         return Status::OK();
     });
 
-// Ako implementation
 class AkoNegotiator : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
     using CPUDevice = Eigen::ThreadPoolDevice;
 
   public:
-    // have them public for now
-
     std::queue<Tensor> tensorWindow;
     Tensor outGrad;  // the accumulated gradient to be negotiated
     Tensor inGrad;   // the accumulated gradient received through negotiation
@@ -79,8 +77,10 @@ class AkoNegotiator : public AsyncOpKernel
             auto zeros_flt = zeros.flat<float>();
             zeros_flt.setZero();
             outGrad = zeros;
-            inGrad  = zeros;
-            isInit  = true;
+            outGrad.flat<float>().setZero();
+            inGrad = zeros;
+            inGrad.flat<float>().setZero();
+            isInit = true;
         }
 
         // Create snapshots right before you use the tensors
@@ -105,6 +105,14 @@ class AkoNegotiator : public AsyncOpKernel
             outGrad_flt = grads_flt + outGrad_flt;
         }
 
+        // FIXME(andrei): operation degrades training throughput
+        if (tensorWindow.size() > 0) {
+            outGrad_flt =
+                outGrad_flt / outGrad_flt.constant(tensorWindow.size());
+        } else {
+            std::cout << "Ako accumulation window empty!" << std::endl;
+        }
+
         if (_kungfu_world->GetGlobalStep() % numberPartitions ==
             partitionIndex) {
             // Create a callback to accumulate gradients from other peers
@@ -114,9 +122,8 @@ class AkoNegotiator : public AsyncOpKernel
                 // subract gradients from inGrad to not apply them twice
                 inGrad.flat<float>() =
                     inGrad.flat<float>() - gradients.flat<float>();
-
                 hasInGrad = true;
-                done();
+                // done();
             };
 
             _kungfu_world->AllReduce(outGrad.tensor_data().data(),
@@ -129,6 +136,10 @@ class AkoNegotiator : public AsyncOpKernel
             *output = gradients;
             done();
         }
+
+        // TODO: to make it asynchrnous, call done() here instead of passing it
+        // in the callback function for all reduce.
+        // Also remove done() call in the else branch.
     }
 };
 

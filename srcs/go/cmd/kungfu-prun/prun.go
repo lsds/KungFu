@@ -33,6 +33,9 @@ func init() {
 	flag.Parse()
 	utils.LogArgs()
 	utils.LogKungfuEnv()
+	utils.LogNICInfo()
+	utils.LogCudaEnv()
+	utils.LogNCCLEnv()
 }
 
 func main() {

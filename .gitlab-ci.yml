@@ -1,12 +1,13 @@
 # https://docs.gitlab.com/ce/ci/yaml/README.html
 
-image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
 stages:
 - test
+- lint
 
 unit test:
   stage: test
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   script:
   - | # C++ test
@@ -19,6 +20,8 @@ unit test:
 
 integration test:
   stage: test
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
+
   script:
   - |
     ./configure --build-tests
@@ -26,36 +29,72 @@ integration test:
   - |
     ./scripts/tests/run-integration-tests.sh
 
-system test:
+python3 test:
   stage: test
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   before_script:
-  - |
-    DATA_DIR=$HOME/var/data \
-    ./scripts/download-mnist.sh
-
-  script:
-  - |
-    cmake --version
-    pip3 install -vvv -U .
-  - |
-    ./scripts/tests/run-train-tests.sh
-
-python2 test:
-  stage: test
-
-  before_script:
-  - apt install -y python python-pip
-  - pip install tensorflow
   - |
     DATA_DIR=$HOME/var/data \
     ./scripts/download-mnist.sh
 
   script:
   - cmake --version
-  - which python
-  - python --version
-  - pip install -vvv -U .
-  - |
-    PYTHON=$(which python) \
-    ./scripts/tests/run-train-tests.sh
+  - pip3 install -vvv -U .
+  - ./scripts/tests/run-op-tests.sh
+  - ./scripts/tests/run-train-tests.sh
+
+go format test:
+  stage: lint
+  image: alpine:3.9
+
+  before_script:
+  - apk update
+  - apk add git go
+
+  script:
+  - gofmt -w .
+  - git diff --exit-code
+
+python format test:
+  stage: lint
+  image: alpine:3.9
+
+  before_script:
+  - apk update
+  - apk add git python3
+  - pip3 install autoflake isort yapf # TODO: ping to version
+
+  script:
+  - ./scripts/clean-code.sh --fmt-py
+  - git diff --exit-code
+
+clang format test:
+  stage: lint
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
+  # TODO: use newer ubuntu image
+  # image: ubuntu:disco
+
+  before_script:
+  - apt install -y clang-format
+
+  script:
+  - clang-format -version
+  - ./scripts/clean-code.sh --fmt-cpp
+  - git diff --exit-code
+
+clang tidy:
+  stage: lint
+  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
+  # TODO: use newer ubuntu image
+  # image: ubuntu:disco
+
+  before_script:
+  - apt update
+  - apt install -y clang clang-format clang-tidy jq
+
+  script:
+  - clang-format -version
+  - clang-tidy -version
+  - ./scripts/clean-code.sh --check
+  # - git diff

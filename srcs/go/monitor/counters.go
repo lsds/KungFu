@@ -3,6 +3,7 @@ package monitor
 import (
 	"fmt"
 	"io"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -122,6 +123,7 @@ func (g *rateAccumulatorGroup) update(p time.Duration) {
 	defer g.Unlock()
 	for _, ra := range g.rateAccumulators {
 		ra.r.update(p)
+		ra.WriteTo(os.Stdout)
 	}
 }
 

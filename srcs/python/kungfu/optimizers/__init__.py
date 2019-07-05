@@ -1,3 +1,3 @@
-from .parallel import ParallelOptimizer
 from .monitoring_parallel import MonitoringParallelOptimizer
-from .ako import AkoOptimizer
+from .parallel import ParallelOptimizer
+from .peer_model_averaging import PeerModelAveraging

@@ -29,6 +29,10 @@ func LogCudaEnv() {
 	LogEnvWithPrefix(`CUDA_`, `cuda-env`)
 }
 
+func LogNCCLEnv() {
+	LogEnvWithPrefix(`NCCL_`, `nccl-env`)
+}
+
 func LogKungfuEnv() {
 	LogEnvWithPrefix(`KUNGFU_`, `kf-env`)
 }

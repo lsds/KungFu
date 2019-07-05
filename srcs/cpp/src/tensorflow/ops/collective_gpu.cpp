@@ -1,3 +1,4 @@
+#include <tensorflow/core/framework/common_shape_fns.h>
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
@@ -31,14 +32,11 @@ REGISTER_KERNEL_BUILDER(Name("StartGpuGroup").Device(DEVICE_CPU),
                         StartGpuGroup);
 
 REGISTER_OP("AllReduceGpu")
-    .Attr("T: {int32, int64, float32, float64}")
+    .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
-    .SetShapeFn([](tensorflow::shape_inference::InferenceContext *c) {
-        c->set_output(0, c->input(0));
-        return Status::OK();
-    });
+    .SetShapeFn(shape_inference::UnchangedShape);
 
 class AllReduceGpu : public AsyncOpKernel
 {
@@ -59,8 +57,8 @@ class AllReduceGpu : public AsyncOpKernel
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(0, input.shape(), &output));
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, input.shape(), &output), done);
 
         kungfu::tensorflow::_world_gpu->AllReduce(
             [stream = context->op_device_context()->stream()]() {

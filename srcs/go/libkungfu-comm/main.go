@@ -44,6 +44,53 @@ func GoKungfuRank() int {
 	return sess.Rank()
 }
 
+//export GoKungfuBarrier
+func GoKungfuBarrier(done *C.callback_t) int {
+	sess := kungfu.CurrentSession()
+	if done == nil {
+		return sess.Barrier()
+	}
+	go func() {
+		sess.Barrier()
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
+//export GoKungfuRequest
+func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+	sess := kungfu.CurrentSession()
+	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
+	b := toBuffer(buf, count, dtype)
+	if done == nil {
+		// Synchronous case
+		return sess.Request(rank, goName, b)
+	}
+	go func() {
+		sess.Request(rank, goName, b)
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
+//export GoKungfuSave
+func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+	sess := kungfu.CurrentSession()
+	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
+	b := toBuffer(buf, count, dtype)
+	if done == nil {
+		return sess.Save(goName, b)
+	}
+	go func() {
+		sess.Save(goName, b)
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
 //export GoKungfuAllReduce
 func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
