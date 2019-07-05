@@ -93,7 +93,7 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     return model_averaging
 
 
-def request_model(peer_ranks, variables, mode, peer_selection_strategy, window_size):
+def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     import tensorflow as tf
     var_shapes = [var.shape for var in variables]
 
@@ -121,8 +121,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy, window_s
             var_type_size=variables[0].dtype.size,
             var_sizes=var_sizes,
             shapes=var_shapes,
-            peer_selection_strategy=peer_selection_strategy,
-            window_size=window_size)
+            peer_selection_strategy=peer_selection_strategy)
     else:
         raise Exception("Invalid type of model request mode")
 
