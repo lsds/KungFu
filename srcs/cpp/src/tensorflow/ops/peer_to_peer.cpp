@@ -73,6 +73,8 @@ SelectionStrategy *SelectionStrategy::Create(const std::string &name,
 
 namespace tensorflow
 {
+#define MODEL_NAME "all-grads"  // TODO: make it an Attr
+
 REGISTER_OP("ModelAveraging")
     .Attr("T: {float32}")
     .Attr("self_rank: int")
@@ -138,7 +140,8 @@ class ModelAveraging : public OpKernel
     {
         int destination = peer_selection_strategy_->Next();
 
-        _kungfu_world->Request(destination, model_buf_->data(), total_var_size_,
+        _kungfu_world->Request(destination, MODEL_NAME, model_buf_->data(),
+                               total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
         for (int i = 0; i < var_sizes_.size(); i++) {
@@ -219,7 +222,7 @@ class AsyncModelAveraging : public OpKernel
         if (model_buf_.get() == nullptr) {
             model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, model_buf_->data(),
+            _kungfu_world->Request(destination, MODEL_NAME, model_buf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetch_callback_ = [&, mb = model_buf_.get(),
@@ -237,7 +240,7 @@ class AsyncModelAveraging : public OpKernel
         if (!is_requesting_.load()) {
             is_requesting_ = true;
             _kungfu_world->Request(
-                destination, prefetch_buf_->data(), total_var_size_,
+                destination, MODEL_NAME, prefetch_buf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetch_callback_);
         }
 
@@ -319,10 +322,9 @@ class SaveModel : public OpKernel
             is_saving_ = true;
             std::string updateName =
                 "ModelStoreUpdateAtGlobalStep " + std::to_string(gs_);
-            _kungfu_world->UpdateModelStore(
-                updateName.c_str(), model_buf_->data(), total_var_size_,
-                to_kungfu_type(context->input(0).dtype()),
-                [&] { is_saving_ = false; });
+            _kungfu_world->Save(MODEL_NAME, model_buf_->data(), total_var_size_,
+                                to_kungfu_type(context->input(0).dtype()),
+                                [&] { is_saving_ = false; });
         }
     }
 };
@@ -400,8 +402,8 @@ class RequestModel : public OpKernel
         int destination = peer_selection_strategy_->Next();
 
         // Fill in the model Buffer with response from random peer
-        _kungfu_world->Request(destination, (void *)model_buf_->data(),
-                               total_var_size_,
+        _kungfu_world->Request(destination, MODEL_NAME,
+                               (void *)model_buf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
         for (int i = 0; i < var_sizes_.size(); i++) {
@@ -492,7 +494,7 @@ class AsyncRequestModel : public OpKernel
         if (model_buf_.get() == nullptr) {
             model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, model_buf_->data(),
+            _kungfu_world->Request(destination, MODEL_NAME, model_buf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetch_callback_ = [&, mb = model_buf_.get(),
@@ -510,7 +512,7 @@ class AsyncRequestModel : public OpKernel
         if (!is_requesting_.load()) {
             is_requesting_ = true;
             _kungfu_world->Request(
-                destination, prefetch_buf_->data(), total_var_size_,
+                destination, MODEL_NAME, prefetch_buf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetch_callback_);
         }
 

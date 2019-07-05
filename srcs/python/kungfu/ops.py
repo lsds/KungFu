@@ -3,7 +3,7 @@ import platform
 import sysconfig
 from ctypes import cdll
 
-from kungfu.internal import _get_num_peers, _get_self_rank
+from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
 
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
@@ -46,6 +46,10 @@ def _tensor_size(t):
 
 def barrier():
     return _op_lib.kungfu_barrier()
+
+
+def save_variables(variables):
+    return _op_lib.save_variables(variables, names=[v.name for v in variables])
 
 
 def save_model(variables):
@@ -99,7 +103,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     peer_ranks.remove(_get_self_rank())
 
     if mode == 'async':
-        print("Request a model synchronously.")
+        print("Request a model asynchronously.")
         request_model = _op_lib.async_request_model(
             variables,
             self_rank=_get_self_rank(),
@@ -109,7 +113,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
             shapes=var_shapes,
             peer_selection_strategy=peer_selection_strategy)
     elif mode == 'sync':
-        print("Request a model asynchronously.")
+        print("Request a model synchronously.")
         request_model = _op_lib.request_model(
             variables,
             self_rank=_get_self_rank(),
@@ -122,6 +126,19 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
         raise Exception("Invalid type of model request mode")
 
     return request_model
+
+
+def adaptive_request_variables(variables, window_size):
+    ranks = _get_other_ranks()
+    if len(ranks) == 0:
+        return variables
+    return _op_lib.adaptive_request_variables(
+        variables,
+        dtype=variables[0].dtype,
+        shapes=[v.shape for v in variables],
+        names=[v.name for v in variables],
+        ranks=ranks,
+        window_size=window_size)
 
 
 def broadcast(t):

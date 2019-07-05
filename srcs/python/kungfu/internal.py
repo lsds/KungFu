@@ -12,6 +12,6 @@ def _get_self_rank():
 
 
 def _get_other_ranks():
-    self_rank = _get_self_rank
+    self_rank = _get_self_rank()
     ranks = list(range(_get_num_peers()))
     return [r for r in ranks if r != self_rank]
