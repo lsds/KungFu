@@ -155,17 +155,16 @@ func (sess *session) Broadcast(w Workspace) int {
 	return code(sess.runGraphs(w, g))
 }
 
-func (sess *session) RequestModel(rank int, model *kb.Buffer) int {
+func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
 	if rank < 0 || len(sess.cluster.Peers) <= rank {
 		return code(errInvalidRank)
 	}
 	peer := sess.cluster.Peers[rank]
-	return code(sess.router.Request(peer.NetAddr.WithName("ModelRequestInGo"), rch.ConnPeerToPeer, model))
+	return code(sess.router.Request(peer.NetAddr.WithName(name), rch.ConnPeerToPeer, model))
 }
 
-func (sess *session) UpdateModelStore(modelVersionName string, model *kb.Buffer) int {
-	// modelVersionName includes the global step at which the entire model update is done
-	return code(sess.router.UpdateModelStore(modelVersionName, model))
+func (sess *session) Save(name string, buf *kb.Buffer) int {
+	return code(sess.router.Save(name, buf))
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {

@@ -22,7 +22,7 @@ type Router struct {
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
 
-	modelStore *ModelStore
+	localStore *LocalStore
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -31,7 +31,7 @@ func NewRouter(self plan.PeerSpec) *Router {
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
-		modelStore: &ModelStore{},
+		localStore: newLocalStore(),
 	}
 }
 
@@ -44,8 +44,8 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 	return newChannel(a.Name, conn), nil
 }
 
-// RequestVar sends request name to given Addr
-func (r *Router) Request(a plan.Addr, t ConnType, model *kb.Buffer) error {
+// Request sends request name to given Addr
+func (r *Router) Request(a plan.Addr, t ConnType, buf *kb.Buffer) error {
 	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
@@ -53,18 +53,14 @@ func (r *Router) Request(a plan.Addr, t ConnType, model *kb.Buffer) error {
 	if err := ch.Send(Message{}); err != nil {
 		return err
 	}
-
 	msg := Message{
-		Length: uint32(model.Count * model.Type.Size()),
-		Data:   model.Data,
+		Length: uint32(buf.Count * buf.Type.Size()),
+		Data:   buf.Data,
 	}
-
 	if err := ch.Receive(msg); err != nil {
 		return err
 	}
-
 	r.monitor.Ingress(int64(msg.Length), a.NetAddr())
-
 	return nil
 }
 
@@ -132,13 +128,12 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 }
 
 func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
-	r.modelStore.Lock()
-	defer r.modelStore.Unlock()
+	r.localStore.Lock()
+	defer r.localStore.Unlock()
 
-	modelBuffer := r.modelStore.data
-
+	modelBuffer := r.localStore.data[name]
 	if modelBuffer == nil {
-		fmt.Println("Model buffer is nil")
+		utils.ExitErr(fmt.Errorf("Model buffer[%s] is nil", name))
 	}
 
 	bs := []byte(name)
@@ -164,8 +159,8 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 	r.monitor.Egress(int64(m.Length), remote)
 }
 
-func (r *Router) UpdateModelStore(updateName string, model *kb.Buffer) error {
-	r.modelStore.Update(updateName, model)
+func (r *Router) Save(name string, model *kb.Buffer) error {
+	r.localStore.Emplace(name, model)
 	return nil
 }
 

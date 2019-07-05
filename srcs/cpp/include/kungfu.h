@@ -63,14 +63,17 @@ class kungfu_world
 
     int ClusterSize() const;
 
-    int UpdateModelStore(const char *model_version_name, const void *model,
-                         int count, KungFu_Datatype dtype,
-                         const DoneCallback &done);
+    // local API
+    int Save(const char *name, const void *buf, int count,
+             KungFu_Datatype dtype);
+    int Save(const char *name, const void *buf, int count,
+             KungFu_Datatype dtype, const DoneCallback &done);
 
     // p2p APIs
-    int Request(int destRank, void *model, int count, KungFu_Datatype dtype);
-    int Request(int destRank, void *model, int count, KungFu_Datatype dtype,
-                const DoneCallback &done);
+    int Request(int destRank, const char *name, void *buf, int count,
+                KungFu_Datatype dtype);
+    int Request(int destRank, const char *name, void *buf, int count,
+                KungFu_Datatype dtype, const DoneCallback &done);
 
     // collective APIs
     int Barrier(const DoneCallback &done);
