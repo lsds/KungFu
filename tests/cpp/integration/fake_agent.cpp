@@ -8,6 +8,8 @@
 
 #include "testing.hpp"
 
+#include <kungfu/mst.hpp>
+
 bool is_root = getSelfRank() == 0;
 
 void test_AllReduce(kungfu_world &world, int np)
@@ -117,6 +119,14 @@ template <typename T1, typename T2> class fake_transform
                     void *output, int output_count,
                     KungFu_Datatype output_dtype) const
     {
+        if (kungfu::type_encoder::value<T1>() != input_dtype) {
+            printf("invalid input_dtype");
+            exit(1);
+        }
+        if (kungfu::type_encoder::value<T2>() != input_dtype) {
+            printf("invalid output_dtype");
+            exit(1);
+        }
         (*this)(reinterpret_cast<const T1 *>(input), input_count,
                 reinterpret_cast<T2 *>(output), output_count);
     }
