@@ -79,6 +79,22 @@ void bench_AllReduce(kungfu_world &world, int n, int m)
     }
 }
 
+void test_Gather(kungfu_world &world, int m)
+{
+    const int np = world.ClusterSize();
+    std::vector<int32_t> x(m);
+    if (is_root) {
+        std::vector<int32_t> xs(m * np);
+        world.Gather(x.data(), x.size(), KungFu_INT32,    //
+                     xs.data(), xs.size(), KungFu_INT32,  //
+                     "test-gather");
+    } else {
+        world.Gather(x.data(), m, KungFu_INT32,  //
+                     nullptr, 0, KungFu_INT32,   //
+                     "test-gather");
+    }
+}
+
 int main(int argc, char *argv[])
 {
     TRACE_SCOPE(__func__);
@@ -97,6 +113,11 @@ int main(int argc, char *argv[])
         const int n = 100;
         const int m = 100;
         bench_AllReduce(_kungfu_world, n, m);
+    }
+
+    {
+        const int m = 100;
+        test_Gather(_kungfu_world, m);
     }
     return 0;
 }

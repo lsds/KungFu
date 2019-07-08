@@ -78,21 +78,32 @@ class kungfu_world
     // collective APIs
     int Barrier(const DoneCallback &done);
 
+    // https://www.open-mpi.org/doc/v4.0/man3/MPI_Reduce.3.php
     int Reduce(const void *sendbuf, void *recvbuf, int count,
                KungFu_Datatype dtype, KungFu_Op op, const char *name,
                const DoneCallback &done);
 
+    // https://www.open-mpi.org/doc/v4.0/man3/MPI_Allreduce.3.php
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name);
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   const DoneCallback &done);
 
+    // https://www.open-mpi.org/doc/v4.0/man3/MPI_Bcast.3.php
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, const char *name);
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, const char *name,
                   const DoneCallback &done);
+
+    // https://www.open-mpi.org/doc/v4.0/man3/MPI_Gather.3.php
+    int Gather(const void *sendbuf, int send_count, KungFu_Datatype send_dtype,
+               void *recvbuf, int recv_count, KungFu_Datatype recv_dtype,
+               const char *name);
+    int Gather(const void *sendbuf, int send_count, KungFu_Datatype send_dtype,
+               void *recvbuf, int recv_count, KungFu_Datatype recv_dtype,
+               const char *name, const DoneCallback &done);
 };
 
 #endif

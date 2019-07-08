@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"unsafe"
@@ -145,6 +146,23 @@ func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	}
 	go func() {
 		sess.Broadcast(w)
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
+//export GoKungfuGather
+func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype,
+	recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype,
+	name *C.char, done *C.callback_t) int {
+
+	fmt.Fprintf(os.Stderr, "TODO: GoKungfuGather\n")
+	if done == nil {
+		return 0
+	}
+	go func() {
+		// TODO
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()

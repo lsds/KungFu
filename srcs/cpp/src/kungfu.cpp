@@ -113,3 +113,24 @@ int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
                              GoInt(dtype), const_cast<char *>(name),
                              new CallbackWrapper(done));
 }
+
+int kungfu_world::Gather(const void *sendbuf, int send_count,
+                         KungFu_Datatype send_dtype, void *recvbuf,
+                         int recv_count, KungFu_Datatype recv_dtype,
+                         const char *name)
+{
+    return GoKungfuGather(const_cast<void *>(sendbuf), GoInt(send_count),
+                          GoInt(send_dtype), recvbuf, GoInt(recv_count),
+                          GoInt(recv_dtype), const_cast<char *>(name), nullptr);
+}
+
+int kungfu_world::Gather(const void *sendbuf, int send_count,
+                         KungFu_Datatype send_dtype, void *recvbuf,
+                         int recv_count, KungFu_Datatype recv_dtype,
+                         const char *name, const DoneCallback &done)
+{
+    return GoKungfuGather(const_cast<void *>(sendbuf), GoInt(send_count),
+                          GoInt(send_dtype), recvbuf, GoInt(recv_count),
+                          GoInt(recv_dtype), const_cast<char *>(name),
+                          new CallbackWrapper(done));
+}
