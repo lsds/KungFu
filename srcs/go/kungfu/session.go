@@ -65,7 +65,7 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 func createStarStrategies(peers []plan.PeerSpec) []strategy {
 	k := len(peers)
 	bcastGraph := plan.GenStarBcastGraph(k, defaultRoot)
-	reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
+	reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
 	return []strategy{
 		{
 			reduceGraph: reduceGraph,
@@ -76,7 +76,7 @@ func createStarStrategies(peers []plan.PeerSpec) []strategy {
 
 func createTreeStrategies(peers []plan.PeerSpec) []strategy {
 	bcastGraph := plan.GenDefaultBcastGraph(peers)
-	reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
+	reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
 	return []strategy{
 		{
 			reduceGraph: reduceGraph,
@@ -90,7 +90,7 @@ func createCliqueStrategies(peers []plan.PeerSpec) []strategy {
 	var ss []strategy
 	for r := 0; r < k; r++ {
 		bcastGraph := plan.GenStarBcastGraph(k, r)
-		reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
+		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
 		ss = append(ss, strategy{
 			reduceGraph: reduceGraph,
 			bcastGraph:  bcastGraph,
