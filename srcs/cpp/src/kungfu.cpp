@@ -1,6 +1,8 @@
 #include <kungfu.h>
 #include <libkungfu-comm.h>
 
+#include <vector>
+
 order_group_t *new_ranked_order_group(int n_names)
 {
     order_group_t *og = new order_group_t;
@@ -133,4 +135,24 @@ int kungfu_world::Gather(const void *sendbuf, int send_count,
                           GoInt(send_dtype), recvbuf, GoInt(recv_count),
                           GoInt(recv_dtype), const_cast<char *>(name),
                           new CallbackWrapper(done));
+}
+void kungfu_world::AllGatherTransform(const void *input, int input_count,
+                                      KungFu_Datatype input_dtype,  //
+                                      void *output, int output_count,
+                                      KungFu_Datatype output_dtype,  //
+                                      const char *name, const TransformFunc &f)
+{
+    const bool is_root = Rank() == 0;  // FIXME: make sure 0 is root
+    if (is_root) {
+        const int total_count = ClusterSize() * input_count;
+        std::vector<char> all_input(total_count *
+                                    kungfu_type_size(input_dtype));
+        Gather(input, input_count, input_dtype, all_input.data(), total_count,
+               input_dtype, name);
+        f(all_input.data(), total_count, input_dtype,  //
+          output, output_count, output_dtype);
+    } else {
+        Gather(input, input_count, input_dtype, nullptr, 0, input_dtype, name);
+    }
+    Broadcast(output, output, output_count, output_dtype, name);
 }

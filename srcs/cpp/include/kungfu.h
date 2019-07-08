@@ -50,7 +50,11 @@ extern void order_group_wait(order_group_t *);
 }
 
 #include <functional>
-typedef std::function<void()> DoneCallback;
+using DoneCallback = std::function<void()>;
+
+using TransformFunc = std::function<void(
+    const void *input, int input_count, KungFu_Datatype input_dtype,
+    void *output, int output_count, KungFu_Datatype output_dtype)>;
 
 class kungfu_world
 {
@@ -104,6 +108,13 @@ class kungfu_world
     int Gather(const void *sendbuf, int send_count, KungFu_Datatype send_dtype,
                void *recvbuf, int recv_count, KungFu_Datatype recv_dtype,
                const char *name, const DoneCallback &done);
+
+    //  highlevel APIs
+    void AllGatherTransform(const void *input, int input_count,
+                            KungFu_Datatype input_dtype,  //
+                            void *output, int output_count,
+                            KungFu_Datatype output_dtype,  //
+                            const char *name, const TransformFunc &f);
 };
 
 #endif

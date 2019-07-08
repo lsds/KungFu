@@ -92,13 +92,60 @@ void test_Gather(kungfu_world &world, int m)
                      "test-gather");
         const int sum = std::accumulate(xs.begin(), xs.end(), 0);
         if (sum != m * np * (np - 1) / 2) {
-            printf("invalid gather result\n");
+            printf("invalid Gather result\n");
             exit(1);
         }
     } else {
-        world.Gather(x.data(), m, KungFu_INT32,  //
-                     nullptr, 0, KungFu_INT32,   //
+        world.Gather(x.data(), x.size(), KungFu_INT32,  //
+                     nullptr, 0, KungFu_INT32,          //
                      "test-gather");
+    }
+}
+
+template <typename T1, typename T2> class fake_transform
+{
+    void operator()(const T1 *input, int n1, T2 *output, int n2) const
+    {
+        for (int i = 0; i < n2; ++i) {
+            output[i] = (i + 1) * std::accumulate(input, input + n1, 0);
+        }
+    }
+
+  public:
+    void operator()(const void *input, int input_count,
+                    KungFu_Datatype input_dtype,  //
+                    void *output, int output_count,
+                    KungFu_Datatype output_dtype) const
+    {
+        (*this)(reinterpret_cast<const T1 *>(input), input_count,
+                reinterpret_cast<T2 *>(output), output_count);
+    }
+};
+
+void test_AllGatherTransform(kungfu_world &world)
+{
+    const int rank = getSelfRank();
+    const int np   = getTestClusterSize();
+
+    const int m = 10;
+    const int n = 3;
+    // input
+    std::vector<int32_t> x(m);
+    std::fill(x.begin(), x.end(), rank);
+    std::vector<int32_t> y(n);
+    std::fill(y.begin(), y.end(), 0);
+
+    world.AllGatherTransform(x.data(), x.size(), KungFu_INT32,  //
+                             y.data(), y.size(), KungFu_INT32,  //
+                             "test-AllGatherTransform",
+                             fake_transform<int32_t, int32_t>());
+    for (int i = 0; i < n; ++i) {
+        const int result = (i + 1) * m * np * (np - 1) / 2;
+        if (y[i] != result) {
+            printf("invalid AllGatherTransform result: %d, expect: %d\n", y[i],
+                   result);
+            exit(1);
+        }
     }
 }
 
@@ -121,10 +168,12 @@ int main(int argc, char *argv[])
         const int m = 100;
         bench_AllReduce(_kungfu_world, n, m);
     }
-
     {
         const int m = 100;
         test_Gather(_kungfu_world, m);
+    }
+    {
+        test_AllGatherTransform(_kungfu_world);
     }
     return 0;
 }
