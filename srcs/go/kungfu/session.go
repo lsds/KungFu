@@ -3,6 +3,7 @@ package kungfu
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -13,18 +14,23 @@ import (
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
-// A strategy is a sequence of dataflow graph
+const defaultRoot = 0
+
+// A strategy is a pair of dataflow graphs
 type strategy struct {
-	Graphs []*plan.Graph
+	reduceGraph *plan.Graph
+	bcastGraph  *plan.Graph
 }
 
 // session contains the immutable topology and strategies for a given period of logical duration
 type session struct {
-	strategies []strategy
-	self       *plan.PeerSpec
-	cluster    *plan.ClusterSpec
-	myRank     int
-	router     *rch.Router
+	strategies         []strategy // For distributive endofunctions like AllReduce, BroadCast and Reduce
+	defaultGatherGraph *plan.Graph
+
+	self    *plan.PeerSpec
+	cluster *plan.ClusterSpec
+	myRank  int
+	router  *rch.Router
 }
 
 type partitionStrategy func([]plan.PeerSpec) []strategy
@@ -47,11 +53,13 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 		return nil, errors.New("self not in cluster")
 	}
 	sess := &session{
-		strategies: f(cs.Peers),
-		self:       self,
-		cluster:    cs,
-		myRank:     myRank,
-		router:     router,
+		strategies:         f(cs.Peers),
+		defaultGatherGraph: plan.GenStarBcastGraph(len(cs.Peers), defaultRoot),
+
+		self:    self,
+		cluster: cs,
+		myRank:  myRank,
+		router:  router,
 	}
 	if kc.RunWarmup {
 		sess.Warmup() // TODO: check error
@@ -61,11 +69,12 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 
 func createStarStrategies(peers []plan.PeerSpec) []strategy {
 	k := len(peers)
-	bcastGraph := plan.GenStarBcastGraph(k, 0)
+	bcastGraph := plan.GenStarBcastGraph(k, defaultRoot)
 	reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
 	return []strategy{
 		{
-			Graphs: []*plan.Graph{reduceGraph, bcastGraph},
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
 		},
 	}
 }
@@ -75,7 +84,8 @@ func createTreeStrategies(peers []plan.PeerSpec) []strategy {
 	reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
 	return []strategy{
 		{
-			Graphs: []*plan.Graph{reduceGraph, bcastGraph},
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
 		},
 	}
 }
@@ -87,7 +97,8 @@ func createCliqueStrategies(peers []plan.PeerSpec) []strategy {
 		bcastGraph := plan.GenStarBcastGraph(k, r)
 		reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
 		ss = append(ss, strategy{
-			Graphs: []*plan.Graph{reduceGraph, bcastGraph},
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
 		})
 	}
 	return ss
@@ -99,7 +110,8 @@ func createRingStrategies(peers []plan.PeerSpec) []strategy {
 	for r := 0; r < k; r++ {
 		reduceGraph, bcastGraph := plan.GenCircularGraphPair(k, r)
 		ss = append(ss, strategy{
-			Graphs: []*plan.Graph{reduceGraph, bcastGraph},
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
 		})
 	}
 	return ss
@@ -145,14 +157,17 @@ func (sess *session) AllReduce(w Workspace) int {
 
 func (sess *session) Reduce(w Workspace) int {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
-	g := strategy.Graphs[0]        // Assuming the first graph is a Reduce Graph
-	return code(sess.runGraphs(w, g))
+	return code(sess.runGraphs(w, strategy.reduceGraph))
 }
 
 func (sess *session) Broadcast(w Workspace) int {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
-	g := strategy.Graphs[1]        // Assuming the second graph is a Broadcast Graph
-	return code(sess.runGraphs(w, g))
+	return code(sess.runGraphs(w, strategy.bcastGraph))
+}
+
+func (sess *session) Gather(w Workspace) int {
+	fmt.Fprintf(os.Stderr, "TODO: GoKungfuGather\n")
+	return code(nil)
 }
 
 func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
@@ -246,7 +261,7 @@ func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []st
 	for i, w := range w.split(p, len(strategies)) {
 		wg.Add(1)
 		go func(i int, w Workspace, s strategy) {
-			if err := sess.runGraphs(w, s.Graphs...); err != nil {
+			if err := sess.runGraphs(w, s.reduceGraph, s.bcastGraph); err != nil {
 				log.Warnf("partition %d failed: %v", i, err)
 				atomic.AddInt32(&failed, 1)
 			}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"unsafe"
@@ -156,13 +155,18 @@ func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype,
 	recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype,
 	name *C.char, done *C.callback_t) int {
-
-	fmt.Fprintf(os.Stderr, "TODO: GoKungfuGather\n")
+	w := kf.Workspace{
+		SendBuf: toBuffer(sendBuf, sendCount, sendDtype),
+		RecvBuf: toBuffer(recvBuf, recvCount, recvDtype),
+		// OP:      0, // FIXME: assert that OP is not used
+		Name: C.GoString(name),
+	}
+	sess := kungfu.CurrentSession()
 	if done == nil {
-		return 0
+		return sess.Gather(w)
 	}
 	go func() {
-		// TODO
+		sess.Gather(w)
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
