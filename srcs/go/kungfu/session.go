@@ -62,20 +62,20 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 func createStarStrategies(peers []plan.PeerSpec) []strategy {
 	k := len(peers)
 	bcastGraph := plan.GenStarBcastGraph(k, 0)
-	gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
+	reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
 	return []strategy{
 		{
-			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
+			Graphs: []*plan.Graph{reduceGraph, bcastGraph},
 		},
 	}
 }
 
 func createTreeStrategies(peers []plan.PeerSpec) []strategy {
 	bcastGraph := plan.GenDefaultBcastGraph(peers)
-	gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
+	reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
 	return []strategy{
 		{
-			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
+			Graphs: []*plan.Graph{reduceGraph, bcastGraph},
 		},
 	}
 }
@@ -85,9 +85,9 @@ func createCliqueStrategies(peers []plan.PeerSpec) []strategy {
 	var ss []strategy
 	for r := 0; r < k; r++ {
 		bcastGraph := plan.GenStarBcastGraph(k, r)
-		gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
+		reduceGraph := plan.GenDefaultreduceGraph(bcastGraph)
 		ss = append(ss, strategy{
-			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
+			Graphs: []*plan.Graph{reduceGraph, bcastGraph},
 		})
 	}
 	return ss
@@ -97,9 +97,9 @@ func createRingStrategies(peers []plan.PeerSpec) []strategy {
 	k := len(peers)
 	var ss []strategy
 	for r := 0; r < k; r++ {
-		gatherGraph, bcastGraph := plan.GenCircularGraphPair(k, r)
+		reduceGraph, bcastGraph := plan.GenCircularGraphPair(k, r)
 		ss = append(ss, strategy{
-			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
+			Graphs: []*plan.Graph{reduceGraph, bcastGraph},
 		})
 	}
 	return ss
@@ -145,7 +145,7 @@ func (sess *session) AllReduce(w Workspace) int {
 
 func (sess *session) Reduce(w Workspace) int {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
-	g := strategy.Graphs[0]        // Assuming the first graph is a Gather Graph
+	g := strategy.Graphs[0]        // Assuming the first graph is a Reduce Graph
 	return code(sess.runGraphs(w, g))
 }
 

@@ -25,7 +25,7 @@ func GenDefaultBcastGraph(peers []PeerSpec) *Graph {
 	return g
 }
 
-func GenDefaultGatherGraph(g *Graph) *Graph {
+func GenDefaultreduceGraph(g *Graph) *Graph {
 	g0 := g.Reverse()
 	k := len(g.Nodes)
 	for i := 0; i < k; i++ {

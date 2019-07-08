@@ -10,9 +10,9 @@ func Test_graph(t *testing.T) {
 	peers := genPeerSpecs(k, hosts)
 
 	bcastGraph := GenDefaultBcastGraph(peers)
-	gatherGraph := GenDefaultGatherGraph(bcastGraph)
+	reduceGraph := GenDefaultreduceGraph(bcastGraph)
 
-	gatherGraph.Debug()
+	reduceGraph.Debug()
 	bcastGraph.Debug()
 	// TODO: add tests
 }
