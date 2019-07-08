@@ -3,7 +3,6 @@ package kungfu
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 
@@ -24,13 +23,11 @@ type strategy struct {
 
 // session contains the immutable topology and strategies for a given period of logical duration
 type session struct {
-	strategies         []strategy // For distributive endofunctions like AllReduce, BroadCast and Reduce
-	defaultGatherGraph *plan.Graph
-
-	self    *plan.PeerSpec
-	cluster *plan.ClusterSpec
-	myRank  int
-	router  *rch.Router
+	strategies []strategy
+	self       *plan.PeerSpec
+	cluster    *plan.ClusterSpec
+	myRank     int
+	router     *rch.Router
 }
 
 type partitionStrategy func([]plan.PeerSpec) []strategy
@@ -53,13 +50,11 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 		return nil, errors.New("self not in cluster")
 	}
 	sess := &session{
-		strategies:         f(cs.Peers),
-		defaultGatherGraph: plan.GenStarBcastGraph(len(cs.Peers), defaultRoot),
-
-		self:    self,
-		cluster: cs,
-		myRank:  myRank,
-		router:  router,
+		strategies: f(cs.Peers),
+		self:       self,
+		cluster:    cs,
+		myRank:     myRank,
+		router:     router,
 	}
 	if kc.RunWarmup {
 		sess.Warmup() // TODO: check error
@@ -166,8 +161,8 @@ func (sess *session) Broadcast(w Workspace) int {
 }
 
 func (sess *session) Gather(w Workspace) int {
-	fmt.Fprintf(os.Stderr, "TODO: GoKungfuGather\n")
-	return code(nil)
+	// TODO: validate input
+	return code(sess.runGather(w))
 }
 
 func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
@@ -180,6 +175,30 @@ func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
 
 func (sess *session) Save(name string, buf *kb.Buffer) int {
 	return code(sess.router.Save(name, buf))
+}
+
+func (sess *session) runGather(w Workspace) error {
+	if sess.myRank != defaultRoot {
+		peer := sess.cluster.Peers[defaultRoot]
+		return sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective)
+	}
+	var wg sync.WaitGroup
+	count := w.SendBuf.Count
+	for rank, peer := range sess.cluster.Peers {
+		wg.Add(1)
+		go func(rank int, peer plan.PeerSpec, recvBuf *kb.Buffer) {
+			if rank == sess.myRank {
+				recvBuf.CopyFrom(w.SendBuf)
+			} else {
+				m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
+				b := &kb.Buffer{Data: m.Data, Count: recvBuf.Count, Type: recvBuf.Type}
+				recvBuf.CopyFrom(b)
+			}
+			wg.Done()
+		}(rank, peer, w.RecvBuf.Slice(count*rank, count*(rank+1)))
+	}
+	wg.Wait()
+	return nil // FIXME: handle errors
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {

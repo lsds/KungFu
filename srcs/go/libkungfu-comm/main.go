@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"unsafe"
@@ -182,6 +183,12 @@ func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 func main() {}
 
 func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer {
+	if ptr == nil {
+		if count > 0 {
+			utils.ExitErr(fmt.Errorf("toBuffer: ptr is nil but count = %d", count))
+		}
+		return nil
+	}
 	dt := kb.KungFu_Datatype(dtype)
 	size := count * dt.Size()
 	sh := &reflect.SliceHeader{

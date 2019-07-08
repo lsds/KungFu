@@ -1,7 +1,6 @@
 package kungfubase
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -55,13 +54,20 @@ func (b *Buffer) Slice(begin, end int) *Buffer {
 }
 
 func (b *Buffer) CopyFrom(c *Buffer) {
-	bSize := b.Count * b.Type.Size()
-	cSize := c.Count * c.Type.Size()
-	if bSize != cSize {
-		errMsg := fmt.Sprintf("Copy from failure. Buffers have different sizes: %d vs. %d", bSize, cSize)
-		utils.ExitErr(errors.New(errMsg))
+	if err := b.copyFrom(c); err != nil {
+		utils.ExitErr(err)
+	}
+}
+
+func (b *Buffer) copyFrom(c *Buffer) error {
+	if b.Count != c.Count {
+		return fmt.Errorf("Buffer::Copy error: inconsistent count: %d vs %d", b.Count, c.Count)
+	}
+	if b.Type != c.Type {
+		return fmt.Errorf("Buffer::Copy error: inconsistent type: %s vs %s", b.Type, c.Type)
 	}
 	copy(b.Data, c.Data)
+	return nil
 }
 
 type KungFu_Op C.KungFu_Op

@@ -81,13 +81,20 @@ void bench_AllReduce(kungfu_world &world, int n, int m)
 
 void test_Gather(kungfu_world &world, int m)
 {
-    const int np = world.ClusterSize();
+    const int np   = world.ClusterSize();
+    const int rank = getSelfRank();
     std::vector<int32_t> x(m);
+    std::fill(x.begin(), x.end(), rank);
     if (is_root) {
         std::vector<int32_t> xs(m * np);
         world.Gather(x.data(), x.size(), KungFu_INT32,    //
                      xs.data(), xs.size(), KungFu_INT32,  //
                      "test-gather");
+        const int sum = std::accumulate(xs.begin(), xs.end(), 0);
+        if (sum != m * np * (np - 1) / 2) {
+            printf("invalid gather result\n");
+            exit(1);
+        }
     } else {
         world.Gather(x.data(), m, KungFu_INT32,  //
                      nullptr, 0, KungFu_INT32,   //
