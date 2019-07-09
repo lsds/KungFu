@@ -106,29 +106,12 @@ void test_Gather(kungfu_world &world, int m)
 
 template <typename T1, typename T2> class fake_transform
 {
+  public:
     void operator()(const T1 *input, int n1, T2 *output, int n2) const
     {
         for (int i = 0; i < n2; ++i) {
             output[i] = (i + 1) * std::accumulate(input, input + n1, 0);
         }
-    }
-
-  public:
-    void operator()(const void *input, int input_count,
-                    KungFu_Datatype input_dtype,  //
-                    void *output, int output_count,
-                    KungFu_Datatype output_dtype) const
-    {
-        if (kungfu::type_encoder::value<T1>() != input_dtype) {
-            printf("invalid input_dtype");
-            exit(1);
-        }
-        if (kungfu::type_encoder::value<T2>() != input_dtype) {
-            printf("invalid output_dtype");
-            exit(1);
-        }
-        (*this)(reinterpret_cast<const T1 *>(input), input_count,
-                reinterpret_cast<T2 *>(output), output_count);
     }
 };
 
@@ -140,15 +123,15 @@ void test_AllGatherTransform(kungfu_world &world)
     const int m = 10;
     const int n = 3;
     // input
-    std::vector<int32_t> x(m);
+    using T1 = int32_t;
+    using T2 = int32_t;
+    std::vector<T1> x(m);
     std::fill(x.begin(), x.end(), rank);
-    std::vector<int32_t> y(n);
+    std::vector<T2> y(n);
     std::fill(y.begin(), y.end(), 0);
-
-    world.AllGatherTransform(x.data(), x.size(), KungFu_INT32,  //
-                             y.data(), y.size(), KungFu_INT32,  //
+    world.AllGatherTransform(x.data(), x.size(), y.data(), y.size(),
                              "test-AllGatherTransform",
-                             fake_transform<int32_t, int32_t>());
+                             fake_transform<T1, T2>());
     for (int i = 0; i < n; ++i) {
         const int result = (i + 1) * m * np * (np - 1) / 2;
         if (y[i] != result) {
@@ -156,6 +139,36 @@ void test_AllGatherTransform(kungfu_world &world)
                    result);
             exit(1);
         }
+    }
+}
+
+void test_MST(kungfu_world &world)
+{
+    const int rank = getSelfRank();
+    const int np   = getTestClusterSize();
+
+    using Weight = float;
+    using Vertex = int32_t;
+    std::vector<Weight> weights(np);
+    for (int i = 0; i < np; ++i) {
+        // FIXME: use measured latency as weights
+        weights[i] = std::abs(i - rank);
+    }
+    std::vector<Vertex> edges(2 * (np - 1));
+    world.AllGatherTransform(
+        weights.data(), weights.size(), edges.data(), edges.size(),  //
+        "test-mst", [](const Weight *w, int n, Vertex *v, int m) {
+            const int n_vertices = m / 2 + 1;
+            if ((n != n_vertices * n_vertices) || (m != 2 * (n_vertices - 1))) {
+                throw std::logic_error("invalid input: (" + std::to_string(n) +
+                                       "," + std::to_string(m) + ")");
+            }
+            kungfu::MinimumSpanningTree<Weight, Vertex> mst;
+            mst(n_vertices, w, v);
+        });
+
+    for (int i = 0; i < np - 1; ++i) {
+        printf("(%d, %d)\n", edges[i * 2 + 0], edges[i * 2 + 1]);
     }
 }
 
@@ -184,6 +197,9 @@ int main(int argc, char *argv[])
     }
     {
         test_AllGatherTransform(_kungfu_world);
+    }
+    {
+        test_MST(_kungfu_world);
     }
     return 0;
 }

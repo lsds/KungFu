@@ -41,7 +41,7 @@ TEST(kungfu_mst_test, test_mst)
 {
     using W = int;
     using V = int;
-    kungfu::mst<W, V> f;
+    kungfu::MinimumSpanningTree<W, V> mst;
 
     std::vector<int> sizes(10);
     std::iota(sizes.begin(), sizes.end(), 1);
@@ -50,7 +50,7 @@ TEST(kungfu_mst_test, test_mst)
         std::vector<V> edges((n - 1) * 2);
         for (int i = 0; i < 3; ++i) {
             gen_simple_graph(n, weights);
-            const W tot = f(n, weights.data(), edges.data());
+            const W tot = mst(n, weights.data(), edges.data());
             ASSERT_EQ(tot, n - 1);
         }
     }

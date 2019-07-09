@@ -50,6 +50,8 @@ extern void order_group_wait(order_group_t *);
 }
 
 #include <functional>
+#include <kungfu_types.hpp>
+
 using DoneCallback = std::function<void()>;
 
 using TransformFunc = std::function<void(
@@ -115,6 +117,22 @@ class kungfu_world
                             void *output, int output_count,
                             KungFu_Datatype output_dtype,  //
                             const char *name, const TransformFunc &f);
+
+    template <typename T1, typename T2, typename F>
+    void AllGatherTransform(const T1 *input, int input_count,  //
+                            T2 *output, int output_count,      //
+                            const char *name, const F &f)
+    {
+        AllGatherTransform(
+            input, input_count, kungfu::type_encoder::value<T1>(),  //
+            output, output_count, kungfu::type_encoder::value<T2>(), name,
+            [f = f](const void *input, int input_count,
+                    KungFu_Datatype input_dtype, void *output, int output_count,
+                    KungFu_Datatype output_dtype) {
+                f(reinterpret_cast<const T1 *>(input), input_count,
+                  reinterpret_cast<T2 *>(output), output_count);
+            });
+    }
 };
 
 #endif

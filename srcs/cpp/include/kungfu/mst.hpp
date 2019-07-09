@@ -7,7 +7,7 @@
 
 namespace kungfu
 {
-template <typename Weight, typename Vertex> class mst
+template <typename Weight, typename Vertex> class MinimumSpanningTree
 {
     Weight prim(const int n, const Weight *weights, Vertex *edges,
                 const int seed) const
