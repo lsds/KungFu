@@ -52,6 +52,15 @@ def save_variables(variables):
     return _op_lib.save_variables(variables, names=[v.name for v in variables])
 
 
+def request(target, name, example):
+    # example is used for shape reference
+    return _op_lib.kungfu_request(target, example, tensor_name=name)
+
+
+def global_minimum_spanning_tree(self_weights):
+    return _op_lib.kungfu_minimum_spanning_tree(self_weights)
+
+
 def save_model(variables):
     import tensorflow as tf
     var_sizes = [var.shape.num_elements()

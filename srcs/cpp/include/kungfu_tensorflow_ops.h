@@ -36,4 +36,11 @@ inline void add_tensor(Tensor &out, const void *a, const void *b)
                     to_kungfu_type(out.dtype()), KungFu_SUM);
 }
 
+template <typename... Dims> TensorShape MakeTensorShape(const Dims &... dims)
+{
+    TensorShape shape;
+    for (auto d : {dims...}) { shape.AddDim(d); }
+    return shape;
+}
+//
 }  // namespace tensorflow
