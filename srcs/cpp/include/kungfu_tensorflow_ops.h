@@ -38,9 +38,9 @@ inline void add_tensor(Tensor &out, const void *a, const void *b)
 
 template <typename... Dims> TensorShape MakeTensorShape(const Dims &... dims)
 {
+    std::array<int, sizeof...(Dims)> ds({static_cast<int>(dims)...});
     TensorShape shape;
-    for (auto d : {dims...}) { shape.AddDim(d); }
+    for (auto d : ds) { shape.AddDim(d); }
     return shape;
 }
-//
 }  // namespace tensorflow

@@ -61,6 +61,16 @@ def global_minimum_spanning_tree(self_weights):
     return _op_lib.kungfu_minimum_spanning_tree(self_weights)
 
 
+def get_neibour_mask(edges):
+    return _op_lib.kungfu_get_neibour_mask(edges,
+                                           self_rank=_get_self_rank(),
+                                           cluster_size=_get_num_peers())
+
+
+def round_robin(mask):
+    return _op_lib.kungfu_round_robin(mask)
+
+
 def save_model(variables):
     import tensorflow as tf
     var_sizes = [var.shape.num_elements()
