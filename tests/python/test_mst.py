@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import tensorflow as tf
-from kungfu.ops import save_variables, barrier, request, global_minimum_spanning_tree, get_neibour_mask, round_robin
+from kungfu.ops import save_variables, barrier, request, global_minimum_spanning_tree, get_neighbour_mask, round_robin
 from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
 
 np = _get_num_peers()
@@ -37,11 +37,11 @@ def test_dynamic_topology():
     latencies = measure_latency()
     mst_edges = global_minimum_spanning_tree(latencies)
 
-    new_mask = get_neibour_mask(mst_edges)
-    neibour_mask = tf.Variable(tf.constant([r != rank for r in range(np)]))
-    updata_mask = tf.assign(neibour_mask, new_mask)
+    new_mask = get_neighbour_mask(mst_edges)
+    neighbour_mask = tf.Variable(tf.constant([r != rank for r in range(np)]))
+    updata_mask = tf.assign(neighbour_mask, new_mask)
 
-    target = round_robin(neibour_mask)
+    target = round_robin(neighbour_mask)
     requested_vars = [request(target, v.name, v)
                       for v in variables]  # FIXME: update target based on mst
 

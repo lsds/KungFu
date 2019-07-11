@@ -46,20 +46,20 @@ class MinimumSpanningTree : public AsyncOpKernel
 REGISTER_KERNEL_BUILDER(Name("KungfuMinimumSpanningTree").Device(DEVICE_CPU),
                         MinimumSpanningTree);
 
-REGISTER_OP("KungfuGetNeibourMask")
+REGISTER_OP("KungfuGetNeighbourMask")
     .Attr("T: {int32}")
     .Attr("cluster_size: int")  // TODO: make it an Input
     .Attr("self_rank: int")     // TODO: make it an Input
     .Input("edges: T")
     .Output("mask: bool");
 
-class GetNeibourMask : public OpKernel
+class GetNeighbourMask : public OpKernel
 {
     int size_;
     int self_;
 
   public:
-    explicit GetNeibourMask(OpKernelConstruction *context) : OpKernel(context)
+    explicit GetNeighbourMask(OpKernelConstruction *context) : OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("cluster_size", &size_));
         OP_REQUIRES_OK(context, context->GetAttr("self_rank", &self_));
@@ -87,8 +87,8 @@ class GetNeibourMask : public OpKernel
 };
 
 // TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuGetNeibourMask").Device(DEVICE_CPU),
-                        GetNeibourMask);
+REGISTER_KERNEL_BUILDER(Name("KungfuGetNeighbourMask").Device(DEVICE_CPU),
+                        GetNeighbourMask);
 
 REGISTER_OP("KungfuRoundRobin").Input("mask: bool").Output("choice: int32");
 
