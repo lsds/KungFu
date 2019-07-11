@@ -17,8 +17,8 @@ class ModelAveragingOptimizer(KungFuOptimizer):
                  use_locking=False,
                  device_dense='',
                  device_sparse=''):
-        super(ModelAveragingOptimizer, self).__init__(optimizer, name, use_locking,
-                                                      device_dense, device_sparse)
+        super(ModelAveragingOptimizer, self).__init__(
+            optimizer, name, use_locking, device_dense, device_sparse)
         self.request_mode = request_mode
         self.model_averaging_device = model_averaging_device
         self.peer_selection_strategy = peer_selection_strategy
