@@ -108,12 +108,13 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     optimizer = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.9)
 
     if kungfu_strategy == 'p2p':
-        from kungfu.optimizers import PeerModelAveraging
-        optimizer = PeerModelAveraging(optimizer)
+        from kungfu.optimizers import ModelAveragingOptimizer
+        print("Using ModelAveragingOptimizer")
+        optimizer = ModelAveragingOptimizer(optimizer)
     else:
-        from kungfu.optimizers import ParallelOptimizer
-        print("Using parallel optimizer")
-        optimizer = ParallelOptimizer(optimizer,
+        from kungfu.optimizers import SyncSGDOptimizer
+        print("Using SyncSGDOptimizer")
+        optimizer = SyncSGDOptimizer(optimizer,
                                       device_batch_size=device_batch_size)
 
     train_step = optimizer.minimize(loss, name='train_step')
@@ -133,8 +134,8 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, n_batches, batch_size,
 
         initializer = None
         if kungfu_strategy == 'p2p':
-            from kungfu.optimizers import PeerModelAveraging
-            initializer = PeerModelAveraging.get_initializer()
+            from kungfu.optimizers import ModelAveragingOptimizer
+            initializer = ModelAveragingOptimizer.get_initializer()
         else:
             initializer = kf.distributed_variables_initializer()
 
