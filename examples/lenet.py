@@ -114,8 +114,7 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
     else:
         from kungfu.optimizers import SyncSGDOptimizer
         print("Using SyncSGDOptimizer")
-        optimizer = SyncSGDOptimizer(optimizer,
-                                      device_batch_size=device_batch_size)
+        optimizer = SyncSGDOptimizer(optimizer)
 
     train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
