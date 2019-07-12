@@ -57,6 +57,10 @@ def request(target, name, example):
     return _op_lib.kungfu_request(target, example, tensor_name=name)
 
 
+def get_peer_latencies():
+    return _op_lib.kungfu_get_peer_latencies(cluster_size=_get_num_peers())
+
+
 def global_minimum_spanning_tree(self_weights):
     return _op_lib.kungfu_minimum_spanning_tree(self_weights)
 

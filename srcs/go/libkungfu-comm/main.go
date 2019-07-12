@@ -174,6 +174,18 @@ func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Da
 	return 0
 }
 
+//export GoKungfuGetPeerLatencies
+func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype) int {
+	results := toBuffer(recvBuf, recvCount, recvDtype).AsF32()
+	sess := kungfu.CurrentSession()
+	latencies := sess.GetPeerLatencies()
+	// FIXME: check length
+	for i := range results {
+		results[i] = float32(latencies[i])
+	}
+	return 0
+}
+
 //export GoKungfuGetAlgoFromEnv
 func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 	name := os.Getenv(kb.AllReduceAlgoEnvKey)

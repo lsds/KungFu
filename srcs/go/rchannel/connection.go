@@ -27,6 +27,10 @@ func parseIPv4(host string) uint32 {
 	return a | b | c | d
 }
 
+func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
+	return newConnection(remote, local, ConnPing)
+}
+
 func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	conn, err := func() (net.Conn, error) {
 		if remote.Host == local.Host {

@@ -14,8 +14,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-type Callback func(*Message)
-
 type Router struct {
 	localAddr  plan.NetAddr
 	bufferPool *BufferPool

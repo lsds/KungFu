@@ -2,6 +2,8 @@ package kungfubase
 
 import (
 	"fmt"
+	"reflect"
+	"unsafe"
 
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -68,6 +70,18 @@ func (b *Buffer) copyFrom(c *Buffer) error {
 	}
 	copy(b.Data, c.Data)
 	return nil
+}
+
+func (b *Buffer) AsF32() []float32 {
+	if b.Type != KungFu_FLOAT {
+		utils.ExitErr(fmt.Errorf("buffer type is %d", b.Type))
+	}
+	sh := &reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&b.Data[0])),
+		Len:  b.Count,
+		Cap:  b.Count,
+	}
+	return *(*[]float32)(unsafe.Pointer(sh))
 }
 
 type KungFu_Op C.KungFu_Op

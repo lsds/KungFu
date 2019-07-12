@@ -8,6 +8,41 @@
 
 namespace tensorflow
 {
+REGISTER_OP("KungfuGetPeerLatencies")
+    .Attr("cluster_size: int")
+    .Output("latencies: float32");
+
+class GetPeerLatencies : public AsyncOpKernel
+{
+    int size_;
+
+  public:
+    explicit GetPeerLatencies(OpKernelConstruction *context)
+        : AsyncOpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("cluster_size", &size_));
+        OP_REQUIRES(context, size_ > 0,
+                    errors::InvalidArgument("size > 0 is required"));
+    }
+
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        Tensor *latencies = nullptr;
+        OP_REQUIRES_OK_ASYNC(
+            context,
+            context->allocate_output(0, MakeTensorShape(size_), &latencies),
+            done);
+        _kungfu_world->GetPeerLatencies(
+            const_cast<float *>(latencies->vec<float>().data()),
+            latencies->NumElements());
+        done();
+    }
+};
+
+// TODO: use macro to add name prefix
+REGISTER_KERNEL_BUILDER(Name("KungfuGetPeerLatencies").Device(DEVICE_CPU),
+                        GetPeerLatencies);
+
 REGISTER_OP("KungfuMinimumSpanningTree")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Input("weight: T")
