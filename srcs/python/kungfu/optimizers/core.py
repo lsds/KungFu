@@ -4,20 +4,13 @@ import tensorflow as tf
 class KungFuOptimizer(tf.train.Optimizer):
     """An optimizer that would negotiate the gradients before apply it."""
 
-    def __init__(self,
-                 optimizer,
-                 name=None,
-                 use_locking=False,
-                 device_dense='',
-                 device_sparse=''):
+    def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
             name = "KungFuOptimizer{}".format(type(optimizer).__name__)
-        super(KungFuOptimizer, self).__init__(name=name,
-                                              use_locking=use_locking)
+        super(KungFuOptimizer, self).__init__(
+            name=name, use_locking=use_locking)
 
         self._optimizer = optimizer
-        self._device_dense = device_dense
-        self._device_sparse = device_sparse
 
     # The subclass should implement this with its own negotiation strategy
     def _negotiate_grads_by_strategy(self, grads_and_vars):

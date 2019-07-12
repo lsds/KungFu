@@ -5,7 +5,7 @@ from kungfu.ops import broadcast, model_averaging, request_model, save_model
 from .core import KungFuOptimizer
 
 
-class PeerModelAveraging(KungFuOptimizer):
+class ModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
 
     def __init__(self,
@@ -14,11 +14,9 @@ class PeerModelAveraging(KungFuOptimizer):
                  request_mode="sync",
                  peer_selection_strategy="random",
                  name=None,
-                 use_locking=False,
-                 device_dense='',
-                 device_sparse=''):
-        super(PeerModelAveraging, self).__init__(optimizer, name, use_locking,
-                                                 device_dense, device_sparse)
+                 use_locking=False):
+        super(ModelAveragingOptimizer, self).__init__(optimizer, name,
+                                                      use_locking)
         self.request_mode = request_mode
         self.model_averaging_device = model_averaging_device
         self.peer_selection_strategy = peer_selection_strategy

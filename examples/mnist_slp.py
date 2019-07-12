@@ -31,8 +31,8 @@ def xentropy(y_, y):
 def build_optimizer(shards=1):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
-    from kungfu.optimizers import ParallelOptimizer
-    optimizer = ParallelOptimizer(optimizer)
+    from kungfu.optimizers import SyncSGDOptimizer
+    optimizer = SyncSGDOptimizer(optimizer)
     return optimizer
 
 

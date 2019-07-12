@@ -45,8 +45,8 @@ def build_train_ops(model_name, use_kungfu):
         -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_kungfu:
-        from kungfu.optimizers import MonitoringParallelOptimizer
-        optimizer = MonitoringParallelOptimizer(optimizer)
+        from kungfu.optimizers import MonSyncSGDOptimizer
+        optimizer = MonSyncSGDOptimizer(optimizer)
     train_step = optimizer.minimize(loss, name='train_step')
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     acc = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
