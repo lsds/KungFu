@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.ops import group_all_reduce, all_reduce, global_variance
+from kungfu.ops import all_reduce, global_variance, group_all_reduce
 
 from .core import KungFuOptimizer
 

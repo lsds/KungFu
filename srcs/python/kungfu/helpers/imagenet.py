@@ -103,18 +103,17 @@ def _train_image(image_buffer, height, width, bbox, scope=None):
         target_height, target_width, _ = tf.unstack(bbox_size)
         crop_window = tf.stack(
             [offset_y, offset_x, target_height, target_width])
-        image = tf.image.decode_and_crop_jpeg(image_buffer,
-                                              crop_window,
-                                              channels=3)
+        image = tf.image.decode_and_crop_jpeg(
+            image_buffer, crop_window, channels=3)
 
         # Flip
         distorted_image = tf.image.random_flip_left_right(image)
 
         resize_method = tf.image.ResizeMethod.BILINEAR
-        distorted_image = tf.image.resize_images(distorted_image,
-                                                 [height, width],
-                                                 resize_method,
-                                                 align_corners=False)
+        distorted_image = tf.image.resize_images(
+            distorted_image, [height, width],
+            resize_method,
+            align_corners=False)
 
         # Restore the shape
         distorted_image.set_shape([height, width, 3])
@@ -123,9 +122,8 @@ def _train_image(image_buffer, height, width, bbox, scope=None):
         # Images values are expected to be in [0,1] for color distortion.
         distorted_image /= 255.
         # Randomly distort the colors.
-        distorted_image = _distort_color(distorted_image,
-                                         batch_position=0,
-                                         distort_color_in_yiq=True)
+        distorted_image = _distort_color(
+            distorted_image, batch_position=0, distort_color_in_yiq=True)
         # Note: This ensures the scaling matches the output of eval_image
         distorted_image *= 255
         #More...
