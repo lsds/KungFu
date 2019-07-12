@@ -96,6 +96,8 @@ func (s *Server) handle(conn net.Conn) error {
 	}
 	log.Debugf("got new connection of type %d from: %s", ch.Type, remoteNetAddr)
 	switch ConnType(ch.Type) {
+	case ConnPing:
+		return s.handlePing(remoteNetAddr, conn)
 	case ConnControl:
 		return s.handleControl(remoteNetAddr, conn)
 	case ConnCollective:
@@ -105,6 +107,21 @@ func (s *Server) handle(conn net.Conn) error {
 	default:
 		return errInvalidConnectionHeader
 	}
+}
+
+func (s *Server) handlePing(remoteNetAddr plan.NetAddr, conn net.Conn) error {
+	var mh messageHeader
+	if err := mh.ReadFrom(conn); err != nil {
+		return err
+	}
+	var empty Message
+	if err := empty.ReadFrom(conn); err != nil {
+		return err
+	}
+	if err := mh.WriteTo(conn); err != nil {
+		return err
+	}
+	return empty.WriteTo(conn)
 }
 
 func (s *Server) handleControl(remoteNetAddr plan.NetAddr, conn net.Conn) error {

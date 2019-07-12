@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import tensorflow as tf
-from kungfu.ops import save_variables, barrier, request, global_minimum_spanning_tree, get_neighbour_mask, round_robin
+from kungfu.ops import save_variables, barrier, request, global_minimum_spanning_tree, get_neighbour_mask, round_robin, get_peer_latencies
 from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
 
 np = _get_num_peers()
@@ -13,20 +13,6 @@ def show_mst(edges):
     return ', '.join('(%d,%d)' % (u, v) for [u, v] in edges)
 
 
-def gen_fake_latency_matrix(n):
-    m = []
-    for i in range(n):
-        m.append([abs(i - j) for j in range(n)])
-    return m
-
-
-def measure_latency():
-    fake_latency_mat = gen_fake_latency_matrix(np)
-    latency_from_me = fake_latency_mat[rank]
-    latencies = tf.Variable(tf.constant(latency_from_me, dtype=tf.float32))
-    return latencies
-
-
 def test_dynamic_topology():
     w = tf.Variable(tf.ones([8, 3, 3, 32]))
     b = tf.Variable(tf.ones([32]))
@@ -34,7 +20,7 @@ def test_dynamic_topology():
     with tf.control_dependencies([save_variables(variables)]):
         init = barrier()
 
-    latencies = measure_latency()
+    latencies = get_peer_latencies()
     mst_edges = global_minimum_spanning_tree(latencies)
 
     new_mask = get_neighbour_mask(mst_edges)

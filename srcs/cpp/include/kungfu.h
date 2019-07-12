@@ -112,18 +112,18 @@ class kungfu_world
                const char *name, const DoneCallback &done);
 
     //  highlevel APIs
-    void AllGatherTransform(const void *input, int input_count,
-                            KungFu_Datatype input_dtype,  //
-                            void *output, int output_count,
-                            KungFu_Datatype output_dtype,  //
-                            const char *name, const TransformFunc &f);
+    int AllGatherTransform(const void *input, int input_count,
+                           KungFu_Datatype input_dtype,  //
+                           void *output, int output_count,
+                           KungFu_Datatype output_dtype,  //
+                           const char *name, const TransformFunc &f);
 
     template <typename T1, typename T2, typename F>
-    void AllGatherTransform(const T1 *input, int input_count,  //
-                            T2 *output, int output_count,      //
-                            const char *name, const F &f)
+    int AllGatherTransform(const T1 *input, int input_count,  //
+                           T2 *output, int output_count,      //
+                           const char *name, const F &f)
     {
-        AllGatherTransform(
+        return AllGatherTransform(
             input, input_count, kungfu::type_encoder::value<T1>(),  //
             output, output_count, kungfu::type_encoder::value<T2>(), name,
             [f = f](const void *input, int input_count,
@@ -133,6 +133,9 @@ class kungfu_world
                   reinterpret_cast<T2 *>(output), output_count);
             });
     }
+
+    // monitoring APIs
+    int GetPeerLatencies(float *recvbuf, int recv_count);
 };
 
 #endif

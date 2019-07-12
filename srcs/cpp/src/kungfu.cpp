@@ -136,11 +136,12 @@ int kungfu_world::Gather(const void *sendbuf, int send_count,
                           GoInt(recv_dtype), const_cast<char *>(name),
                           new CallbackWrapper(done));
 }
-void kungfu_world::AllGatherTransform(const void *input, int input_count,
-                                      KungFu_Datatype input_dtype,  //
-                                      void *output, int output_count,
-                                      KungFu_Datatype output_dtype,  //
-                                      const char *name, const TransformFunc &f)
+
+int kungfu_world::AllGatherTransform(const void *input, int input_count,
+                                     KungFu_Datatype input_dtype,  //
+                                     void *output, int output_count,
+                                     KungFu_Datatype output_dtype,  //
+                                     const char *name, const TransformFunc &f)
 {
     const bool is_root = Rank() == 0;  // FIXME: make sure 0 is root
     if (is_root) {
@@ -154,5 +155,11 @@ void kungfu_world::AllGatherTransform(const void *input, int input_count,
     } else {
         Gather(input, input_count, input_dtype, nullptr, 0, input_dtype, name);
     }
-    Broadcast(output, output, output_count, output_dtype, name);
+    return Broadcast(output, output, output_count, output_dtype, name);
+}
+
+// monitoring APIs
+int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
+{
+    return GoKungfuGetPeerLatencies(recvbuf, recv_count, KungFu_FLOAT);
 }
