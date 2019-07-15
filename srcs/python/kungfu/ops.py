@@ -66,8 +66,9 @@ def global_minimum_spanning_tree(self_weights):
 
 
 def get_neighbour_mask(edges):
-    return _op_lib.kungfu_get_neighbour_mask(
-        edges, self_rank=_get_self_rank(), cluster_size=_get_num_peers())
+    return _op_lib.kungfu_get_neighbour_mask(edges,
+                                             self_rank=_get_self_rank(),
+                                             cluster_size=_get_num_peers())
 
 
 def round_robin(mask):
@@ -78,8 +79,9 @@ def save_model(variables):
     import tensorflow as tf
     var_sizes = [var.shape.num_elements()
                  for var in variables]  # number of floats it has
-    return _op_lib.save_model(
-        variables, var_type_size=variables[0].dtype.size, var_sizes=var_sizes)
+    return _op_lib.save_model(variables,
+                              var_type_size=variables[0].dtype.size,
+                              var_sizes=var_sizes)
 
 
 def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
@@ -188,8 +190,8 @@ def _parse_schedule(schedule, batch_size, num_train):
     tokens = schedule.split(",")
     print("Num train: " + str(num_train))
     print("Batch size: " + str(batch_size))
-    to_gs = lambda epoch: int(epoch * num_train / (batch_size * _get_num_peers(
-    )))
+    to_gs = lambda epoch: int(epoch * num_train /
+                              (batch_size * _get_num_peers()))
     pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
              for t in tokens]
     steps, fractions = zip(*pairs)
@@ -253,10 +255,9 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
                           frac, ts, total_size, tensor_partition_idx_vars,
                           num_partitions_var)))
 
-    bin_pack_case = tf.case(
-        cases,
-        exclusive=False,
-        default=lambda: tf.constant(True, dtype=tf.bool))
+    bin_pack_case = tf.case(cases,
+                            exclusive=False,
+                            default=lambda: tf.constant(True, dtype=tf.bool))
 
     with tf.control_dependencies([bin_pack_case]):
         partial_negotiated_ts = []
@@ -267,7 +268,8 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
 
             negotiated_grad = tf.cond(
                 equal_op,
-                lambda tensor=tensor, partition_idx_var=partition_idx_var, num_partitions_var=num_partitions_var: all_reduce(tensor),
+                lambda tensor=tensor, partition_idx_var=partition_idx_var,
+                num_partitions_var=num_partitions_var: all_reduce(tensor),
                 lambda tensor=tensor: tf.identity(tensor))
             partial_negotiated_ts.append(negotiated_grad)
 
@@ -298,8 +300,8 @@ def group_all_reduce(ts):
 
 
 def _bin_pack(sizes, budget, adjust_budget=False):
-    lst = list(
-        reversed(sorted([(size, name) for name, size in sizes.items()])))
+    lst = list(reversed(sorted([(size, name)
+                                for name, size in sizes.items()])))
     if adjust_budget:
         budget = max(budget, lst[0][0])
     else:
@@ -398,8 +400,8 @@ def get_global_gradient_noise_operator(batch_small, concat_grad,
     G_sq_small = tf.square(tf.norm(G_small))
     G_sq_big = tf.square(tf.norm(G_big))
 
-    G_biased = 1 / (batch_big - batch_small) * (
-        batch_big * G_sq_big - batch_small * G_sq_small)
+    G_biased = 1 / (batch_big - batch_small) * (batch_big * G_sq_big -
+                                                batch_small * G_sq_small)
     S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
 
     global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=0.6)
