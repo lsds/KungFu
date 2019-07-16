@@ -160,7 +160,7 @@ func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
 		return code(errInvalidRank)
 	}
 	peer := sess.cluster.Peers[rank]
-	return code(sess.router.Request(peer.NetAddr.WithName(name), rch.ConnPeerToPeer, model))
+	return code(sess.router.Request(peer.NetAddr.WithName(name), model))
 }
 
 func (sess *session) Save(name string, buf *kb.Buffer) int {
