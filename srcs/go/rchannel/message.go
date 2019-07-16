@@ -10,9 +10,9 @@ import (
 type ConnType uint16
 
 const (
-	ConnControl    ConnType = 0
-	ConnCollective ConnType = 1
-	ConnPeerToPeer ConnType = 2
+	ConnControl    ConnType = iota // 0
+	ConnCollective ConnType = iota
+	ConnPeerToPeer ConnType = iota
 )
 
 var endian = binary.LittleEndian
@@ -52,6 +52,8 @@ func (h messageHeader) WriteTo(w io.Writer) error {
 	return nil
 }
 
+// ReadFrom reads the messageHeader from a reader into new buffer.
+// The name length is obtained from the reader and should be trusted.
 func (h *messageHeader) ReadFrom(r io.Reader) error {
 	if err := binary.Read(r, endian, &h.NameLength); err != nil {
 		return err
@@ -59,6 +61,28 @@ func (h *messageHeader) ReadFrom(r io.Reader) error {
 	h.Name = make([]byte, h.NameLength)
 	if err := readN(r, h.Name, int(h.NameLength)); err != nil {
 		return err
+	}
+	if err := binary.Read(r, endian, &h.BodyInShm); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ReadFromLike reads the messageHeader from a reader into new buffer.
+// The result Name should be checked against hint.
+func (h *messageHeader) ReadFromLike(r io.Reader, hint string) error {
+	if err := binary.Read(r, endian, &h.NameLength); err != nil {
+		return err
+	}
+	if int(h.NameLength) != len(hint) {
+		return fmt.Errorf("unexpected name length: %d", h.NameLength)
+	}
+	h.Name = make([]byte, h.NameLength)
+	if err := readN(r, h.Name, int(h.NameLength)); err != nil {
+		return err
+	}
+	if string(h.Name) != hint {
+		return fmt.Errorf("unexpected name %s", h.Name)
 	}
 	if err := binary.Read(r, endian, &h.BodyInShm); err != nil {
 		return err
@@ -110,6 +134,8 @@ func (m Message) WriteTo(w io.Writer) error {
 	return err
 }
 
+// ReadFrom reads the message from a reader into new buffer.
+// The message length is obtained from the reader and should be trusted.
 func (m *Message) ReadFrom(r io.Reader) error {
 	if err := binary.Read(r, endian, &m.Length); err != nil {
 		return err
@@ -121,6 +147,8 @@ func (m *Message) ReadFrom(r io.Reader) error {
 	return nil
 }
 
+// ReadInto reads the message from a reader into existing buffer.
+// The message length obtained from the reader should be checked.
 func (m *Message) ReadInto(r io.Reader) error {
 	var length uint32
 	if err := binary.Read(r, endian, &length); err != nil {
