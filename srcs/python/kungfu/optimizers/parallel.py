@@ -6,7 +6,6 @@ from .core import KungFuOptimizer
 
 class ParallelOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-
     def __init__(self,
                  optimizer,
                  name=None,
