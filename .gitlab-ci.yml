@@ -63,7 +63,7 @@ python format test:
   before_script:
   - apk update
   - apk add git python3
-  - pip3 install autoflake isort yapf # TODO: ping to version
+  - pip3 install -U -r tests/lint.requirements.txt
 
   script:
   - ./scripts/clean-code.sh --fmt-py
