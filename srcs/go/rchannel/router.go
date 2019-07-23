@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -21,6 +22,8 @@ type Router struct {
 	monitor    monitor.Monitor
 
 	localStore *LocalStore
+
+	reqMu sync.Mutex
 }
 
 func NewRouter(self plan.PeerSpec) *Router {
@@ -48,7 +51,8 @@ func (r *Router) Request(a plan.Addr, buf *kb.Buffer) error {
 	if err != nil {
 		return err
 	}
-	// TODO: lock the underlaying TCP connection
+	r.reqMu.Lock() // FIXME: lock per target
+	defer r.reqMu.Unlock()
 	if err := ch.Send(Message{}); err != nil {
 		return err
 	}
