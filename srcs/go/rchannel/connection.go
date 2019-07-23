@@ -84,11 +84,9 @@ func (c *tcpConnection) Send(msgName string, m Message) error {
 func (c *tcpConnection) Read(msgName string, m Message) error {
 	c.Lock()
 	defer c.Unlock()
-
 	var mh messageHeader
-	mh.ReadFrom(c.conn)
-	if string(mh.Name) != msgName {
-		return errors.New("No match between message header name and message name.")
+	if err := mh.ReadFromLike(c.conn, msgName); err != nil {
+		return err
 	}
 	return m.ReadInto(c.conn)
 }

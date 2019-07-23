@@ -14,8 +14,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-type Callback func(*Message)
-
 type Router struct {
 	localAddr  plan.NetAddr
 	bufferPool *BufferPool
@@ -45,11 +43,12 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 }
 
 // Request sends request name to given Addr
-func (r *Router) Request(a plan.Addr, t ConnType, buf *kb.Buffer) error {
-	ch, err := r.getChannel(a, t)
+func (r *Router) Request(a plan.Addr, buf *kb.Buffer) error {
+	ch, err := r.getChannel(a, ConnPeerToPeer)
 	if err != nil {
 		return err
 	}
+	// TODO: lock the underlaying TCP connection
 	if err := ch.Send(Message{}); err != nil {
 		return err
 	}
