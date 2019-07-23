@@ -167,8 +167,8 @@ def _parse_schedule(schedule, batch_size, num_train):
     tokens = schedule.split(",")
     print("Num train: " + str(num_train))
     print("Batch size: " + str(batch_size))
-    to_gs = lambda epoch: int(epoch * num_train / (batch_size * _get_num_peers(
-    )))
+    to_gs = lambda epoch: int(epoch * num_train /
+                              (batch_size * _get_num_peers()))
     pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
              for t in tokens]
     steps, fractions = zip(*pairs)

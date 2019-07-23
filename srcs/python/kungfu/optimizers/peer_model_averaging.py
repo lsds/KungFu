@@ -7,7 +7,6 @@ from .core import KungFuOptimizer
 
 class PeerModelAveraging(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-
     def __init__(self,
                  optimizer,
                  model_averaging_device="cpu",

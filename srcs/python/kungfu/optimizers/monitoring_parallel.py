@@ -6,7 +6,6 @@ from .core import KungFuOptimizer
 
 class MonitoringParallelOptimizer(KungFuOptimizer):
     """An optimizer that reduce gradients for synchronisation and compute the varience of gradients for monitoring."""
-
     def __init__(self,
                  optimizer,
                  name=None,
