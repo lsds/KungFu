@@ -3,7 +3,6 @@ import tensorflow as tf
 
 class KungFuOptimizer(tf.train.Optimizer):
     """An optimizer that would negotiate the gradients before apply it."""
-
     def __init__(self,
                  optimizer,
                  name=None,
