@@ -28,14 +28,21 @@ def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
 
+init_op = None
+
+
 def build_optimizer(name, shards=1):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
+    global init_op
     if name == 'sync-sgd':
         from kungfu.optimizers import SyncSGDOptimizer
+        # init_op = FIXME: add get_initializer to SyncSGDOptimizer
+        init_op = kf.distributed_variables_initializer
         return SyncSGDOptimizer(optimizer)
     elif name == 'adaptive-model-ave':
         from kungfu.optimizers import AdaptiveModelAveragingOptimizer
+        init_op = AdaptiveModelAveragingOptimizer.get_initializer
         return AdaptiveModelAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
@@ -76,9 +83,7 @@ def train_mnist(x, y_, train_op, test_op, dataset, n_epochs=1,
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        save_all(sess, 'before-kf-init')
-        sess.run(kf.distributed_variables_initializer())
-        save_all(sess, 'after-kf-init')
+        sess.run(init_op())
 
         print('training')
         for step in range(1, n_steps + 1):
@@ -96,22 +101,25 @@ def train_mnist(x, y_, train_op, test_op, dataset, n_epochs=1,
 
         result = test_mnist(sess, x, y_, test_op, dataset.test)
         print('test accuracy: %f' % result)
-        save_all(sess, 'final')
+        # save_all(sess, 'final')
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument(
-        '--optimizer', type=str, default='sync-sgd', help='')
-    parser.add_argument(
-        '--n-epochs', type=int, default=1, help='number of epochs')
-    parser.add_argument(
-        '--batch-size', type=int, default=50, help='batch size')
-    parser.add_argument(
-        '--data-dir',
-        type=str,
-        default=os.path.join(os.getenv('HOME'), 'var/data/mnist'),
-        help='Path to the MNIST dataset directory.')
+    parser.add_argument('--optimizer', type=str, default='sync-sgd', help='')
+    parser.add_argument('--n-epochs',
+                        type=int,
+                        default=1,
+                        help='number of epochs')
+    parser.add_argument('--batch-size',
+                        type=int,
+                        default=50,
+                        help='batch size')
+    parser.add_argument('--data-dir',
+                        type=str,
+                        default=os.path.join(os.getenv('HOME'),
+                                             'var/data/mnist'),
+                        help='Path to the MNIST dataset directory.')
     return parser.parse_args()
 
 

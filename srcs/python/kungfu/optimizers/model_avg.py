@@ -1,6 +1,6 @@
 import tensorflow as tf
-from kungfu.internal import _get_num_peers, _get_self_rank
-from kungfu.ops import broadcast, model_averaging, request_model, save_model
+from kungfu.internal import _get_num_peers, _get_self_rank, _get_other_ranks
+from kungfu.ops import barrier, broadcast, model_averaging, request_model, save_model, save_variables, barrier, request, global_minimum_spanning_tree, get_neighbour_mask, round_robin, get_peer_latencies
 
 from .core import KungFuOptimizer
 
@@ -22,15 +22,16 @@ class ModelAveragingOptimizer(KungFuOptimizer):
 
     @staticmethod
     def get_initializer():
-        g = tf.get_default_graph()
-        ops = []
         # TODO: auto inject tf.global_variables_initializer
         # with tf.control_dependencies([tf.global_variables_initializer()]):
-        variables = g.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        ops = []
+        # variables = tf.get_default_graph().get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        variables = tf.trainable_variables()
         for v in variables:
             ops.append(tf.assign(v, broadcast(v)))
         with tf.control_dependencies(ops):
-            return save_model(tf.trainable_variables())
+            with tf.control_dependencies([save_model(variables)]):
+                return barrier()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
@@ -77,15 +78,64 @@ class ModelAveragingOptimizer(KungFuOptimizer):
         return grads_and_vars_to_negotiate
 
 
-class AdaptiveModelAveragingOptimizer(ModelAveragingOptimizer):
+class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that changes the topology dynamically."""
+    def __init__(self, optimizer, name=None, use_locking=False, schedule=''):
+        super(AdaptiveModelAveragingOptimizer,
+              self).__init__(optimizer, name, use_locking)
 
-    def __init__(self, optimizer, name=None, use_locking=False):
-        super(AdaptiveModelAveragingOptimizer, self).__init__(optimizer, name, use_locking)
+        self._schedule = schedule
+        self._alpha = 0.5
 
+        np = _get_num_peers()
+        rank = _get_self_rank()
+
+        latencies = get_peer_latencies()
+        mst_edges = global_minimum_spanning_tree(latencies)
+
+        new_mask = get_neighbour_mask(mst_edges)
+        init_mask = tf.constant([r != rank for r in range(np)])
+        neighbour_mask = tf.Variable(init_mask, trainable=False)
+
+        self._updata_mask = tf.assign(neighbour_mask, new_mask)
+        self._target = round_robin(neighbour_mask)
+
+    def _average(self, v, other_v):
+        return tf.assign(v, self._alpha * v + (1 - self._alpha) * other_v)
+
+    @staticmethod
+    def get_initializer():
+        ops = []
+        # variables = tf.get_default_graph().get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        variables = tf.trainable_variables()
+        for v in variables:
+            ops.append(tf.assign(v, broadcast(v)))
+        with tf.control_dependencies(ops):
+            with tf.control_dependencies([save_variables(variables)]):
+                return barrier()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
-        # grads, variables = zip(*grads_and_vars)
-        apply_op = self._optimizer.apply_gradients(grads_and_vars,
-                                                       **kwargs)
-        return apply_op
+        _, variables = zip(*grads_and_vars)
+
+        # TODO: run adapt_op based on kf_control(self._parse(self._schedule)) ...
+        adapt_op = tf.group([self._updata_mask])
+
+        requested_vars = [request(self._target, v.name, v) for v in variables]
+
+        average_ops = [
+            self._average(v, other_v)
+            for (v, other_v) in zip(variables, requested_vars)
+        ]
+
+        save_ops = save_variables(variables)
+
+        apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
+
+        with tf.control_dependencies([adapt_op]):
+            with tf.control_dependencies(average_ops):
+                with tf.control_dependencies([apply_op]):
+                    with tf.control_dependencies([save_ops]):
+                        return tf.group(apply_op)
+
+    def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
+        return grads_and_vars_to_negotiate
