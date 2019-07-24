@@ -58,7 +58,11 @@ def request(target, name, example):
 
 
 def get_peer_latencies():
-    return _op_lib.kungfu_get_peer_latencies(cluster_size=_get_num_peers())
+    import tensorflow as tf
+    # FIXME: don't require input
+    dumb = tf.Variable(tf.zeros([], tf.float32), trainable=False)
+    return _op_lib.kungfu_get_peer_latencies(dumb,
+                                             cluster_size=_get_num_peers())
 
 
 def global_minimum_spanning_tree(self_weights):

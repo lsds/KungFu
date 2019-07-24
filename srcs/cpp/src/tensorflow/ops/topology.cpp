@@ -10,6 +10,7 @@ namespace tensorflow
 {
 REGISTER_OP("KungfuGetPeerLatencies")
     .Attr("cluster_size: int")
+    .Input("dumb: float32")  // FIXME: don't require input
     .Output("latencies: float32");
 
 class GetPeerLatencies : public AsyncOpKernel
@@ -154,7 +155,7 @@ class RoundRobin : public OpKernel
                 return;
             }
         }
-        LOG(WARNING) << "no choice is available from mask";
+        LOG(WARNING) << "no choice available from mask";
         y() = -1;  // failed
     }
 };
