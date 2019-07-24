@@ -83,11 +83,10 @@ class ModelAveragingOptimizer(KungFuOptimizer):
 
 class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that changes the topology dynamically."""
-    def __init__(self, optimizer, name=None, use_locking=False, schedule=5):
+    def __init__(self, optimizer, name=None, use_locking=False, interval=5):
         super(AdaptiveModelAveragingOptimizer,
               self).__init__(optimizer, name, use_locking)
 
-        self._schedule = tf.constant(schedule, dtype=tf.int64)
         self._alpha = 0.5
 
         np = _get_num_peers()
@@ -105,10 +104,12 @@ class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
             new_mask = get_neighbour_mask(mst_edges)
             return tf.assign(neighbour_mask, new_mask)
 
+        def _cond():
+            return tf.equal(
+                tf.mod(local_step, tf.constant(interval, dtype=tf.int64)), 0)
+
         with tf.control_dependencies([inc_local_step]):
-            self._adapt_op = tf.cond(
-                tf.equal(tf.mod(local_step, self._schedule), 0), _update_mask,
-                tf.no_op)
+            self._adapt_op = tf.cond(_cond(), _update_mask, tf.no_op)
 
         self._target = round_robin(neighbour_mask)
 
