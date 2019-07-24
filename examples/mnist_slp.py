@@ -28,12 +28,17 @@ def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
 
-def build_optimizer(shards=1):
+def build_optimizer(name, shards=1):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
-    from kungfu.optimizers import SyncSGDOptimizer
-    optimizer = SyncSGDOptimizer(optimizer)
-    return optimizer
+    if name == 'sync-sgd':
+        from kungfu.optimizers import SyncSGDOptimizer
+        return SyncSGDOptimizer(optimizer)
+    elif name == 'adaptive-model-ave':
+        from kungfu.optimizers import AdaptiveModelAveragingOptimizer
+        return AdaptiveModelAveragingOptimizer(optimizer)
+    else:
+        raise RuntimeError('unknow optimizer: %s' % name)
 
 
 def build_ops(optimizer):
@@ -97,6 +102,8 @@ def train_mnist(x, y_, train_op, test_op, dataset, n_epochs=1,
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
     parser.add_argument(
+        '--optimizer', type=str, default='sync-sgd', help='')
+    parser.add_argument(
         '--n-epochs', type=int, default=1, help='number of epochs')
     parser.add_argument(
         '--batch-size', type=int, default=50, help='batch size')
@@ -110,7 +117,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    optimizer = build_optimizer()
+    optimizer = build_optimizer(args.optimizer)
     x, y_, train_op, test_op = build_ops(optimizer)
 
     mnist = load_datasets(args.data_dir, normalize=True, one_hot=True)

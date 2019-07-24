@@ -75,3 +75,17 @@ class ModelAveragingOptimizer(KungFuOptimizer):
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         return grads_and_vars_to_negotiate
+
+
+class AdaptiveModelAveragingOptimizer(ModelAveragingOptimizer):
+    """An optimizer that changes the topology dynamically."""
+
+    def __init__(self, optimizer, name=None, use_locking=False):
+        super(AdaptiveModelAveragingOptimizer, self).__init__(optimizer, name, use_locking)
+
+
+    def apply_gradients(self, grads_and_vars, **kwargs):
+        # grads, variables = zip(*grads_and_vars)
+        apply_op = self._optimizer.apply_gradients(grads_and_vars,
+                                                       **kwargs)
+        return apply_op
