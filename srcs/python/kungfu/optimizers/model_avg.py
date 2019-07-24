@@ -1,6 +1,9 @@
 import tensorflow as tf
-from kungfu.internal import _get_num_peers, _get_self_rank, _get_other_ranks
-from kungfu.ops import barrier, broadcast, model_averaging, request_model, save_model, save_variables, barrier, request, global_minimum_spanning_tree, get_neighbour_mask, round_robin, get_peer_latencies
+from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
+from kungfu.ops import (barrier, broadcast, get_neighbour_mask,
+                        get_peer_latencies, global_minimum_spanning_tree,
+                        model_averaging, request, request_model, round_robin,
+                        save_model, save_variables)
 
 from .core import KungFuOptimizer
 
@@ -80,24 +83,33 @@ class ModelAveragingOptimizer(KungFuOptimizer):
 
 class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that changes the topology dynamically."""
-    def __init__(self, optimizer, name=None, use_locking=False, schedule=''):
+    def __init__(self, optimizer, name=None, use_locking=False, schedule=5):
         super(AdaptiveModelAveragingOptimizer,
               self).__init__(optimizer, name, use_locking)
 
-        self._schedule = schedule
+        self._schedule = tf.constant(schedule, dtype=tf.int64)
         self._alpha = 0.5
 
         np = _get_num_peers()
         rank = _get_self_rank()
 
-        latencies = get_peer_latencies()
-        mst_edges = global_minimum_spanning_tree(latencies)
+        local_step = tf.Variable(tf.zeros([], dtype=tf.int64), trainable=False)
+        inc_local_step = tf.assign_add(local_step, 1)
 
-        new_mask = get_neighbour_mask(mst_edges)
         init_mask = tf.constant([r != rank for r in range(np)])
         neighbour_mask = tf.Variable(init_mask, trainable=False)
 
-        self._updata_mask = tf.assign(neighbour_mask, new_mask)
+        def _update_mask():
+            latencies = get_peer_latencies(local_step)
+            mst_edges = global_minimum_spanning_tree(latencies)
+            new_mask = get_neighbour_mask(mst_edges)
+            return tf.assign(neighbour_mask, new_mask)
+
+        with tf.control_dependencies([inc_local_step]):
+            self._adapt_op = tf.cond(
+                tf.equal(tf.mod(local_step, self._schedule), 0), _update_mask,
+                tf.no_op)
+
         self._target = round_robin(neighbour_mask)
 
     def _average(self, v, other_v):
@@ -117,9 +129,6 @@ class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
     def apply_gradients(self, grads_and_vars, **kwargs):
         _, variables = zip(*grads_and_vars)
 
-        # TODO: run adapt_op based on kf_control(self._parse(self._schedule)) ...
-        adapt_op = tf.group([self._updata_mask])
-
         requested_vars = [request(self._target, v.name, v) for v in variables]
 
         average_ops = [
@@ -131,7 +140,7 @@ class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
 
         apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
 
-        with tf.control_dependencies([adapt_op]):
+        with tf.control_dependencies([self._adapt_op]):
             with tf.control_dependencies(average_ops):
                 with tf.control_dependencies([apply_op]):
                     with tf.control_dependencies([save_ops]):

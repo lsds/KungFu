@@ -57,11 +57,12 @@ def request(target, name, example):
     return _op_lib.kungfu_request(target, example, tensor_name=name)
 
 
-def get_peer_latencies():
-    import tensorflow as tf
+def get_peer_latencies(local_step=None):
     # FIXME: don't require input
-    dumb = tf.Variable(tf.zeros([], tf.float32), trainable=False)
-    return _op_lib.kungfu_get_peer_latencies(dumb,
+    if local_step is None:
+        import tensorflow as tf
+        local_step = tf.Variable(tf.zeros([], tf.int64), trainable=False)
+    return _op_lib.kungfu_get_peer_latencies(local_step,
                                              cluster_size=_get_num_peers())
 
 
