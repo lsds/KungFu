@@ -18,7 +18,8 @@ def test_dynamic_topology():
     b = tf.Variable(tf.ones([32]))
     variables = [w, b]
     with tf.control_dependencies([save_variables(variables)]):
-        init = barrier()
+        init_op = barrier()
+    final_op = barrier()
 
     latencies = get_peer_latencies()
     mst_edges = global_minimum_spanning_tree(latencies)
@@ -33,9 +34,9 @@ def test_dynamic_topology():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        sess.run(init)
+        sess.run(init_op)
 
-        n_epoches = 2
+        n_epoches = 3
         n_steps = 5
 
         for epoch in range(1, 1 + n_epoches):
@@ -52,6 +53,8 @@ def test_dynamic_topology():
                       (epoch, step, rank, t))
 
             print('epoch %d finished on %d' % (epoch, rank))
+
+        sess.run(final_op)
 
 
 test_dynamic_topology()
