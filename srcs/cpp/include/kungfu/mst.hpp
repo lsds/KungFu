@@ -12,7 +12,9 @@ template <typename Weight, typename Vertex> class MinimumSpanningTree
     Weight prim(const int n, const Weight *weights, Vertex *edges,
                 const int seed) const
     {
-        const auto w        = [&](int i, int j) { return weights[i * n + j]; };
+        const auto w = [&](int i, int j) {
+            return (weights[i * n + j] + weights[j * n + i]) / 2;
+        };
         const auto put_edge = [&](int i, int u, int v) {
             edges[i * 2 + 0] = u;
             edges[i * 2 + 1] = v;

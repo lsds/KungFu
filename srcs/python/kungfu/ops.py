@@ -58,6 +58,10 @@ def request(target, name, example):
 
 
 def get_peer_latencies(local_step=None):
+    """Returns the vector V of round-trip time from this peer to all other peers.
+
+    For the peer of rank i, V[j] is the RTT from i to j (j != i), V[i] = 0.
+    """
     # FIXME: don't require input
     if local_step is None:
         import tensorflow as tf
@@ -67,10 +71,25 @@ def get_peer_latencies(local_step=None):
 
 
 def global_minimum_spanning_tree(self_weights):
+    """Compute the minimum spanning tree.
+
+    self_weights: a vector of length n,
+        where n is the number of peers in the cluster.
+        All self_weights vectors from n peers are gathered to a matrix W of
+        n x n. The MST is then computed based on (W + W^T)/2.
+    returns:
+        a matrix m of (n - 1) x 2,
+        where (m[i][0], m[i][1]) is the i-th edge of the tree.
+    """
     return _op_lib.kungfu_minimum_spanning_tree(self_weights)
 
 
 def get_neighbour_mask(edges):
+    """Compute a bool vector of neighbours for the current peer.
+
+    For the peer of rank i, v[j] = true if (i, j) is an edge of the MST,
+    otherwise v[j] = false.
+    """
     return _op_lib.kungfu_get_neighbour_mask(edges,
                                              self_rank=_get_self_rank(),
                                              cluster_size=_get_num_peers())
