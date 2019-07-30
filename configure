@@ -52,7 +52,7 @@ parse_args() {
             VERBOSE=1
             ;;
         *)
-            echo "unknown argument $1"
+            echo "unknown argument $i"
             exit 1
             ;;
         esac

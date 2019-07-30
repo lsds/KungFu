@@ -52,6 +52,53 @@ def save_variables(variables):
     return _op_lib.save_variables(variables, names=[v.name for v in variables])
 
 
+def request(target, name, example):
+    # example is used for shape reference
+    return _op_lib.kungfu_request(target, example, tensor_name=name)
+
+
+def get_peer_latencies(local_step=None):
+    """Returns the vector V of round-trip time from this peer to all other peers.
+
+    For the peer of rank i, V[j] is the RTT from i to j (j != i), V[i] = 0.
+    """
+    # FIXME: don't require input
+    if local_step is None:
+        import tensorflow as tf
+        local_step = tf.Variable(tf.zeros([], tf.int64), trainable=False)
+    return _op_lib.kungfu_get_peer_latencies(local_step,
+                                             cluster_size=_get_num_peers())
+
+
+def global_minimum_spanning_tree(self_weights):
+    """Compute the minimum spanning tree.
+
+    self_weights: a vector of length n,
+        where n is the number of peers in the cluster.
+        All self_weights vectors from n peers are gathered to a matrix W of
+        n x n. The MST is then computed based on (W + W^T)/2.
+    returns:
+        a matrix m of (n - 1) x 2,
+        where (m[i][0], m[i][1]) is the i-th edge of the tree.
+    """
+    return _op_lib.kungfu_minimum_spanning_tree(self_weights)
+
+
+def get_neighbour_mask(edges):
+    """Compute a bool vector of neighbours for the current peer.
+
+    For the peer of rank i, v[j] = true if (i, j) is an edge of the MST,
+    otherwise v[j] = false.
+    """
+    return _op_lib.kungfu_get_neighbour_mask(edges,
+                                             self_rank=_get_self_rank(),
+                                             cluster_size=_get_num_peers())
+
+
+def round_robin(mask):
+    return _op_lib.kungfu_round_robin(mask)
+
+
 def save_model(variables):
     import tensorflow as tf
     var_sizes = [var.shape.num_elements()

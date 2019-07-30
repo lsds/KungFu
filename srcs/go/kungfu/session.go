@@ -13,9 +13,12 @@ import (
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
 
-// A strategy is a sequence of dataflow graph
+const defaultRoot = 0
+
+// A strategy is a pair of dataflow graphs
 type strategy struct {
-	Graphs []*plan.Graph
+	reduceGraph *plan.Graph
+	bcastGraph  *plan.Graph
 }
 
 // session contains the immutable topology and strategies for a given period of logical duration
@@ -61,21 +64,23 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 
 func createStarStrategies(peers []plan.PeerSpec) []strategy {
 	k := len(peers)
-	bcastGraph := plan.GenStarBcastGraph(k, 0)
-	gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
+	bcastGraph := plan.GenStarBcastGraph(k, defaultRoot)
+	reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
 	return []strategy{
 		{
-			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
 		},
 	}
 }
 
 func createTreeStrategies(peers []plan.PeerSpec) []strategy {
 	bcastGraph := plan.GenDefaultBcastGraph(peers)
-	gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
+	reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
 	return []strategy{
 		{
-			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
 		},
 	}
 }
@@ -85,9 +90,10 @@ func createCliqueStrategies(peers []plan.PeerSpec) []strategy {
 	var ss []strategy
 	for r := 0; r < k; r++ {
 		bcastGraph := plan.GenStarBcastGraph(k, r)
-		gatherGraph := plan.GenDefaultGatherGraph(bcastGraph)
+		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
 		ss = append(ss, strategy{
-			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
 		})
 	}
 	return ss
@@ -97,9 +103,10 @@ func createRingStrategies(peers []plan.PeerSpec) []strategy {
 	k := len(peers)
 	var ss []strategy
 	for r := 0; r < k; r++ {
-		gatherGraph, bcastGraph := plan.GenCircularGraphPair(k, r)
+		reduceGraph, bcastGraph := plan.GenCircularGraphPair(k, r)
 		ss = append(ss, strategy{
-			Graphs: []*plan.Graph{gatherGraph, bcastGraph},
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
 		})
 	}
 	return ss
@@ -145,14 +152,17 @@ func (sess *session) AllReduce(w Workspace) int {
 
 func (sess *session) Reduce(w Workspace) int {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
-	g := strategy.Graphs[0]        // Assuming the first graph is a Gather Graph
-	return code(sess.runGraphs(w, g))
+	return code(sess.runGraphs(w, strategy.reduceGraph))
 }
 
 func (sess *session) Broadcast(w Workspace) int {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
-	g := strategy.Graphs[1]        // Assuming the second graph is a Broadcast Graph
-	return code(sess.runGraphs(w, g))
+	return code(sess.runGraphs(w, strategy.bcastGraph))
+}
+
+func (sess *session) Gather(w Workspace) int {
+	// TODO: validate input
+	return code(sess.runGather(w))
 }
 
 func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
@@ -165,6 +175,30 @@ func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
 
 func (sess *session) Save(name string, buf *kb.Buffer) int {
 	return code(sess.router.Save(name, buf))
+}
+
+func (sess *session) runGather(w Workspace) error {
+	if sess.myRank != defaultRoot {
+		peer := sess.cluster.Peers[defaultRoot]
+		return sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective)
+	}
+	var wg sync.WaitGroup
+	count := w.SendBuf.Count
+	for rank, peer := range sess.cluster.Peers {
+		wg.Add(1)
+		go func(rank int, peer plan.PeerSpec, recvBuf *kb.Buffer) {
+			if rank == sess.myRank {
+				recvBuf.CopyFrom(w.SendBuf)
+			} else {
+				m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
+				b := &kb.Buffer{Data: m.Data, Count: recvBuf.Count, Type: recvBuf.Type}
+				recvBuf.CopyFrom(b)
+			}
+			wg.Done()
+		}(rank, peer, w.RecvBuf.Slice(count*rank, count*(rank+1)))
+	}
+	wg.Wait()
+	return nil // FIXME: handle errors
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
@@ -246,7 +280,7 @@ func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []st
 	for i, w := range w.split(p, len(strategies)) {
 		wg.Add(1)
 		go func(i int, w Workspace, s strategy) {
-			if err := sess.runGraphs(w, s.Graphs...); err != nil {
+			if err := sess.runGraphs(w, s.reduceGraph, s.bcastGraph); err != nil {
 				log.Warnf("partition %d failed: %v", i, err)
 				atomic.AddInt32(&failed, 1)
 			}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"unsafe"
@@ -151,6 +152,40 @@ func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	return 0
 }
 
+//export GoKungfuGather
+func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype,
+	recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype,
+	name *C.char, done *C.callback_t) int {
+	w := kf.Workspace{
+		SendBuf: toBuffer(sendBuf, sendCount, sendDtype),
+		RecvBuf: toBuffer(recvBuf, recvCount, recvDtype),
+		// OP:      0, // FIXME: assert that OP is not used
+		Name: C.GoString(name),
+	}
+	sess := kungfu.CurrentSession()
+	if done == nil {
+		return sess.Gather(w)
+	}
+	go func() {
+		sess.Gather(w)
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
+//export GoKungfuGetPeerLatencies
+func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype) int {
+	results := toBuffer(recvBuf, recvCount, recvDtype).AsF32()
+	sess := kungfu.CurrentSession()
+	latencies := sess.GetPeerLatencies()
+	// FIXME: check length
+	for i := range results {
+		results[i] = float32(latencies[i])
+	}
+	return 0
+}
+
 //export GoKungfuGetAlgoFromEnv
 func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 	name := os.Getenv(kb.AllReduceAlgoEnvKey)
@@ -160,6 +195,11 @@ func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 func main() {}
 
 func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer {
+	if ptr == nil {
+		if count > 0 {
+			utils.ExitErr(fmt.Errorf("toBuffer: ptr is nil but count = %d", count))
+		}
+	}
 	dt := kb.KungFu_Datatype(dtype)
 	size := count * dt.Size()
 	sh := &reflect.SliceHeader{

@@ -10,7 +10,8 @@ import (
 type ConnType uint16
 
 const (
-	ConnControl    ConnType = iota // 0
+	ConnPing       ConnType = iota // 0
+	ConnControl    ConnType = iota
 	ConnCollective ConnType = iota
 	ConnPeerToPeer ConnType = iota
 )
