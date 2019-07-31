@@ -29,7 +29,8 @@ class BaseDatasetAdaptor(object):
         ds = ds.skip(self._offset)
         ds = ds.batch(self._batch_size)
         ds = ds.shard(self._shard_count, self._shard_id)
-        return ds
+        it = ds.make_initializable_iterator()
+        return it.initializer, it.get_next()
 
 
 class ExampleDatasetAdaptor(BaseDatasetAdaptor):
