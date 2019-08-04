@@ -136,6 +136,9 @@ class kungfu_world
 
     // monitoring APIs
     int GetPeerLatencies(float *recvbuf, int recv_count);
+
+    // control APIs
+    int UpdateCluster(const char *token, bool *exist);
 };
 
 #endif

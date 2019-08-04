@@ -1,6 +1,7 @@
 package kungfu
 
 import (
+	"errors"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -86,30 +87,40 @@ func (kf *Kungfu) Close() int {
 	return 0
 }
 
+var errSelfNotInCluster = errors.New("self not in cluster")
+
 func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
-		kf.updateSession()
+		if exist := kf.updateSession(""); !exist {
+			utils.ExitErr(errSelfNotInCluster)
+		}
 	}
 	return kf.currentSession
 }
-func (kf *Kungfu) UpdateSession() {
+
+func (kf *Kungfu) UpdateSession(token string) bool {
 	kf.Lock()
 	defer kf.Unlock()
-	kf.updateSession()
+	return kf.updateSession(token)
 }
 
-func (kf *Kungfu) updateSession() {
+func (kf *Kungfu) updateSession(token string) bool {
+	log.Infof("Kungfu::updateSession with token %q", token)
 	var cs plan.ClusterSpec
 	if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
 		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
 		// utils.ExitErr(err)
 	}
-	sess, err := newSession(kf.config, kf.self, &cs, kf.router)
+	sess, exist, err := newSession(kf.config, kf.self, &cs, kf.router)
+	if !exist {
+		return false
+	}
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	kf.currentSession = sess
+	return true
 }

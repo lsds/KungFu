@@ -186,6 +186,12 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 	return 0
 }
 
+//export GoKungfuUpdateCluster
+func GoKungfuUpdateCluster(token *C.char, exist *C.int) int {
+	*exist = boolToInt(kungfu.UpdateSession(C.GoString(token)))
+	return 0
+}
+
 //export GoKungfuGetAlgoFromEnv
 func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 	name := os.Getenv(kb.AllReduceAlgoEnvKey)
@@ -212,4 +218,11 @@ func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer
 		Count: count,
 		Type:  dt,
 	}
+}
+
+func boolToInt(v bool) C.int {
+	if v {
+		return C.int(1)
+	}
+	return C.int(0)
 }

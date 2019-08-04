@@ -163,3 +163,11 @@ int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
 {
     return GoKungfuGetPeerLatencies(recvbuf, recv_count, KungFu_FLOAT);
 }
+
+int kungfu_world::UpdateCluster(const char *token, bool *exist)
+{
+    int truth;
+    const int code = GoKungfuUpdateCluster(const_cast<char *>(token), &truth);
+    *exist         = static_cast<bool>(truth);
+    return code;
+}
