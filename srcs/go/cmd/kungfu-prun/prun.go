@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
+	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
@@ -26,6 +29,8 @@ var (
 	verboseLog = flag.Bool("v", true, "show task log")
 	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
 	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
+
+	configServerPort = flag.Int("config-server-port", 0, "will run config server on this port if not zero")
 )
 
 func init() {
@@ -63,7 +68,12 @@ func main() {
 		Args:      args,
 	}
 
-	ps, _, err := jc.CreateProcs(kb.ParseAlgo(*algo))
+	var configServerAddr string
+	if *configServerPort > 0 {
+		configServerAddr = net.JoinHostPort("127.0.0.1", strconv.Itoa(*configServerPort))
+	}
+
+	ps, cs, err := jc.CreateProcs(kb.ParseAlgo(*algo), configServerAddr)
 	if err != nil {
 		utils.ExitErr(err)
 	}
@@ -74,6 +84,9 @@ func main() {
 	}
 	log.Printf("will parallel run %d instances of %s with %q", len(myPs), prog, args)
 
+	if *configServerPort > 0 {
+		go runConfigServer(configServerAddr, cs)
+	}
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
@@ -111,4 +124,12 @@ func inferIP(nicName string) string {
 		}
 	}
 	return "127.0.0.1"
+}
+
+func runConfigServer(addr string, cs *plan.ClusterSpec) {
+	server := http.Server{
+		Addr:    addr,
+		Handler: kf.NewConfigServer(cs),
+	}
+	server.ListenAndServe()
 }

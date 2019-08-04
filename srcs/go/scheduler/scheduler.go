@@ -17,7 +17,7 @@ type JobConfig struct {
 	Args      []string
 }
 
-func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, *plan.ClusterSpec, error) {
+func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr string) ([]Proc, *plan.ClusterSpec, error) {
 	hostSpecs, err := plan.ParseHostSpec(jc.HostList)
 	if err != nil {
 		return nil, nil, err
@@ -43,6 +43,9 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, *plan.Clu
 			`PYTHONUNBUFFERED`:      `1`,
 			// TODO: add LD_PRELOAD to tcmalloc path
 			// `LD_PRELOAD`:``,
+		}
+		if len(configServerAddr) > 0 {
+			envs[kc.ConfigServerEnvKey] = configServerAddr
 		}
 		ps = append(ps, Proc{
 			Name:    name,
