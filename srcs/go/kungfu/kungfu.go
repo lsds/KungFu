@@ -109,7 +109,7 @@ func (kf *Kungfu) UpdateSession(token string) bool {
 func (kf *Kungfu) updateSession(token string) bool {
 	log.Infof("Kungfu::updateSession with token %q", token)
 	var cs plan.ClusterSpec
-	if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
+	if err := kf.configClient.getConfig(token, kb.ClusterSpecEnvKey, &cs); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
 		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
 		// utils.ExitErr(err)
