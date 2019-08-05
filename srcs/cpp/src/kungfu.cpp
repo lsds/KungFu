@@ -165,10 +165,10 @@ int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
 }
 
 // control APIs
-int kungfu_world::ProposeUpdate(const char *token, bool *result)
+int kungfu_world::ProposeUpdate(const char *token, int new_size, bool *result)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuProposeUpdate(const_cast<char *>(token),
+    return GoKungfuProposeUpdate(const_cast<char *>(token), GoInt(new_size),
                                  reinterpret_cast<char *>(result));
 }
 

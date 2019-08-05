@@ -7,7 +7,8 @@ namespace tensorflow
 REGISTER_OP("KungfuProposeUpdate")
     // the target global step at which change should happen,
     // must be greater than the current global step
-    .Input("input: int64")
+    .Input("target_global_step: int64")
+    .Input("new_cluster_size: int32")
     .Output("output: bool")  // indicates if the proposal is accepted
     ;
 
@@ -18,12 +19,13 @@ class KungfuProposeUpdate : public AsyncOpKernel
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        const int64_t gs = context->input(0).scalar<int64_t>()();
-        Tensor *output   = nullptr;
+        const int64_t gs       = context->input(0).scalar<int64_t>()();
+        const int32_t new_size = context->input(1).scalar<int32_t>()();
+        Tensor *output         = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &output));
         std::string token = std::to_string(gs);
-        _kungfu_world->ProposeUpdate(token.c_str(),
+        _kungfu_world->ProposeUpdate(token.c_str(), new_size,
                                      output->scalar<bool>().data());
         done();
     }

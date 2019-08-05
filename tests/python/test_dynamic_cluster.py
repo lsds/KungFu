@@ -9,22 +9,24 @@ inc_gs = tf.assign_add(gs, 1)
 x = tf.Variable(tf.ones([], dtype=tf.int32))
 op1 = all_reduce(x)
 sync = barrier()
-propose = propose_update(gs + 1)
+best_size = tf.Variable(tf.ones([], dtype=tf.int32))
+propose = propose_update(gs + 1, best_size)
 update = update_cluster(gs)
 
+host_cap = 4
 
-def show_env():
-    for k in os.environ:
-        if k.startswith('KUNGFU_'):
-            print('%s=%s' % (k, os.getenv(k)))
 
+def compute_new_size(prev_size):
+    return tf.mod(prev_size, host_cap) + 1
+
+
+compute_new_size = tf.assign(best_size, compute_new_size(best_size))
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     sess.run(sync)
     need_update = False
     for _ in range(10):
-        show_env()
         sess.run(inc_gs)
         if need_update:
             exist = sess.run(update)
@@ -33,4 +35,6 @@ with tf.Session() as sess:
                 break
         v = sess.run(op1)
         print(v)
+        sess.run(compute_new_size)
+
         need_update = sess.run(propose)

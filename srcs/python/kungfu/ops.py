@@ -48,9 +48,9 @@ def barrier():
     return _op_lib.kungfu_barrier()
 
 
-def propose_update(target_global_step):
+def propose_update(target_global_step, new_size):
     """"""
-    return _op_lib.kungfu_propose_update(target_global_step)
+    return _op_lib.kungfu_propose_update(target_global_step, new_size)
 
 
 def update_cluster(global_step):
