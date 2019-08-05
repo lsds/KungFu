@@ -20,9 +20,10 @@ type configServer struct {
 	versions map[string]config
 }
 
-func NewConfigServer(cs *plan.ClusterSpec) http.Handler {
+func NewConfigServer(hostSpecs []plan.HostSpec, cs *plan.ClusterSpec) http.Handler {
 	init := config{
 		values: map[string]string{
+			kb.HostSpecEnvKey:    toJSON(hostSpecs),
 			kb.ClusterSpecEnvKey: toJSON(cs),
 		},
 	}

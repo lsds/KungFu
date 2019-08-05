@@ -89,7 +89,17 @@ func (kf *Kungfu) Close() int {
 
 func (kf *Kungfu) ProposeUpdate(token string, newSize int) {
 	log.Infof("Kungfu::ProposeUpdate with (%q, %d)", token, newSize)
-	cs := kf.currentSession.cluster // FIXME: compute new cluster spec
+	var hostSpecs []plan.HostSpec
+	if err := kf.configClient.getConfig("", kb.HostSpecEnvKey, &hostSpecs); err != nil {
+		log.Errorf("failed to get %s: %v", kb.HostSpecEnvKey, err)
+		return
+	}
+	log.Infof("generating new cluster spec of size %d", newSize)
+	cs, err := plan.GenClusterSpec(newSize, hostSpecs)
+	if err != nil {
+		log.Errorf("failed to generate new cluster spec: %v", err)
+		return
+	}
 	if err := kf.configClient.putConfig(token, kb.ClusterSpecEnvKey, cs); err != nil {
 		log.Errorf("failed to write config: %v", err)
 	}
@@ -122,6 +132,7 @@ func (kf *Kungfu) updateSession(token string) bool {
 		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
 		// utils.ExitErr(err)
 	}
+	log.Infof("creating session of %d peers", len(cs.Peers))
 	sess, exist, err := newSession(kf.config, kf.self, &cs, kf.router)
 	if !exist {
 		return false

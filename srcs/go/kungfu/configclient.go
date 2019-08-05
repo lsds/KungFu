@@ -57,7 +57,6 @@ func (c *configClient) getConfig(version, name string, i interface{}) error {
 		return err
 	}
 	val := strings.TrimSpace(string(bs))
-	log.Infof("got config %s from server %s", val, c.endpoint)
 	return plan.FromString(val, i)
 }
 

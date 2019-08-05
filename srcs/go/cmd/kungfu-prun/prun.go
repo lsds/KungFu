@@ -61,6 +61,11 @@ func main() {
 	prog := restArgs[0]
 	args := restArgs[1:]
 
+	hostSpecs, err := plan.ParseHostSpec(*hostList)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+
 	jc := sch.JobConfig{
 		PeerCount: *np,
 		HostList:  *hostList,
@@ -85,7 +90,7 @@ func main() {
 	log.Printf("will parallel run %d instances of %s with %q", len(myPs), prog, args)
 
 	if *configServerPort > 0 {
-		go runConfigServer(configServerAddr, cs)
+		go runConfigServer(configServerAddr, hostSpecs, cs)
 		log.Printf("config server running at %s", configServerAddr)
 	}
 	ctx := context.Background()
@@ -127,10 +132,10 @@ func inferIP(nicName string) string {
 	return "127.0.0.1"
 }
 
-func runConfigServer(addr string, cs *plan.ClusterSpec) {
+func runConfigServer(addr string, hostSpecs []plan.HostSpec, cs *plan.ClusterSpec) {
 	server := http.Server{
 		Addr:    addr,
-		Handler: kf.NewConfigServer(cs),
+		Handler: kf.NewConfigServer(hostSpecs, cs),
 	}
 	server.ListenAndServe()
 }
