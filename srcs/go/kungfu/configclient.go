@@ -1,6 +1,8 @@
 package kungfu
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -24,20 +26,24 @@ func newConfigClient() (*configClient, error) {
 	return &configClient{endpoint: configServer}, nil
 }
 
+func (c *configClient) makeURL(version, name string) url.URL {
+	q := url.Values{}
+	q.Set("version", version)
+	q.Set("name", name)
+	return url.URL{
+		Scheme:   `http`,
+		Host:     c.endpoint,
+		RawQuery: q.Encode(),
+	}
+}
+
 func (c *configClient) getConfig(version, name string, i interface{}) error {
 	if len(c.endpoint) == 0 {
 		val := os.Getenv(name)
 		log.Warnf("TODO: get %s from config server %s", name, c.endpoint)
 		return plan.FromString(val, i)
 	}
-	q := url.Values{}
-	q.Set("version", version)
-	q.Set("name", name)
-	u := url.URL{
-		Scheme:   `http`,
-		Host:     c.endpoint,
-		RawQuery: q.Encode(),
-	}
+	u := c.makeURL(version, name)
 	resp, err := c.client.Get(u.String())
 	if err != nil {
 		return err
@@ -53,4 +59,22 @@ func (c *configClient) getConfig(version, name string, i interface{}) error {
 	val := strings.TrimSpace(string(bs))
 	log.Infof("got config %s from server %s", val, c.endpoint)
 	return plan.FromString(val, i)
+}
+
+func (c *configClient) putConfig(version, name string, i interface{}) error {
+	b := &bytes.Buffer{}
+	if err := json.NewEncoder(b).Encode(i); err != nil {
+		return err
+	}
+	u := c.makeURL(version, name)
+	resp, err := c.client.Post(u.String(), "application/json", b)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusCreated {
+		return errors.New(resp.Status)
+	}
+	defer resp.Body.Close()
+	ioutil.ReadAll(resp.Body)
+	return nil
 }

@@ -87,6 +87,14 @@ func (kf *Kungfu) Close() int {
 	return 0
 }
 
+func (kf *Kungfu) ProposeUpdate(token string) {
+	log.Infof("Kungfu::ProposeUpdate with token %q", token)
+	cs := kf.currentSession.cluster // FIXME: compute new cluster spec
+	if err := kf.configClient.putConfig(token, kb.ClusterSpecEnvKey, cs); err != nil {
+		log.Errorf("failed to write config: %v", err)
+	}
+}
+
 var errSelfNotInCluster = errors.New("self not in cluster")
 
 func (kf *Kungfu) CurrentSession() *session {

@@ -164,10 +164,17 @@ int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
     return GoKungfuGetPeerLatencies(recvbuf, recv_count, KungFu_FLOAT);
 }
 
+// control APIs
+int kungfu_world::ProposeUpdate(const char *token, bool *result)
+{
+    static_assert(sizeof(bool) == sizeof(char), "");
+    return GoKungfuProposeUpdate(const_cast<char *>(token),
+                                 reinterpret_cast<char *>(result));
+}
+
 int kungfu_world::UpdateCluster(const char *token, bool *exist)
 {
-    int truth;
-    const int code = GoKungfuUpdateCluster(const_cast<char *>(token), &truth);
-    *exist         = static_cast<bool>(truth);
-    return code;
+    static_assert(sizeof(bool) == sizeof(char), "");
+    return GoKungfuUpdateCluster(const_cast<char *>(token),
+                                 reinterpret_cast<char *>(exist));
 }

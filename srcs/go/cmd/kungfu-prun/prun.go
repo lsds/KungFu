@@ -86,6 +86,7 @@ func main() {
 
 	if *configServerPort > 0 {
 		go runConfigServer(configServerAddr, cs)
+		log.Printf("config server running at %s", configServerAddr)
 	}
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)

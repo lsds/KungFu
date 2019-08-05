@@ -48,6 +48,11 @@ def barrier():
     return _op_lib.kungfu_barrier()
 
 
+def propose_update(target_global_step):
+    """"""
+    return _op_lib.kungfu_propose_update(target_global_step)
+
+
 def update_cluster(global_step):
     """Returns a bool scalar which indicates if this peer is still in the cluster."""
     return _op_lib.kungfu_update_cluster(global_step)

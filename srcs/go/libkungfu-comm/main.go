@@ -186,9 +186,19 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 	return 0
 }
 
+//export GoKungfuProposeUpdate
+func GoKungfuProposeUpdate(token *C.char, result *C.char) int {
+	ok := true // FIXME: compute ok by all reduce
+	*result = boolToChar(ok)
+	if ok {
+		kungfu.ProposeUpdate(C.GoString(token))
+	}
+	return 0
+}
+
 //export GoKungfuUpdateCluster
-func GoKungfuUpdateCluster(token *C.char, exist *C.int) int {
-	*exist = boolToInt(kungfu.UpdateSession(C.GoString(token)))
+func GoKungfuUpdateCluster(token *C.char, exist *C.char) int {
+	*exist = boolToChar(kungfu.UpdateSession(C.GoString(token)))
 	return 0
 }
 
@@ -220,9 +230,9 @@ func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer
 	}
 }
 
-func boolToInt(v bool) C.int {
+func boolToChar(v bool) C.char {
 	if v {
-		return C.int(1)
+		return C.char(1)
 	}
-	return C.int(0)
+	return C.char(0)
 }
