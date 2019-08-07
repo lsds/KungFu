@@ -15,7 +15,8 @@ const (
 	ClusterSpecEnvKey   = `KUNGFU_CLUSTER_SPEC`
 	HostSpecEnvKey      = `KUNGFU_HOST_SPEC`
 	SelfSpecEnvKey      = `KUNGFU_SELF_SPEC` // self spec should never change during the life of a process
-	AllReduceAlgoEnvKey = `KUNGFU_ALLREDUCE_ALGO`
+	InitSessEnvKey      = `KUNGFU_INIT_SESS`
+	AllReduceAlgoEnvKey = `KUNGFU_ALLREDUCE_ALGO` // FIXME: remove it
 )
 
 type KungFu_Datatype C.KungFu_Datatype

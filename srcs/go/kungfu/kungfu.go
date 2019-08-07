@@ -2,6 +2,7 @@ package kungfu
 
 import (
 	"errors"
+	"os"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -27,7 +28,7 @@ func (c Config) complete() Config {
 type Kungfu struct {
 	sync.Mutex
 
-	configClient   *configClient
+	configClient   *ConfigClient
 	self           *plan.PeerSpec
 	currentSession *session
 	router         *rch.Router
@@ -37,7 +38,7 @@ type Kungfu struct {
 }
 
 func New(config Config) (*Kungfu, error) {
-	configClient, err := newConfigClient()
+	configClient, err := NewDefaultConfigClient()
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func (kf *Kungfu) Close() int {
 func (kf *Kungfu) ProposeUpdate(token string, newSize int) {
 	log.Infof("Kungfu::ProposeUpdate with (%q, %d)", token, newSize)
 	var hostSpecs []plan.HostSpec
-	if err := kf.configClient.getConfig("", kb.HostSpecEnvKey, &hostSpecs); err != nil {
+	if err := kf.configClient.GetConfig("", kb.HostSpecEnvKey, &hostSpecs); err != nil {
 		log.Errorf("failed to get %s: %v", kb.HostSpecEnvKey, err)
 		return
 	}
@@ -100,7 +101,7 @@ func (kf *Kungfu) ProposeUpdate(token string, newSize int) {
 		log.Errorf("failed to generate new cluster spec: %v", err)
 		return
 	}
-	if err := kf.configClient.putConfig(token, kb.ClusterSpecEnvKey, cs); err != nil {
+	if err := kf.configClient.PutConfig(token, kb.ClusterSpecEnvKey, cs); err != nil {
 		log.Errorf("failed to write config: %v", err)
 	}
 }
@@ -111,7 +112,8 @@ func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
-		if exist := kf.updateSession(""); !exist {
+		initSession := os.Getenv(kb.InitSessEnvKey)
+		if exist := kf.updateSession(initSession); !exist {
 			utils.ExitErr(errSelfNotInCluster)
 		}
 	}
@@ -127,7 +129,7 @@ func (kf *Kungfu) UpdateSession(token string) bool {
 func (kf *Kungfu) updateSession(token string) bool {
 	log.Infof("Kungfu::updateSession with token %q", token)
 	var cs plan.ClusterSpec
-	if err := kf.configClient.getConfig(token, kb.ClusterSpecEnvKey, &cs); err != nil {
+	if err := kf.configClient.GetConfig(token, kb.ClusterSpecEnvKey, &cs); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
 		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
 		// utils.ExitErr(err)

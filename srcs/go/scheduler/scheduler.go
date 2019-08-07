@@ -17,6 +17,23 @@ type JobConfig struct {
 	Args      []string
 }
 
+func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.PeerSpec) Proc {
+	configEnvs := getConfigEnvs()
+	envs := Envs{
+		kb.SelfSpecEnvKey:      peer.String(),
+		`CUDA_VISIBLE_DEVICES`: strconv.Itoa(peer.DeviceID),
+		`PYTHONUNBUFFERED`:     `1`,
+	}
+	return Proc{
+		Name: name,
+		Prog: prog,
+		Args: args,
+		Envs: merge(merge(configEnvs, envs), extraEnvs),
+		Host: peer.NetAddr.Host,
+		// PubAddr: pubAddr[self.NetAddr.Host],
+	}
+}
+
 func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr string) ([]Proc, *plan.ClusterSpec, error) {
 	hostSpecs, err := plan.ParseHostSpec(jc.HostList)
 	if err != nil {
@@ -38,7 +55,7 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 			kb.ClusterSpecEnvKey:    cs.String(),     // TODO: remove it
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
-			kb.AllReduceAlgoEnvKey:  algo.String(),
+			kb.AllReduceAlgoEnvKey:  algo.String(), // FIXME: remove it
 			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(self.DeviceID),
 			`PYTHONUNBUFFERED`:      `1`,
 			// TODO: add LD_PRELOAD to tcmalloc path

@@ -31,6 +31,8 @@ var (
 	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
 
 	configServerPort = flag.Int("config-server-port", 0, "will run config server on this port if not zero")
+	watch            = flag.Bool("w", false, "watch config")
+	keep             = flag.Bool("k", false, "don't stop watch")
 )
 
 func init() {
@@ -82,17 +84,38 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
+
+	configClient, err := kf.NewConfigClient(configServerAddr)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+
+	var updated chan string
+
+	if *configServerPort > 0 {
+		updated = make(chan string, 1)
+		go runConfigServer(configServerAddr, updated)
+		log.Printf("config server running at %s", configServerAddr)
+	}
+
+	if err := initConfig(configClient, configServerAddr, hostSpecs, cs); err != nil {
+		utils.ExitErr(err)
+	}
+
+	if *watch {
+		watchRun(configClient, updated, prog, args, configServerAddr)
+	} else {
+		simpleRun(selfIP, ps, prog, args)
+	}
+}
+
+func simpleRun(selfIP string, ps []sch.Proc, prog string, args []string) {
 	myPs := sch.ForHost(selfIP, ps)
 	if len(myPs) <= 0 {
 		log.Print("No task to run on this node")
 		return
 	}
 	log.Printf("will parallel run %d instances of %s with %q", len(myPs), prog, args)
-
-	if *configServerPort > 0 {
-		go runConfigServer(configServerAddr, hostSpecs, cs)
-		log.Printf("config server running at %s", configServerAddr)
-	}
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
@@ -132,10 +155,21 @@ func inferIP(nicName string) string {
 	return "127.0.0.1"
 }
 
-func runConfigServer(addr string, hostSpecs []plan.HostSpec, cs *plan.ClusterSpec) {
+func runConfigServer(addr string, updated chan string) {
 	server := http.Server{
 		Addr:    addr,
-		Handler: kf.NewConfigServer(hostSpecs, cs),
+		Handler: kf.NewConfigServer(updated),
 	}
 	server.ListenAndServe()
+}
+
+func initConfig(c *kf.ConfigClient, configServerAddr string, hostSpecs []plan.HostSpec, cs *plan.ClusterSpec) error {
+	const initToken = ""
+	if err := c.PutConfig(initToken, kb.HostSpecEnvKey, hostSpecs); err != nil {
+		return err
+	}
+	if err := c.PutConfig(initToken, kb.ClusterSpecEnvKey, cs); err != nil {
+		return err
+	}
+	return nil
 }
