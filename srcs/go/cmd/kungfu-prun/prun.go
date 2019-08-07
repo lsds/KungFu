@@ -75,8 +75,10 @@ func main() {
 		Args:      args,
 	}
 
+	useConfigServer := *configServerPort > 0
+
 	var configServerAddr string
-	if *configServerPort > 0 {
+	if useConfigServer {
 		configServerAddr = net.JoinHostPort("127.0.0.1", strconv.Itoa(*configServerPort))
 	}
 
@@ -92,14 +94,13 @@ func main() {
 
 	var updated chan string
 
-	if *configServerPort > 0 {
+	if useConfigServer {
 		updated = make(chan string, 1)
 		go runConfigServer(configServerAddr, updated)
 		log.Printf("config server running at %s", configServerAddr)
-	}
-
-	if err := initConfig(configClient, configServerAddr, hostSpecs, cs); err != nil {
-		utils.ExitErr(err)
+		if err := initConfig(configClient, configServerAddr, hostSpecs, cs); err != nil {
+			utils.ExitErr(err)
+		}
 	}
 
 	if *watch {
