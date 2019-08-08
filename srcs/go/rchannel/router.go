@@ -44,6 +44,10 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 	return newChannel(a.Name, conn), nil
 }
 
+func (r *Router) ResetConnections() {
+	r.connPool.reset()
+}
+
 // Request sends request name to given Addr
 func (r *Router) Request(a plan.Addr, buf *kb.Buffer) error {
 	ch, err := r.getChannel(a, ConnPeerToPeer)

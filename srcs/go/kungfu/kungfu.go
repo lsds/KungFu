@@ -102,7 +102,7 @@ func (kf *Kungfu) ProposeUpdate(token string, newSize int) {
 		return
 	}
 	if err := kf.configClient.PutConfig(token, kb.ClusterSpecEnvKey, cs); err != nil {
-		log.Errorf("failed to write config: %v", err)
+		log.Warnf("failed to write config: %v", err)
 	}
 }
 
@@ -135,6 +135,7 @@ func (kf *Kungfu) updateSession(token string) bool {
 		// utils.ExitErr(err)
 	}
 	log.Infof("creating session of %d peers", len(cs.Peers))
+	kf.router.ResetConnections()
 	sess, exist, err := newSession(kf.config, kf.self, &cs, kf.router)
 	if !exist {
 		return false
@@ -142,6 +143,7 @@ func (kf *Kungfu) updateSession(token string) bool {
 	if err != nil {
 		utils.ExitErr(err)
 	}
+	log.Infof("updating session to %d peers", len(cs.Peers))
 	kf.currentSession = sess
 	return true
 }
