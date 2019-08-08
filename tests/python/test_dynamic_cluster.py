@@ -5,7 +5,7 @@ import tensorflow as tf
 from kungfu.ops import update_cluster, barrier, all_reduce, propose_update
 
 init_sess = os.getenv('KUNGFU_INIT_SESS')
-init_gs = int(init_sess) if init_sess else 0
+init_gs = int(init_sess)
 
 gs = tf.Variable(tf.constant(init_gs, dtype=tf.int64))
 inc_gs = tf.assign_add(gs, 1)

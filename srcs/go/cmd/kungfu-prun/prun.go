@@ -165,7 +165,7 @@ func runConfigServer(addr string, updated chan string) {
 }
 
 func initConfig(c *kf.ConfigClient, configServerAddr string, hostSpecs []plan.HostSpec, cs *plan.ClusterSpec) error {
-	const initToken = ""
+	const initToken = "0"
 	if err := c.PutConfig(initToken, kb.HostSpecEnvKey, hostSpecs); err != nil {
 		return err
 	}

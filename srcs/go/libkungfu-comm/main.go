@@ -187,9 +187,9 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 }
 
 //export GoKungfuProposeUpdate
-func GoKungfuProposeUpdate(token *C.char, newSize int, result *C.char) int {
+func GoKungfuProposeUpdate(token *C.char, newSize int, accepted *C.char) int {
 	ok := true // FIXME: compute ok by all reduce
-	*result = boolToChar(ok)
+	*accepted = boolToChar(ok)
 	if ok {
 		kungfu.ProposeUpdate(C.GoString(token), newSize)
 	}

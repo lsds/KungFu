@@ -91,7 +91,7 @@ func (kf *Kungfu) Close() int {
 func (kf *Kungfu) ProposeUpdate(token string, newSize int) {
 	log.Infof("Kungfu::ProposeUpdate with (%q, %d)", token, newSize)
 	var hostSpecs []plan.HostSpec
-	if err := kf.configClient.GetConfig("", kb.HostSpecEnvKey, &hostSpecs); err != nil {
+	if err := kf.configClient.GetConfig("0", kb.HostSpecEnvKey, &hostSpecs); err != nil {
 		log.Errorf("failed to get %s: %v", kb.HostSpecEnvKey, err)
 		return
 	}

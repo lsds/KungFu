@@ -9,8 +9,8 @@ REGISTER_OP("KungfuProposeUpdate")
     // must be greater than the current global step
     .Input("target_global_step: int64")
     .Input("new_cluster_size: int32")
-    .Output("output: bool")  // indicates if the proposal is accepted
-    ;
+    // indicates if the proposal is accepted
+    .Output("accepted: bool");
 
 class KungfuProposeUpdate : public AsyncOpKernel
 {
@@ -24,7 +24,7 @@ class KungfuProposeUpdate : public AsyncOpKernel
         Tensor *output         = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &output));
-        std::string token = std::to_string(gs);
+        const std::string token = std::to_string(gs);
         _kungfu_world->ProposeUpdate(token.c_str(), new_size,
                                      output->scalar<bool>().data());
         done();
@@ -35,9 +35,10 @@ REGISTER_KERNEL_BUILDER(Name("KungfuProposeUpdate").Device(DEVICE_CPU),
                         KungfuProposeUpdate);
 
 REGISTER_OP("KungfuUpdateCluster")
-    .Input("input: int64")   // the current global step
-    .Output("output: bool")  // peer should quit if output is false
-    ;
+    .Input("input: int64")  // the current global step
+    // indicates if self is still in cluster,
+    // peer should quit if exist is false
+    .Output("exist: bool");
 
 class KungfuUpdateCluster : public AsyncOpKernel
 {
@@ -50,7 +51,7 @@ class KungfuUpdateCluster : public AsyncOpKernel
         Tensor *output   = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &output));
-        std::string token = std::to_string(gs);
+        const std::string token = std::to_string(gs);
         _kungfu_world->UpdateCluster(token.c_str(),
                                      output->scalar<bool>().data());
         done();
