@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
+
+	"github.com/lsds/KungFu/srcs/go/utils"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -208,16 +209,18 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	}
 
 	var recvCount int
-	sendTo := func(peer plan.PeerSpec) {
-		if recvCount == 0 {
-			sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective)
-		} else {
-			sess.router.Send(peer.NetAddr.WithName(w.Name), w.RecvBuf.Data, rch.ConnCollective)
-		}
+	sendTo := func(peer plan.PeerSpec) error {
+		data := func() []byte {
+			if recvCount == 0 {
+				return w.SendBuf.Data
+			}
+			return w.RecvBuf.Data
+		}()
+		return sess.router.Send(peer.NetAddr.WithName(w.Name), data, rch.ConnCollective)
 	}
 
 	var lock sync.Mutex
-	recvOnto := func(peer plan.PeerSpec) {
+	recvOnto := func(peer plan.PeerSpec) error {
 		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
 		b := &kb.Buffer{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
@@ -228,6 +231,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			kb.Transform(w.RecvBuf, b, w.OP)
 		}
 		recvCount++
+		return nil
 	}
 
 	recvInto := func(peer plan.PeerSpec) {
@@ -237,16 +241,18 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		recvCount++
 	}
 
-	par := func(ranks []int, op func(plan.PeerSpec)) {
+	par := func(ranks []int, op func(plan.PeerSpec) error) error {
+		errs := make([]error, len(ranks))
 		var wg sync.WaitGroup
-		for _, rank := range ranks {
+		for i, rank := range ranks {
 			wg.Add(1)
-			go func(rank int) {
-				op(sess.cluster.Peers[rank])
+			go func(i, rank int) {
+				errs[i] = op(sess.cluster.Peers[rank])
 				wg.Done()
-			}(rank)
+			}(i, rank)
 		}
 		wg.Wait()
+		return mergeErrors(errs, "par")
 	}
 
 	seq := func(ranks []int, op func(plan.PeerSpec)) {
@@ -258,7 +264,9 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	for _, g := range graphs {
 		prevs := g.Prevs(sess.myRank)
 		if g.IsSelfLoop(sess.myRank) {
-			par(prevs, recvOnto)
+			if err := par(prevs, recvOnto); err != nil {
+				return err
+			}
 		} else {
 			if len(prevs) > 1 {
 				log.Errorf("more than once recvInto detected at node %d", sess.myRank)
@@ -269,29 +277,25 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 				seq(prevs, recvInto) // len(prevs) == 1 is expected
 			}
 		}
-		par(g.Nexts(sess.myRank), sendTo)
+		if err := par(g.Nexts(sess.myRank), sendTo); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []strategy) error {
+	errs := make([]error, len(strategies))
 	var wg sync.WaitGroup
-	var failed int32
 	for i, w := range w.split(p, len(strategies)) {
 		wg.Add(1)
 		go func(i int, w Workspace, s strategy) {
-			if err := sess.runGraphs(w, s.reduceGraph, s.bcastGraph); err != nil {
-				log.Warnf("partition %d failed: %v", i, err)
-				atomic.AddInt32(&failed, 1)
-			}
+			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			wg.Done()
 		}(i, w, strategies[i])
 	}
 	wg.Wait()
-	if failed > 0 {
-		return fmt.Errorf("%d strategies amoung %d failed", failed, len(strategies))
-	}
-	return nil
+	return mergeErrors(errs, "runStrategies")
 }
 
 var (
@@ -302,6 +306,25 @@ func code(err error) int {
 	if err == nil {
 		return 0
 	}
+	log.Errorf("kungfu operation failed: %v", err)
 	// TODO: https://www.open-mpi.org/doc/v3.1/man3/MPI.3.php#sect4
 	return 1
+}
+
+func mergeErrors(errs []error, hint string) error {
+	var msg string
+	var failed int
+	for _, e := range errs {
+		if e != nil {
+			failed++
+			if len(msg) > 0 {
+				msg += ", "
+			}
+			msg += e.Error()
+		}
+	}
+	if failed == 0 {
+		return nil
+	}
+	return fmt.Errorf("%s failed with %d %s: %s", hint, failed, utils.Pluralize(failed, "error", "errors"), msg)
 }

@@ -3,7 +3,6 @@ package rchannel
 import (
 	"fmt"
 	"net"
-	"os"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -74,12 +73,7 @@ func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
 		Data:   buf,
 	}
 	if err := r.send(a, msg, t); err != nil {
-		log.Errorf("Router::Send failed: %v", err)
-		// TODO: retry
-		if t == ConnCollective {
-			os.Exit(1)
-		}
-		// return err
+		return err
 	}
 	r.monitor.Egress(int64(msg.Length), a.NetAddr())
 	return nil
