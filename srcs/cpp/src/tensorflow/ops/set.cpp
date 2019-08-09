@@ -10,9 +10,6 @@ template <typename T> class has_member_t
 {
     bool f(const T *begin, const T *end, const T &e) const
     {
-        std::cerr << "looking up " << e << " in {";
-        for (const T *p = begin; p < end; ++p) { std::cerr << *p << " "; }
-        std::cerr << "}" << std::endl;
         for (const T *p = begin; p < end; ++p) {
             if (*p == e) { return true; }
         }
@@ -63,7 +60,6 @@ class HasMember : public OpKernel
         output->scalar<bool>()() =
             has_member(list.tensor_data().data(), list.NumElements(),
                        element.tensor_data().data(), list.dtype());
-        std::cout << "Result: " << output->scalar<bool>()() << std::endl;
     }
 };
 
