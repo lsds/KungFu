@@ -207,6 +207,11 @@ def global_variance(t):
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
+_to_gs = lambda epoch, batch_size, num_train: int(epoch * num_train /
+                              (batch_size * _get_num_peers()))
+
+def to_steps(epochs, batch_size, num_train):
+    return [_to_gs(epoch, batch_size, num_train) for epoch in epochs]
 
 def _parse_schedule(schedule, batch_size, num_train):
     # schedule is of the form
@@ -214,9 +219,7 @@ def _parse_schedule(schedule, batch_size, num_train):
     tokens = schedule.split(",")
     print("Num train: " + str(num_train))
     print("Batch size: " + str(batch_size))
-    to_gs = lambda epoch: int(epoch * num_train /
-                              (batch_size * _get_num_peers()))
-    pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
+    pairs = [(_to_gs(int(t.split(":")[0]), batch_size, num_train), float(t.split(":")[1]))
              for t in tokens]
     steps, fractions = zip(*pairs)
 

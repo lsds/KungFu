@@ -3,7 +3,7 @@ from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
 from kungfu.ops import (barrier, broadcast, get_neighbour_mask,
                         get_peer_latencies, global_minimum_spanning_tree,
                         model_averaging, request, request_model, round_robin,
-                        save_model, save_variables)
+                        save_model, save_variables, to_steps)
 
 from .core import KungFuOptimizer
 
@@ -83,7 +83,7 @@ class ModelAveragingOptimizer(KungFuOptimizer):
 
 class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that changes the topology dynamically."""
-    def __init__(self, optimizer, name=None, use_locking=False, interval=5):
+    def __init__(self, optimizer, batch_size, num_train, name=None, use_locking=False, mst_rebuild_epochs=None):
         super(AdaptiveModelAveragingOptimizer,
               self).__init__(optimizer, name, use_locking)
 
@@ -105,8 +105,21 @@ class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
             return tf.assign(neighbour_mask, new_mask)
 
         def _cond():
-            return tf.equal(
-                tf.mod(local_step, tf.constant(interval, dtype=tf.int64)), 0)
+            if mst_rebuild_epochs is None:
+                return tf.constant(False)
+            else:
+                mst_rebuild_steps = to_steps([int(e) for e in mst_rebuild_epochs.split(',')], batch_size, num_train)
+                print("DBG> MST rebuild steps: " + str(mst_rebuild_steps))
+                mst_rebuild_index = tf.Variable(tf.zeros([], dtype=tf.int64), trainable=False)
+                inc_mst_rebuild_index = tf.assign_add(mst_rebuild_index, 1)
+
+                eq_op = tf.equal(local_step, tf.cast(tf.gather(mst_rebuild_steps, mst_rebuild_index), dtype=tf.int64))
+
+                def _rebuild():
+                    with tf.control_dependencies([inc_mst_rebuild_index]):
+                        return eq_op
+
+                return tf.cond(eq_op, _rebuild, lambda: eq_op)
 
         with tf.control_dependencies([inc_local_step]):
             self._adapt_op = tf.cond(_cond(), _update_mask, tf.no_op)
