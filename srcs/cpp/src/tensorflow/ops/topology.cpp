@@ -109,6 +109,7 @@ class GetNeighbourMask : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
+        LOG(INFO) << "Rebuilding MST";
         const auto edges = context->input(0).matrix<int32_t>();
         Tensor *mask     = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(

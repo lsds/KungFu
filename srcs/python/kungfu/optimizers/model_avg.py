@@ -109,9 +109,13 @@ class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
                 return tf.constant(False)
             else:
                 mst_rebuild_steps = to_steps([float(e) for e in mst_rebuild_epochs.split(',')], batch_size, num_train)
-                mst_rebuild_steps = tf.constant(mst_rebuild_steps, dtype=tf.int64)
+                
+                def _normalise_steps(steps):
+                    steps[0] = 1
+                    steps_tensor = tf.constant(steps, dtype=tf.int64)
+                    return steps_tensor
 
-                return has_member(mst_rebuild_steps, local_step)
+                return has_member(_normalise_steps(mst_rebuild_steps), local_step)
 
         with tf.control_dependencies([inc_local_step]):
             self._adapt_op = tf.cond(_cond(), _update_mask, tf.no_op)
