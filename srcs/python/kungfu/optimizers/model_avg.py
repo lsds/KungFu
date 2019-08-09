@@ -3,7 +3,7 @@ from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
 from kungfu.ops import (barrier, broadcast, get_neighbour_mask,
                         get_peer_latencies, global_minimum_spanning_tree,
                         model_averaging, request, request_model, round_robin,
-                        save_model, save_variables, to_steps)
+                        save_model, save_variables, to_steps, has_member)
 
 from .core import KungFuOptimizer
 
@@ -108,18 +108,10 @@ class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
             if mst_rebuild_epochs is None:
                 return tf.constant(False)
             else:
-                mst_rebuild_steps = to_steps([int(e) for e in mst_rebuild_epochs.split(',')], batch_size, num_train)
-                print("DBG> MST rebuild steps: " + str(mst_rebuild_steps))
-                mst_rebuild_index = tf.Variable(tf.zeros([], dtype=tf.int64), trainable=False)
-                inc_mst_rebuild_index = tf.assign_add(mst_rebuild_index, 1)
+                mst_rebuild_steps = to_steps([float(e) for e in mst_rebuild_epochs.split(',')], batch_size, num_train)
+                mst_rebuild_steps = tf.constant(mst_rebuild_steps, dtype=tf.int64)
 
-                eq_op = tf.equal(local_step, tf.cast(tf.gather(mst_rebuild_steps, mst_rebuild_index), dtype=tf.int64))
-
-                def _advance_rebuild_index():
-                    with tf.control_dependencies([inc_mst_rebuild_index]):
-                        return eq_op
-
-                return tf.cond(eq_op, _advance_rebuild_index, lambda: eq_op)
+                return has_member(mst_rebuild_steps, local_step)
 
         with tf.control_dependencies([inc_local_step]):
             self._adapt_op = tf.cond(_cond(), _update_mask, tf.no_op)

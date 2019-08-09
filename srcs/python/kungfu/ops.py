@@ -203,12 +203,14 @@ def all_reduce_gpu(t):
 def global_variance(t):
     return _op_lib.global_variance(t)
 
+def has_member(elems, elem):
+    return _op_lib.has_member(elems, elem)
 
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
-_to_gs = lambda epoch, batch_size, num_train: int(epoch * num_train /
-                              (batch_size * _get_num_peers()))
+def _to_gs(epoch, batch_size, num_train):
+    return (epoch * num_train / (batch_size * _get_num_peers()))
 
 def to_steps(epochs, batch_size, num_train):
     return [_to_gs(epoch, batch_size, num_train) for epoch in epochs]

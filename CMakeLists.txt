@@ -54,6 +54,7 @@ IF(KUNGFU_BUILD_TF_OPS)
                   srcs/cpp/src/tensorflow/ops/p2p_new.cpp
                   srcs/cpp/src/tensorflow/ops/peer_to_peer.cpp
                   srcs/cpp/src/tensorflow/ops/topology.cpp
+                  srcs/cpp/src/tensorflow/ops/set.cpp
                   # END sort
                   )
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
