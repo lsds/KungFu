@@ -115,11 +115,11 @@ class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
 
                 eq_op = tf.equal(local_step, tf.cast(tf.gather(mst_rebuild_steps, mst_rebuild_index), dtype=tf.int64))
 
-                def _rebuild():
+                def _advance_rebuild_index():
                     with tf.control_dependencies([inc_mst_rebuild_index]):
                         return eq_op
 
-                return tf.cond(eq_op, _rebuild, lambda: eq_op)
+                return tf.cond(eq_op, _advance_rebuild_index, lambda: eq_op)
 
         with tf.control_dependencies([inc_local_step]):
             self._adapt_op = tf.cond(_cond(), _update_mask, tf.no_op)
