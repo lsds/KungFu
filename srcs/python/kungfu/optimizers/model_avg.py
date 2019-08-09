@@ -109,7 +109,8 @@ class AdaptiveModelAveragingOptimizer(KungFuOptimizer):
                 return tf.constant(False)
             else:
                 mst_rebuild_steps = to_steps([float(e) for e in mst_rebuild_epochs.split(',')], batch_size, num_train)
-                
+                print("The MST rebuild steps are: " + str(mst_rebuild_steps))
+
                 def _normalise_steps(steps):
                     steps[0] = 1
                     steps_tensor = tf.constant(steps, dtype=tf.int64)

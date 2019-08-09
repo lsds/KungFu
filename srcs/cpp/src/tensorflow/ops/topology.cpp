@@ -6,6 +6,8 @@
 #include <kungfu/mst.hpp>
 #include <kungfu_tensorflow_ops.h>
 
+#include <iomanip>
+
 namespace tensorflow
 {
 REGISTER_OP("KungfuGetPeerLatencies")
@@ -39,6 +41,12 @@ class GetPeerLatencies : public AsyncOpKernel
         _kungfu_world->GetPeerLatencies(
             const_cast<float *>(latencies->vec<float>().data()),
             latencies->NumElements());
+        const auto latencies_iterable = latencies->vec<float>();
+        std::cout << "The latencies are: " << std::endl;
+        for(int i = 0; i < latencies_iterable.size(); i++) {
+            std::cout << std::setprecision(3) << latencies_iterable(i) / 10e6 << " ";
+        }
+        std::cout << std::endl;
         done();
     }
 };
@@ -117,9 +125,11 @@ class GetNeighbourMask : public OpKernel
         bool *m = const_cast<bool *>(mask->vec<bool>().data());
         std::fill(m, m + size_, false);
         // FIXME: check shape of edges is [size_ - 1, 2]
+        std::cout << "The MST is:" << std::endl;
         for (int i = 0; i < size_ - 1; ++i) {
             const int u = edges(i, 0);
             const int v = edges(i, 1);
+            std::cout << "edge: " << "(" << u << ", " << v << ")" << std::endl;
             if (u == self_) { m[v] = true; }
             if (v == self_) { m[u] = true; }
         }
