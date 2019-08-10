@@ -31,6 +31,9 @@ func GetSelfFromEnv() (*PeerSpec, error) {
 }
 
 func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
+	if k == 0 {
+		return nil
+	}
 	var peers []PeerSpec
 	for _, host := range hostSpecs {
 		for j := 0; j < host.Slots; j++ {
