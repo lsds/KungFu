@@ -1,2 +1,3 @@
 from .model_avg import AdaptiveModelAveragingOptimizer, ModelAveragingOptimizer
 from .sync_sgd import MonSyncSGDOptimizer, SyncSGDOptimizer
+from .sma import SynchronousModelAveragingOptimizer
