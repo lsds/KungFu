@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -50,6 +51,32 @@ func (c *ConfigClient) makeRequest(method string, u url.URL, body io.Reader) (*h
 	}
 	req.Header.Add("x-kungfu-peer", os.Getenv(kb.SelfSpecEnvKey))
 	return req, nil
+}
+
+func (c *ConfigClient) GetNextVersion(n int) (int, string, error) {
+	u := url.URL{
+		Scheme: `http`,
+		Host:   c.endpoint,
+		Path:   fmt.Sprintf(`/versions/next/%d`, n),
+	}
+	req, err := c.makeRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return -1, "", err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return -1, "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return -1, "", errors.New(resp.Status)
+	}
+	var v Version
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+
+		return -1, "", err
+	}
+	return v.ID, v.Version, nil
 }
 
 func (c *ConfigClient) GetConfig(version, name string, i interface{}) error {

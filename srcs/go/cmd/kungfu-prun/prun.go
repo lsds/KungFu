@@ -30,8 +30,10 @@ var (
 	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
 	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
 
+	configServerHost = flag.String("config-server-host", "127.0.0.1", "host of config server")
 	configServerPort = flag.Int("config-server-port", 0, "will run config server on this port if not zero")
 	watch            = flag.Bool("w", false, "watch config")
+	watchPeriod      = flag.Duration("watch-period", 500*time.Millisecond, "")
 	keep             = flag.Bool("k", false, "don't stop watch")
 )
 
@@ -79,7 +81,7 @@ func main() {
 
 	var configServerAddr string
 	if useConfigServer {
-		configServerAddr = net.JoinHostPort("127.0.0.1", strconv.Itoa(*configServerPort))
+		configServerAddr = net.JoinHostPort(*configServerHost, strconv.Itoa(*configServerPort))
 	}
 
 	ps, cs, err := jc.CreateProcs(kb.ParseAlgo(*algo), configServerAddr)
@@ -96,7 +98,12 @@ func main() {
 
 	if useConfigServer {
 		updated = make(chan string, 1)
-		go runConfigServer(configServerAddr, updated)
+		go watchConfigServer(configClient, updated)
+		go runConfigServer(configServerAddr, nil)
+
+		// updated = make(chan string, 1)
+		// go runConfigServer(configServerAddr, updated)
+
 		log.Printf("config server running at %s", configServerAddr)
 		if err := initConfig(configClient, configServerAddr, hostSpecs, cs); err != nil {
 			utils.ExitErr(err)

@@ -2,9 +2,11 @@ package kungfu
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -13,9 +15,11 @@ type config struct {
 }
 
 type configServer struct {
-	mu       sync.RWMutex
-	updated  chan string
-	versions map[string]*config
+	mu      sync.RWMutex
+	updated chan string
+
+	versionList []string
+	versions    map[string]*config
 }
 
 func NewConfigServer(updated chan string) http.Handler {
@@ -28,6 +32,10 @@ func NewConfigServer(updated chan string) http.Handler {
 func (cs *configServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	peer := req.Header.Get("x-kungfu-peer")
 	log.Printf("%s %s %s from %s @ %s", req.Method, req.URL.Path, req.URL.RawQuery, peer, req.RemoteAddr)
+	if strings.HasPrefix(req.URL.Path, "/versions/next/") {
+		cs.handleGetNextVersion(w, req)
+		return
+	}
 	switch req.Method {
 	case http.MethodGet:
 		cs.handleReadConfig(w, req)
@@ -38,6 +46,39 @@ func (cs *configServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	default:
 		http.Error(w, "", http.StatusMethodNotAllowed)
 	}
+}
+
+type Version struct {
+	Version string
+	ID      int
+}
+
+func (cs *configServer) handleGetNextVersion(w http.ResponseWriter, req *http.Request) {
+	cs.mu.RLock()
+	defer cs.mu.RUnlock()
+	l := len(cs.versionList)
+	if l == 0 {
+		http.NotFound(w, req)
+		return
+	}
+	var n int
+	if _, err := fmt.Sscanf(req.URL.Path, "/versions/next/%d", &n); err != nil {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+	n++
+	if n < 0 {
+		n = 0
+	}
+	if n >= l {
+		http.NotFound(w, req)
+		return
+	}
+	resp := Version{
+		Version: cs.versionList[n],
+		ID:      n,
+	}
+	json.NewEncoder(w).Encode(resp)
 }
 
 func (cs *configServer) handleReadConfig(w http.ResponseWriter, req *http.Request) {
@@ -84,8 +125,11 @@ func (cs *configServer) handleWriteConfig(w http.ResponseWriter, req *http.Reque
 		return
 	}
 	cfg.values[name] = value
-	if name == `KUNGFU_CLUSTER_SPEC` && cs.updated != nil {
-		cs.updated <- version
+	if name == `KUNGFU_CLUSTER_SPEC` {
+		cs.versionList = append(cs.versionList, version)
+		if cs.updated != nil {
+			cs.updated <- version
+		}
 	}
 	w.WriteHeader(http.StatusCreated)
 }

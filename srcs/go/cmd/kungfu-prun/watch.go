@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -15,7 +16,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-type peerList map[string]struct{}
+type peerList map[string]plan.PeerSpec
 
 func watchRun(c *kf.ConfigClient, updated chan string, prog string, args []string, configServerAddr string) {
 	log.Printf("watching config server")
@@ -56,10 +57,28 @@ func watchRun(c *kf.ConfigClient, updated chan string, prog string, args []strin
 	wg.Wait()
 }
 
+func watchConfigServer(configClient *kf.ConfigClient, newVersion chan string) {
+	tk := time.NewTicker(1 * time.Second)
+	defer tk.Stop()
+
+	n := -1
+	for range tk.C {
+		id, version, err := configClient.GetNextVersion(n)
+		if err != nil {
+			log.Printf("configClient.GetLatestVersion failed: %v", err)
+			continue
+		}
+		if id != n {
+			n = id
+			newVersion <- version
+		}
+	}
+}
+
 func makePeerList(cs plan.ClusterSpec) peerList {
 	pl := make(peerList)
 	for _, peer := range cs.Peers {
-		pl[peer.NetAddr.String()] = struct{}{}
+		pl[peer.NetAddr.String()] = peer
 	}
 	return pl
 }
