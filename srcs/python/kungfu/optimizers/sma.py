@@ -7,20 +7,23 @@ from .core import KungFuOptimizer
 
 class SynchronousModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-    def __init__(self, optimizer, name=None, use_locking=False, alpha=0.5, mu=0.5):
+    def __init__(self, optimizer, name=None, use_locking=False, mu=0.5):
         super(SynchronousModelAveragingOptimizer, self).__init__(optimizer, name, use_locking)
 
-        self.alpha = alpha
+        self.alpha = 1.0 / float(_get_num_peers())
         self.mu = mu
 
         self.prev_global_average_variables = [
-            tf.Variable(tf.zeros(v.shape, dtype=tf.float32), trainable=False) for v in tf.trainable_variables()
-        ]
-        self.global_average_variables = [
-            tf.Variable(shape=v.shape, trainable=False) for v in tf.trainable_variables()
+            tf.Variable(tf.zeros(shape=v.shape, dtype=tf.float32), trainable=False) for v in tf.trainable_variables()
         ]
 
-        self.z_prime = [tf.Variable(shape=z.shape, dtype=z.dtype, trainable=False) for z in self.global_average_variables]
+        self.global_average_variables = [
+            tf.Variable(tf.zeros(shape=v.shape, dtype=tf.float32), trainable=False) for v in tf.trainable_variables()
+        ]
+
+        self.z_prime = [
+            tf.Variable(tf.zeros(shape=z.shape, dtype=tf.float32), trainable=False) for z in self.global_average_variables
+        ]
 
 
     @staticmethod
@@ -44,10 +47,8 @@ class SynchronousModelAveragingOptimizer(KungFuOptimizer):
         gradients, variables = zip(*grads_and_vars)
 
         # c_j
-        gradient_corrections = [alpha * (v -  z) for (v, z) in zip(variables, self.global_average_variables)]
+        gradient_corrections = [self.alpha * (v -  z) for (v, z) in zip(variables, self.global_average_variables)]
         corrected_gradients = [g - c for (g, c) in zip(gradients, gradient_corrections)]
-
-
 
         corrections_sum = group_all_reduce(gradient_corrections)
 
@@ -64,7 +65,9 @@ class SynchronousModelAveragingOptimizer(KungFuOptimizer):
         with tf.control_dependencies(corrections_sum):
             with tf.control_dependencies(z_prime_assign_ops):
                 with tf.control_dependencies(update_global_average_model):
-                    with tf.control_dependencies([z_prev_assign_ops]):
+                    with tf.control_dependencies(z_prev_assign_ops):
                          return self._optimizer.apply_gradients(list(zip(corrected_gradients, variables)), **kwargs)
 
 
+    def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
+            return grads_and_vars_to_negotiate

@@ -87,7 +87,7 @@ def LeNet5(x):
     return logits
 
 
-def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
+def build_train_ops(kungfu_strategy, sma_momentum, device_batch_size):
     # Parameters
     learning_rate = 0.01
     training_epochs = 25
@@ -111,6 +111,10 @@ def build_train_ops(kungfu_strategy, ako_partitions, device_batch_size):
         from kungfu.optimizers import ModelAveragingOptimizer
         print("Using ModelAveragingOptimizer")
         optimizer = ModelAveragingOptimizer(optimizer)
+    elif kungfu_strategy == 'sma':
+        from kungfu.optimizers import SynchronousModelAveragingOptimizer
+        print("Using SynchronousModelAveragingOptimizer")
+        optimizer = SynchronousModelAveragingOptimizer(optimizer, mu=sma_momentum)
     else:
         from kungfu.optimizers import SyncSGDOptimizer
         print("Using SyncSGDOptimizer")
@@ -135,6 +139,9 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, n_batches, batch_size,
         if kungfu_strategy == 'p2p':
             from kungfu.optimizers import ModelAveragingOptimizer
             initializer = ModelAveragingOptimizer.get_initializer()
+        elif kungfu_strategy == 'sma':
+            from kungfu.optimizers import SynchronousModelAveraging
+            initializer = SynchronousModelAveraging.get_initializer()
         else:
             initializer = kf.distributed_variables_initializer()
 
@@ -221,10 +228,10 @@ def parse_args():
         help=
         'Specify KungFu strategy: \'sync_sgd\' or \'p2p\' if --use-kungfu flag is set'
     )
-    parser.add_argument('--ako-partitions',
-                        type=int,
-                        default=1,
-                        help='number of ako partitions')
+    parser.add_argument('--sma-momentum',
+                    type=float,
+                    default=0.5,
+                    help='Synchronous Model Averaging momentum')
     parser.add_argument('--n-epochs',
                         type=int,
                         default=1,
@@ -237,7 +244,7 @@ def parse_args():
                         type=int,
                         default=50,
                         help='batch size')
-    parser.add_argument('---val-accuracy-target',
+    parser.add_argument('--val-accuracy-target',
                         type=float,
                         default=98.5,
                         help='validation accuracy target')
@@ -260,8 +267,8 @@ def show_trainable_variables_info():
 
 def main():
     args = parse_args()
-    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy,
-                                             args.ako_partitions,
+    x, y_, train_step, acc = build_train_ops(args.kungfu_strategy,  
+                                             args.sma_momentum,
                                              args.batch_size)
     show_trainable_variables_info()
 
