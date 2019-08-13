@@ -140,8 +140,8 @@ def train_mnist(x, y, mnist, train_step, acc, n_epochs, n_batches, batch_size,
             from kungfu.optimizers import ModelAveragingOptimizer
             initializer = ModelAveragingOptimizer.get_initializer()
         elif kungfu_strategy == 'sma':
-            from kungfu.optimizers import SynchronousModelAveraging
-            initializer = SynchronousModelAveraging.get_initializer()
+            from kungfu.optimizers import SynchronousModelAveragingOptimizer
+            initializer = SynchronousModelAveragingOptimizer.get_initializer()
         else:
             initializer = kf.distributed_variables_initializer()
 
