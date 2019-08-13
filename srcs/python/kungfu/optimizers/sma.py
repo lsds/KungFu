@@ -63,14 +63,14 @@ class SynchronousModelAveragingOptimizer(KungFuOptimizer):
 
         z_prev_assign_ops = [tf.assign(z_prev_var, z_prime_var) for (z_prime_var, z_prev_var) in zip(z_prime, prev_global_average_variables)]
 
+        corrections_ops = [tf.assign_sub(v, c) for (v, c) in zip(variables, gradient_corrections)]
 
         with tf.control_dependencies(correction_sums):
             with tf.control_dependencies(z_prime_assign_ops):
                 with tf.control_dependencies(update_global_average_model):
                     with tf.control_dependencies(z_prev_assign_ops):
-                        # This is a tensor, not a variable
-                        corrected_vars = [v - c for (v, c) in zip(variables, gradient_corrections)]
-                        return self._optimizer.apply_gradients(list(zip(gradients, corrected_vars)), **kwargs)
+                        with tf.control_dependencies(corrections_ops):
+                            return self._optimizer.apply_gradients(list(zip(gradients, variables)), **kwargs)
 
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
