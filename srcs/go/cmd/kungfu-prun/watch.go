@@ -18,7 +18,7 @@ import (
 
 type peerList map[string]plan.PeerSpec
 
-func watchRun(c *kf.ConfigClient, updated chan string, prog string, args []string, configServerAddr string) {
+func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog string, args []string, configServerAddr string) {
 	log.Printf("watching config server")
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
@@ -37,7 +37,9 @@ func watchRun(c *kf.ConfigClient, updated chan string, prog string, args []strin
 		newPeers := getNewPeers(currentPeers, cs) // FIXME: also wait termination
 		log.Printf("%d new %s will be created", len(newPeers), utils.Pluralize(len(newPeers), "peer", "peers"))
 		newProcs := createProcs(version, newPeers, prog, args, configServerAddr)
-		for _, proc := range newProcs {
+		localProcs := sch.ForHost(selfIP, newProcs)
+		log.Printf("%d new %s will be created on this host", len(localProcs), utils.Pluralize(len(localProcs), "proc", "proc"))
+		for _, proc := range localProcs {
 			wg.Add(1)
 			go runProc(ctx, proc, &wg)
 		}

@@ -111,7 +111,7 @@ func main() {
 	}
 
 	if *watch {
-		watchRun(configClient, updated, prog, args, configServerAddr)
+		watchRun(configClient, selfIP, updated, prog, args, configServerAddr)
 	} else {
 		simpleRun(selfIP, ps, prog, args)
 	}
