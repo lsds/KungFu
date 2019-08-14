@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -35,11 +36,19 @@ var (
 	watch            = flag.Bool("w", false, "watch config")
 	watchPeriod      = flag.Duration("watch-period", 500*time.Millisecond, "")
 	keep             = flag.Bool("k", false, "don't stop watch")
+	logFile          = flag.String("log-file", "", "")
 )
 
 func init() {
 	log.SetPrefix("[kungfu-prun] ")
 	flag.Parse()
+	if len(*logFile) > 0 {
+		lf, err := os.Create(*logFile)
+		if err != nil {
+			utils.ExitErr(err)
+		}
+		log.SetOutput(lf)
+	}
 	utils.LogArgs()
 	utils.LogKungfuEnv()
 	utils.LogNICInfo()
