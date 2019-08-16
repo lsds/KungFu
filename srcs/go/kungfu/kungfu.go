@@ -9,6 +9,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/store"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -29,10 +30,12 @@ type Kungfu struct {
 	configClient   *configClient
 	self           *plan.PeerSpec
 	currentSession *session
-	router         *rch.Router
-	server         *rch.Server
-	localServer    *rch.Server
-	config         Config
+
+	store       *store.VersionedStore
+	router      *rch.Router
+	server      *rch.Server
+	localServer *rch.Server
+	config      Config
 }
 
 func New(config Config) (*Kungfu, error) {
@@ -56,6 +59,7 @@ func New(config Config) (*Kungfu, error) {
 	return &Kungfu{
 		configClient: configClient,
 		self:         self,
+		store:        store.NewVersionedStore(3),
 		router:       router,
 		server:       server,
 		localServer:  localServer,
@@ -112,4 +116,8 @@ func (kf *Kungfu) updateSession() {
 		utils.ExitErr(err)
 	}
 	kf.currentSession = sess
+}
+
+func (kf *Kungfu) Commit(version, name string, buf *kb.Buffer) int {
+	return code(kf.store.Commit(version, name, buf))
 }

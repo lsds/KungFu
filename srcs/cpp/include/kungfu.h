@@ -75,11 +75,21 @@ class kungfu_world
     int Save(const char *name, const void *buf, int count,
              KungFu_Datatype dtype, const DoneCallback &done);
 
+    int Commit(const char *version, const char *name, const void *buf,
+               int count, KungFu_Datatype dtype);
+    int Commit(const char *version, const char *name, const void *buf,
+               int count, KungFu_Datatype dtype, const DoneCallback &done);
+
     // p2p APIs
     int Request(int destRank, const char *name, void *buf, int count,
                 KungFu_Datatype dtype);
     int Request(int destRank, const char *name, void *buf, int count,
                 KungFu_Datatype dtype, const DoneCallback &done);
+
+    int Checkout(int rank, const char *version, const char *name, void *buf,
+                 int count, KungFu_Datatype dtype);
+    int Checkout(int rank, const char *version, const char *name, void *buf,
+                 int count, KungFu_Datatype dtype, const DoneCallback &done);
 
     // collective APIs
     int Barrier(const DoneCallback &done);

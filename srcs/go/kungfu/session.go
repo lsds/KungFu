@@ -173,6 +173,16 @@ func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
 	return code(sess.router.Request(peer.NetAddr.WithName(name), model))
 }
 
+func (sess *session) Checkout(rank int, version, name string, model *kb.Buffer) int {
+	// if rank < 0 || len(sess.cluster.Peers) <= rank {
+	// 	return code(errInvalidRank)
+	// }
+	// peer := sess.cluster.Peers[rank]
+	// return code(sess.router.Request(peer.NetAddr.WithName(name), model))
+	return 0
+}
+
+// FIXME: move it to kungfu
 func (sess *session) Save(name string, buf *kb.Buffer) int {
 	return code(sess.router.Save(name, buf))
 }
