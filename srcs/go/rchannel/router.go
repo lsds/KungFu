@@ -12,6 +12,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/shm"
+	"github.com/lsds/KungFu/srcs/go/store"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -21,18 +22,20 @@ type Router struct {
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
 
-	localStore *LocalStore
+	store      *store.VersionedStore
+	localStore *LocalStore // FIXME: deprecated
 
 	reqMu sync.Mutex
 }
 
-func NewRouter(self plan.PeerSpec) *Router {
+func NewRouter(self plan.PeerSpec, store *store.VersionedStore) *Router {
 	return &Router{
 		localAddr:  self.NetAddr,
 		bufferPool: newBufferPool(),     // in-comming messages
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
-		localStore: newLocalStore(),
+		store:      store,
+		localStore: newLocalStore(), // FIXME: deprecated
 	}
 }
 
@@ -54,6 +57,28 @@ func (r *Router) Request(a plan.Addr, buf *kb.Buffer) error {
 	r.reqMu.Lock() // FIXME: lock per target
 	defer r.reqMu.Unlock()
 	if err := ch.Send(Message{}); err != nil {
+		return err
+	}
+	msg := Message{
+		Length: uint32(buf.Count * buf.Type.Size()),
+		Data:   buf.Data,
+	}
+	if err := ch.Receive(msg); err != nil {
+		return err
+	}
+	r.monitor.Ingress(int64(msg.Length), a.NetAddr())
+	return nil
+}
+
+func (r *Router) Pull(version string, a plan.Addr, buf *kb.Buffer) error {
+	ch, err := r.getChannel(a, ConnPeerToPeer)
+	if err != nil {
+		return err
+	}
+	r.reqMu.Lock() // FIXME: lock per target
+	defer r.reqMu.Unlock()
+	bs := []byte(version)
+	if err := ch.Send(Message{Length: uint32(len(bs)), Data: bs}); err != nil {
 		return err
 	}
 	msg := Message{
@@ -131,6 +156,34 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 }
 
 func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
+	version := string(msg.Data)
+	if len(version) > 0 {
+		var buf *kb.Buffer // FIXME: copy elision
+		if err := r.store.Checkout(version, name, buf); err != nil {
+			utils.ExitErr(err)
+		}
+		bs := []byte(name)
+		mh := messageHeader{
+			NameLength: uint32(len(bs)),
+			Name:       bs,
+		}
+		if err := mh.WriteTo(conn); err != nil {
+			log.Errorf("Could not write variable from store to connection: %s", name)
+			utils.ExitErr(err)
+		}
+		m := Message{
+			Length: uint32(buf.Count * buf.Type.Size()),
+			Data:   buf.Data,
+		}
+		if err := m.WriteTo(conn); err != nil {
+			log.Errorf("Could not write variable from store to connection: %s", name)
+			utils.ExitErr(err)
+		}
+		r.monitor.Egress(int64(m.Length), remote)
+		return
+	}
+
+	// FIXME: deprecated
 	r.localStore.Lock()
 	defer r.localStore.Unlock()
 

@@ -61,6 +61,10 @@ func (b *Buffer) CopyFrom(c *Buffer) {
 	}
 }
 
+func (b *Buffer) MaybeCopyFrom(c *Buffer) error {
+	return b.copyFrom(c)
+}
+
 func (b *Buffer) copyFrom(c *Buffer) error {
 	if b.Count != c.Count {
 		return fmt.Errorf("Buffer::Copy error: inconsistent count: %d vs %d", b.Count, c.Count)

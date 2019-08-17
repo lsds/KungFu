@@ -47,7 +47,8 @@ func New(config Config) (*Kungfu, error) {
 	if err != nil {
 		return nil, err
 	}
-	router := rch.NewRouter(*self)
+	store := store.NewVersionedStore(3)
+	router := rch.NewRouter(*self, store)
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
@@ -59,7 +60,7 @@ func New(config Config) (*Kungfu, error) {
 	return &Kungfu{
 		configClient: configClient,
 		self:         self,
-		store:        store.NewVersionedStore(3),
+		store:        store,
 		router:       router,
 		server:       server,
 		localServer:  localServer,

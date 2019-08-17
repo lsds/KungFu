@@ -50,6 +50,8 @@ func (s *Store) Get(name string, buf *kb.Buffer) error {
 	if buf == nil {
 		buf = kb.NewBuffer(value.Count, value.Type)
 	}
-	buf.CopyFrom(value)
+	if err := buf.MaybeCopyFrom(value); err != nil {
+		return errReadConflict
+	}
 	return nil
 }

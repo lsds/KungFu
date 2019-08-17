@@ -58,7 +58,6 @@ func (s *VersionedStore) getOrCreateVersion(version string) *Store {
 
 func (s *VersionedStore) Commit(version, name string, buf *kb.Buffer) error {
 	store := s.getOrCreateVersion(version)
-	// TODO: gc old version
 	return store.Create(name, buf)
 }
 
