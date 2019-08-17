@@ -71,6 +71,8 @@ int kungfu_world::Save(const char *version, const char *name, const void *buf,
                                GoInt(dtype), new CallbackWrapper(done));
 }
 
+int kungfu_world::Barrier() { return GoKungfuBarrier(nullptr); }
+
 int kungfu_world::Barrier(const DoneCallback &done)
 {
     return GoKungfuBarrier(new CallbackWrapper(done));

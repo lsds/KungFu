@@ -92,6 +92,7 @@ class kungfu_world
                 int count, KungFu_Datatype dtype, const DoneCallback &done);
 
     // collective APIs
+    int Barrier();
     int Barrier(const DoneCallback &done);
 
     // https://www.open-mpi.org/doc/v4.0/man3/MPI_Reduce.3.php

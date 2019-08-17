@@ -16,7 +16,7 @@ func Test_1(t *testing.T) {
 	a.Data[0] = 1
 	b.Data[0] = 2
 
-	vs.Commit("0xff", "a.idx", a)
+	vs.Create("0xff", "a.idx", a)
 	if err := vs.Commit("0xff", "a.idx", a); err == nil {
 		t.Error("Commit should return error")
 	}
@@ -30,7 +30,7 @@ func Test_1(t *testing.T) {
 		t.Error("Checkout failed")
 	}
 
-	vs.Commit("0x100", "a.idx", a)
+	vs.Create("0x100", "a.idx", a)
 	if err := vs.Checkout("0xff", "a.idx", b); err == nil {
 		t.Error("Checkout should return error")
 	}

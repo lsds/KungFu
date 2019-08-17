@@ -40,17 +40,17 @@ func (s *Store) Create(name string, buf *kb.Buffer) error {
 
 // Get retrives the data with given name, if buf is not nil,
 // the metadata of buf is used to validate the stored data
-func (s *Store) Get(name string, buf *kb.Buffer) error {
+func (s *Store) Get(name string, buf **kb.Buffer) error {
 	s.Lock()
 	defer s.Unlock()
 	value, ok := s.data[name]
 	if !ok {
 		return errNotFound
 	}
-	if buf == nil {
-		buf = kb.NewBuffer(value.Count, value.Type)
+	if *buf == nil {
+		*buf = kb.NewBuffer(value.Count, value.Type)
 	}
-	if err := buf.MaybeCopyFrom(value); err != nil {
+	if err := (*buf).MaybeCopyFrom(value); err != nil {
 		return errReadConflict
 	}
 	return nil
