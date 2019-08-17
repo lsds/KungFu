@@ -56,7 +56,7 @@ func (s *VersionedStore) getOrCreateVersion(version string) *Store {
 	return store
 }
 
-func (s *VersionedStore) Commit(version, name string, buf *kb.Buffer) error {
+func (s *VersionedStore) Create(version, name string, buf *kb.Buffer) error {
 	store := s.getOrCreateVersion(version)
 	return store.Create(name, buf)
 }

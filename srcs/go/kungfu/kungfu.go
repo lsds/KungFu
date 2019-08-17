@@ -119,6 +119,6 @@ func (kf *Kungfu) updateSession() {
 	kf.currentSession = sess
 }
 
-func (kf *Kungfu) Commit(version, name string, buf *kb.Buffer) int {
-	return code(kf.store.Commit(version, name, buf))
+func (kf *Kungfu) Save(version, name string, buf *kb.Buffer) int {
+	return code(kf.store.Create(version, name, buf))
 }

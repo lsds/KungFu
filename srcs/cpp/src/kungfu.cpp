@@ -53,21 +53,22 @@ int kungfu_world::Save(const char *name, const void *buf, int count,
                         GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
-int kungfu_world::Commit(const char *version, const char *name, const void *buf,
-                         int count, KungFu_Datatype dtype)
+int kungfu_world::Save(const char *version, const char *name, const void *buf,
+                       int count, KungFu_Datatype dtype)
 {
-    return GoKungfuCommit(const_cast<char *>(version), const_cast<char *>(name),
-                          const_cast<void *>(buf), GoInt(count), GoInt(dtype),
-                          nullptr);
+    return GoKungfuSaveVersion(
+        const_cast<char *>(version), const_cast<char *>(name),
+        const_cast<void *>(buf), GoInt(count), GoInt(dtype), nullptr);
 }
 
-int kungfu_world::Commit(const char *version, const char *name, const void *buf,
-                         int count, KungFu_Datatype dtype,
-                         const DoneCallback &done)
+int kungfu_world::Save(const char *version, const char *name, const void *buf,
+                       int count, KungFu_Datatype dtype,
+                       const DoneCallback &done)
 {
-    return GoKungfuCommit(const_cast<char *>(version), const_cast<char *>(name),
-                          const_cast<void *>(buf), GoInt(count), GoInt(dtype),
-                          new CallbackWrapper(done));
+    return GoKungfuSaveVersion(const_cast<char *>(version),
+                               const_cast<char *>(name),
+                               const_cast<void *>(buf), GoInt(count),
+                               GoInt(dtype), new CallbackWrapper(done));
 }
 
 int kungfu_world::Barrier(const DoneCallback &done)
@@ -90,21 +91,21 @@ int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
                            new CallbackWrapper(done));
 }
 
-int kungfu_world::Checkout(int rank, const char *version, const char *name,
-                           void *buf, int count, KungFu_Datatype dtype)
+int kungfu_world::Request(int rank, const char *version, const char *name,
+                          void *buf, int count, KungFu_Datatype dtype)
 {
-    return GoKungfuCheckout(rank, const_cast<char *>(version),
-                            const_cast<char *>(name), buf, GoInt(count),
-                            GoInt(dtype), nullptr);
+    return GoKungfuRequestVersion(rank, const_cast<char *>(version),
+                                  const_cast<char *>(name), buf, GoInt(count),
+                                  GoInt(dtype), nullptr);
 }
 
-int kungfu_world::Checkout(int rank, const char *version, const char *name,
-                           void *buf, int count, KungFu_Datatype dtype,
-                           const DoneCallback &done)
+int kungfu_world::Request(int rank, const char *version, const char *name,
+                          void *buf, int count, KungFu_Datatype dtype,
+                          const DoneCallback &done)
 {
-    return GoKungfuCheckout(rank, const_cast<char *>(version),
-                            const_cast<char *>(name), buf, GoInt(count),
-                            GoInt(dtype), new CallbackWrapper(done));
+    return GoKungfuRequestVersion(rank, const_cast<char *>(version),
+                                  const_cast<char *>(name), buf, GoInt(count),
+                                  GoInt(dtype), new CallbackWrapper(done));
 }
 
 int kungfu_world::Reduce(const void *sendbuf, void *recvbuf, int count,

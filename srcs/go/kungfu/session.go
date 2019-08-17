@@ -173,7 +173,7 @@ func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
 	return code(sess.router.Request(peer.NetAddr.WithName(name), model))
 }
 
-func (sess *session) Checkout(rank int, version, name string, model *kb.Buffer) int {
+func (sess *session) Pull(rank int, version, name string, model *kb.Buffer) int {
 	peer := sess.cluster.Peers[rank]
 	return code(sess.router.Pull(version, peer.NetAddr.WithName(name), model))
 }

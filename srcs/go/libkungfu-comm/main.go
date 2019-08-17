@@ -76,17 +76,17 @@ func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtyp
 	return 0
 }
 
-//export GoKungfuCheckout
-func GoKungfuCheckout(rank int, version, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+//export GoKungfuRequestVersion
+func GoKungfuRequestVersion(rank int, version, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 	goVersion := C.GoString(version)
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
 	b := toBuffer(buf, count, dtype)
 	if done == nil {
-		return sess.Checkout(rank, goVersion, goName, b)
+		return sess.Pull(rank, goVersion, goName, b)
 	}
 	go func() {
-		sess.Checkout(rank, goVersion, goName, b)
+		sess.Pull(rank, goVersion, goName, b)
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -109,16 +109,16 @@ func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Da
 	return 0
 }
 
-//export GoKungfuCommit
-func GoKungfuCommit(version, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+//export GoKungfuSaveVersion
+func GoKungfuSaveVersion(version, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	goVersion := C.GoString(version)
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
 	b := toBuffer(buf, count, dtype)
 	if done == nil {
-		return kungfu.Commit(goVersion, goName, b)
+		return kungfu.Save(goVersion, goName, b)
 	}
 	go func() {
-		kungfu.Commit(goVersion, goName, b)
+		kungfu.Save(goVersion, goName, b)
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
