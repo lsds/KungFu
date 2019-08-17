@@ -13,7 +13,7 @@ var (
 	errNotFound      = errors.New("not found")
 )
 
-// Store is a simple Key-Value stor
+// Store is a simple Key-Value store
 type Store struct {
 	sync.Mutex
 
