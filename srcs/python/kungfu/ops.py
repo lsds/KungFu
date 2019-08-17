@@ -48,6 +48,10 @@ def barrier():
     return _op_lib.kungfu_barrier()
 
 
+def save_variable(version, t):
+    return _op_lib.kungfu_save_variable(version, t, input_tensor_name=t.name)
+
+
 def save_variables(variables):
     return _op_lib.save_variables(variables, names=[v.name for v in variables])
 
@@ -55,6 +59,14 @@ def save_variables(variables):
 def request(target, name, example):
     # example is used for shape reference
     return _op_lib.kungfu_request(target, example, tensor_name=name)
+
+
+def request_version(target, version, name, shape, dtype):
+    return _op_lib.kungfu_request_version(target,
+                                          version,
+                                          tensor_name=name,
+                                          shape=shape,
+                                          T=dtype)
 
 
 def get_peer_latencies(local_step=None):
