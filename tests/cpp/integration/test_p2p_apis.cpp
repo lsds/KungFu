@@ -33,6 +33,8 @@ void test_versioned_store(kungfu_world &world)
             exit(1);
         }
     }
+
+    world.Barrier();
 }
 
 int main(int argc, char *argv[])
