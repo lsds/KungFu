@@ -75,13 +75,24 @@ class kungfu_world
     int Save(const char *name, const void *buf, int count,
              KungFu_Datatype dtype, const DoneCallback &done);
 
+    int Save(const char *version, const char *name, const void *buf, int count,
+             KungFu_Datatype dtype);
+    int Save(const char *version, const char *name, const void *buf, int count,
+             KungFu_Datatype dtype, const DoneCallback &done);
+
     // p2p APIs
     int Request(int destRank, const char *name, void *buf, int count,
                 KungFu_Datatype dtype);
     int Request(int destRank, const char *name, void *buf, int count,
                 KungFu_Datatype dtype, const DoneCallback &done);
 
+    int Request(int rank, const char *version, const char *name, void *buf,
+                int count, KungFu_Datatype dtype);
+    int Request(int rank, const char *version, const char *name, void *buf,
+                int count, KungFu_Datatype dtype, const DoneCallback &done);
+
     // collective APIs
+    int Barrier();
     int Barrier(const DoneCallback &done);
 
     // https://www.open-mpi.org/doc/v4.0/man3/MPI_Reduce.3.php
