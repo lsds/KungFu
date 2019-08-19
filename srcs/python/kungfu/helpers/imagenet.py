@@ -143,10 +143,17 @@ def _preprocess(imagebuffer, bbox, subset):
     return image
 
 
-def _record_to_labeled_image(record):
+def record_to_labeled_image(record):
     imagebuffer, label, bbox, _txt = _parse(record)
     image = _preprocess(imagebuffer, bbox, 'train')
     return (image, label)
+
+
+def create_dataset_from_files(filenames, batch_size):
+    ds = tf.data.TFRecordDataset(filenames)
+    ds = ds.map(record_to_labeled_image)
+    ds = ds.batch(batch_size)
+    return ds.make_one_shot_iterator().get_next()
 
 
 def create_dataset(data_dir, batch_size=32, n=1):
@@ -154,8 +161,4 @@ def create_dataset(data_dir, batch_size=32, n=1):
     names = [os.path.join(data_dir, name) for name in names]
     names = [tf.constant(name) for name in names]
     names = tf.data.Dataset.from_tensor_slices(names)
-
-    ds = tf.data.TFRecordDataset(names)
-    ds = ds.map(_record_to_labeled_image)
-    ds = ds.batch(batch_size)
-    return ds.make_one_shot_iterator().get_next()
+    return create_dataset_from_files(names, batch_size)
