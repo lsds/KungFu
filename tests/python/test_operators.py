@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.ops import barrier, save_variable, request_version
+from kungfu.ops import barrier, save_variable, request_variable
 
 
 def test_barrier():
@@ -16,7 +16,7 @@ def test_save_and_request():
     inc_op = tf.assign_add(global_step, 1)
     update_op = tf.assign(x, x + 1)
     save_op = save_variable(global_step, x)
-    y = request_version(target, global_step, x.name, x.shape, x.dtype)
+    y = request_variable(target, global_step, x.name, x.shape, x.dtype)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())

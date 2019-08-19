@@ -61,7 +61,7 @@ def request(target, name, example):
     return _op_lib.kungfu_request(target, example, tensor_name=name)
 
 
-def request_version(target, version, name, shape, dtype):
+def request_variable(target, version, name, shape, dtype):
     return _op_lib.kungfu_request_version(target,
                                           version,
                                           tensor_name=name,
