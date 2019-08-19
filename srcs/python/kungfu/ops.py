@@ -62,11 +62,11 @@ def request(target, name, example):
 
 
 def request_variable(target, version, name, shape, dtype):
-    return _op_lib.kungfu_request_version(target,
-                                          version,
-                                          tensor_name=name,
-                                          shape=shape,
-                                          T=dtype)
+    return _op_lib.kungfu_request_variable(target,
+                                           version,
+                                           tensor_name=name,
+                                           shape=shape,
+                                           T=dtype)
 
 
 def get_peer_latencies(local_step=None):

@@ -49,7 +49,7 @@ class Request : public AsyncOpKernel
 // TODO: use macro to add name prefix
 REGISTER_KERNEL_BUILDER(Name("KungfuRequest").Device(DEVICE_CPU), Request);
 
-REGISTER_OP("KungfuRequestVersion")
+REGISTER_OP("KungfuRequestVariable")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("tensor_name: string")
     .Attr("shape: shape")
@@ -57,17 +57,17 @@ REGISTER_OP("KungfuRequestVersion")
     .Input("version: int64")
     .Output("output: T");
 
-class RequestVersion : public AsyncOpKernel
+class RequestVariable : public AsyncOpKernel
 {
-    std::string name_;
+    std::string tensor_name_;
     TensorShapeProto shape_;
 
   public:
-    explicit RequestVersion(OpKernelConstruction *context)
+    explicit RequestVariable(OpKernelConstruction *context)
         : AsyncOpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("tensor_name", &name_));
-        OP_REQUIRES(context, name_.size() >= 0,
+        OP_REQUIRES_OK(context, context->GetAttr("tensor_name", &tensor_name_));
+        OP_REQUIRES(context, tensor_name_.size() >= 0,
                     errors::InvalidArgument("tensor_name must not be empty"));
         OP_REQUIRES_OK(context, context->GetAttr("shape", &shape_));
     }
@@ -80,12 +80,12 @@ class RequestVersion : public AsyncOpKernel
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, shape_, &output), done);
         _kungfu_world->Request(
-            target, std::to_string(version).c_str(), name_.c_str(),
+            target, std::to_string(version).c_str(), tensor_name_.c_str(),
             const_cast<char *>(output->tensor_data().data()),
             output->NumElements(), to_kungfu_type(output->dtype()), done);
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("KungfuRequestVersion").Device(DEVICE_CPU),
-                        RequestVersion);
+REGISTER_KERNEL_BUILDER(Name("KungfuRequestVariable").Device(DEVICE_CPU),
+                        RequestVariable);
 }  // namespace tensorflow
