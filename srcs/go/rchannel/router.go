@@ -160,7 +160,7 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 	if len(version) > 0 {
 		var buf *kb.Buffer // FIXME: copy elision
 		if err := r.store.Get(version, name, &buf); err != nil {
-			utils.ExitErr(err)
+			utils.ExitErr(fmt.Errorf("Router.store.Get(%s, %s): %v", version, name, err))
 		}
 		bs := []byte(name)
 		mh := messageHeader{

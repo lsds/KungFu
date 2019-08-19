@@ -61,7 +61,7 @@ func (s *VersionedStore) Create(version, name string, buf *kb.Buffer) error {
 	return store.Create(name, buf)
 }
 
-// Checkout retrives the data with given version and name, if buf is not nil,
+// Get retrives the data with given version and name, if buf is not nil,
 // the metadata of buf is used to validate the stored data
 func (s *VersionedStore) Get(version, name string, buf **kb.Buffer) error {
 	store, err := s.getVersion(version)
