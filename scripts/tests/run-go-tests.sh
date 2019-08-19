@@ -28,6 +28,7 @@ run_unit_tests() {
     go test -v ./srcs/go/plan
     go test -v ./srcs/go/monitor
     go test -v ./srcs/go/ordergroup
+    go test -v ./srcs/go/store
 }
 
 run_integration_tests() {
