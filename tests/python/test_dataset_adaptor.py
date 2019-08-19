@@ -33,12 +33,13 @@ def train_to_end(original_ds, adapt, handle):
                     print('epoch: %d, step: %d' % (epoch, step))
                     handle(v)
                     sess.run(update_offset_op)
+                    adapt.debug(sess)
                 except tf.errors.OutOfRangeError:
-                    print('rewind to beginning')
+                    print('[W] rewind to beginning!')
                     sess.run(rewind_op)
                     sess.run(init_ds)
                     adapt.debug(sess)
-                if step > 20:
+                if step > 4:
                     break
             sess.run(update_topology_op)
             print('END epoch')
@@ -63,7 +64,7 @@ def cifar_example():
 
     data = loader.load_datasets()
     images = tf.data.Dataset.from_tensor_slices(data.train.images)
-    labels = tf.data.Dataset.from_tensor_slices(data.train.images)
+    labels = tf.data.Dataset.from_tensor_slices(data.train.labels)
     ds = tf.data.Dataset.zip((images, labels))
 
     adapt = ExampleDatasetAdaptor(batch_size=5000, shard_count=4)
