@@ -174,6 +174,12 @@ func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
 	return code(sess.router.Request(peer.NetAddr.WithName(name), model))
 }
 
+func (sess *session) Pull(rank int, version, name string, model *kb.Buffer) int {
+	peer := sess.cluster.Peers[rank]
+	return code(sess.router.Pull(version, peer.NetAddr.WithName(name), model))
+}
+
+// FIXME: move it to kungfu
 func (sess *session) Save(name string, buf *kb.Buffer) int {
 	return code(sess.router.Save(name, buf))
 }

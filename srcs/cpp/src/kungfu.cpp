@@ -59,6 +59,26 @@ int kungfu_world::Save(const char *name, const void *buf, int count,
                         GoInt(count), GoInt(dtype), new CallbackWrapper(done));
 }
 
+int kungfu_world::Save(const char *version, const char *name, const void *buf,
+                       int count, KungFu_Datatype dtype)
+{
+    return GoKungfuSaveVersion(
+        const_cast<char *>(version), const_cast<char *>(name),
+        const_cast<void *>(buf), GoInt(count), GoInt(dtype), nullptr);
+}
+
+int kungfu_world::Save(const char *version, const char *name, const void *buf,
+                       int count, KungFu_Datatype dtype,
+                       const DoneCallback &done)
+{
+    return GoKungfuSaveVersion(const_cast<char *>(version),
+                               const_cast<char *>(name),
+                               const_cast<void *>(buf), GoInt(count),
+                               GoInt(dtype), new CallbackWrapper(done));
+}
+
+int kungfu_world::Barrier() { return GoKungfuBarrier(nullptr); }
+
 int kungfu_world::Barrier(const DoneCallback &done)
 {
     return GoKungfuBarrier(new CallbackWrapper(done));
@@ -77,6 +97,23 @@ int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
     return GoKungfuRequest(destRank, const_cast<char *>(name), buf,
                            GoInt(count), GoInt(dtype),
                            new CallbackWrapper(done));
+}
+
+int kungfu_world::Request(int rank, const char *version, const char *name,
+                          void *buf, int count, KungFu_Datatype dtype)
+{
+    return GoKungfuRequestVersion(rank, const_cast<char *>(version),
+                                  const_cast<char *>(name), buf, GoInt(count),
+                                  GoInt(dtype), nullptr);
+}
+
+int kungfu_world::Request(int rank, const char *version, const char *name,
+                          void *buf, int count, KungFu_Datatype dtype,
+                          const DoneCallback &done)
+{
+    return GoKungfuRequestVersion(rank, const_cast<char *>(version),
+                                  const_cast<char *>(name), buf, GoInt(count),
+                                  GoInt(dtype), new CallbackWrapper(done));
 }
 
 int kungfu_world::Reduce(const void *sendbuf, void *recvbuf, int count,

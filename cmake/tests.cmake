@@ -3,7 +3,10 @@ OPTION(KUNGFU_BUILD_GTEST "Build gtest from source." OFF)
 FIND_PACKAGE(Threads REQUIRED)
 
 FUNCTION(LINK_KUNGFU_LIBS target)
-    TARGET_LINK_LIBRARIES(${target} kungfu-base kungfu-comm kungfu)
+    TARGET_LINK_LIBRARIES(${target}
+                          kungfu-base
+                          kungfu-comm
+                          kungfu)
 ENDFUNCTION()
 
 FUNCTION(USE_INSTALLED_GTEST target)
@@ -14,21 +17,19 @@ ENDFUNCTION()
 IF(KUNGFU_BUILD_GTEST)
     INCLUDE(ExternalProject)
 
-    SET(GTEST_GIT_URL https://github.com/google/googletest.git
+    SET(GTEST_GIT_URL
+        https://github.com/google/googletest.git
         CACHE STRING "URL for clone gtest")
 
     SET(PREFIX ${CMAKE_SOURCE_DIR}/3rdparty)
 
     EXTERNALPROJECT_ADD(libgtest-dev-repo
-                        GIT_REPOSITORY
-                        ${GTEST_GIT_URL}
-                        PREFIX
-                        ${PREFIX}
-                        CMAKE_ARGS
-                        -DCMAKE_INSTALL_PREFIX=${PREFIX}
-                        -DCMAKE_CXX_FLAGS=-std=c++11
-                        -Dgtest_disable_pthreads=1
-                        -DBUILD_GMOCK=0)
+                        GIT_REPOSITORY ${GTEST_GIT_URL}
+                        PREFIX ${PREFIX}
+                        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PREFIX}
+                                   -DCMAKE_CXX_FLAGS=-std=c++11
+                                   -Dgtest_disable_pthreads=1
+                                   -DBUILD_GMOCK=0)
 
     LINK_DIRECTORIES(${PREFIX}/lib)
 
@@ -79,6 +80,7 @@ ENDFUNCTION()
 ADD_TEST_BIN(fake-in-proc-trainer
              ${KUNGFU_TESTS_DIR}/integration/fake_in_proc_trainer.cpp)
 
+ADD_TEST_BIN(test-p2p-apis ${KUNGFU_TESTS_DIR}/integration/test_p2p_apis.cpp)
 ADD_TEST_BIN(fake-agent ${KUNGFU_TESTS_DIR}/integration/fake_agent.cpp)
 ADD_TEST_BIN(fake-kungfu-trainer
              ${KUNGFU_TESTS_DIR}/integration/fake_kungfu_trainer.cpp)
