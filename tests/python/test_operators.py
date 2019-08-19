@@ -20,14 +20,13 @@ def test_save_and_request():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        sess.run(barrier())
 
         for _ in range(3):
             sess.run([inc_op, update_op])
             sess.run(save_op)
+            sess.run(barrier())
             v = sess.run(y)
             print(v)
-
         sess.run(barrier())
 
 
