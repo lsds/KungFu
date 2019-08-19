@@ -21,13 +21,13 @@ REGISTER_OP("KungfuRequest")
 
 class Request : public AsyncOpKernel
 {
-    std::string name_;
+    std::string tensor_name_;
 
   public:
     explicit Request(OpKernelConstruction *context) : AsyncOpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("tensor_name", &name_));
-        OP_REQUIRES(context, name_.size() >= 0,
+        OP_REQUIRES_OK(context, context->GetAttr("tensor_name", &tensor_name_));
+        OP_REQUIRES(context, tensor_name_.size() >= 0,
                     errors::InvalidArgument("tensor_name must not be empty"));
     }
 
@@ -39,7 +39,7 @@ class Request : public AsyncOpKernel
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, example.shape(), &output),
             done);
-        _kungfu_world->Request(target, name_.c_str(),
+        _kungfu_world->Request(target, tensor_name_.c_str(),
                                const_cast<char *>(output->tensor_data().data()),
                                output->NumElements(),
                                to_kungfu_type(output->dtype()), done);
