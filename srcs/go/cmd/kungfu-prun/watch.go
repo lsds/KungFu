@@ -35,7 +35,7 @@ func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog strin
 		}
 		log.Printf("updated to %q", version)
 		newPeers := getNewPeers(currentPeers, cs) // FIXME: also wait termination
-		log.Printf("%d new %s will be created", len(newPeers), utils.Pluralize(len(newPeers), "peer", "peers"))
+		log.Printf("%d new %s will be created in the cluster", len(newPeers), utils.Pluralize(len(newPeers), "peer", "peers"))
 		newProcs := createProcs(version, newPeers, prog, args, configServerAddr)
 		localProcs := sch.ForHost(selfIP, newProcs)
 		log.Printf("%d new %s will be created on this host", len(localProcs), utils.Pluralize(len(localProcs), "proc", "proc"))
@@ -60,14 +60,14 @@ func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog strin
 }
 
 func watchConfigServer(configClient *kf.ConfigClient, newVersion chan string) {
-	tk := time.NewTicker(1 * time.Second)
+	tk := time.NewTicker(*watchPeriod)
 	defer tk.Stop()
 
 	n := -1
 	for range tk.C {
 		id, version, err := configClient.GetNextVersion(n)
 		if err != nil {
-			log.Printf("configClient.GetLatestVersion failed: %v", err)
+			log.Printf("configClient.GetLatestVersion(%d) failed: %v", n, err)
 			continue
 		}
 		if id != n {

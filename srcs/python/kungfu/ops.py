@@ -44,6 +44,16 @@ def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
 
+# metadata APIs
+def get_init_version():
+    """Returns a non-negative integer representing the cluster version."""
+    init_sess = os.getenv('KUNGFU_INIT_SESS')
+    version = int(init_sess)
+    if version < 0:
+        raise RuntimeError('invalid version')
+    return version
+
+
 def peer_info(version):
     """
     Input:
@@ -53,6 +63,9 @@ def peer_info(version):
         a pair of scalar tensors of int32: (rank, cluster_size).
     """
     return _op_lib.kungfu_get_peer_info(version)
+
+
+# TODO: group ops by category
 
 
 def barrier():
@@ -440,6 +453,7 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
         return [tf.identity(g) for g in negotiated_grads]
 
 
+# deprecated
 def get_global_gradient_noise_operator(batch_small, concat_grad,
                                        concat_negotiated_grad):
     import tensorflow as tf
@@ -464,3 +478,24 @@ def get_global_gradient_noise_operator(batch_small, concat_grad,
     global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=0.6)
 
     return global_noise_op
+
+
+def global_gradient_noise_scale(batch_small,
+                                concat_grad,
+                                concat_negotiated_grad,
+                                alpha=0.6):
+    import tensorflow as tf
+    _, cluster_size = peer_info(tf.constant(-1, dtype=tf.int32))
+    batch_big = batch_small * cluster_size
+    # Take average over workers
+    G_big = tf.div(concat_negotiated_grad, cluster_size)
+    G_small = concat_grad
+
+    G_sq_small = tf.square(tf.norm(G_small))
+    G_sq_big = tf.square(tf.norm(G_big))
+
+    G_biased = 1 / (batch_big - batch_small) * (batch_big * G_sq_big -
+                                                batch_small * G_sq_small)
+    S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
+
+    return _op_lib.gradient_noise(G_biased, S_biased, alpha=alpha)
