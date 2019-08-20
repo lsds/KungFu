@@ -1,10 +1,17 @@
 import tensorflow as tf
-from kungfu.ops import barrier, save_variable, request_variable
+from kungfu.ops import barrier, peer_info, request_variable, save_variable
 
 
 def test_barrier():
     with tf.Session() as sess:
         sess.run(barrier())
+
+
+def test_peer_info():
+    info = peer_info(tf.constant(-1, dtype=tf.int32))
+    with tf.Session() as sess:
+        rank, np = sess.run(info)
+        print('rank=%d, np=%d' % (rank, np))
 
 
 def test_save_and_request():
@@ -33,4 +40,5 @@ def test_save_and_request():
 # TODO: more tests
 
 test_barrier()
+test_peer_info()
 test_save_and_request()
