@@ -8,6 +8,7 @@ import (
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -34,13 +35,23 @@ func GoKungfuFinalize() int {
 }
 
 //export GoKungfuClusterSize
-func GoKungfuClusterSize() int {
+func GoKungfuClusterSize(version int) int {
+	if version < 0 {
+		sess := kungfu.CurrentSession()
+		return sess.ClusterSize()
+	}
+	log.Warnf("GoKungfuClusterSize for version >= 0 is NOT supported, using current version")
 	sess := kungfu.CurrentSession()
 	return sess.ClusterSize()
 }
 
 //export GoKungfuRank
-func GoKungfuRank() int {
+func GoKungfuRank(version int) int {
+	if version < 0 {
+		sess := kungfu.CurrentSession()
+		return sess.Rank()
+	}
+	log.Warnf("GoKungfuClusterSize for version >= 0 is NOT supported, using current version")
 	sess := kungfu.CurrentSession()
 	return sess.Rank()
 }
@@ -245,4 +256,11 @@ func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer
 		Count: count,
 		Type:  dt,
 	}
+}
+
+func boolToChar(v bool) C.char {
+	if v {
+		return C.char(1)
+	}
+	return C.char(0)
 }

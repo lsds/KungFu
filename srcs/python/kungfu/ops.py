@@ -44,6 +44,17 @@ def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
 
+def peer_info(version):
+    """
+    Input:
+        version : A scalar tensor of int32,
+        will use current version if version < 0.
+    Returns:
+        a pair of scalar tensors of int32: (rank, cluster_size).
+    """
+    return _op_lib.kungfu_get_peer_info(version)
+
+
 def barrier():
     return _op_lib.kungfu_barrier()
 

@@ -49,3 +49,11 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection
 	}
 	return nil, errCantEstablishConnection
 }
+
+func (p *ConnectionPool) reset() {
+	p.Lock()
+	defer p.Unlock()
+	for k := range p.conns {
+		delete(p.conns, k) // FIXME: gracefully shutdown conn
+	}
+}

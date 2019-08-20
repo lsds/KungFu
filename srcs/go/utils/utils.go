@@ -112,3 +112,10 @@ func ListNvidiaGPUNames() []string {
 	sort.Strings(names) // FIXME: use numeric sort
 	return names
 }
+
+func Pluralize(n int, singular, plural string) string {
+	if n > 1 {
+		return plural
+	}
+	return singular
+}
