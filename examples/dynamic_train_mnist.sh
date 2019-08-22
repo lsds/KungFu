@@ -4,13 +4,13 @@ set -e
 cd $(dirname $0)/..
 
 localhost=127.0.0.1
-H=${localhost}:4
+H=${localhost}:8
 
-timeout=60s
-# logfile=prun.log
+timeout=30s
+logfile=prun.log
 
 config_server_port=38080
-use_dynamic=0
+use_dynamic=1
 watch_period=3s
 
 prun() {
@@ -31,7 +31,7 @@ if [ $(uname -s) = "Darwin" ]; then
     export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
 
-prun 1 python3 \
+prun 2 python3 \
     ./examples/dynamic_train_mnist.py \
     --use-dynamic=$use_dynamic \
     --batch-size 5000

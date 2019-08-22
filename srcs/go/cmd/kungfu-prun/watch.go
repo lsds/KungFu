@@ -16,8 +16,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-type peerList map[string]plan.PeerSpec
-
 func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog string, args []string, configServerAddr string) {
 	log.Printf("watching config server")
 	ctx := context.Background()
@@ -34,14 +32,16 @@ func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog strin
 			return
 		}
 		log.Printf("updated to %q", version)
-		newPeers := getNewPeers(currentPeers, cs) // FIXME: also wait termination
-		log.Printf("%d new %s will be created in the cluster", len(newPeers), utils.Pluralize(len(newPeers), "peer", "peers"))
+		newPeers, removedPeers := diffPeers(currentPeers, cs) // FIXME: also wait termination
+		log.Printf("%d new %s will be created, %d old %s will be removed",
+			len(newPeers), utils.Pluralize(len(newPeers), "peer", "peers"),
+			len(removedPeers), utils.Pluralize(len(removedPeers), "peer", "peers"))
 		newProcs := createProcs(version, newPeers, prog, args, configServerAddr)
 		localProcs := sch.ForHost(selfIP, newProcs)
 		log.Printf("%d new %s will be created on this host", len(localProcs), utils.Pluralize(len(localProcs), "proc", "proc"))
 		for _, proc := range localProcs {
 			wg.Add(1)
-			go runProc(ctx, proc, &wg)
+			go runProc(ctx, proc, &wg, version)
 		}
 		currentPeers = makePeerList(cs)
 	}
@@ -85,14 +85,9 @@ func makePeerList(cs plan.ClusterSpec) peerList {
 	return pl
 }
 
-func getNewPeers(pl peerList, cs plan.ClusterSpec) []plan.PeerSpec {
-	var ps []plan.PeerSpec
-	for _, peer := range cs.Peers {
-		if _, ok := pl[peer.NetAddr.String()]; !ok {
-			ps = append(ps, peer)
-		}
-	}
-	return ps
+func diffPeers(oldPeers peerList, cs plan.ClusterSpec) ([]plan.PeerSpec, []plan.PeerSpec) {
+	newPeers := makePeerList(cs)
+	return newPeers.Sub(oldPeers), oldPeers.Sub(newPeers)
 }
 
 func createProcs(version string, peers []plan.PeerSpec, prog string, args []string, configServerAddr string) []sch.Proc {
@@ -108,11 +103,11 @@ func createProcs(version string, peers []plan.PeerSpec, prog string, args []stri
 	return procs
 }
 
-func runProc(ctx context.Context, proc sch.Proc, wg *sync.WaitGroup) {
+func runProc(ctx context.Context, proc sch.Proc, wg *sync.WaitGroup, version string) {
 	defer wg.Done()
 	r := &runner.Runner{}
 	r.SetName(proc.Name)
-	r.SetLogPrefix(proc.Name)
+	r.SetLogPrefix(proc.Name + "@" + version)
 	r.SetVerbose(true)
 	if err := r.Run(ctx, proc.Cmd()); err != nil {
 		log.Printf("%s finished with error: %v", proc.Name, err)

@@ -49,7 +49,7 @@ func work(kungfu *kf.Kungfu) {
 		newSize = gs + 1
 
 		if gs < hostCap {
-			kungfu.ProposeUpdate(sessID, newSize)
+			kungfu.ProposeUpdate(gs+1, sessID, newSize)
 			needUpdate = true
 		}
 	}

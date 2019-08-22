@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"unsafe"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
@@ -51,9 +52,17 @@ func GoKungfuRank(version int) int {
 		sess := kungfu.CurrentSession()
 		return sess.Rank()
 	}
-	log.Warnf("GoKungfuClusterSize for version >= 0 is NOT supported, using current version")
+	log.Warnf("GoKungfuRank for version >= 0 is NOT supported, using current version")
 	sess := kungfu.CurrentSession()
 	return sess.Rank()
+}
+
+//export GoKungfuStartStep
+func GoKungfuStartStep(version int) int {
+	if version <= 0 {
+		return 0
+	}
+	return kungfu.StartStep(strconv.Itoa(version))
 }
 
 //export GoKungfuBarrier
@@ -231,11 +240,16 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 }
 
 //export GoKungfuProposeUpdate
-func GoKungfuProposeUpdate(token *C.char, newSize int, accepted *C.char) int {
+func GoKungfuProposeUpdate(globalStep int, token *C.char, newSize int, accepted, keep *C.char) int {
 	ok := true // FIXME: compute ok by all reduce
 	*accepted = boolToChar(ok)
+	*keep = boolToChar(true)
 	if ok {
-		kungfu.ProposeUpdate(C.GoString(token), newSize)
+		goKeep, err := kungfu.ProposeUpdate(globalStep, C.GoString(token), newSize)
+		if err != nil {
+			utils.ExitErr(err)
+		}
+		*keep = boolToChar(goKeep)
 	}
 	return 0
 }

@@ -4,7 +4,7 @@ import argparse
 import os
 import tensorflow as tf
 
-from kungfu.ops import update_cluster, barrier, all_reduce, propose_update
+from kungfu.ops import update_cluster, barrier, all_reduce, propose_update, get_init_version
 
 
 def parse_args():
@@ -16,8 +16,8 @@ def parse_args():
 
 args = parse_args()
 
-init_sess = os.getenv('KUNGFU_INIT_SESS')
-init_gs = int(init_sess)
+init_version = get_init_version()
+init_gs = int(init_version)
 
 gs = tf.Variable(tf.constant(init_gs, dtype=tf.int64))
 inc_gs = tf.assign_add(gs, 1)
@@ -28,7 +28,7 @@ best_size = tf.Variable(tf.ones([], dtype=tf.int32))
 propose = propose_update(gs + 1, best_size)
 update = update_cluster(gs)
 
-version = tf.Variable(tf.constant(init_sess, dtype=tf.string))
+version = tf.Variable(tf.constant(init_version, dtype=tf.string))
 
 
 def compute_new_size(prev_size):

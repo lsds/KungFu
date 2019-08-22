@@ -70,6 +70,7 @@ class kungfu_world
     // will use current version if version < 0
     int Rank(int version = -1) const;
     int ClusterSize(int version = -1) const;
+    int StartStep(int version = -1) const;
 
     // local API
     int Save(const char *name, const void *buf, int count,
@@ -151,9 +152,10 @@ class kungfu_world
     int GetPeerLatencies(float *recvbuf, int recv_count);
 
     // control APIs
-    int ProposeUpdate(const char *token, int new_size, bool *accepted);
+    int ProposeUpdate(int global_stepl, const char *version, int new_size,
+                      bool *accepted, bool *keep);
 
-    int UpdateCluster(const char *token, bool *exist);
+    int UpdateCluster(const char *version, bool *exist);
 };
 
 #endif

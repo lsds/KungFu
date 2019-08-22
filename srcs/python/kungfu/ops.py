@@ -23,17 +23,18 @@ def _load_init_lib(name):
     return cdll.LoadLibrary(filename)
 
 
+def _call_method(lib, name):
+    if hasattr(lib, name):
+        getattr(lib, name)()
+        return True
+    return False
+
+
 def _load_and_init_op_lib():
     _op_lib = _load_op_lib('kungfu_tensorflow_ops')
     _init_lib = _load_init_lib('libkungfu_tensorflow_init')
-    _init_lib.kungfu_tensorflow_init()
-    has_gpu = False
-    try:
-        # FIXME: auto detect GPU support
-        _init_lib.kungfu_tensorflow_init_gpu()
-        has_gpu = True
-    except Exception as e:
-        print('kungfu_tensorflow_init_gpu FAILED: %s' % e)
+    _call_method(_init_lib, 'kungfu_tensorflow_init')
+    has_gpu = _call_method(_init_lib, 'kungfu_tensorflow_init_gpu')
     return _op_lib, has_gpu
 
 
@@ -54,9 +55,19 @@ def get_init_version():
     return version
 
 
-def peer_info(version):
+def start_step(version):
     """
     Input:
+        version: A scalar tensor of int32,
+    Returns:
+        a scalar tensors of int64, the start global step
+    """
+    return _op_lib.kungfu_get_start_step(version)
+
+
+def peer_info(version):
+    """
+    Inputs:
         version : A scalar tensor of int32,
         will use current version if version < 0.
     Returns:
@@ -72,17 +83,31 @@ def barrier():
     return _op_lib.kungfu_barrier()
 
 
-def propose_update(target_global_step, new_size):
-    """"""
-    return _op_lib.kungfu_propose_update(target_global_step, new_size)
+def propose_update(target_global_step, target_version, new_size):
+    """
+    Inputs:
+        target_global_step: a scalar tensor of int64
+        target_version: a scalar tensor of int32
+        new_size: a scalar tensor of int32
+    Returns:
+        a pair of scalar tensors of bool: (accepted, keep)
+        accepted: indicates if proposal is accepts
+        keep: indicates if self is still in the new cluster
+    """
+    return _op_lib.kungfu_propose_update(target_global_step, target_version,
+                                         new_size)
 
 
-def update_cluster(global_step):
+def update_cluster(version):
     """Returns a bool scalar which indicates if this peer is still in the cluster."""
-    return _op_lib.kungfu_update_cluster(global_step)
+    return _op_lib.kungfu_update_cluster(version)
 
 
 def save_variable(version, t):
+    """
+    version: a scalar tensor of int64
+    t: the tensor variable to save
+    """
     return _op_lib.kungfu_save_variable(version, t, input_tensor_name=t.name)
 
 
@@ -96,6 +121,11 @@ def request(target, name, example):
 
 
 def request_variable(target, version, name, shape, dtype):
+    """
+    target: a scalar tensor of int32
+    version: a scalar tensor of int64
+    name: string
+    """
     return _op_lib.kungfu_request_variable(target,
                                            version,
                                            tensor_name=name,

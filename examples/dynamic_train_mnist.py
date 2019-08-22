@@ -9,23 +9,19 @@ import tensorflow as tf
 import kungfu as kf
 from kungfu.helpers.mnist import load_datasets
 from kungfu.benchmarks.mnist import slp
-from kungfu.ops import get_init_version, propose_update
+from kungfu.ops import get_init_version, propose_update, broadcast, barrier, save_variable, all_reduce
+from session import kungfu_train
 
 
 def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
 
-get_init_op = tf.global_variables_initializer
-
-
-def build_optimizer(use_dynamic=True):
+def build_optimizer():
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-    if use_dynamic:
-        from kungfu.optimizers import DynamicOptimizer
-        optimizer = DynamicOptimizer(optimizer)
-        get_init_op = optimizer.get_initializer
+    from kungfu.optimizers import SyncSGDOptimizer
+    optimizer = SyncSGDOptimizer(optimizer)
     return optimizer
 
 
@@ -77,52 +73,7 @@ def train_mnist(x, y_, train_op, test_op, ds_train, ds_test, batch_size=5000):
         })
         return result
 
-    # TODO: move into DynamicOptimizer
-    best_size = tf.Variable(tf.constant(1, dtype=tf.int32), trainable=False)
-    version = tf.Variable(tf.constant(get_init_version(), dtype=tf.int64),
-                          trainable=False)
-    propose = propose_update(version + 1, best_size)
-
-    variables = tf.trainable_variables()
-    for v in variables:
-        print('%s :: %s' % (v.name, v.shape))
-
-    def control_step(sess, result):
-        # TODO: gns = global_gradient_noise_scale()
-        v = sess.run(version)
-        print('control step for version %s' % (v))
-        # sess.run(propose)
-
-    with tf.Session() as sess:
-        print('training...')
-        sess.run(get_init_op())
-        print('global variable initialized.')
-
-        watch = StopWatch()
-        step = 0
-        while True:
-            step += 1
-            print('step: %d' % (step))
-            try:
-                watch()
-                train_step(sess)
-                duration = watch()
-                print('step: %d - train finished, took %.2fms' %
-                      (step, duration * 1e3))
-
-                result = test_step(sess)
-                duration = watch()
-                print('step: %d - test finished, took %.2fms' %
-                      (step, duration * 1e3))
-                print('accurary: %.2f' % (result))
-
-                control_step(sess, result)
-                duration = watch()
-                print('step: %d - control finished, took %.2fms' %
-                      (step, duration * 1e3))
-            except tf.errors.OutOfRangeError:
-                print('finished on step: %d' % (step))
-                break
+    kungfu_train(12, train_step)
 
 
 def create_labeled_dataset(data):
@@ -154,11 +105,20 @@ def parse_args():
 
 
 def main():
-    args = parse_args()
-    ds_train, ds_test = create_mnist_dataset(args.data_dir)
-    optimizer = build_optimizer(args.use_dynamic)
-    x, y_, train_op, test_op = build_ops(optimizer)
-    train_mnist(x, y_, train_op, test_op, ds_train, ds_test, args.batch_size)
+    one = tf.Variable(tf.ones([], dtype=tf.int32))
+    np = all_reduce(one)
+
+    def train_step(sess):
+        v = sess.run(np)
+        print('finished train step: np=%d' % (v))
+
+    kungfu_train(12, train_step)
+
+    # args = parse_args()
+    # ds_train, ds_test = create_mnist_dataset(args.data_dir)
+    # optimizer = build_optimizer()
+    # x, y_, train_op, test_op = build_ops(optimizer)
+    # train_mnist(x, y_, train_op, test_op, ds_train, ds_test, args.batch_size)
 
 
 main()
