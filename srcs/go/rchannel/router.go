@@ -156,8 +156,8 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
 	version := string(msg.Data)
 	if len(version) > 0 {
-		var buf *kb.Buffer // FIXME: copy elision
-		if err := r.store.Get(version, name, &buf); err != nil {
+		var blob *store.Blob // FIXME: copy elision
+		if err := r.store.Get(version, name, &blob); err != nil {
 			utils.ExitErr(fmt.Errorf("Router.store.Get(%s, %s): %v", version, name, err))
 		}
 		bs := []byte(name)
@@ -170,8 +170,8 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 			utils.ExitErr(err)
 		}
 		m := Message{
-			Length: uint32(buf.Count * buf.Type.Size()),
-			Data:   buf.Data,
+			Length: uint32(len(blob.Data)),
+			Data:   blob.Data,
 		}
 		if err := m.WriteTo(conn); err != nil {
 			log.Errorf("Could not write variable from store to connection: %s", name)

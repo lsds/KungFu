@@ -4,7 +4,6 @@ import (
 	"errors"
 	"sync"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -56,17 +55,17 @@ func (s *VersionedStore) getOrCreateVersion(version string) *Store {
 	return store
 }
 
-func (s *VersionedStore) Create(version, name string, buf *kb.Buffer) error {
+func (s *VersionedStore) Create(version, name string, blob *Blob) error {
 	store := s.getOrCreateVersion(version)
-	return store.Create(name, buf)
+	return store.Create(name, blob)
 }
 
-// Get retrives the data with given version and name, if buf is not nil,
-// the metadata of buf is used to validate the stored data
-func (s *VersionedStore) Get(version, name string, buf **kb.Buffer) error {
+// Get retrives the data with given version and name, if blob is not nil,
+// the length of blob.Data is used to validate the stored data
+func (s *VersionedStore) Get(version, name string, blob **Blob) error {
 	store, err := s.getVersion(version)
 	if err != nil {
 		return err
 	}
-	return store.Get(name, buf)
+	return store.Get(name, blob)
 }

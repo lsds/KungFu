@@ -171,5 +171,6 @@ func (kf *Kungfu) updateSession(version string) bool {
 }
 
 func (kf *Kungfu) Save(version, name string, buf *kb.Buffer) int {
-	return code(kf.store.Create(version, name, buf))
+	blob := &store.Blob{Data: buf.Data}
+	return code(kf.store.Create(version, name, blob))
 }
