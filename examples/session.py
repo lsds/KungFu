@@ -1,5 +1,8 @@
+import time
 import tensorflow as tf
-from kungfu.ops import broadcast, get_init_version, save_variable, propose_update, start_step, update_cluster, all_reduce
+from kungfu.ops import (all_reduce, broadcast, get_init_version,
+                        propose_update, save_variable, start_step,
+                        update_cluster)
 
 
 class InitHook(tf.train.SessionRunHook):
@@ -18,26 +21,17 @@ class InitHook(tf.train.SessionRunHook):
         self._global_step = global_step
 
     def after_create_session(self, sess, coord):
-        print('InitHook::after_create_session')
-
-        print('running tf init')
         sess.run(self._tf_init)
-
-        print('running reset global step')
         sess.run(self._reset_global_step)
-
-        global_step = sess.run(self._global_step)
-        print('init global_step = %d' % (global_step))
 
         # print('running broadcast ops')
         # sess.run(self._bcast_ops)
 
-        print('running save ops')
         sess.run(self._save_ops)
 
 
 class AdaptHook(tf.train.SessionRunHook):
-    def __init__(self, version, global_step, mon_op, new_size):
+    def __init__(self, version, global_step, max_step, mon_op, new_size):
         self._version = version
         self._global_step = global_step
 
@@ -49,24 +43,20 @@ class AdaptHook(tf.train.SessionRunHook):
         self._update_cluster_op = update_cluster(self._version)
         self._inc_version = tf.assign_add(self._version, 1)
 
-        self._should_propose = mon_op
+        isnt_last_step = tf.less(global_step + 1, max_step)
+        self._should_propose = tf.logical_and(mon_op, isnt_last_step)
         self._propose_update_op = propose_update(self._update_step,
                                                  self._version, new_size)
 
     def before_run(self, run_context):
-        print('AdaptHook::before_run')
         should_update = run_context.session.run(self._should_update)
         if should_update:
-            version = run_context.session.run(self._version)
-            print('update to version %d' % (version))
             exist = run_context.session.run(self._update_cluster_op)
             if not exist:
                 print('peer not in cluster any more')
                 run_context.request_stop()
-                print('peer not in cluster any more, request_stop called!')
 
     def after_run(self, run_context, run_values):
-        print('AdaptHook::after_run')
         should_propose = run_context.session.run(self._should_propose)
         if should_propose:
             run_context.session.run(self._inc_version)
@@ -86,36 +76,10 @@ class GlobalStepHook(tf.train.SessionRunHook):
         self._limit = limit
         self._inc_global_step = tf.assign_add(global_step, 1)
 
-    def before_run(self, run_context):
-        print('GlobalStepHook::before_run')
-
     def after_run(self, run_context, run_values):
-        print('GlobalStepHook::after_run')
-        run_context.session.run(self._inc_global_step)
-        global_step = run_context.session.run(self._global_step)
+        global_step = run_context.session.run(self._inc_global_step)
         if global_step >= self._limit:
             run_context.request_stop()
-
-
-class DebugHook(tf.train.SessionRunHook):
-    def __init__(self, global_step):
-        self._global_step = global_step
-        one = tf.Variable(tf.ones([], dtype=tf.int32))
-        self._np = all_reduce(one)
-
-    def before_run(self, run_context):
-        print('DebugHook::before_run')
-
-    def after_run(self, run_context, run_values):
-        print('DebugHook::after_run')
-        if run_context.stop_requested:
-            print('stop_requested!')
-            return
-
-        print('DebugHook::after_run global step : %d' %
-              tf.train.global_step(run_context.session, self._global_step))
-        v = run_context.session.run(self._np)
-        print('np=%d' % (v))
 
 
 def _create_version_tensor():
@@ -131,31 +95,48 @@ def mon_op(global_step):
 
 
 def compute_new_size(global_step):
-    # 0 1 2 3 4 5 6 7 8 9 10 11
+    # 0 1 2 3 4 5 6 7 8 9 10 11 12
     # 1 2 3 4 5 6 1 2 3 4 5  6
     #     x     x     x      x
-    # 2 2 2 3 3 3 6 6 6 3 3  3
+    # 2 2 2 3 3 3 6 6 6 3 3  3  6
     return tf.cast(tf.mod(global_step, 6) + 1, dtype=tf.int32)
 
 
+class StopWatch():
+    def __init__(self):
+        self._last = time.time()
+
+    def __call__(self):
+        t = time.time()
+        d = t - self._last
+        self._last = t
+        return d
+
+
+def log_duration(duration, name):
+    import humanize
+    print('%s took %s' % (name, humanize.naturaldelta(duration)))
+
+
 # public
-def kungfu_train(max_step, train_step):
+def kungfu_train(max_step, train_op):
     global_step = tf.Variable(tf.zeros([], tf.int64), trainable=False)
     version = _create_version_tensor()
 
     hooks = [
-        AdaptHook(version, global_step, mon_op(global_step),
-                  compute_new_size(global_step)),  # optional
-        # DebugHook(global_step),
+        AdaptHook(version, global_step, max_step, mon_op(global_step),
+                  compute_new_size(global_step)),
         GlobalStepHook(global_step, max_step),
         InitHook(version, global_step),
     ]
 
+    watch = StopWatch()
     with tf.train.MonitoredSession(hooks=hooks) as sess:
+        log_duration(watch(), 'create session')
         n = 0
         while not sess.should_stop():
-            print('step : %d ------------' % (n))
-            train_step(sess)
+            print('step %d ----------------------------------' % (n))
+            sess.run(train_op)
+            log_duration(watch(), 'train_step %d' % n)
             n += 1
-
     print('done')

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
@@ -41,7 +42,7 @@ func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog strin
 		log.Printf("%d new %s will be created on this host", len(localProcs), utils.Pluralize(len(localProcs), "proc", "proc"))
 		for _, proc := range localProcs {
 			wg.Add(1)
-			go runProc(ctx, proc, &wg, version)
+			go runProc(ctx, cancel, proc, &wg, version)
 		}
 		currentPeers = makePeerList(cs)
 	}
@@ -103,15 +104,21 @@ func createProcs(version string, peers []plan.PeerSpec, prog string, args []stri
 	return procs
 }
 
-func runProc(ctx context.Context, proc sch.Proc, wg *sync.WaitGroup, version string) {
+var running int32
+
+func runProc(ctx context.Context, cancel context.CancelFunc, proc sch.Proc, wg *sync.WaitGroup, version string) {
 	defer wg.Done()
 	r := &runner.Runner{}
 	r.SetName(proc.Name)
 	r.SetLogPrefix(proc.Name + "@" + version)
 	r.SetVerbose(true)
-	if err := r.Run(ctx, proc.Cmd()); err != nil {
-		log.Printf("%s finished with error: %v", proc.Name, err)
+	atomic.AddInt32(&running, 1)
+	err := r.Run(ctx, proc.Cmd())
+	n := atomic.AddInt32(&running, -1)
+	if err != nil {
+		log.Printf("%s finished with error: %v, %d still running", proc.Name, err, n)
+		cancel()
 		return
 	}
-	log.Printf("%s finished succefully", proc.Name)
+	log.Printf("%s finished succefully, %d still running", proc.Name, n)
 }

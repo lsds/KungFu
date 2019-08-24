@@ -6,7 +6,7 @@ cd $(dirname $0)/..
 localhost=127.0.0.1
 H=${localhost}:8
 
-timeout=30s
+timeout=600s
 logfile=prun.log
 
 config_server_port=38080

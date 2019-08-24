@@ -90,7 +90,7 @@ class Dense(Layer):
             _n, m = x.shape
             input_size = int(m)
         else:
-            raise RuntimeError('invalid input size')
+            raise RuntimeError('invalid input shape: %s' % (x.shape))
 
         w = new_dense_weight((input_size, self._logits))
         y = tf.matmul(x_flat, w)

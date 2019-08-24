@@ -3,13 +3,12 @@ import argparse
 import os
 import time
 
+import kungfu as kf
 import numpy as np
 import tensorflow as tf
-
-import kungfu as kf
 from kungfu.helpers.mnist import load_datasets
-from kungfu.benchmarks.mnist import slp
-from kungfu.ops import get_init_version, propose_update, broadcast, barrier, save_variable, all_reduce
+from kungfu.ops import all_reduce, barrier, broadcast, propose_update
+
 from session import kungfu_train
 
 
@@ -25,55 +24,12 @@ def build_optimizer():
     return optimizer
 
 
-def build_ops(optimizer):
-    x, y = slp(28 * 28, 10)
-    y_ = tf.placeholder(tf.float32, [None, 10])
-    loss = tf.reduce_mean(xentropy(y_, y))
+def build_train_op(images, labels, optimizer):
+    from kungfu.benchmarks.layers import Dense
+    y = Dense(10, act=tf.nn.softmax)(tf.reshape(images, [-1, 28 * 28]))
+    loss = tf.reduce_mean(xentropy(labels, y))
     train_op = optimizer.minimize(loss)
-    correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-    test_op = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    return (x, y_, train_op, test_op)
-
-
-class StopWatch():
-    def __init__(self):
-        self._last = time.time()
-
-    def __call__(self):
-        t = time.time()
-        d = t - self._last
-        self._last = t
-        return d
-
-
-def train_mnist(x, y_, train_op, test_op, ds_train, ds_test, batch_size=5000):
-    ds_train = ds_train.batch(batch_size)
-    it_train = ds_train.make_one_shot_iterator()
-    get_next_train = it_train.get_next()
-
-    def train_step(sess):
-        xs, y_s = sess.run(get_next_train)
-        print('train one step with xs :: %s, y_s :: %s' %
-              (xs.shape, y_s.shape))
-        sess.run(train_op, {
-            x: xs.reshape(-1, 28 * 28),
-            y_: y_s,
-        })
-
-    test_batch_size = 10000
-    ds_test = ds_test.batch(test_batch_size).repeat()
-    it_test = ds_test.make_one_shot_iterator()
-    get_next_test = it_test.get_next()
-
-    def test_step(sess):
-        xs, y_s = sess.run(get_next_test)
-        result = sess.run(test_op, {
-            x: xs.reshape(-1, 28 * 28),
-            y_: y_s,
-        })
-        return result
-
-    kungfu_train(12, train_step)
+    return train_op
 
 
 def create_labeled_dataset(data):
@@ -105,20 +61,17 @@ def parse_args():
 
 
 def main():
-    one = tf.Variable(tf.ones([], dtype=tf.int32))
-    np = all_reduce(one)
+    args = parse_args()
+    ds_train, _ds_test = create_mnist_dataset(args.data_dir)
 
-    def train_step(sess):
-        v = sess.run(np)
-        print('finished train step: np=%d' % (v))
+    ds_train = ds_train.batch(args.batch_size)
+    it_train = ds_train.make_one_shot_iterator()
+    images, labels = it_train.get_next()
 
-    kungfu_train(12, train_step)
+    optimizer = build_optimizer()
+    train_op = build_train_op(images, labels, optimizer)
 
-    # args = parse_args()
-    # ds_train, ds_test = create_mnist_dataset(args.data_dir)
-    # optimizer = build_optimizer()
-    # x, y_, train_op, test_op = build_ops(optimizer)
-    # train_mnist(x, y_, train_op, test_op, ds_train, ds_test, args.batch_size)
+    kungfu_train(12, train_op)
 
 
 main()
