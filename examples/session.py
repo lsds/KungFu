@@ -124,30 +124,43 @@ class StopWatch():
         return d
 
 
+def show_duration(duration):
+    if duration < 1e-3:
+        return '%.2fms' % (duration * 1e3)
+    return '%.2fs' % duration
+
+
 def log_duration(duration, name):
-    import humanize
-    print('%s took %s' % (name, humanize.naturaldelta(duration)))
+    print('%s took %s' % (name, show_duration(duration)))
 
 
-# public
-def kungfu_train(max_step, train_op):
-    version = _create_version_tensor()
-    global_step = tf.Variable(start_step(version), trainable=False)
+class Trainer(object):
+    def __init__(self, adapt=False):
+        self._adapt = adapt
 
-    hooks = [
-        AdaptHook(version, global_step, max_step, mon_op(global_step),
-                  compute_new_size(global_step)),
-        GlobalStepHook(global_step, max_step),
-        InitHook(version, global_step),
-    ]
+    def train(self, max_step, train_op, handle=None):
+        version = _create_version_tensor()
+        global_step = tf.Variable(start_step(version), trainable=False)
 
-    watch = StopWatch()
-    with tf.train.MonitoredSession(hooks=hooks) as sess:
-        log_duration(watch(), 'create session')
-        n = 0
-        while not sess.should_stop():
-            print('step %d ----------------------------------' % (n))
-            sess.run(train_op)
-            log_duration(watch(), 'train_step %d' % n)
-            n += 1
-    print('done')
+        hooks = []
+        if self._adapt:
+            hooks.append(
+                AdaptHook(version, global_step, max_step, mon_op(global_step),
+                          compute_new_size(global_step)))
+        hooks.extend([
+            GlobalStepHook(global_step, max_step),
+            InitHook(version, global_step),
+        ])
+
+        watch = StopWatch()
+        with tf.train.MonitoredSession(hooks=hooks) as sess:
+            log_duration(watch(), 'create session')
+            n = 0
+            while not sess.should_stop():
+                print('step %d ----------------------------------' % (n))
+                result = sess.run(train_op)
+                if handle:
+                    handle(result)
+                log_duration(watch(), 'train_step %d' % n)
+                n += 1
+        print('done')
