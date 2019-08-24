@@ -10,7 +10,11 @@ namespace tensorflow
 {
 REGISTER_OP("KungfuGetStartStep")
     .Input("version: int32")
-    .Output("global_step: int64");
+    .Output("global_step: int64")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->Scalar());
+        return Status::OK();
+    });
 
 class GetStartStep : public AsyncOpKernel
 {

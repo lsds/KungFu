@@ -15,14 +15,12 @@ class InitHook(tf.train.SessionRunHook):
         self._bcast_ops = bcast_ops
         self._save_ops = save_ops
 
-        self._reset_global_step = tf.assign(global_step, start_step(version))
         self._tf_init = tf.global_variables_initializer()
 
         self._global_step = global_step
 
     def after_create_session(self, sess, coord):
         sess.run(self._tf_init)
-        sess.run(self._reset_global_step)
 
         # print('running broadcast ops')
         # sess.run(self._bcast_ops)
@@ -120,8 +118,8 @@ def log_duration(duration, name):
 
 # public
 def kungfu_train(max_step, train_op):
-    global_step = tf.Variable(tf.zeros([], tf.int64), trainable=False)
     version = _create_version_tensor()
+    global_step = tf.Variable(start_step(version), trainable=False)
 
     hooks = [
         AdaptHook(version, global_step, max_step, mon_op(global_step),
