@@ -6,7 +6,7 @@ import time
 import kungfu as kf
 import numpy as np
 import tensorflow as tf
-from kungfu.helpers.mnist import load_datasets
+from kungfu.helpers.cifar import Cifar10Loader
 
 from session import kungfu_train
 
@@ -25,7 +25,7 @@ def build_optimizer():
 
 def build_train_op(images, labels, optimizer):
     from kungfu.benchmarks.layers import Dense
-    y = Dense(10, act=tf.nn.softmax)(tf.reshape(images, [-1, 28 * 28]))
+    y = Dense(10, act=tf.nn.softmax)(tf.reshape(images, [-1, 32 * 32 * 3]))
     loss = tf.reduce_mean(xentropy(labels, y))
     train_op = optimizer.minimize(loss)
     return train_op
@@ -37,15 +37,16 @@ def create_labeled_dataset(data):
     return tf.data.Dataset.zip((images, labels))
 
 
-def create_mnist_dataset(data_dir):
-    mnist = load_datasets(data_dir, normalize=True, one_hot=True)
-    ds_train = create_labeled_dataset(mnist.train)
-    ds_test = create_labeled_dataset(mnist.test)
+def create_cifar10_dataset(data_dir):
+    loader = Cifar10Loader(data_dir, normalize=True, one_hot=True)
+    ds = loader.load_datasets()
+    ds_train = create_labeled_dataset(ds.train)
+    ds_test = create_labeled_dataset(ds.test)
     return ds_train, ds_test
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='KungFu mnist example.')
+    parser = argparse.ArgumentParser(description='KungFu cifar10 example.')
     parser.add_argument('--batch-size',
                         type=int,
                         default=500,
@@ -53,14 +54,14 @@ def parse_args():
     parser.add_argument('--data-dir',
                         type=str,
                         default=os.path.join(os.getenv('HOME'),
-                                             'var/data/mnist'),
-                        help='Path to the MNIST dataset directory.')
+                                             'var/data/cifar'),
+                        help='Path to the CIFAR dataset directory.')
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    ds_train, _ds_test = create_mnist_dataset(args.data_dir)
+    ds_train, _ds_test = create_cifar10_dataset(args.data_dir)
 
     ds_train = ds_train.batch(args.batch_size)
     it_train = ds_train.make_one_shot_iterator()

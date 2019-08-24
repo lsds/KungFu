@@ -31,5 +31,5 @@ if [ $(uname -s) = "Darwin" ]; then
 fi
 
 prun 2 python3 \
-    ./examples/dynamic_train_mnist.py \
-    --batch-size 5000
+    ./examples/dynamic_train_cifar10.py \
+    --batch-size 500
