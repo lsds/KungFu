@@ -63,17 +63,16 @@ func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog strin
 func watchConfigServer(configClient *kf.ConfigClient, newVersion chan string) {
 	tk := time.NewTicker(*watchPeriod)
 	defer tk.Stop()
-
-	n := -1
+	last := "-1"
 	for range tk.C {
-		id, version, err := configClient.GetNextVersion(n)
+		next, err := configClient.GetNextVersion(last)
 		if err != nil {
-			log.Printf("configClient.GetLatestVersion(%d) failed: %v", n, err)
+			log.Printf("configClient.GetLatestVersion(%s) failed: %v", last, err)
 			continue
 		}
-		if id != n {
-			n = id
-			newVersion <- version
+		if next != last {
+			last = next
+			newVersion <- next
 		}
 	}
 }

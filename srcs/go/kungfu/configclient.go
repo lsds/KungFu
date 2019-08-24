@@ -53,30 +53,26 @@ func (c *ConfigClient) makeRequest(method string, u url.URL, body io.Reader) (*h
 	return req, nil
 }
 
-func (c *ConfigClient) GetNextVersion(n int) (int, string, error) {
+func (c *ConfigClient) GetNextVersion(prev string) (string, error) {
 	u := url.URL{
 		Scheme: `http`,
 		Host:   c.endpoint,
-		Path:   fmt.Sprintf(`/versions/next/%d`, n),
+		Path:   fmt.Sprintf(`/versions/next/%s`, prev),
 	}
 	req, err := c.makeRequest(http.MethodGet, u, nil)
 	if err != nil {
-		return -1, "", err
+		return prev, err
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return -1, "", err
+		return prev, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return -1, "", errors.New(resp.Status)
+	bs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return prev, err
 	}
-	var v Version
-	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
-
-		return -1, "", err
-	}
-	return v.ID, v.Version, nil
+	return string(bs), nil
 }
 
 func (c *ConfigClient) GetConfig(version, name string, i interface{}) error {

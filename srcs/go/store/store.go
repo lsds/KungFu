@@ -30,7 +30,7 @@ func (b *Blob) copyFrom(c *Blob) error {
 
 // Store is a simple Key-Value store
 type Store struct {
-	sync.Mutex
+	sync.RWMutex
 
 	data map[string]*Blob
 }
@@ -56,8 +56,8 @@ func (s *Store) Create(name string, buf *Blob) error {
 // Get retrives the data with given name, if blob is not nil,
 // the length of blob.Data is used to validate the stored data
 func (s *Store) Get(name string, blob **Blob) error {
-	s.Lock()
-	defer s.Unlock()
+	s.RLock()
+	defer s.RUnlock()
 	value, ok := s.data[name]
 	if !ok {
 		return errNotFound

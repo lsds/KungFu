@@ -165,7 +165,6 @@ func (kf *Kungfu) updateSession(version string) bool {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Infof("updating session to %d peers", len(cs.Peers))
 	kf.currentSession = sess
 	return true
 }

@@ -2,30 +2,25 @@ package kungfu
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
-	"sync"
+
+	"github.com/lsds/KungFu/srcs/go/store"
 )
 
-type config struct {
-	values map[string]string
-}
-
 type configServer struct {
-	mu      sync.RWMutex
 	updated chan string
 
 	versionList []string
-	versions    map[string]*config
+	store       *store.VersionedStore
 }
 
 func NewConfigServer(updated chan string) http.Handler {
 	return &configServer{
-		updated:  updated,
-		versions: make(map[string]*config),
+		updated: updated,
+		store:   store.NewVersionedStore(0),
 	}
 }
 
@@ -48,85 +43,50 @@ func (cs *configServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-type Version struct {
-	Version string
-	ID      int
-}
-
 func (cs *configServer) handleGetNextVersion(w http.ResponseWriter, req *http.Request) {
-	cs.mu.RLock()
-	defer cs.mu.RUnlock()
-	l := len(cs.versionList)
-	if l == 0 {
-		http.NotFound(w, req)
-		return
-	}
-	var n int
-	if _, err := fmt.Sscanf(req.URL.Path, "/versions/next/%d", &n); err != nil {
+	parts := strings.Split(req.URL.Path, "/")
+	if len(parts) != 4 {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
-	n++
-	if n < 0 {
-		n = 0
-	}
-	if n >= l {
-		http.NotFound(w, req)
-		return
-	}
-	resp := Version{
-		Version: cs.versionList[n],
-		ID:      n,
-	}
-	json.NewEncoder(w).Encode(resp)
+	nextVersion := cs.store.GetNextVersion(parts[3])
+	w.Write([]byte(nextVersion))
 }
 
 func (cs *configServer) handleReadConfig(w http.ResponseWriter, req *http.Request) {
-	cs.mu.RLock()
-	defer cs.mu.RUnlock()
-
 	version := req.FormValue("version")
 	name := req.FormValue("name")
-	config, ok := cs.versions[version]
-	if !ok {
+	var blob *store.Blob
+	if err := cs.store.Get(version, name, &blob); err != nil {
 		http.NotFound(w, req)
 		return
 	}
-	val, ok := config.values[name]
-	if !ok {
-		http.NotFound(w, req)
-		return
-	}
-	w.Write([]byte(val))
+	w.Write(blob.Data)
 }
 
 func (cs *configServer) handleWriteConfig(w http.ResponseWriter, req *http.Request) {
-	cs.mu.Lock()
-	defer cs.mu.Unlock()
 	version := req.FormValue("version")
 	name := req.FormValue("name")
-	cfg, ok := cs.versions[version]
-	if !ok {
-		cfg = &config{
-			values: make(map[string]string),
-		}
-		cs.versions[version] = cfg
-	}
 	bs, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
-	value := string(bs)
-	if v, ok := cfg.values[name]; ok {
-		if v != value {
-			http.Error(w, "", http.StatusConflict)
+	{
+		var blob *store.Blob
+		if err := cs.store.Get(version, name, &blob); err == nil {
+			if string(bs) != string(blob.Data) {
+				http.Error(w, "", http.StatusConflict)
+			}
+			return
 		}
+	}
+	blob := &store.Blob{Data: bs}
+	if err := cs.store.Create(version, name, blob); err != nil {
+		http.Error(w, "", http.StatusConflict)
 		return
 	}
-	cfg.values[name] = value
 	if name == `KUNGFU_CLUSTER_SPEC` {
-		cs.versionList = append(cs.versionList, version)
 		if cs.updated != nil {
 			cs.updated <- version
 		}

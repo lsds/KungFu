@@ -3,12 +3,10 @@ package store
 import (
 	"errors"
 	"sync"
-
-	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type VersionedStore struct {
-	sync.Mutex
+	sync.RWMutex
 
 	versions map[string]*Store
 
@@ -19,9 +17,6 @@ type VersionedStore struct {
 var errInvalidWindowSize = errors.New("invalid window size")
 
 func NewVersionedStore(windowSize int) *VersionedStore {
-	if windowSize < 1 {
-		utils.ExitErr(errInvalidWindowSize)
-	}
 	return &VersionedStore{
 		versions:   make(map[string]*Store),
 		windowSize: windowSize,
@@ -29,13 +24,24 @@ func NewVersionedStore(windowSize int) *VersionedStore {
 }
 
 func (s *VersionedStore) getVersion(version string) (*Store, error) {
-	s.Lock()
-	defer s.Unlock()
+	s.RLock()
+	defer s.RUnlock()
 	store, ok := s.versions[version]
 	if !ok {
 		return nil, errNotFound
 	}
 	return store, nil
+}
+
+func (s *VersionedStore) gc() {
+	if s.windowSize <= 0 {
+		return
+	}
+	for len(s.window) > s.windowSize {
+		old := s.window[0]
+		s.window = s.window[1:]
+		delete(s.versions, old)
+	}
 }
 
 func (s *VersionedStore) getOrCreateVersion(version string) *Store {
@@ -46,11 +52,7 @@ func (s *VersionedStore) getOrCreateVersion(version string) *Store {
 		store = newStore()
 		s.versions[version] = store
 		s.window = append(s.window, version)
-		for len(s.window) > s.windowSize {
-			old := s.window[0]
-			s.window = s.window[1:]
-			delete(s.versions, old)
-		}
+		s.gc()
 	}
 	return store
 }
@@ -68,4 +70,22 @@ func (s *VersionedStore) Get(version, name string, blob **Blob) error {
 		return err
 	}
 	return store.Get(name, blob)
+}
+
+func (s *VersionedStore) GetNextVersion(prev string) string {
+	s.RLock()
+	defer s.RUnlock()
+	n := len(s.window)
+	for i := n - 1; i > 0; i-- {
+		if prev == s.window[i-1] {
+			return s.window[i]
+		}
+	}
+	if n > 0 {
+		if prev == s.window[n-1] {
+			return prev
+		}
+		return s.window[0]
+	}
+	return prev
 }
