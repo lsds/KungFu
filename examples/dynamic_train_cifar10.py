@@ -28,10 +28,16 @@ def build_model(x, model='slp'):
         from kungfu.benchmarks.layers import Dense
         y = Dense(10, act=tf.nn.softmax)(tf.reshape(x, [-1, 32 * 32 * 3]))
     elif model == 'cnn':
-        from kungfu.benchmarks.layers import Conv, Dense, seq_apply
+        from kungfu.benchmarks.layers import Conv, Dense, Pool, seq_apply
         layers = [
-            Conv([3, 3], 16, act=tf.nn.relu),
-            Conv([3, 3], 16),
+            Conv([5, 5], 32, act=tf.nn.relu),
+            Pool(),
+            Conv([3, 3], 64, act=tf.nn.relu),
+            Pool(),
+            Conv([3, 3], 128, act=tf.nn.relu),
+            Pool(),
+            Conv([3, 3], 256, act=tf.nn.relu),
+            Pool(),
             Dense(10, act=tf.nn.softmax),
         ]
         y = seq_apply(layers, x)

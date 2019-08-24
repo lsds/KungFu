@@ -37,5 +37,5 @@ model=cnn
 prun 1 python3 \
     ./examples/dynamic_train_cifar10.py \
     --batch-size 100 \
-    --max-step 5000 \
+    --max-step 10000 \
     --model "${model}"
