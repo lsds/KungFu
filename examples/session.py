@@ -2,30 +2,35 @@ import time
 import tensorflow as tf
 from kungfu.ops import (all_reduce, broadcast, get_init_version,
                         propose_update, save_variable, start_step,
-                        update_cluster)
+                        update_cluster, request_variable)
 
 
 class InitHook(tf.train.SessionRunHook):
     def __init__(self, version, global_step):
+        def _request(target, version, v):
+            return tf.assign(
+                v, request_variable(0, version, v.name, v.shape, v.dtype))
+
         bcast_ops = []
         save_ops = []
+        request_ops = []
         for v in tf.trainable_variables():
             bcast_ops.append(tf.assign(v, broadcast(v)))
             save_ops.append(save_variable(global_step, v))
+            request_ops.append(_request(0, global_step - 1, v))
         self._bcast_ops = bcast_ops
         self._save_ops = save_ops
-
+        self._request_ops = request_ops
         self._tf_init = tf.global_variables_initializer()
-
         self._global_step = global_step
 
     def after_create_session(self, sess, coord):
         sess.run(self._tf_init)
-
-        # print('running broadcast ops')
-        # sess.run(self._bcast_ops)
-
-        sess.run(self._save_ops)
+        if sess.run(self._global_step) == 0:
+            sess.run(self._bcast_ops)
+            sess.run(self._save_ops)
+        else:
+            sess.run(self._request_ops)
 
 
 class AdaptHook(tf.train.SessionRunHook):
@@ -46,6 +51,11 @@ class AdaptHook(tf.train.SessionRunHook):
         self._propose_update_op = propose_update(self._update_step,
                                                  self._version, new_size)
 
+        save_ops = []
+        for v in tf.trainable_variables():
+            save_ops.append(save_variable(global_step, v))
+        self._save_ops = save_ops
+
     def before_run(self, run_context):
         should_update = run_context.session.run(self._should_update)
         if should_update:
@@ -61,7 +71,9 @@ class AdaptHook(tf.train.SessionRunHook):
             run_context.session.run(self._set_update_step)
             accepted, keep = run_context.session.run(self._propose_update_op)
             print('propose result: (%s, %s)' % (accepted, keep))
-            if not accepted:
+            if accepted:
+                run_context.session.run(self._save_ops)
+            else:
                 print('propose update if rejected')
             if not keep:
                 print('peer not in new cluster')
@@ -82,7 +94,8 @@ class GlobalStepHook(tf.train.SessionRunHook):
 
 def _create_version_tensor():
     init_version = get_init_version()
-    version_tensor = tf.Variable(tf.constant(init_version, tf.int32))
+    version_tensor = tf.Variable(tf.constant(init_version, tf.int32),
+                                 trainable=False)
     return version_tensor
 
 
