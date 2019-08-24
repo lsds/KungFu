@@ -30,7 +30,12 @@ if [ $(uname -s) = "Darwin" ]; then
     export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
 
+# model=slp
+model=cnn
+# model=ResNet50
+
 prun 1 python3 \
     ./examples/dynamic_train_cifar10.py \
-    --batch-size 500 \
-    --max-step 12000
+    --batch-size 100 \
+    --max-step 5000 \
+    --model "${model}"

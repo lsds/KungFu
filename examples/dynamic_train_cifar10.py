@@ -16,19 +16,38 @@ def xentropy(y_, y):
 
 
 def build_optimizer():
-    learning_rate = 0.05
+    learning_rate = 0.01
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     from kungfu.optimizers import SyncSGDOptimizer
     optimizer = SyncSGDOptimizer(optimizer)
     return optimizer
 
 
-def build_ops(images, labels, optimizer):
-    from kungfu.benchmarks.layers import Dense
-    y = Dense(10, act=tf.nn.softmax)(tf.reshape(images, [-1, 32 * 32 * 3]))
-    loss = tf.reduce_mean(xentropy(labels, y))
+def build_model(x, model='slp'):
+    if model == 'slp':
+        from kungfu.benchmarks.layers import Dense
+        y = Dense(10, act=tf.nn.softmax)(tf.reshape(x, [-1, 32 * 32 * 3]))
+    elif model == 'cnn':
+        from kungfu.benchmarks.layers import Conv, Dense, seq_apply
+        layers = [
+            Conv([3, 3], 16, act=tf.nn.relu),
+            Conv([3, 3], 16),
+            Dense(10, act=tf.nn.softmax),
+        ]
+        y = seq_apply(layers, x)
+    elif model == 'ResNet50':
+        from tensorflow.keras import applications
+        raise RuntimeError('TODO %s' % model)
+        # return getattr(applications, model)(weights=None)(x, training=True)
+    else:
+        raise RuntimeError('invalid model %s' % model)
+    return y
+
+
+def build_ops(output, labels, optimizer):
+    loss = tf.reduce_mean(xentropy(labels, output))
     train_op = optimizer.minimize(loss)
-    correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(labels, 1))
+    correct_prediction = tf.equal(tf.argmax(output, 1), tf.argmax(labels, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     return train_op, loss, accuracy
 
@@ -52,6 +71,10 @@ def create_cifar10_dataset(data_dir, repeat):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu cifar10 example.')
+    parser.add_argument('--model',
+                        type=str,
+                        default='slp',
+                        help='model name : slp | cnn')
     parser.add_argument('--max-step',
                         type=int,
                         default=1200,
@@ -76,8 +99,9 @@ def main():
     it_train = ds_train.make_one_shot_iterator()
     images, labels = it_train.get_next()
 
+    output = build_model(images, args.model)
     optimizer = build_optimizer()
-    train_op, loss, accuracy = build_ops(images, labels, optimizer)
+    train_op, loss, accuracy = build_ops(output, labels, optimizer)
 
     def debug(result):
         _, l, a = result

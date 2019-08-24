@@ -126,7 +126,7 @@ class StopWatch():
 
 def show_duration(duration):
     if duration < 1e-3:
-        return '%.2fms' % (duration * 1e3)
+        return '%.3fms' % (duration * 1e3)
     return '%.2fs' % duration
 
 
