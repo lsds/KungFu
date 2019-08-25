@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from kungfu.helpers.mnist import load_datasets
 
-from session import kungfu_train
+from session import Trainer
 
 
 def xentropy(y_, y):
@@ -23,12 +23,14 @@ def build_optimizer():
     return optimizer
 
 
-def build_train_op(images, labels, optimizer):
+def build_ops(images, labels, optimizer):
     from kungfu.benchmarks.layers import Dense
     y = Dense(10, act=tf.nn.softmax)(tf.reshape(images, [-1, 28 * 28]))
     loss = tf.reduce_mean(xentropy(labels, y))
     train_op = optimizer.minimize(loss)
-    return train_op
+    correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(labels, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    return train_op, loss, accuracy
 
 
 def create_labeled_dataset(data):
@@ -67,9 +69,14 @@ def main():
     images, labels = it_train.get_next()
 
     optimizer = build_optimizer()
-    train_op = build_train_op(images, labels, optimizer)
+    train_op, loss, accuracy = build_ops(images, labels, optimizer)
 
-    kungfu_train(12, train_op)
+    def debug(result):
+        _, l, a = result
+        print('loss: %f, accuracy: %f' % (l, a))
+
+    trainer = Trainer(True)
+    trainer.train(12, [train_op, loss, accuracy], debug)
 
 
 main()
