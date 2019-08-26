@@ -530,25 +530,26 @@ REGISTER_KERNEL_BUILDER(Name("AsyncRequestModel").Device(DEVICE_CPU),
 
 REGISTER_OP("LossMonitor")
     .Attr("T: {float32}")
+    .Attr("threshold: float")
     .Input("loss: T")
-    .Input("step: int32")
-    .Input("interval: int32");
+    .Input("step: int64")
+    .Input("interval: int64");
 
 
 class LossMonitor : public OpKernel
 {
     using OpKernel::OpKernel;
 
-    const int threshold_;
+    float threshold_;
     float prev_average_;
     float sum_loss_;
     float n_;
 
   public:
     explicit LossMonitor(OpKernelConstruction *context)
-        : OpKernel(context), threshold_(1), prev_average_(-1), sum_loss_(0), n_(0)
+        : OpKernel(context), prev_average_(-1), sum_loss_(0), n_(0)
     {
-     
+        OP_REQUIRES_OK(context, context->GetAttr("threshold", &threshold_));
     }
 
     void Compute(OpKernelContext *context) override
@@ -557,30 +558,27 @@ class LossMonitor : public OpKernel
 
         const Tensor &loss_tensor = context->input(0);
 
-        float step = context->input(0).scalar<float>()();
-        float interval = context->input(0).scalar<float>()();
+        int step = context->input(1).scalar<int>()();
+        int interval = context->input(2).scalar<int>()();
 
         float loss = loss_tensor.scalar<float>()();
 
+        sum_loss_ += loss;
+        n_++;
+
         if(step % interval == 0) {
             // epoch ended, check if loss difference above threshold and trigger automatic adapation
-            sum_loss_ += loss;
-            n_++;
-
+        
             if(prev_average_ != -1 && abs(prev_average_ - sum_loss_ / n_) > threshold_) { 
-            // trigger learning rate change
+               // trigger learning rate change
             }
 
             prev_average_ = sum_loss_ / n_;
             sum_loss_ = 0.0;
             n_ = 0.0;
-        } else {
-            // update running sum
-            sum_loss_ += loss;
-            n_++;
         }
 
-        std::cout << "The loss is: " << loss << std::endl;
+        std::cout << "The loss is: " << loss << "step: " << step << "; interval: " << interval << std::endl;
     }
 };
 

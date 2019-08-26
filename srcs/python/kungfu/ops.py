@@ -226,14 +226,14 @@ def all_reduce_gpu(t):
 def global_variance(t):
     return _op_lib.global_variance(t)
 
-def loss_monitor(grads, loss_tensor, local_steps_per_epoch):
+def loss_monitor(grads, loss_tensor, local_steps_per_epoch, threshold):
     import tensorflow as tf
 
     local_step = tf.Variable(tf.zeros([], dtype=tf.int64), trainable=False)
     inc_local_step = tf.assign_add(local_step, 1)
 
-    monitor_loss = _op_lib.loss_monitor(loss_tensor, local_step, local_steps_per_epoch)
-    
+    monitor_loss = _op_lib.loss_monitor(loss_tensor, local_step, local_steps_per_epoch, threshold=threshold)
+
     with tf.control_dependencies([monitor_loss]):
         with tf.control_dependencies([inc_local_step]):
              return [tf.identity(g) for g in grads]
