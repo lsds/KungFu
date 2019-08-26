@@ -226,6 +226,11 @@ def all_reduce_gpu(t):
 def global_variance(t):
     return _op_lib.global_variance(t)
 
+def loss_monitor(grads, loss_tensor):
+    import tensorflow as tf
+    print_loss = _op_lib.loss_monitor(loss_tensor)
+    with tf.control_dependencies([print_loss] + grads):
+         return  [tf.identity(g) for g in grads]
 
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)

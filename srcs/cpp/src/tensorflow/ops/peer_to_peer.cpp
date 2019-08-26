@@ -527,4 +527,49 @@ class AsyncRequestModel : public OpKernel
 
 REGISTER_KERNEL_BUILDER(Name("AsyncRequestModel").Device(DEVICE_CPU),
                         AsyncRequestModel);
+
+REGISTER_OP("LossMonitor")
+    .Attr("T: {float32}")
+    .Input("loss: T");
+    // .Output("output: bool")
+    // .SetShapeFn([](shape_inference::InferenceContext *c) {
+    //     c->set_output(0, c->input(0));
+    //     return Status::OK();
+    // });
+
+
+class LossMonitor : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+
+  public:
+    explicit LossMonitor(OpKernelConstruction *context)
+        : OpKernel(context)
+    {
+     
+    }
+
+    void Compute(OpKernelContext *context) override
+    {
+        DCHECK_EQ(1, context->num_inputs());
+
+        const Tensor &loss_tensor = context->input(0);
+
+        // Tensor *output = nullptr;
+        // OP_REQUIRES_OK(context, context->allocate_output(
+        //                             0, loss_tensor.shape(), &output));
+
+        float loss = loss_tensor.scalar<float>()();
+
+        std::cout << "The loss is: " << loss << std::endl;
+
+        // TODO: return boolean if should change or not
+        // float *y = const_cast<float *>(output->scalar<float>().data());
+        // y[0]     = true;
+    }
+};
+
+REGISTER_KERNEL_BUILDER(Name("LossMonitor").Device(DEVICE_CPU), AndreiPrintLoss);
+        
 }  // namespace tensorflow
