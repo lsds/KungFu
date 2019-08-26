@@ -149,6 +149,16 @@ class kungfu_world
 
     // monitoring APIs
     int GetPeerLatencies(float *recvbuf, int recv_count);
+
+    // global shared variable APIs
+    int CreateSharedVariable(const char *name, int count,
+                             KungFu_Datatype dtype);
+    int GetSharedVariable(const char *name, void *buf, int count,
+                          KungFu_Datatype dtype);
+    int PutSharedVariable(const char *name, const void *buf, int count,
+                          KungFu_Datatype dtype);
+    int AddSharedVariable(const char *name, const void *buf, int count,
+                          KungFu_Datatype dtype);
 };
 
 #endif

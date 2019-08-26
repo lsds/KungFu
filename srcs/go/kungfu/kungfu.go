@@ -1,6 +1,7 @@
 package kungfu
 
 import (
+	"os"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -9,6 +10,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	shv "github.com/lsds/KungFu/srcs/go/sharedvariable"
 	"github.com/lsds/KungFu/srcs/go/store"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -27,7 +29,9 @@ func (c Config) complete() Config {
 type Kungfu struct {
 	sync.Mutex
 
-	configClient   *configClient
+	configClient *configClient
+	shvClient    *shv.Client
+
 	self           *plan.PeerSpec
 	currentSession *session
 
@@ -59,6 +63,7 @@ func New(config Config) (*Kungfu, error) {
 	}
 	return &Kungfu{
 		configClient: configClient,
+		shvClient:    shv.NewClient(os.Getenv(kc.ConfigServerEnvKey)),
 		self:         self,
 		store:        store,
 		router:       router,
@@ -121,4 +126,22 @@ func (kf *Kungfu) updateSession() {
 
 func (kf *Kungfu) Save(version, name string, buf *kb.Buffer) int {
 	return code(kf.store.Create(version, name, buf))
+}
+
+// share variable APIs
+
+func (kf *Kungfu) CreateSharedVariable(name string, count int, dtype kb.KungFu_Datatype) int {
+	return code(kf.shvClient.Create(name, count, dtype))
+}
+
+func (kf *Kungfu) GetSharedVariable(name string, buf *kb.Buffer) int {
+	return code(kf.shvClient.Get(name, buf))
+}
+
+func (kf *Kungfu) PutSharedVariable(name string, buf *kb.Buffer) int {
+	return code(kf.shvClient.Put(name, buf))
+}
+
+func (kf *Kungfu) AddSharedVariable(name string, buf *kb.Buffer) int {
+	return code(kf.shvClient.Add(name, buf))
 }

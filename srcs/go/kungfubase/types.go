@@ -1,6 +1,7 @@
 package kungfubase
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"unsafe"
@@ -67,27 +68,45 @@ func (b *Buffer) MaybeCopyFrom(c *Buffer) error {
 	return b.copyFrom(c)
 }
 
-func (b *Buffer) copyFrom(c *Buffer) error {
+func (b *Buffer) SameType(c *Buffer) bool {
 	if b.Count != c.Count {
-		return fmt.Errorf("Buffer::Copy error: inconsistent count: %d vs %d", b.Count, c.Count)
+		return false
 	}
 	if b.Type != c.Type {
-		return fmt.Errorf("Buffer::Copy error: inconsistent type: %s vs %s", b.Type, c.Type)
+		return false
+	}
+	return true
+}
+
+func (b *Buffer) copyFrom(c *Buffer) error {
+	if !b.SameType(c) {
+		return errors.New("inconsistent buffer type")
 	}
 	copy(b.Data, c.Data)
 	return nil
+}
+
+func (b *Buffer) typedSliceHeader() unsafe.Pointer {
+	sh := &reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&b.Data[0])),
+		Len:  b.Count,
+		Cap:  b.Count,
+	}
+	return unsafe.Pointer(sh)
+}
+
+func (b *Buffer) AsInt32() []int32 {
+	if b.Type != KungFu_INT32 {
+		utils.ExitErr(fmt.Errorf("buffer type is %d", b.Type))
+	}
+	return *(*[]int32)(b.typedSliceHeader())
 }
 
 func (b *Buffer) AsF32() []float32 {
 	if b.Type != KungFu_FLOAT {
 		utils.ExitErr(fmt.Errorf("buffer type is %d", b.Type))
 	}
-	sh := &reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&b.Data[0])),
-		Len:  b.Count,
-		Cap:  b.Count,
-	}
-	return *(*[]float32)(unsafe.Pointer(sh))
+	return *(*[]float32)(b.typedSliceHeader())
 }
 
 type KungFu_Op C.KungFu_Op

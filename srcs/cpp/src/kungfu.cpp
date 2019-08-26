@@ -206,3 +206,36 @@ int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
 {
     return GoKungfuGetPeerLatencies(recvbuf, recv_count, KungFu_FLOAT);
 }
+
+// global shared variable APIs
+
+int kungfu_world::CreateSharedVariable(const char *name, int count,
+                                       KungFu_Datatype dtype)
+{
+    return GoNewSharedVariable(const_cast<char *>(name), GoInt(count),
+                               GoInt(dtype));
+}
+
+int kungfu_world::GetSharedVariable(const char *name, void *buf, int count,
+                                    KungFu_Datatype dtype)
+{
+    return GoGetSharedVariable(const_cast<char *>(name),
+                               const_cast<void *>(buf), GoInt(count),
+                               GoInt(dtype));
+}
+
+int kungfu_world::PutSharedVariable(const char *name, const void *buf,
+                                    int count, KungFu_Datatype dtype)
+{
+    return GoPutSharedVariable(const_cast<char *>(name),
+                               const_cast<void *>(buf), GoInt(count),
+                               GoInt(dtype));
+}
+
+int kungfu_world::AddSharedVariable(const char *name, const void *buf,
+                                    int count, KungFu_Datatype dtype)
+{
+    return GoAddSharedVariable(const_cast<char *>(name),
+                               const_cast<void *>(buf), GoInt(count),
+                               GoInt(dtype));
+}
