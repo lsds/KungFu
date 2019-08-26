@@ -570,6 +570,6 @@ class LossMonitor : public OpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("LossMonitor").Device(DEVICE_CPU), AndreiPrintLoss);
+REGISTER_KERNEL_BUILDER(Name("LossMonitor").Device(DEVICE_CPU), LossMonitor);
         
 }  // namespace tensorflow
