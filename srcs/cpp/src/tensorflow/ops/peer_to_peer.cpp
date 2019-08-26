@@ -530,43 +530,57 @@ REGISTER_KERNEL_BUILDER(Name("AsyncRequestModel").Device(DEVICE_CPU),
 
 REGISTER_OP("LossMonitor")
     .Attr("T: {float32}")
-    .Input("loss: T");
-    // .Output("output: bool")
-    // .SetShapeFn([](shape_inference::InferenceContext *c) {
-    //     c->set_output(0, c->input(0));
-    //     return Status::OK();
-    // });
+    .Input("loss: T")
+    .Input("step: int32")
+    .Input("interval: int32");
 
 
 class LossMonitor : public OpKernel
 {
     using OpKernel::OpKernel;
 
+    const int threshold_;
+    float prev_average_;
+    float sum_loss_;
+    float n_;
 
   public:
     explicit LossMonitor(OpKernelConstruction *context)
-        : OpKernel(context)
+        : OpKernel(context), threshold_(1), prev_average_(-1), sum_loss_(0), n_(0)
     {
      
     }
 
     void Compute(OpKernelContext *context) override
     {
-        DCHECK_EQ(1, context->num_inputs());
+        DCHECK_EQ(3, context->num_inputs());
 
         const Tensor &loss_tensor = context->input(0);
 
-        // Tensor *output = nullptr;
-        // OP_REQUIRES_OK(context, context->allocate_output(
-        //                             0, loss_tensor.shape(), &output));
+        float step = context->input(0).scalar<float>()();
+        float interval = context->input(0).scalar<float>()();
 
         float loss = loss_tensor.scalar<float>()();
 
-        std::cout << "The loss is: " << loss << std::endl;
+        if(step % interval == 0) {
+            // epoch ended, check if loss difference above threshold and trigger automatic adapation
+            sum_loss_ += loss;
+            n_++;
 
-        // TODO: return boolean if should change or not
-        // float *y = const_cast<float *>(output->scalar<float>().data());
-        // y[0]     = true;
+            if(prev_average_ != -1 && abs(prev_average_ - sum_loss_ / n_) > threshold_) { 
+            // trigger learning rate change
+            }
+
+            prev_average_ = sum_loss_ / n_;
+            sum_loss_ = 0.0;
+            n_ = 0.0;
+        } else {
+            // update running sum
+            sum_loss_ += loss;
+            n_++;
+        }
+
+        std::cout << "The loss is: " << loss << std::endl;
     }
 };
 
