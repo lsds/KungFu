@@ -515,7 +515,9 @@ def global_gradient_noise_scale(batch_small,
                                 concat_negotiated_grad,
                                 alpha=0.6):
     import tensorflow as tf
-    _, cluster_size = peer_info(tf.constant(-1, dtype=tf.int32))
+    _, np = peer_info(tf.constant(-1, dtype=tf.int32))
+    cluster_size = tf.cast(np, dtype=tf.float32)
+
     batch_big = batch_small * cluster_size
     # Take average over workers
     G_big = tf.div(concat_negotiated_grad, cluster_size)

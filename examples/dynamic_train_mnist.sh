@@ -30,6 +30,8 @@ if [ $(uname -s) = "Darwin" ]; then
     export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
 
-prun 2 python3 \
+init_np=4
+
+prun $init_np python3 \
     ./examples/dynamic_train_mnist.py \
     --batch-size 5000
