@@ -8,18 +8,23 @@ import numpy as np
 import tensorflow as tf
 from kungfu.helpers.cifar import Cifar10Loader
 
+#
 from session import Trainer
+from dataset import DynamicDatasetAdaptor
 
 
 def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
 
-def build_optimizer():
+def build_optimizer(local_batch_size):
     learning_rate = 0.01
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-    from kungfu.optimizers import SyncSGDOptimizer
-    optimizer = SyncSGDOptimizer(optimizer)
+    # from kungfu.optimizers import SyncSGDOptimizer
+    # optimizer = SyncSGDOptimizer(optimizer)
+    from gns_optimizer import GradientNoiseScaleAdaptiveOptimizer
+    optimizer = GradientNoiseScaleAdaptiveOptimizer(optimizer,
+                                                    local_batch_size)
     return optimizer
 
 
@@ -101,20 +106,26 @@ def main():
     args = parse_args()
     ds_train, _ds_test = create_cifar10_dataset(args.data_dir, True)
 
-    ds_train = ds_train.batch(args.batch_size)
-    it_train = ds_train.make_one_shot_iterator()
-    images, labels = it_train.get_next()
+    adaptor = DynamicDatasetAdaptor(batch_size=args.batch_size)
+    init_train, it_train = adaptor(ds_train)
+    images, labels = it_train
 
     output = build_model(images, args.model)
-    optimizer = build_optimizer()
+    optimizer = build_optimizer(args.batch_size)
     train_op, loss, accuracy = build_ops(output, labels, optimizer)
 
     def debug(result):
-        _, l, a = result
-        print('loss: %f, accuracy: %f' % (l, a))
+        (_, l, a, bs, bs2) = result
+        print('loss: %f, accuracy: %f, bs: %f, gbs: %f' % (l, a, bs, bs2))
 
     trainer = Trainer()
-    trainer.train(args.max_step, [train_op, loss, accuracy], debug)
+    trainer.train(args.max_step, [
+        train_op,
+        loss,
+        accuracy,
+        optimizer._predicated_local_batch_size,
+        optimizer._predicated_global_batch_size,
+    ], debug, [init_train])
 
 
 main()

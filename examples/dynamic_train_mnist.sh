@@ -31,8 +31,9 @@ if [ $(uname -s) = "Darwin" ]; then
 fi
 
 init_np=4
+peer_bs=5000
 
 prun $init_np python3 \
     ./examples/dynamic_train_mnist.py \
-    --batch-size 5000 \
-    --max-step 10
+    --batch-size $peer_bs \
+    --max-step 100

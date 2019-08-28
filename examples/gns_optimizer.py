@@ -1,9 +1,14 @@
 import tensorflow as tf
-from kungfu.ops import all_reduce, global_variance, group_all_reduce
+from kungfu.ops import all_reduce, global_variance, group_all_reduce, all_reduce
 
 from kungfu.optimizers.core import KungFuOptimizer
 
 from kungfu.ops import _concat, peer_info, global_gradient_noise_scale
+
+
+def predict_batch_size(gns):
+    # return tf.sqrt(0.96 * tf.maximum(tf.constant(0, dtype=tf.float32), gns))
+    return tf.sqrt(0.96 * tf.abs(gns))
 
 
 class GradientNoiseScaleAdaptiveOptimizer(KungFuOptimizer):
@@ -27,7 +32,13 @@ class GradientNoiseScaleAdaptiveOptimizer(KungFuOptimizer):
         concat_negotiated_grad = _concat(reduced_gradients)
         gns = global_gradient_noise_scale(self._local_batch_size, concat_grad,
                                           concat_negotiated_grad)
+
         self._gns = gns
+        bs = predict_batch_size(gns)
+        global_bs = all_reduce(bs)
+        self._predicated_local_batch_size = bs
+        self._predicated_global_batch_size = global_bs
+
         return list(zip(reduced_gradients, variables))
 
     # def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):

@@ -8,7 +8,9 @@ import numpy as np
 import tensorflow as tf
 from kungfu.helpers.mnist import load_datasets
 
+#
 from session import Trainer
+from dataset import DynamicDatasetAdaptor
 
 
 def xentropy(y_, y):
@@ -34,22 +36,6 @@ def build_ops(images, labels, optimizer):
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(labels, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     return train_op, loss, accuracy
-
-
-from kungfu.datasets.adaptor import BaseDatasetAdaptor
-from kungfu.ops import peer_info
-
-
-class ExampleDatasetAdaptor(BaseDatasetAdaptor):
-    def __init__(self, batch_size=10):
-        rank, np = peer_info(tf.constant(-1, dtype=tf.int32))
-        self._rank = rank
-        self._np = np
-        self._batch_size = tf.Variable(tf.constant(batch_size, tf.int64),
-                                       trainable=False)
-        self._shard_count = tf.Variable(tf.cast(np, tf.int64), trainable=False)
-        self._shard_id = tf.Variable(tf.cast(rank, tf.int64), trainable=False)
-        self._offset = tf.Variable(tf.constant(0, tf.int64))
 
 
 def create_labeled_dataset(data, repeat=False):
@@ -94,21 +80,25 @@ def main():
     args = parse_args()
     ds_train, _ds_test = create_mnist_dataset(args.data_dir, True)
 
-    adaptor = ExampleDatasetAdaptor(batch_size=args.batch_size)
+    adaptor = DynamicDatasetAdaptor(batch_size=args.batch_size)
     init_train, it_train = adaptor(ds_train)
     images, labels = it_train
 
     optimizer = build_optimizer(args.batch_size)
     train_op, loss, accuracy = build_ops(images, labels, optimizer)
-    gns = optimizer._gns
 
     def debug(result):
-        (_, l, a, gns) = result
-        print('loss: %f, accuracy: %f, gns: %f ' % (l, a, gns))
+        (_, l, a, bs, bs2) = result
+        print('loss: %f, accuracy: %f, bs: %f, gbs: %f' % (l, a, bs, bs2))
 
     trainer = Trainer(args.adaptive)
-    trainer.train(args.max_step, [train_op, loss, accuracy, gns], debug,
-                  [init_train])
+    trainer.train(args.max_step, [
+        train_op,
+        loss,
+        accuracy,
+        optimizer._predicated_local_batch_size,
+        optimizer._predicated_global_batch_size,
+    ], debug, [init_train])
 
 
 main()
