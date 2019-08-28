@@ -114,7 +114,7 @@ func main() {
 		// go runConfigServer(configServerAddr, updated)
 
 		log.Printf("config server running at %s", configServerAddr)
-		time.Sleep(50  * time.Millisecond) // FIXME: wait config server
+		time.Sleep(50 * time.Millisecond) // FIXME: wait config server
 		if err := initConfig(configClient, configServerAddr, hostSpecs, cs); err != nil {
 			utils.ExitErr(err)
 		}
