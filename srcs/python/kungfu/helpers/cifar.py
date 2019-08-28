@@ -68,13 +68,22 @@ class Cifar10Loader(object):
 
 
 class Cifar100Loader(object):
-    def __init__(self, data_dir=_default_data_dir):
+    def __init__(self,
+                 data_dir=_default_data_dir,
+                 normalize=False,
+                 one_hot=False):
         self._data_dir = data_dir
+        self._normalize = normalize
+        self._one_hot = one_hot
 
     def _load_batch(self, filename):
         x = _unpickle(filename)
         images = x[b'data'].reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1)
+        if self._normalize:
+            images = (images / 255.0).astype(np.float32)
         labels = np.array(x[b'fine_labels'])
+        if self._one_hot:
+            labels = _to_onehot(100, labels)
         return images, labels
 
     def _load_dataset(self, name):

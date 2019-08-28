@@ -6,7 +6,7 @@ import time
 import kungfu as kf
 import numpy as np
 import tensorflow as tf
-from kungfu.helpers.cifar import Cifar10Loader
+from kungfu.helpers.cifar import Cifar10Loader, Cifar100Loader
 
 #
 from session import Trainer
@@ -28,10 +28,10 @@ def build_optimizer(local_batch_size):
     return optimizer
 
 
-def build_model(x, model='slp'):
+def build_model(x, model='slp', logits=10):
     if model == 'slp':
         from kungfu.benchmarks.layers import Dense
-        y = Dense(10, act=tf.nn.softmax)(tf.reshape(x, [-1, 32 * 32 * 3]))
+        y = Dense(logits, act=tf.nn.softmax)(tf.reshape(x, [-1, 32 * 32 * 3]))
     elif model == 'cnn':
         from kungfu.benchmarks.layers import Conv, Dense, Pool, seq_apply
         layers = [
@@ -43,7 +43,7 @@ def build_model(x, model='slp'):
             Pool(),
             Conv([3, 3], 256, act=tf.nn.relu),
             Pool(),
-            Dense(10, act=tf.nn.softmax),
+            Dense(logits, act=tf.nn.softmax),
         ]
         y = seq_apply(layers, x)
     elif model == 'ResNet50':
@@ -72,8 +72,12 @@ def create_labeled_dataset(data, repeat=False):
     return tf.data.Dataset.zip((images, labels))
 
 
-def create_cifar10_dataset(data_dir, repeat):
-    loader = Cifar10Loader(data_dir, normalize=True, one_hot=True)
+def create_cifar_dataset(model, data_dir, repeat):
+    loader_class = {
+        'cifar10': Cifar10Loader,
+        'cifar100': Cifar100Loader
+    }[model]
+    loader = loader_class(data_dir, normalize=True, one_hot=True)
     ds = loader.load_datasets()
     ds_train = create_labeled_dataset(ds.train, repeat=repeat)
     ds_test = create_labeled_dataset(ds.test)
@@ -82,6 +86,10 @@ def create_cifar10_dataset(data_dir, repeat):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu cifar10 example.')
+    parser.add_argument('--dataset',
+                        type=str,
+                        default='cifar10',
+                        help='cifar10 | cifar100')
     parser.add_argument('--model',
                         type=str,
                         default='slp',
@@ -104,13 +112,16 @@ def parse_args():
 
 def main():
     args = parse_args()
-    ds_train, _ds_test = create_cifar10_dataset(args.data_dir, True)
+    logits = {'cifar10': 10, 'cifar100': 100}[args.dataset]
+
+    ds_train, _ds_test = create_cifar_dataset(args.dataset, args.data_dir,
+                                              True)
 
     adaptor = DynamicDatasetAdaptor(batch_size=args.batch_size)
     init_train, it_train = adaptor(ds_train)
     images, labels = it_train
 
-    output = build_model(images, args.model)
+    output = build_model(images, args.model, logits)
     optimizer = build_optimizer(args.batch_size)
     train_op, loss, accuracy = build_ops(output, labels, optimizer)
 
