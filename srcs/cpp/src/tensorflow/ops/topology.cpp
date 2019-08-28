@@ -40,7 +40,12 @@ REGISTER_KERNEL_BUILDER(Name("KungfuGetStartStep").Device(DEVICE_CPU),
 REGISTER_OP("KungfuGetPeerInfo")
     .Input("version: int32")
     .Output("rank: int32")
-    .Output("cluster_size: int32");
+    .Output("cluster_size: int32")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->Scalar());
+        c->set_output(1, c->Scalar());
+        return Status::OK();
+    });
 
 class GetPeerInfo : public AsyncOpKernel
 {

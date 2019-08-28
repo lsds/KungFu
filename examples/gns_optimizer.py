@@ -3,10 +3,7 @@ from kungfu.ops import all_reduce, global_variance, group_all_reduce
 
 from kungfu.optimizers.core import KungFuOptimizer
 
-from kungfu.ops import global_gradient_noise_scale, _concat
-
-#
-gns_op = global_gradient_noise_scale
+from kungfu.ops import _concat, peer_info, global_gradient_noise_scale
 
 
 class GradientNoiseScaleAdaptiveOptimizer(KungFuOptimizer):
@@ -28,8 +25,8 @@ class GradientNoiseScaleAdaptiveOptimizer(KungFuOptimizer):
 
         concat_grad = _concat(gradients)
         concat_negotiated_grad = _concat(reduced_gradients)
-        gns = gns_op(self._local_batch_size, concat_grad,
-                     concat_negotiated_grad)
+        gns = global_gradient_noise_scale(self._local_batch_size, concat_grad,
+                                          concat_negotiated_grad)
         self._gns = gns
         return list(zip(reduced_gradients, variables))
 

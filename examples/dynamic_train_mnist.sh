@@ -34,4 +34,5 @@ init_np=4
 
 prun $init_np python3 \
     ./examples/dynamic_train_mnist.py \
-    --batch-size 5000
+    --batch-size 5000 \
+    --max-step 10

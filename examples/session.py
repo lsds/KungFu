@@ -6,7 +6,7 @@ from kungfu.ops import (all_reduce, broadcast, get_init_version,
 
 
 class InitHook(tf.train.SessionRunHook):
-    def __init__(self, version, global_step):
+    def __init__(self, version, global_step, init_ops=[]):
         def _request(target, version, v):
             return tf.assign(
                 v, request_variable(0, version, v.name, v.shape, v.dtype))
@@ -23,6 +23,7 @@ class InitHook(tf.train.SessionRunHook):
         self._request_ops = request_ops
         self._tf_init = tf.global_variables_initializer()
         self._global_step = global_step
+        self._init_ops = init_ops
 
     def after_create_session(self, sess, coord):
         sess.run(self._tf_init)
@@ -31,6 +32,9 @@ class InitHook(tf.train.SessionRunHook):
             sess.run(self._save_ops)
         else:
             sess.run(self._request_ops)
+
+        for op in self._init_ops:
+            sess.run(op)
 
 
 class AdaptHook(tf.train.SessionRunHook):
@@ -138,7 +142,7 @@ class Trainer(object):
     def __init__(self, adapt=False):
         self._adapt = adapt
 
-    def train(self, max_step, train_op, handle=None):
+    def train(self, max_step, train_op, handle=None, init_ops=[]):
         version = _create_version_tensor()
         global_step = tf.Variable(start_step(version), trainable=False)
 
@@ -149,7 +153,7 @@ class Trainer(object):
                           compute_new_size(global_step)))
         hooks.extend([
             GlobalStepHook(global_step, max_step),
-            InitHook(version, global_step),
+            InitHook(version, global_step, init_ops),
         ])
 
         watch = StopWatch()

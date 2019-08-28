@@ -36,6 +36,22 @@ def build_ops(images, labels, optimizer):
     return train_op, loss, accuracy
 
 
+from kungfu.datasets.adaptor import BaseDatasetAdaptor
+from kungfu.ops import peer_info
+
+
+class ExampleDatasetAdaptor(BaseDatasetAdaptor):
+    def __init__(self, batch_size=10):
+        rank, np = peer_info(tf.constant(-1, dtype=tf.int32))
+        self._rank = rank
+        self._np = np
+        self._batch_size = tf.Variable(tf.constant(batch_size, tf.int64),
+                                       trainable=False)
+        self._shard_count = tf.Variable(tf.cast(np, tf.int64), trainable=False)
+        self._shard_id = tf.Variable(tf.cast(rank, tf.int64), trainable=False)
+        self._offset = tf.Variable(tf.constant(0, tf.int64))
+
+
 def create_labeled_dataset(data, repeat=False):
     images = tf.data.Dataset.from_tensor_slices(data.images)
     labels = tf.data.Dataset.from_tensor_slices(data.labels)
@@ -78,20 +94,21 @@ def main():
     args = parse_args()
     ds_train, _ds_test = create_mnist_dataset(args.data_dir, True)
 
-    ds_train = ds_train.batch(args.batch_size)
-    it_train = ds_train.make_one_shot_iterator()
-    images, labels = it_train.get_next()
+    adaptor = ExampleDatasetAdaptor(batch_size=args.batch_size)
+    init_train, it_train = adaptor(ds_train)
+    images, labels = it_train
 
     optimizer = build_optimizer(args.batch_size)
     train_op, loss, accuracy = build_ops(images, labels, optimizer)
     gns = optimizer._gns
 
     def debug(result):
-        _, l, a, gns = result
-        print('loss: %f, accuracy: %f, gns: %f' % (l, a, gns))
+        (_, l, a, gns) = result
+        print('loss: %f, accuracy: %f, gns: %f ' % (l, a, gns))
 
     trainer = Trainer(args.adaptive)
-    trainer.train(args.max_step, [train_op, loss, accuracy, gns], debug)
+    trainer.train(args.max_step, [train_op, loss, accuracy, gns], debug,
+                  [init_train])
 
 
 main()
