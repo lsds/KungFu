@@ -55,14 +55,14 @@ def get_init_version():
     return version
 
 
-def start_step(version):
+def get_start_step(version):
     """
     Input:
         version: A scalar tensor of int32,
     Returns:
         a scalar tensors of int64, the start global step
     """
-    return _op_lib.kungfu_get_start_step(version)
+    return _op_lib.kungfu_get_get_start_step(version)
 
 
 def peer_info(version):

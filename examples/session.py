@@ -1,7 +1,7 @@
 import time
 import tensorflow as tf
 from kungfu.ops import (all_reduce, broadcast, get_init_version,
-                        propose_update, save_variable, start_step,
+                        propose_update, save_variable, get_start_step,
                         update_cluster, request_variable)
 
 
@@ -144,7 +144,7 @@ class Trainer(object):
 
     def train(self, max_step, train_op, handle=None, init_ops=[]):
         version = _create_version_tensor()
-        global_step = tf.Variable(start_step(version), trainable=False)
+        global_step = tf.Variable(get_start_step(version), trainable=False)
 
         hooks = []
         if self._adapt:
