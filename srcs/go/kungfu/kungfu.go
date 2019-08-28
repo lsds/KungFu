@@ -1,6 +1,9 @@
 package kungfu
 
 import (
+	"errors"
+	"fmt"
+	"os"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -27,7 +30,7 @@ func (c Config) complete() Config {
 type Kungfu struct {
 	sync.Mutex
 
-	configClient   *configClient
+	configClient   *ConfigClient
 	self           *plan.PeerSpec
 	currentSession *session
 
@@ -39,7 +42,7 @@ type Kungfu struct {
 }
 
 func New(config Config) (*Kungfu, error) {
-	configClient, err := newConfigClient()
+	configClient, err := NewDefaultConfigClient()
 	if err != nil {
 		return nil, err
 	}
@@ -91,34 +94,82 @@ func (kf *Kungfu) Close() int {
 	return 0
 }
 
+func (kf *Kungfu) StartStep(version string) int {
+	var globalStep int
+	if err := kf.configClient.GetConfig(version, kb.InitStepEnvKey, &globalStep); err != nil {
+		err := fmt.Errorf("failed to get %s@%s: %v", kb.InitStepEnvKey, version, err)
+		utils.ExitErr(err)
+	}
+	return globalStep
+}
+
+func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bool, error) {
+	log.Infof("Kungfu::ProposeUpdate with (%d@%q, %d)", globalStep, version, newSize)
+	var hostSpecs []plan.HostSpec
+	if err := kf.configClient.GetConfig("0", kb.HostSpecEnvKey, &hostSpecs); err != nil {
+		log.Errorf("failed to get %s: %v", kb.HostSpecEnvKey, err)
+		return false, err
+	}
+	log.Infof("generating new cluster spec of size %d", newSize)
+	cs, err := plan.GenClusterSpec(newSize, hostSpecs)
+	if err != nil {
+		log.Errorf("failed to generate new cluster spec: %v", err)
+		return false, err
+	}
+	if err := kf.configClient.PutConfig(version, kb.ClusterSpecEnvKey, cs); err != nil {
+		log.Warnf("failed to write config: %v", err)
+		return false, err
+	}
+	if err := kf.configClient.PutConfig(version, kb.InitStepEnvKey, globalStep); err != nil {
+		log.Warnf("failed to write config: %v", err)
+		return false, err
+	}
+	_, keep := cs.Lookup(*kf.self)
+	return keep, nil
+}
+
+var errSelfNotInCluster = errors.New("self not in cluster")
+
 func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
-		kf.updateSession()
+		initSession := os.Getenv(kb.InitSessEnvKey)
+		if exist := kf.updateSession(initSession); !exist {
+			utils.ExitErr(errSelfNotInCluster)
+		}
 	}
 	return kf.currentSession
 }
-func (kf *Kungfu) UpdateSession() {
+
+func (kf *Kungfu) UpdateSession(version string) bool {
 	kf.Lock()
 	defer kf.Unlock()
-	kf.updateSession()
+	return kf.updateSession(version)
 }
 
-func (kf *Kungfu) updateSession() {
+func (kf *Kungfu) updateSession(version string) bool {
+	log.Infof("Kungfu::updateSession with version %q", version)
 	var cs plan.ClusterSpec
-	if err := kf.configClient.getConfig(kb.ClusterSpecEnvKey, &cs); err != nil {
+	if err := kf.configClient.GetConfig(version, kb.ClusterSpecEnvKey, &cs); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
 		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
 		// utils.ExitErr(err)
 	}
-	sess, err := newSession(kf.config, kf.self, &cs, kf.router)
+	log.Infof("creating session of %d peers", len(cs.Peers))
+	kf.router.ResetConnections()
+	sess, exist, err := newSession(kf.config, kf.self, &cs, kf.router)
+	if !exist {
+		return false
+	}
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	kf.currentSession = sess
+	return true
 }
 
 func (kf *Kungfu) Save(version, name string, buf *kb.Buffer) int {
-	return code(kf.store.Create(version, name, buf))
+	blob := &store.Blob{Data: buf.Data}
+	return code(kf.store.Create(version, name, blob))
 }

@@ -90,7 +90,7 @@ class Dense(Layer):
             _n, m = x.shape
             input_size = int(m)
         else:
-            raise RuntimeError('invalid input size')
+            raise RuntimeError('invalid input shape: %s' % (x.shape))
 
         w = new_dense_weight((input_size, self._logits))
         y = tf.matmul(x_flat, w)
@@ -103,12 +103,14 @@ class Dense(Layer):
 
 
 class Conv(Layer):
-    def __init__(self, ksize, n_filters, strides=None):
+    def __init__(self, ksize, n_filters, strides=None, bias=True, act=None):
         if strides is None:
             strides = [1, 1]
         self._ksize = ksize
         self._n_filters = n_filters
         self._strides = strides
+        self._bias = bias
+        self._act = act
 
     def _get_channel_size(self, shape):
         _n, _h, _w, c = shape
@@ -119,4 +121,9 @@ class Conv(Layer):
         c, d = self._get_channel_size(x.shape), self._n_filters
         w = new_conv_kernel((r, s, c, d))
         y = conv2d(x, w, self._strides)
+        if self._bias:
+            b = new_bias((d, ))
+            y = tf.nn.bias_add(y, b)
+        if self._act:
+            y = self._act(y)
         return y

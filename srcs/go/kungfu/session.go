@@ -40,7 +40,7 @@ var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
 	kb.KungFu_Tree:   createTreeStrategies,
 }
 
-func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch.Router) (*session, error) {
+func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch.Router) (*session, bool, error) {
 	f := partitionStrategies[c.Algo]
 	if f == nil {
 		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
@@ -48,7 +48,7 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 	}
 	myRank, ok := cs.Lookup(*self)
 	if !ok {
-		return nil, errors.New("self not in cluster")
+		return nil, false, nil
 	}
 	sess := &session{
 		strategies: f(cs.Peers),
@@ -60,7 +60,7 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 	if kc.RunWarmup {
 		sess.Warmup() // TODO: check error
 	}
-	return sess, nil
+	return sess, true, nil
 }
 
 func createStarStrategies(peers []plan.PeerSpec) []strategy {

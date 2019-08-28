@@ -34,7 +34,19 @@ type Runner struct {
 	verboseLog    bool
 }
 
-func (r Runner) run(ctx context.Context, cmd *exec.Cmd) error {
+func (r *Runner) SetName(name string) {
+	r.name = name
+}
+
+func (r *Runner) SetVerbose(verbose bool) {
+	r.verboseLog = verbose
+}
+
+func (r *Runner) SetLogPrefix(prefix string) {
+	r.logFilePrefix = prefix
+}
+
+func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 	if stdout, err := cmd.StdoutPipe(); err == nil {
 		if r.verboseLog {
 			go r.streamPipe("stdout", stdout)
@@ -73,8 +85,15 @@ func (x XtermWriter) Write(bs []byte) (int, error) {
 }
 
 func (r Runner) streamPipe(name string, in io.Reader) error {
-	w := &XtermWriter{Prefix: r.color.S(r.name) + "::" + name}
-	filename := r.logFilePrefix + "-" + name + ".log"
+	rName := r.name
+	if r.color != nil {
+		rName = r.color.S(rName)
+	}
+	w := &XtermWriter{Prefix: rName + "::" + name}
+	filename := name + ".log"
+	if len(r.logFilePrefix) > 0 {
+		filename = r.logFilePrefix + "-" + filename
+	}
 	f, err := os.Create(filename)
 	if err != nil {
 		log.Printf("failed to create log file: %v", err)
@@ -95,7 +114,7 @@ func LocalRunAll(ctx context.Context, ps []sch.Proc, verboseLog bool) error {
 				verboseLog:    verboseLog,
 				logFilePrefix: strings.Replace(proc.Name, "/", "-", -1),
 			}
-			if err := r.run(ctx, proc.Cmd()); err != nil {
+			if err := r.Run(ctx, proc.Cmd()); err != nil {
 				log.Printf("%s #%s exited with error: %v", xterm.Red.S("[E]"), proc.Name, err)
 				atomic.AddInt32(&fail, 1)
 			} else {

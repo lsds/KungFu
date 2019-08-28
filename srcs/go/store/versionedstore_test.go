@@ -2,16 +2,13 @@ package store
 
 import (
 	"testing"
-
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
 func Test_1(t *testing.T) {
 	vs := NewVersionedStore(1)
 
-	dtype := kb.KungFu_UINT8
-	a := kb.NewBuffer(1, dtype)
-	b := kb.NewBuffer(1, dtype)
+	a := NewBlob(1)
+	b := NewBlob(1)
 
 	a.Data[0] = 1
 	b.Data[0] = 2
