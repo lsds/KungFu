@@ -145,9 +145,6 @@ class GradientNoise : public OpKernel
         }
         float gradient_noise = s_ema_ / g_ema_;
 
-        LOG(WARNING) << "gradient_noise" << gradient_noise
-                     << ", s_ema_ = " << s_ema_ << ", g_ema_ = " << g_ema_;
-
         float *y = const_cast<float *>(output->scalar<float>().data());
         y[0]     = gradient_noise;
     }

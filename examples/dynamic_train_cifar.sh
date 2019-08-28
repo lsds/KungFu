@@ -30,6 +30,9 @@ if [ $(uname -s) = "Darwin" ]; then
     export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
 
+# dataset=cifar10
+dataset=cifar100
+
 model=slp
 # model=cnn
 # model=ResNet50
@@ -39,7 +42,8 @@ peer_bs=100
 max_step=100
 
 prun $init_np python3 \
-    ./examples/dynamic_train_cifar10.py \
+    ./examples/dynamic_train_cifar.py \
+    --dataset "${dataset}" \
+    --model "${model}" \
     --batch-size $peer_bs \
-    --max-step $max_step \
-    --model "${model}"
+    --max-step $max_step
