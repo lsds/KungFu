@@ -23,17 +23,18 @@ def _load_init_lib(name):
     return cdll.LoadLibrary(filename)
 
 
+def _call_method(lib, name):
+    if hasattr(lib, name):
+        getattr(lib, name)()
+        return True
+    return False
+
+
 def _load_and_init_op_lib():
     _op_lib = _load_op_lib('kungfu_tensorflow_ops')
     _init_lib = _load_init_lib('libkungfu_tensorflow_init')
-    _init_lib.kungfu_tensorflow_init()
-    has_gpu = False
-    try:
-        # FIXME: auto detect GPU support
-        _init_lib.kungfu_tensorflow_init_gpu()
-        has_gpu = True
-    except Exception as e:
-        print('kungfu_tensorflow_init_gpu FAILED: %s' % e)
+    _call_method(_init_lib, 'kungfu_tensorflow_init')
+    has_gpu = _call_method(_init_lib, 'kungfu_tensorflow_init_gpu')
     return _op_lib, has_gpu
 
 
@@ -44,9 +45,29 @@ def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
 
 
-def peer_info(version):
+# metadata APIs
+def get_init_version():
+    """Returns a non-negative integer representing the cluster version."""
+    init_sess = os.getenv('KUNGFU_INIT_SESS')
+    version = int(init_sess)
+    if version < 0:
+        raise RuntimeError('invalid version')
+    return version
+
+
+def start_step(version):
     """
     Input:
+        version: A scalar tensor of int32,
+    Returns:
+        a scalar tensors of int64, the start global step
+    """
+    return _op_lib.kungfu_get_start_step(version)
+
+
+def peer_info(version):
+    """
+    Inputs:
         version : A scalar tensor of int32,
         will use current version if version < 0.
     Returns:
@@ -55,11 +76,38 @@ def peer_info(version):
     return _op_lib.kungfu_get_peer_info(version)
 
 
+# TODO: group ops by category
+
+
 def barrier():
     return _op_lib.kungfu_barrier()
 
 
+def propose_update(target_global_step, target_version, new_size):
+    """
+    Inputs:
+        target_global_step: a scalar tensor of int64
+        target_version: a scalar tensor of int32
+        new_size: a scalar tensor of int32
+    Returns:
+        a pair of scalar tensors of bool: (accepted, keep)
+        accepted: indicates if proposal is accepts
+        keep: indicates if self is still in the new cluster
+    """
+    return _op_lib.kungfu_propose_update(target_global_step, target_version,
+                                         new_size)
+
+
+def update_cluster(version):
+    """Returns a bool scalar which indicates if this peer is still in the cluster."""
+    return _op_lib.kungfu_update_cluster(version)
+
+
 def save_variable(version, t):
+    """
+    version: a scalar tensor of int64
+    t: the tensor variable to save
+    """
     return _op_lib.kungfu_save_variable(version, t, input_tensor_name=t.name)
 
 
@@ -73,6 +121,11 @@ def request(target, name, example):
 
 
 def request_variable(target, version, name, shape, dtype):
+    """
+    target: a scalar tensor of int32
+    version: a scalar tensor of int64
+    name: string
+    """
     return _op_lib.kungfu_request_variable(target,
                                            version,
                                            tensor_name=name,
@@ -430,6 +483,7 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
         return [tf.identity(g) for g in negotiated_grads]
 
 
+# deprecated
 def get_global_gradient_noise_operator(batch_small, concat_grad,
                                        concat_negotiated_grad):
     import tensorflow as tf
@@ -454,3 +508,27 @@ def get_global_gradient_noise_operator(batch_small, concat_grad,
     global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=0.6)
 
     return global_noise_op
+
+
+def global_gradient_noise_scale(batch_small,
+                                concat_grad,
+                                concat_negotiated_grad,
+                                alpha=0.6):
+    import tensorflow as tf
+    _, np = peer_info(tf.constant(-1, dtype=tf.int32))
+    cluster_size = tf.cast(np, dtype=tf.float32)
+    batch_small = tf.cast(batch_small, dtype=tf.float32)
+
+    batch_big = batch_small * cluster_size
+    # Take average over workers
+    G_big = tf.div(concat_negotiated_grad, cluster_size)
+    G_small = concat_grad
+
+    G_sq_small = tf.square(tf.norm(G_small))
+    G_sq_big = tf.square(tf.norm(G_big))
+
+    G_biased = 1 / (batch_big - batch_small) * (batch_big * G_sq_big -
+                                                batch_small * G_sq_small)
+    S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
+
+    return _op_lib.gradient_noise(G_biased, S_biased, alpha=alpha)

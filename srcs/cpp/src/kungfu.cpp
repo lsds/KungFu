@@ -45,6 +45,11 @@ int kungfu_world::ClusterSize(int version) const
     return GoKungfuClusterSize(GoInt(version));
 }
 
+int kungfu_world::StartStep(int version) const
+{
+    return GoKungfuStartStep(GoInt(version));
+}
+
 int kungfu_world::Save(const char *name, const void *buf, int count,
                        KungFu_Datatype dtype)
 {
@@ -205,4 +210,21 @@ int kungfu_world::AllGatherTransform(const void *input, int input_count,
 int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
 {
     return GoKungfuGetPeerLatencies(recvbuf, recv_count, KungFu_FLOAT);
+}
+
+// control APIs
+int kungfu_world::ProposeUpdate(int global_stepl, const char *version,
+                                int new_size, bool *accepted, bool *keep)
+{
+    static_assert(sizeof(bool) == sizeof(char), "");
+    return GoKungfuProposeUpdate(
+        GoInt(global_stepl), const_cast<char *>(version), GoInt(new_size),
+        reinterpret_cast<char *>(accepted), reinterpret_cast<char *>(keep));
+}
+
+int kungfu_world::UpdateCluster(const char *version, bool *exist)
+{
+    static_assert(sizeof(bool) == sizeof(char), "");
+    return GoKungfuUpdateCluster(const_cast<char *>(version),
+                                 reinterpret_cast<char *>(exist));
 }

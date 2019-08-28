@@ -16,7 +16,7 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
 ADD_LIBRARY(kungfu-base srcs/cpp/src/kungfu_types.cpp
-            srcs/cpp/src/kungfu_base.cpp)
+                        srcs/cpp/src/kungfu_base.cpp)
 IF(KUNGFU_ENABLE_FLOAT16)
     TARGET_SOURCES(kungfu-base PRIVATE srcs/cpp/src/kungfu_half.c)
     TARGET_COMPILE_OPTIONS(kungfu-base
@@ -50,6 +50,7 @@ IF(KUNGFU_BUILD_TF_OPS)
     ADD_TF_OP_LIB(kungfu_tensorflow_ops
                   # BEGIN sort
                   srcs/cpp/src/tensorflow/ops/collective.cpp
+                  srcs/cpp/src/tensorflow/ops/control.cpp
                   srcs/cpp/src/tensorflow/ops/local.cpp
                   srcs/cpp/src/tensorflow/ops/p2p_new.cpp
                   srcs/cpp/src/tensorflow/ops/peer_to_peer.cpp

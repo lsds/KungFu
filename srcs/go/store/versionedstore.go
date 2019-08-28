@@ -3,13 +3,10 @@ package store
 import (
 	"errors"
 	"sync"
-
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type VersionedStore struct {
-	sync.Mutex
+	sync.RWMutex
 
 	versions map[string]*Store
 
@@ -20,9 +17,6 @@ type VersionedStore struct {
 var errInvalidWindowSize = errors.New("invalid window size")
 
 func NewVersionedStore(windowSize int) *VersionedStore {
-	if windowSize < 1 {
-		utils.ExitErr(errInvalidWindowSize)
-	}
 	return &VersionedStore{
 		versions:   make(map[string]*Store),
 		windowSize: windowSize,
@@ -30,13 +24,24 @@ func NewVersionedStore(windowSize int) *VersionedStore {
 }
 
 func (s *VersionedStore) getVersion(version string) (*Store, error) {
-	s.Lock()
-	defer s.Unlock()
+	s.RLock()
+	defer s.RUnlock()
 	store, ok := s.versions[version]
 	if !ok {
 		return nil, errNotFound
 	}
 	return store, nil
+}
+
+func (s *VersionedStore) gc() {
+	if s.windowSize <= 0 {
+		return
+	}
+	for len(s.window) > s.windowSize {
+		old := s.window[0]
+		s.window = s.window[1:]
+		delete(s.versions, old)
+	}
 }
 
 func (s *VersionedStore) getOrCreateVersion(version string) *Store {
@@ -47,26 +52,40 @@ func (s *VersionedStore) getOrCreateVersion(version string) *Store {
 		store = newStore()
 		s.versions[version] = store
 		s.window = append(s.window, version)
-		for len(s.window) > s.windowSize {
-			old := s.window[0]
-			s.window = s.window[1:]
-			delete(s.versions, old)
-		}
+		s.gc()
 	}
 	return store
 }
 
-func (s *VersionedStore) Create(version, name string, buf *kb.Buffer) error {
+func (s *VersionedStore) Create(version, name string, blob *Blob) error {
 	store := s.getOrCreateVersion(version)
-	return store.Create(name, buf)
+	return store.Create(name, blob)
 }
 
-// Get retrives the data with given version and name, if buf is not nil,
-// the metadata of buf is used to validate the stored data
-func (s *VersionedStore) Get(version, name string, buf **kb.Buffer) error {
+// Get retrives the data with given version and name, if blob is not nil,
+// the length of blob.Data is used to validate the stored data
+func (s *VersionedStore) Get(version, name string, blob **Blob) error {
 	store, err := s.getVersion(version)
 	if err != nil {
 		return err
 	}
-	return store.Get(name, buf)
+	return store.Get(name, blob)
+}
+
+func (s *VersionedStore) GetNextVersion(prev string) string {
+	s.RLock()
+	defer s.RUnlock()
+	n := len(s.window)
+	for i := n - 1; i > 0; i-- {
+		if prev == s.window[i-1] {
+			return s.window[i]
+		}
+	}
+	if n > 0 {
+		if prev == s.window[n-1] {
+			return prev
+		}
+		return s.window[0]
+	}
+	return prev
 }

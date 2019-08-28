@@ -3,54 +3,69 @@ package store
 import (
 	"errors"
 	"sync"
-
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
 var (
 	errReadConflict  = errors.New("read conflict")
 	errWriteConflict = errors.New("write conflict")
 	errNotFound      = errors.New("not found")
+	errSizeNotMatch  = errors.New("size not match")
 )
+
+type Blob struct {
+	Data []byte
+}
+
+func NewBlob(n int) *Blob {
+	return &Blob{Data: make([]byte, n)}
+}
+
+func (b *Blob) copyFrom(c *Blob) error {
+	if len(b.Data) != len(c.Data) {
+		return errSizeNotMatch
+	}
+	copy(b.Data, c.Data)
+	return nil
+}
 
 // Store is a simple Key-Value store
 type Store struct {
-	sync.Mutex
+	sync.RWMutex
 
-	data map[string]*kb.Buffer
+	data map[string]*Blob
 }
 
 func newStore() *Store {
 	return &Store{
-		data: make(map[string]*kb.Buffer),
+		data: make(map[string]*Blob),
 	}
 }
 
-func (s *Store) Create(name string, buf *kb.Buffer) error {
+func (s *Store) Create(name string, buf *Blob) error {
 	s.Lock()
 	defer s.Unlock()
 	if _, ok := s.data[name]; ok {
 		return errWriteConflict
 	}
-	value := kb.NewBuffer(buf.Count, buf.Type)
-	value.CopyFrom(buf)
+	value := NewBlob(len(buf.Data))
+	value.copyFrom(buf)
 	s.data[name] = value
 	return nil
 }
 
-// Get retrives the data with given name, if buf is not nil,
-// the metadata of buf is used to validate the stored data
-func (s *Store) Get(name string, buf **kb.Buffer) error {
-	s.Lock()
-	defer s.Unlock()
+// Get retrives the data with given name, if blob is not nil,
+// the length of blob.Data is used to validate the stored data
+func (s *Store) Get(name string, blob **Blob) error {
+	s.RLock()
+	defer s.RUnlock()
 	value, ok := s.data[name]
 	if !ok {
 		return errNotFound
 	}
-	if *buf == nil {
-		*buf = kb.NewBuffer(value.Count, value.Type)
+	if *blob == nil {
+		*blob = NewBlob(len(value.Data))
 	}
-	if err := (*buf).MaybeCopyFrom(value); err != nil {
+	if err := (*blob).copyFrom(value); err != nil {
 		return errReadConflict
 	}
 	return nil

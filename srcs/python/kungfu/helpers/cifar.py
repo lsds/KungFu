@@ -12,20 +12,41 @@ def _unpickle(file):
         return pickle.load(fo, encoding='bytes')
 
 
+def _to_onehot(k, a):
+    vs = []
+    for x in a:
+        v = np.zeros((k, ), np.float32)
+        v[x] = 1
+        vs.append(v)
+    return np.array(vs)
+
+
 class Cifar10Loader(object):
-    def __init__(self, data_dir=_default_data_dir):
+    def __init__(self,
+                 data_dir=_default_data_dir,
+                 normalize=False,
+                 one_hot=False):
         self._data_dir = data_dir
+        self._normalize = normalize
+        self._one_hot = one_hot
 
     def _load_batch(self, filename):
         x = _unpickle(filename)
         image_batch = x[b'data'].reshape(10000, 3, 32,
                                          32).transpose(0, 2, 3, 1)
+        if self._normalize:
+            image_batch = (image_batch / 255.0).astype(np.float32)
         label_batch = np.array(x[b'labels'])
+        if self._one_hot:
+            label_batch = _to_onehot(10, label_batch)
         return image_batch, label_batch
 
     def load_train(self):
         images = np.array([], np.uint8).reshape(0, 32, 32, 3)
-        labels = np.array([], np.uint8).reshape(0)
+        if self._one_hot:
+            labels = np.array([], np.uint8).reshape(0, 10)
+        else:
+            labels = np.array([], np.uint8).reshape(0)
         for i in range(5):
             filename = os.path.join(self._data_dir, 'cifar-10-batches-py',
                                     'data_batch_%d' % (i + 1))
@@ -47,13 +68,22 @@ class Cifar10Loader(object):
 
 
 class Cifar100Loader(object):
-    def __init__(self, data_dir=_default_data_dir):
+    def __init__(self,
+                 data_dir=_default_data_dir,
+                 normalize=False,
+                 one_hot=False):
         self._data_dir = data_dir
+        self._normalize = normalize
+        self._one_hot = one_hot
 
     def _load_batch(self, filename):
         x = _unpickle(filename)
         images = x[b'data'].reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1)
+        if self._normalize:
+            images = (images / 255.0).astype(np.float32)
         labels = np.array(x[b'fine_labels'])
+        if self._one_hot:
+            labels = _to_onehot(100, labels)
         return images, labels
 
     def _load_dataset(self, name):
