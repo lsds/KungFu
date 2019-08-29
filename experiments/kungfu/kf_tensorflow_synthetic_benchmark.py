@@ -72,11 +72,11 @@ model = getattr(applications, args.model)(weights=None)
 
 opt = tf.train.GradientDescentOptimizer(0.01)
 
-# Kungfu: wrap optimizer with ParallelOptimizer.
+# Kungfu: wrap optimizer with SyncSGDOptimizer.
 if args.kungfu:
-    from kungfu.optimizers import ParallelOptimizer
-    opt = ParallelOptimizer(opt, device_batch_size=args.batch_size)
- 
+    from kungfu.optimizers import SyncSGDOptimizer
+    opt = SyncSGDOptimizer(opt)
+
 init = tf.global_variables_initializer()
 
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
