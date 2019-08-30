@@ -159,15 +159,15 @@ def run(benchmark_step):
     # log('Img/sec per %s: %.1f +-%.1f' % (device, img_sec_mean, img_sec_conf))
 
 
-init = tf.global_variables_initializer()
+loss = loss_function()
+train_opt = opt.minimize(loss)
 
 if tf.executing_eagerly():
     with tf.device(device):
         run(lambda: opt.minimize(loss_function,
                                  var_list=model.trainable_variables))
 else:
+    init = tf.global_variables_initializer()
     with tf.Session(config=config) as session:
         session.run(init)
-        loss = loss_function()
-        train_opt = opt.minimize(loss)
         run(lambda: session.run([train_opt, loss]))
