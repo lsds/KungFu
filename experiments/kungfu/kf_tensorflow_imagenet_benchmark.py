@@ -96,13 +96,16 @@ def create_dataset(batch_size):
 # Set up standard model.
 model = getattr(applications, args.model)(weights=None)
 
-learning_rate = 0.001
+# learning_rate = 0.001
 # learning_rate = 1
-momentum = 0.9
+# momentum = 0.9
+
+global_step = tf.train.get_global_step()
+lr = tf.train.exponential_decay(learning_rate=0.001, global_step=global_step, decay_steps=300, decay_rate=0.1)
 
 # opt = tf.train.GradientDescentOptimizer(0.01)
-# opt = tf.train.AdamOptimizer(learning_rate)
-opt = tf.train.MomentumOptimizer(learning_rate, momentum, use_nesterov=True)
+opt = tf.train.AdamOptimizer(lr)
+# opt = tf.train.MomentumOptimizer(learning_rate, momentum, use_nesterov=True)
 
 # Kungfu: wrap optimizer with SyncSGDOptimizer.
 if args.kungfu:
