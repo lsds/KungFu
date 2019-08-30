@@ -96,8 +96,8 @@ def create_dataset(batch_size):
 # Set up standard model.
 model = getattr(applications, args.model)(weights=None)
 
-# learning_rate = 0.01
-learning_rate = 1
+learning_rate = 0.001
+# learning_rate = 1
 momentum = 0.9
 
 # opt = tf.train.GradientDescentOptimizer(0.01)
@@ -121,11 +121,16 @@ else:
                                dtype=tf.int64)
 
 
-def loss_function():
+def loss_function(include_accuracy=False):
     logits = model(data, training=True)
     cross_entropy = tf.losses.sparse_softmax_cross_entropy(target, logits)
     loss = tf.reduce_mean(cross_entropy)
-    return loss
+    if include_accuracy:
+        correct_prediction = tf.equal(tf.argmax(logits, 1), target)
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        return loss, accuracy
+    else:
+        return loss
 
 
 def log(s, nl=True):
@@ -147,8 +152,8 @@ def run(benchmark_step):
     # img_secs = []
     for i in range(args.num_iters):
         for j in range(args.num_batches_per_iter):
-            _, loss = benchmark_step()
-            print('%d %d loss: %f' % (i, j, loss))
+            _, loss, acc = benchmark_step()
+            print('%d %d loss: %f, accuracy: %f' % (i, j, loss, acc))
         # time = timeit.timeit(benchmark_step, number=args.num_batches_per_iter)
         # img_sec = args.batch_size * args.num_batches_per_iter / time
         # log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
@@ -160,7 +165,7 @@ def run(benchmark_step):
     # log('Img/sec per %s: %.1f +-%.1f' % (device, img_sec_mean, img_sec_conf))
 
 
-loss = loss_function()
+loss, acc = loss_function(include_accuracy=True)
 train_opt = opt.minimize(loss)
 
 if tf.executing_eagerly():
@@ -171,4 +176,4 @@ else:
     init = tf.global_variables_initializer()
     with tf.Session(config=config) as session:
         session.run(init)
-        run(lambda: session.run([train_opt, loss]))
+        run(lambda: session.run([train_opt, loss, acc]))
