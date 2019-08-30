@@ -96,14 +96,13 @@ def create_dataset(batch_size):
 # Set up standard model.
 model = getattr(applications, args.model)(weights=None)
 
-learning_rate = 0.01
-# learning_rate = 1
-# momentum = 0.9
+# learning_rate = 0.01
+learning_rate = 1
+momentum = 0.9
+
 # opt = tf.train.GradientDescentOptimizer(0.01)
-opt = tf.train.AdamOptimizer(learning_rate)
-# opt = tf.train.MomentumOptimizer(learning_rate,
-#                                  momentum,
-#                                  use_nesterov=True)
+# opt = tf.train.AdamOptimizer(learning_rate)
+opt = tf.train.MomentumOptimizer(learning_rate, momentum, use_nesterov=True)
 
 # Kungfu: wrap optimizer with SyncSGDOptimizer.
 if args.kungfu:
@@ -124,7 +123,9 @@ else:
 
 def loss_function():
     logits = model(data, training=True)
-    return tf.losses.sparse_softmax_cross_entropy(target, logits)
+    cross_entropy = tf.losses.sparse_softmax_cross_entropy(target, logits)
+    loss = tf.reduce_mean(cross_entropy)
+    return loss
 
 
 def log(s, nl=True):
@@ -144,10 +145,10 @@ def run(benchmark_step):
     # Benchmark
     log('Running benchmark...')
     # img_secs = []
-    for x in range(args.num_iters):
-        for y in range(args.num_batches_per_iter):
+    for i in range(args.num_iters):
+        for j in range(args.num_batches_per_iter):
             _, loss = benchmark_step()
-            print('loss: %f' % (loss))
+            print('%d %d loss: %f' % (i, j, loss))
         # time = timeit.timeit(benchmark_step, number=args.num_batches_per_iter)
         # img_sec = args.batch_size * args.num_batches_per_iter / time
         # log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
