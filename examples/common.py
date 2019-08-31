@@ -21,6 +21,6 @@ class Reporter(object):
     def save(self, filename):
         with open(filename, 'w') as f:
             if self._headers:
-                f.write(','.join(_headers) + '\n')
+                f.write(','.join(self._headers) + '\n')
             for row in self._records:
                 f.write(self._format % tuple(row))
