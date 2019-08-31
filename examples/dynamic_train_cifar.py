@@ -11,6 +11,7 @@ from kungfu.helpers.cifar import Cifar10Loader, Cifar100Loader
 #
 from session import Trainer
 from dataset import DynamicDatasetAdaptor
+from common import get_rank, Reporter
 
 
 def xentropy(y_, y):
@@ -18,7 +19,7 @@ def xentropy(y_, y):
 
 
 def build_optimizer(local_batch_size):
-    learning_rate = 0.01
+    learning_rate = 0.001
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     # from kungfu.optimizers import SyncSGDOptimizer
     # optimizer = SyncSGDOptimizer(optimizer)
@@ -112,6 +113,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+    init_rank = get_rank()
     logits = {'cifar10': 10, 'cifar100': 100}[args.dataset]
 
     ds_train, _ds_test = create_cifar_dataset(args.dataset, args.data_dir,
@@ -125,9 +127,13 @@ def main():
     optimizer = build_optimizer(args.batch_size)
     train_op, loss, accuracy = build_ops(output, labels, optimizer)
 
+    report = Reporter('%f %f %f\n', ['loss', 'accuracy', 'predicated bs'])
+
     def debug(result):
-        (_, l, a, bs, bs2) = result
-        print('loss: %f, accuracy: %f, bs: %f, gbs: %f' % (l, a, bs, bs2))
+        (_, l, a, bs, gbs) = result
+        print('loss: %f, accuracy: %f, bs: %f, gbs: %f, pbs: %d' %
+              (l, a, bs, gbs, args.batch_size))
+        report([l, a, gbs])
 
     trainer = Trainer()
     trainer.train(args.max_step, [
@@ -137,6 +143,9 @@ def main():
         optimizer._predicated_local_batch_size,
         optimizer._predicated_global_batch_size,
     ], debug, [init_train])
+
+    if init_rank == 0:
+        report.save('result-%02d.txt' % init_rank)
 
 
 main()

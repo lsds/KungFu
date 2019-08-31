@@ -11,6 +11,7 @@ from kungfu.helpers.mnist import load_datasets
 #
 from session import Trainer
 from dataset import DynamicDatasetAdaptor
+from common import get_rank, Reporter
 
 
 def xentropy(y_, y):
@@ -78,6 +79,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    init_rank = get_rank()
+
     ds_train, _ds_test = create_mnist_dataset(args.data_dir, True)
 
     adaptor = DynamicDatasetAdaptor(batch_size=args.batch_size)
@@ -87,9 +90,12 @@ def main():
     optimizer = build_optimizer(args.batch_size)
     train_op, loss, accuracy = build_ops(images, labels, optimizer)
 
+    report = Reporter('%f %f %f\n')
+
     def debug(result):
-        (_, l, a, bs, bs2) = result
-        print('loss: %f, accuracy: %f, bs: %f, gbs: %f' % (l, a, bs, bs2))
+        (_, l, a, bs, gbs) = result
+        print('loss: %f, accuracy: %f, bs: %f, gbs: %f' % (l, a, bs, gbs))
+        report([l, a, gbs])
 
     trainer = Trainer(args.adaptive)
     trainer.train(args.max_step, [
@@ -99,6 +105,9 @@ def main():
         optimizer._predicated_local_batch_size,
         optimizer._predicated_global_batch_size,
     ], debug, [init_train])
+
+    if init_rank == 0:
+        report.save('result-%02d.txt' % init_rank)
 
 
 main()
