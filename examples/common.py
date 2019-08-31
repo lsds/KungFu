@@ -16,6 +16,7 @@ class Reporter(object):
         self._headers = hdrs
 
     def __call__(self, row):
+        print(self._format % tuple(row))
         self._records.append(row)
 
     def save(self, filename):
@@ -23,4 +24,4 @@ class Reporter(object):
             if self._headers:
                 f.write(','.join(self._headers) + '\n')
             for row in self._records:
-                f.write(self._format % tuple(row))
+                f.write((self._format % tuple(row)) + '\n')

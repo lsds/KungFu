@@ -127,19 +127,20 @@ def main():
     optimizer = build_optimizer(args.batch_size)
     train_op, loss, accuracy = build_ops(output, labels, optimizer)
 
-    report = Reporter('%f %f %f\n', ['loss', 'accuracy', 'predicated bs'])
+    report = Reporter(
+        '%f %f %f %f',
+        ['loss', 'accuracy', 'gradient noise scale', 'predicated bs'])
 
     def debug(result):
-        (_, l, a, bs, gbs) = result
-        print('loss: %f, accuracy: %f, bs: %f, gbs: %f, pbs: %d' %
-              (l, a, bs, gbs, args.batch_size))
-        report([l, a, gbs])
+        (_, l, acc, gns, bs, gbs) = result
+        report([l, acc, gns, gbs])
 
     trainer = Trainer()
     trainer.train(args.max_step, [
         train_op,
         loss,
         accuracy,
+        optimizer._gns,
         optimizer._predicated_local_batch_size,
         optimizer._predicated_global_batch_size,
     ], debug, [init_train])
