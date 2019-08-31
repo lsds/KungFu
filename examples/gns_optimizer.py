@@ -15,11 +15,13 @@ class GradientNoiseScaleAdaptiveOptimizer(KungFuOptimizer):
     def __init__(self,
                  optimizer,
                  local_batch_size,
+                 decay=0.01,
                  name=None,
                  use_locking=False):
         super(GradientNoiseScaleAdaptiveOptimizer,
               self).__init__(optimizer, name, use_locking)
         self._local_batch_size = local_batch_size
+        self._decay = decay
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         gradients, variables = list(zip(*grads_and_vars_to_negotiate))
@@ -31,7 +33,7 @@ class GradientNoiseScaleAdaptiveOptimizer(KungFuOptimizer):
         concat_grad = _concat(gradients)
         concat_negotiated_grad = _concat(reduced_gradients)
         gns = global_gradient_noise_scale(self._local_batch_size, concat_grad,
-                                          concat_negotiated_grad)
+                                          concat_negotiated_grad, self._decay)
 
         self._gns = gns
         bs = predict_batch_size(gns)
