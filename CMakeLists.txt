@@ -47,8 +47,8 @@ IF(KUNGFU_BUILD_TF_OPS)
     ADD_LIBRARY(kungfu_tensorflow_init SHARED srcs/cpp/src/tensorflow/init.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_init kungfu)
 
-    FILE(GLOB srcs ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/*.cpp)
     ADD_TF_OP_LIB(kungfu_tensorflow_ops)
+    FILE(GLOB srcs ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/*.cpp)
     FOREACH(src ${srcs})
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${src})
     ENDFOREACH()
@@ -60,8 +60,11 @@ IF(KUNGFU_BUILD_TF_OPS)
                        srcs/cpp/src/tensorflow/init_gpu.cpp
                        srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
         USE_NCCL(kungfu_tensorflow_init)
-        TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE
-                       srcs/cpp/src/tensorflow/ops/collective_gpu.cpp)
+        FILE(GLOB srcs
+             ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops_gpu/*.cpp)
+        FOREACH(src ${srcs})
+            TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${src})
+        ENDFOREACH()
     ENDIF()
 
     SET_TF_CXX11_ABI(kungfu_tensorflow_init)
