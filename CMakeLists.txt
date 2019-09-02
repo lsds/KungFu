@@ -47,16 +47,11 @@ IF(KUNGFU_BUILD_TF_OPS)
     ADD_LIBRARY(kungfu_tensorflow_init SHARED srcs/cpp/src/tensorflow/init.cpp)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_init kungfu)
 
-    ADD_TF_OP_LIB(kungfu_tensorflow_ops
-                  # BEGIN sort
-                  srcs/cpp/src/tensorflow/ops/collective.cpp
-                  srcs/cpp/src/tensorflow/ops/control.cpp
-                  srcs/cpp/src/tensorflow/ops/local.cpp
-                  srcs/cpp/src/tensorflow/ops/p2p_new.cpp
-                  srcs/cpp/src/tensorflow/ops/peer_to_peer.cpp
-                  srcs/cpp/src/tensorflow/ops/topology.cpp
-                  # END sort
-                  )
+    FILE(GLOB srcs ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/*.cpp)
+    ADD_TF_OP_LIB(kungfu_tensorflow_ops)
+    FOREACH(src ${srcs})
+        TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${src})
+    ENDFOREACH()
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
     IF(KUNGFU_USE_NCCL)

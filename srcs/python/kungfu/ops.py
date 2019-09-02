@@ -474,6 +474,16 @@ def _concat(ts):
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
 
+# https://github.com/lsds/KungFu/blob/adaptive-batch/srcs/python/kungfu/ops.py#L278
+def gradient_noise_controller(noise_op, worker_id, running_sum_interval,
+                              future_batch_limit):
+    return _op_lib.controller_running_sum(
+        noise_op,
+        worker_id=worker_id,
+        interval=running_sum_interval,
+        future_batch_limit=future_batch_limit)
+
+
 def cpu_group_all_reduce_variance_monitor(grads, batch_small):
     import tensorflow as tf
     negotiated_grads = [all_reduce(t) for t in grads]
