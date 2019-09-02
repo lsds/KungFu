@@ -1,0 +1,23 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v1
+
+    # - run: echo 'APT::Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries
+    - run: sudo apt update
+    - run: sudo apt install -y libopenblas-dev
+    - run: sudo apt install -y nvidia-cuda-toolkit
+
+    - run: pip3 install --user tensorflow
+
+    - run: ./configure --build-test --build-tensorflow-ops
+    - run: make
+    - run: make test
