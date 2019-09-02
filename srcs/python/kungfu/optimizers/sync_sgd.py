@@ -3,6 +3,8 @@ from kungfu.ops import all_reduce, global_variance, group_all_reduce
 
 from .core import KungFuOptimizer
 
+from kungfu.internal import _get_num_peers
+
 
 class SyncSGDOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
