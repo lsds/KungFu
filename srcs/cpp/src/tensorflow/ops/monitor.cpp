@@ -14,24 +14,25 @@ namespace tensorflow
 REGISTER_OP("ControllerRunningSum")
     .Attr("interval: int")
     .Attr("future_batch_limit: int")
-    .Input("gradient_noise: float32");
+    .Input("gradient_noise: float32")
+    .Output("output: int32")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->Scalar());
+        return Status::OK();
+    });
 
 class ControllerRunningSum : public OpKernel
 {
     using OpKernel::OpKernel;
 
-    int gs;
     int interval;
     int future_batch_limit;
     std::queue<float> noises;
     float running_sum;
 
-    // Write noise to file for adaptive batch training
-    // std::ofstream noise_file;
-
   public:
     explicit ControllerRunningSum(OpKernelConstruction *context)
-        : OpKernel(context), gs(0)
+        : OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("interval", &interval));
         OP_REQUIRES(
@@ -46,7 +47,6 @@ class ControllerRunningSum : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
-        gs++;
         DCHECK_EQ(1, context->num_inputs());
 
         Tensor &gradient_noise_tensor = (Tensor &)context->input(0);
@@ -73,7 +73,13 @@ class ControllerRunningSum : public OpKernel
             LOG(INFO) << "[Running Sum] Future batch " << future_batch_limit
                       << "; Noise " << noise;
             // noise_file << future_batch_limit << std::endl;
+            future_batch = future_batch_limit;
         }
+
+        Tensor *output = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, MakeTensorShape(), &output));
+        output->scalar<int32_t>()() = static_cast<int32_t>(future_batch);
     }
 };
 
