@@ -12,7 +12,6 @@ namespace tensorflow
 {
 // https://github.com/lsds/KungFu/blob/adaptive-batch/srcs/cpp/src/tensorflow/ops/collective.cpp#L144
 REGISTER_OP("ControllerRunningSum")
-    .Attr("worker_id: int")
     .Attr("interval: int")
     .Attr("future_batch_limit: int")
     .Input("gradient_noise: float32");
@@ -27,7 +26,6 @@ class ControllerRunningSum : public OpKernel
     std::queue<float> noises;
     float running_sum;
 
-    int worker_id;
     // Write noise to file for adaptive batch training
     // std::ofstream noise_file;
 
@@ -35,10 +33,6 @@ class ControllerRunningSum : public OpKernel
     explicit ControllerRunningSum(OpKernelConstruction *context)
         : OpKernel(context), gs(0)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("worker_id", &worker_id));
-        OP_REQUIRES(context, worker_id >= 0,
-                    errors::InvalidArgument("worker id must be non-negative"));
-
         OP_REQUIRES_OK(context, context->GetAttr("interval", &interval));
         OP_REQUIRES(
             context, interval >= 0,
@@ -48,12 +42,6 @@ class ControllerRunningSum : public OpKernel
         OP_REQUIRES(context, future_batch_limit > 0,
                     errors::InvalidArgument(
                         "future batch limit must be greater than zero"));
-
-        // Write noise to file
-        // "/home/ab7515/noise-worker-" + std::to_string(worker_id) + ".txt";
-        // std::string worker_file_name =
-        // "/home/work/user-job-dir/noise-worker-" + std::to_string(worker_id) +
-        // ".txt"; noise_file.open(worker_file_name);
     }
 
     void Compute(OpKernelContext *context) override

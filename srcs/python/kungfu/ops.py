@@ -475,11 +475,10 @@ def _concat(ts):
 
 
 # https://github.com/lsds/KungFu/blob/adaptive-batch/srcs/python/kungfu/ops.py#L278
-def gradient_noise_controller(noise_op, worker_id, running_sum_interval,
+def gradient_noise_controller(noise_op, running_sum_interval,
                               future_batch_limit):
     return _op_lib.controller_running_sum(
         noise_op,
-        worker_id=worker_id,
         interval=running_sum_interval,
         future_batch_limit=future_batch_limit)
 
