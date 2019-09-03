@@ -103,12 +103,20 @@ def update_cluster(version):
     return _op_lib.kungfu_update_cluster(version)
 
 
-def save_variable(version, t):
+def save_variable(t, version=None):
     """
-    version: a scalar tensor of int64
     t: the tensor variable to save
+    version: a scalar tensor of int64 or None
     """
-    return _op_lib.kungfu_save_variable(version, t, input_tensor_name=t.name)
+    if version is None:
+        version = 0
+        use_version = False
+    else:
+        use_version = True
+    return _op_lib.kungfu_save_variable(version,
+                                        t,
+                                        input_tensor_name=t.name,
+                                        use_version=use_version)
 
 
 def save_variables(variables):
