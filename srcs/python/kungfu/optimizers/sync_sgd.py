@@ -1,9 +1,8 @@
 import tensorflow as tf
+from kungfu.internal import _get_num_peers
 from kungfu.ops import all_reduce, global_variance, group_all_reduce
 
 from .core import KungFuOptimizer
-
-from kungfu.internal import _get_num_peers
 
 
 class SyncSGDOptimizer(KungFuOptimizer):
@@ -24,7 +23,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
         if self._average:
             reduced_grads = [g / self._num_workers for g in summed_gradients]
         else:
-            reduced_grads = sum_gradients
+            reduced_grads = summed_gradients
         return list(zip(reduced_grads, variables))
 
 
