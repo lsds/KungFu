@@ -8,7 +8,6 @@ from kungfu.internal import _get_num_peers
 
 class SyncSGDOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-
     def __init__(self,
                  optimizer,
                  average_gradients=True,
@@ -31,7 +30,6 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
 class MonSyncSGDOptimizer(KungFuOptimizer):
     """An optimizer that reduce gradients for synchronisation and compute the varience of gradients for monitoring."""
-
     def __init__(self, optimizer, name=None, use_locking=False):
         super(MonSyncSGDOptimizer, self).__init__(optimizer, name, use_locking)
 
