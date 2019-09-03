@@ -11,13 +11,12 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
     def __init__(self,
                  optimizer,
-                 average_gradients=False,
+                 average_gradients=True,
                  name=None,
                  use_locking=False):
         super(SyncSGDOptimizer, self).__init__(optimizer, name, use_locking)
         self._average = average_gradients
-        self._num_workers = _get_num_peers(
-        )  # FIXME: replacing _num_workers with a variable to support dynamic scaling
+        self._num_workers = _get_num_peers()  # FIXME: use a variable
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         """Negotiate grads with peers, using plain allreduce."""
