@@ -32,10 +32,8 @@ def dense(x, logits, act):
 
 def fake_get_shard_info(use_kungfu):
     if use_kungfu:
-        cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-        rank = int(os.getenv('KUNGFU_TEST_SELF_RANK'))
-        cluster_size = len(cluster_spec['Peers'])
-        return rank, cluster_size
+        from kungfu.internal import _get_num_peers, _get_self_rank
+        return _get_self_rank(), _get_num_peers()
     return 0, 1
 
 
@@ -51,7 +49,7 @@ def xentropy(y_, y):
 
 def build_optimizer(shards, use_kungfu=True):
     learning_rate = 0.1
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_kungfu:
         from kungfu.optimizers import SyncSGDOptimizer
         optimizer = SyncSGDOptimizer(optimizer)
