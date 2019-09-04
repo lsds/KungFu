@@ -32,56 +32,41 @@ def get_random_peer(cluster_size, self_rank):
 
 class ModelAveragingOptimizerNew(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-    def __init__(self,
-                 optimizer,
-                 model_averaging_device="gpu",
-                 request_mode="sync",
-                 peer_selection_strategy="random",
-                 name=None,
-                 use_locking=False):
+    def __init__(self, optimizer, name=None, use_locking=False):
         super(ModelAveragingOptimizerNew,
               self).__init__(optimizer, name, use_locking)
-        self.request_mode = request_mode
-        self.model_averaging_device = model_averaging_device
-        self.peer_selection_strategy = peer_selection_strategy
+
+    def _build_request_and_save_ops(self, target, variables):
+        shapes = [v.shape for v in variables]
+        var_fused = fuse(variables)
+
+        save_model_op = save_variable(var_fused)
+        self._save_model_op = save_model_op  # save for _get_initializer_op
+
+        other_peer_var_fused = request_variable_with_template(
+            target, var_fused)
+        other_peer_vars = defuse(other_peer_var_fused, shapes)
+        return other_peer_vars, save_model_op
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
+        np, rank = _get_num_peers(), _get_self_rank()
+        target = get_random_peer(np, rank)
+        variables = [v for _g, v in grads_and_vars]
+        other_peer_vars, save_model_op = self._build_request_and_save_ops(
+            target, variables)
 
-        grads, variables = zip(*grads_and_vars)
+        assign_ops = [
+            tf.assign(v, 0.5 * (v + other_v))
+            for v, other_v in zip(variables, other_peer_vars)
+        ]
 
-        if self.model_averaging_device == 'cpu':
-            raise RuntimeError('NOT supported')
-        elif self.model_averaging_device == 'gpu':
-            shapes = [v.shape for v in variables]
+        apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
 
-            np, rank = _get_num_peers(), _get_self_rank()
-            target = get_random_peer(np, rank)
-
-            var_fused = fuse(variables)
-            self._var_fused = var_fused  # save for _get_initializer_op
-            other_peer_var_fused = request_variable_with_template(
-                target, var_fused)
-
-            other_peer_vars = defuse(other_peer_var_fused, shapes)
-
-            assign_ops = [
-                tf.assign(v, 0.5 * (v + other_v))
-                for ((g, v), other_v) in zip(grads_and_vars, other_peer_vars)
-            ]
-
-            apply_op = self._optimizer.apply_gradients(grads_and_vars,
-                                                       **kwargs)
-            save_model_op = save_variable(var_fused)
-
-            with tf.control_dependencies(assign_ops):
-                with tf.control_dependencies([apply_op]):
-                    with tf.control_dependencies([save_model_op]):
-                        return tf.group(apply_op)
-        else:
-            raise Exception(
-                "PeerModelAveraging optimizer does not support provided request model type."
-            )
+        with tf.control_dependencies(assign_ops):
+            with tf.control_dependencies([apply_op]):
+                with tf.control_dependencies([save_model_op]):
+                    return tf.group(apply_op)
 
     def _get_initializer_op(self, grads_and_vars):
         _gradients, variables = list(zip(*grads_and_vars))
@@ -90,11 +75,8 @@ class ModelAveragingOptimizerNew(KungFuOptimizer):
         for v in variables:
             bcast_ops.append(tf.assign(v, broadcast(v)))
 
-        var_fused = self._var_fused
-        save_model_op = save_variable(var_fused)
-
         with tf.control_dependencies(bcast_ops):
-            with tf.control_dependencies([save_model_op]):
+            with tf.control_dependencies([self._save_model_op]):
                 return barrier()
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
