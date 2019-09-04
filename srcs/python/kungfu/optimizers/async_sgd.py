@@ -47,19 +47,6 @@ class ModelAveragingOptimizerNew(KungFuOptimizer):
         self.model_averaging_device = model_averaging_device
         self.peer_selection_strategy = peer_selection_strategy
 
-    @staticmethod
-    def get_initializer():
-        # TODO: auto inject tf.global_variables_initializer
-        # with tf.control_dependencies([tf.global_variables_initializer()]):
-        ops = []
-        # variables = tf.get_default_graph().get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-        variables = tf.trainable_variables()
-        for v in variables:
-            ops.append(tf.assign(v, broadcast(v)))
-        with tf.control_dependencies(ops):
-            with tf.control_dependencies([save_model(variables)]):
-                return barrier()
-
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
 
@@ -93,6 +80,20 @@ class ModelAveragingOptimizerNew(KungFuOptimizer):
             raise Exception(
                 "PeerModelAveraging optimizer does not support provided request model type."
             )
+
+    def _get_initializer_op(self, grads_and_vars):
+        _gradients, variables = list(zip(*grads_and_vars))
+
+        bcast_ops = []
+        for v in variables:
+            bcast_ops.append(tf.assign(v, broadcast(v)))
+
+        var_fused = fuse(variables)
+        save_model_op = save_variable(var_fused)
+
+        with tf.control_dependencies(bcast_ops):
+            with tf.control_dependencies([save_model_op]):
+                return barrier()
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         return grads_and_vars_to_negotiate

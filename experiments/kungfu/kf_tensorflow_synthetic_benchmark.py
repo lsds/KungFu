@@ -85,8 +85,6 @@ elif args.kungfu == 'model-ave':
 else:
     pass
 
-init = tf.global_variables_initializer()
-
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
 target = tf.random_uniform([args.batch_size, 1],
                            minval=0,
@@ -128,14 +126,21 @@ def run(benchmark_step):
     log('Img/sec per %s: %.1f +-%.1f' % (device, img_sec_mean, img_sec_conf))
 
 
+loss = loss_function()
+train_opt = opt.minimize(loss)
+if hasattr(opt, 'get_initializer_op'):
+    kf_init = opt.get_initializer_op()
+else:
+    kf_init = None
+
 if tf.executing_eagerly():
     with tf.device(device):
         run(lambda: opt.minimize(loss_function,
                                  var_list=model.trainable_variables))
 else:
+    init = tf.global_variables_initializer()
     with tf.Session(config=config) as session:
-        init.run()
-
-        loss = loss_function()
-        train_opt = opt.minimize(loss)
+        sess.run(init)
+        if kf_init:
+            sess.run(kf_init)
         run(lambda: session.run(train_opt))
