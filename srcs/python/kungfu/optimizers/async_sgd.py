@@ -36,7 +36,7 @@ class ModelAveragingOptimizerNew(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
     def __init__(self,
                  optimizer,
-                 model_averaging_device="cpu",
+                 model_averaging_device="gpu",
                  request_mode="sync",
                  peer_selection_strategy="random",
                  name=None,
