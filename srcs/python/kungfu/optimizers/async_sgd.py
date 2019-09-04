@@ -1,9 +1,7 @@
 import tensorflow as tf
 from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
-from kungfu.ops import (_concat, barrier, broadcast, get_neighbour_mask,
-                        get_peer_latencies, global_minimum_spanning_tree,
-                        model_averaging, request, request_model, round_robin,
-                        save_model, save_variable, save_variables)
+from kungfu.ops import (barrier, broadcast, request_variable_with_template,
+                        save_variable)
 
 from .core import KungFuOptimizer
 
@@ -22,7 +20,7 @@ def defuse(y, shapes):
         ts.append(x)
         off += size
     if off != y.shape.num_elements():
-        raise RuntimeError('invalid dtype')
+        raise RuntimeError('invalid shapes')
     return ts
 
 
@@ -57,9 +55,13 @@ class ModelAveragingOptimizerNew(KungFuOptimizer):
         elif self.model_averaging_device == 'gpu':
             shapes = [v.shape for v in variables]
 
+            np, rank = _get_num_peers(), _get_self_rank()
+            target = get_random_peer(np, rank)
+
             var_fused = fuse(variables)
-            target = get_random_peer(_get_num_peers(), _get_self_rank())
-            other_peer_var_fused = request(target, var_fused.name, var_fused)
+            self._var_fused = var_fused  # save for _get_initializer_op
+            other_peer_var_fused = request_variable_with_template(
+                target, var_fused)
 
             other_peer_vars = defuse(other_peer_var_fused, shapes)
 
@@ -88,7 +90,7 @@ class ModelAveragingOptimizerNew(KungFuOptimizer):
         for v in variables:
             bcast_ops.append(tf.assign(v, broadcast(v)))
 
-        var_fused = fuse(variables)
+        var_fused = self._var_fused
         save_model_op = save_variable(var_fused)
 
         with tf.control_dependencies(bcast_ops):

@@ -140,7 +140,7 @@ if tf.executing_eagerly():
 else:
     init = tf.global_variables_initializer()
     with tf.Session(config=config) as session:
-        sess.run(init)
+        session.run(init)
         if kf_init:
-            sess.run(kf_init)
+            session.run(kf_init)
         run(lambda: session.run(train_opt))
