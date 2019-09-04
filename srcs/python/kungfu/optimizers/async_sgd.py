@@ -32,20 +32,29 @@ def get_random_peer(cluster_size, self_rank):
 
 class ModelAveragingOptimizerNew(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-    def __init__(self, optimizer, name=None, use_locking=False):
+    def __init__(self,
+                 optimizer,
+                 fuse_variables=True,
+                 name=None,
+                 use_locking=False):
         super(ModelAveragingOptimizerNew,
               self).__init__(optimizer, name, use_locking)
+        self._fuse_variables = fuse_variables
 
     def _build_request_and_save_ops(self, target, variables):
-        shapes = [v.shape for v in variables]
-        var_fused = fuse(variables)
-
-        save_model_op = save_variable(var_fused)
+        if self._fuse_variables:
+            var_fused = fuse(variables)
+            save_model_op = save_variable(var_fused)
+            other_peer_var_fused = request_variable_with_template(
+                target, var_fused)
+            other_peer_vars = defuse(other_peer_var_fused,
+                                     [v.shape for v in variables])
+        else:
+            save_model_op = tf.group([save_variable(v) for v in variables])
+            other_peer_vars = [
+                request_variable_with_template(target, v) for v in variables
+            ]
         self._save_model_op = save_model_op  # save for _get_initializer_op
-
-        other_peer_var_fused = request_variable_with_template(
-            target, var_fused)
-        other_peer_vars = defuse(other_peer_var_fused, shapes)
         return other_peer_vars, save_model_op
 
     def apply_gradients(self, grads_and_vars, **kwargs):

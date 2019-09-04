@@ -54,6 +54,10 @@ parser.add_argument('--kungfu',
                     type=str,
                     default='sync-sgd',
                     help='kungfu optimizer')
+parser.add_argument('--kungfu-fuse-variables',
+                    type=bool,
+                    default=True,
+                    help='fuse variables')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -81,7 +85,7 @@ if args.kungfu == 'sync-sgd':
     opt = SyncSGDOptimizer(opt)
 elif args.kungfu == 'model-ave':
     from kungfu.optimizers import ModelAveragingOptimizerNew
-    opt = ModelAveragingOptimizerNew(opt)
+    opt = ModelAveragingOptimizerNew(opt, args.kungfu_fuse_variables)
 else:
     pass
 
