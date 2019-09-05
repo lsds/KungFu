@@ -94,6 +94,7 @@ REGISTER_KERNEL_BUILDER(Name("Broadcast").Device(DEVICE_CPU), Broadcast);
 
 REGISTER_OP("GradientNoise")
     .Attr("alpha: float")
+    .Attr("use_abs_value: bool")
     .Input("g_biased: float32")
     .Input("s_biased: float32")
     .Output("output: float32")
@@ -113,6 +114,8 @@ class GradientNoise : public OpKernel
     std::unique_ptr<ema_t> g_ema_;
     std::unique_ptr<ema_t> s_ema_;
 
+    bool use_abs_value_;
+
   public:
     explicit GradientNoise(OpKernelConstruction *context) : OpKernel(context)
     {
@@ -121,15 +124,18 @@ class GradientNoise : public OpKernel
                     errors::InvalidArgument("alpha must be greater than zero"));
         g_ema_.reset(new ema_t(alpha_));
         s_ema_.reset(new ema_t(alpha_));
+
+        OP_REQUIRES_OK(context,
+                       context->GetAttr("use_abs_value", &use_abs_value_));
     }
 
     void Compute(OpKernelContext *context) override
     {
         DCHECK_EQ(2, context->num_inputs());
-        const Tensor &g_biased_tensor = context->input(0);
-        const Tensor &s_biased_tensor = context->input(1);
-        g_ema_->update(g_biased_tensor.scalar<T>()());
-        s_ema_->update(s_biased_tensor.scalar<T>()());
+        const T g = context->input(0).scalar<T>()();
+        const T s = context->input(1).scalar<T>()();
+        g_ema_->update(use_abs_value_ ? std::abs(g) : g);
+        s_ema_->update(use_abs_value_ ? std::abs(s) : s);
         Tensor *output = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &output));

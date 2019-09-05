@@ -522,7 +522,8 @@ def get_global_gradient_noise_operator(batch_small, concat_grad,
 def global_gradient_noise_scale(batch_small,
                                 concat_grad,
                                 concat_negotiated_grad,
-                                alpha=0.6):
+                                alpha=0.6,
+                                use_abs_value=False):
     import tensorflow as tf
     _, np = peer_info(tf.constant(-1, dtype=tf.int32))
     cluster_size = tf.cast(np, dtype=tf.float32)
@@ -540,4 +541,7 @@ def global_gradient_noise_scale(batch_small,
                                                 batch_small * G_sq_small)
     S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
 
-    return _op_lib.gradient_noise(G_biased, S_biased, alpha=alpha)
+    return _op_lib.gradient_noise(G_biased,
+                                  S_biased,
+                                  alpha=alpha,
+                                  use_abs_value=use_abs_value)
