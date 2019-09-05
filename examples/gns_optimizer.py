@@ -22,16 +22,18 @@ class GradientNoiseScaleAdaptiveOptimizer(KungFuOptimizer):
               self).__init__(optimizer, name, use_locking)
         self._local_batch_size = local_batch_size
         self._decay = decay
+        self._rank, self._np = peer_info(tf.constant(-1, dtype=tf.int32))
 
     def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
         gradients, variables = list(zip(*grads_and_vars_to_negotiate))
-        reduced_gradients = group_all_reduce(gradients)
+        summed_gradients = group_all_reduce(gradients)
+        reduced_gradients = [g / tf.cast(self._np, dtype=tf.float32) for g in summed_gradients]
 
         for g in gradients:
             print('%s :: %s' % (g.name, g.shape))
 
         concat_grad = _concat(gradients)
-        concat_negotiated_grad = _concat(reduced_gradients)
+        concat_negotiated_grad = _concat(summed_gradients)
         gns = global_gradient_noise_scale(self._local_batch_size, concat_grad,
                                           concat_negotiated_grad, self._decay)
 

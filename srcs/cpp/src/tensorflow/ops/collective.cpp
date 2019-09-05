@@ -3,6 +3,7 @@
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
 
+#include <kungfu/ema.hpp>
 #include <kungfu_tensorflow_ops.h>
 
 namespace tensorflow
@@ -105,48 +106,34 @@ class GradientNoise : public OpKernel
 {
     using OpKernel::OpKernel;
 
-    float alpha_;
-    float g_ema_;
-    float s_ema_;
+    using T     = float;
+    using ema_t = ExponentialMovingAverage<T>;
+
+    T alpha_;
+    std::unique_ptr<ema_t> g_ema_;
+    std::unique_ptr<ema_t> s_ema_;
 
   public:
-    explicit GradientNoise(OpKernelConstruction *context)
-        : OpKernel(context), g_ema_(0), s_ema_(0)
+    explicit GradientNoise(OpKernelConstruction *context) : OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha_));
         OP_REQUIRES(context, alpha_ > 0,
                     errors::InvalidArgument("alpha must be greater than zero"));
+        g_ema_.reset(new ema_t(alpha_));
+        s_ema_.reset(new ema_t(alpha_));
     }
 
     void Compute(OpKernelContext *context) override
     {
         DCHECK_EQ(2, context->num_inputs());
-
-        const Tensor &g_biased_tensor = context->input(0);
-        const Tensor &s_biased_tensor = context->input(1);
-
+        const T g = context->input(0).scalar<T>()();
+        const T s = context->input(1).scalar<T>()();
+        g_ema_->update(g);
+        s_ema_->update(s);
         Tensor *output = nullptr;
-        OP_REQUIRES_OK(context, context->allocate_output(
-                                    0, g_biased_tensor.shape(), &output));
-
-        float g_current = g_biased_tensor.scalar<float>()();
-        float s_current = s_biased_tensor.scalar<float>()();
-
-        if (g_ema_ == 0.0) {
-            g_ema_ = g_current;
-        } else {
-            g_ema_ = alpha_ * g_current + (1 - alpha_) * g_ema_;
-        }
-
-        if (s_ema_ == 0.0) {
-            s_ema_ = s_current;
-        } else {
-            s_ema_ = alpha_ * s_current + (1 - alpha_) * s_ema_;
-        }
-        float gradient_noise = s_ema_ / g_ema_;
-
-        float *y = const_cast<float *>(output->scalar<float>().data());
-        y[0]     = gradient_noise;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, MakeTensorShape(), &output));
+        output->scalar<T>()() = s_ema_->get() / g_ema_->get();
     }
 };
 
