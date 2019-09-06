@@ -182,8 +182,8 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 	}
 
 	// FIXME: deprecated
-	r.localStore.Lock()
-	defer r.localStore.Unlock()
+	r.localStore.RLock()
+	defer r.localStore.RUnlock()
 
 	modelBuffer := r.localStore.data[name]
 	if modelBuffer == nil {

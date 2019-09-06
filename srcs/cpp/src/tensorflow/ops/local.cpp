@@ -10,12 +10,14 @@ namespace tensorflow
 REGISTER_OP("KungfuSaveVariable")
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
+    .Attr("use_version: bool")
     .Input("version: int64")
     .Input("input: T");
 
 class SaveVariable : public AsyncOpKernel
 {
     std::string input_tensor_name_;
+    bool use_version_;
 
   public:
     explicit SaveVariable(OpKernelConstruction *context)
@@ -26,16 +28,23 @@ class SaveVariable : public AsyncOpKernel
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
+        OP_REQUIRES_OK(context, context->GetAttr("use_version", &use_version_));
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const int64_t version = context->input(0).scalar<int64_t>()();
         const Tensor &input   = context->input(1);
-        _kungfu_world->Save(std::to_string(version).c_str(),
-                            input_tensor_name_.c_str(),
-                            input.tensor_data().data(), input.NumElements(),
-                            to_kungfu_type(input.dtype()), done);
+        if (use_version_) {
+            _kungfu_world->Save(std::to_string(version).c_str(),
+                                input_tensor_name_.c_str(),
+                                input.tensor_data().data(), input.NumElements(),
+                                to_kungfu_type(input.dtype()), done);
+        } else {
+            _kungfu_world->Save(input_tensor_name_.c_str(),
+                                input.tensor_data().data(), input.NumElements(),
+                                to_kungfu_type(input.dtype()), done);
+        }
     }
 };
 

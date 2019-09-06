@@ -1,2 +1,2 @@
-from .model_avg import AdaptiveModelAveragingOptimizer, ModelAveragingOptimizer
-from .sync_sgd import MonSyncSGDOptimizer, SyncSGDOptimizer
+from .async_sgd import PeerModelAveragingOptimizer
+from .sync_sgd import SyncSGDOptimizer

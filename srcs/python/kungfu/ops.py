@@ -103,34 +103,57 @@ def update_cluster(version):
     return _op_lib.kungfu_update_cluster(version)
 
 
-def save_variable(version, t):
+def save_variable(t, version=None):
     """
-    version: a scalar tensor of int64
     t: the tensor variable to save
+    version: a scalar tensor of int64 or None
     """
-    return _op_lib.kungfu_save_variable(version, t, input_tensor_name=t.name)
+    if version is None:
+        version = 0
+        use_version = False
+    else:
+        use_version = True
+    return _op_lib.kungfu_save_variable(version,
+                                        t,
+                                        input_tensor_name=t.name,
+                                        use_version=use_version)
 
 
 def save_variables(variables):
     return _op_lib.save_variables(variables, names=[v.name for v in variables])
 
 
-def request(target, name, example):
-    # example is used for shape reference
-    return _op_lib.kungfu_request(target, example, tensor_name=name)
-
-
-def request_variable(target, version, name, shape, dtype):
+def request_variable(target, version=None, name=None, shape=None, dtype=None):
     """
     target: a scalar tensor of int32
     version: a scalar tensor of int64
     name: string
     """
+    if version is None:
+        version = 0
+        use_version = False
+    else:
+        use_version = True
+    if name is None:
+        raise RuntimeError('name is required')
+    if shape is None:
+        raise RuntimeError('shape is required')
+    if dtype is None:
+        raise RuntimeError('dtype is required')
     return _op_lib.kungfu_request_variable(target,
                                            version,
                                            tensor_name=name,
                                            shape=shape,
-                                           T=dtype)
+                                           T=dtype,
+                                           use_version=use_version)
+
+
+def request_variable_with_template(target, template, version=None):
+    return request_variable(target,
+                            version=version,
+                            name=template.name,
+                            shape=template.shape,
+                            dtype=template.dtype)
 
 
 def get_peer_latencies(local_step=None):

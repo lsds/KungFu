@@ -8,7 +8,7 @@ import (
 )
 
 type LocalStore struct {
-	sync.Mutex
+	sync.RWMutex
 
 	data map[string]*kb.Buffer
 }

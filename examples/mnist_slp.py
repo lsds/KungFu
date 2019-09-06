@@ -27,22 +27,14 @@ def save_all(sess, prefix):
 def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
-
-init_op = None
-
-
 def build_optimizer(name, shards=1):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
-    global init_op
     if name == 'sync-sgd':
         from kungfu.optimizers import SyncSGDOptimizer
-        # init_op = FIXME: add get_initializer to SyncSGDOptimizer
-        init_op = kf.distributed_variables_initializer
         return SyncSGDOptimizer(optimizer)
-    elif name == 'adaptive-model-ave':
-        from kungfu.optimizers import AdaptiveModelAveragingOptimizer
-        init_op = AdaptiveModelAveragingOptimizer.get_initializer
+    elif name == 'model-avg':
+        from kungfu.optimizers import PeerModelAveragingOptimizer
         return AdaptiveModelAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
@@ -81,9 +73,14 @@ def train_mnist(x, y_, train_op, test_op, dataset, n_epochs=1,
 
     offset = batch_size * shard_id
 
+    kf_init_op = None
+    if hasattr(opt, 'distributed_initializer'):
+        kf_init_op = opt.distributed_initializer()
+
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        sess.run(init_op())
+        if kf_init_op:
+            sess.run(kf_init_op)
 
         print('training')
         for step in range(1, n_steps + 1):

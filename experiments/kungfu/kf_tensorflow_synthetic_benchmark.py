@@ -19,40 +19,48 @@ parser = argparse.ArgumentParser(
     description='TensorFlow Synthetic Benchmark',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument(
-    '--model', type=str, default='ResNet50', help='model to benchmark')
-parser.add_argument(
-    '--batch-size', type=int, default=32, help='input batch size')
+parser.add_argument('--model',
+                    type=str,
+                    default='ResNet50',
+                    help='model to benchmark')
+parser.add_argument('--batch-size',
+                    type=int,
+                    default=32,
+                    help='input batch size')
 
 parser.add_argument(
     '--num-warmup-batches',
     type=int,
     default=10,
     help='number of warm-up batches that don\'t count towards benchmark')
-parser.add_argument(
-    '--num-batches-per-iter',
-    type=int,
-    default=10,
-    help='number of batches per benchmark iteration')
-parser.add_argument(
-    '--num-iters', type=int, default=10, help='number of benchmark iterations')
+parser.add_argument('--num-batches-per-iter',
+                    type=int,
+                    default=10,
+                    help='number of batches per benchmark iteration')
+parser.add_argument('--num-iters',
+                    type=int,
+                    default=10,
+                    help='number of benchmark iterations')
 
-parser.add_argument(
-    '--eager',
-    action='store_true',
-    default=False,
-    help='enables eager execution')
-parser.add_argument(
-    '--no-cuda',
-    action='store_true',
-    default=False,
-    help='disables CUDA training')
-parser.add_argument(
-    '--no-kungfu', action='store_true', default=False, help='disables kungfu')
+parser.add_argument('--eager',
+                    action='store_true',
+                    default=False,
+                    help='enables eager execution')
+parser.add_argument('--no-cuda',
+                    action='store_true',
+                    default=False,
+                    help='disables CUDA training')
+parser.add_argument('--kungfu',
+                    type=str,
+                    default='sync-sgd',
+                    help='kungfu optimizer')
+parser.add_argument('--kungfu-fuse-variables',
+                    type=bool,
+                    default=True,
+                    help='fuse variables')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
-args.kungfu = not args.no_kungfu
 
 # Horovod: pin GPU to be used to process local rank (one GPU per process)
 config = tf.ConfigProto()
@@ -72,12 +80,14 @@ model = getattr(applications, args.model)(weights=None)
 
 opt = tf.train.GradientDescentOptimizer(0.01)
 
-# Kungfu: wrap optimizer with SyncSGDOptimizer.
-if args.kungfu:
+if args.kungfu == 'sync-sgd':
     from kungfu.optimizers import SyncSGDOptimizer
     opt = SyncSGDOptimizer(opt)
-
-init = tf.global_variables_initializer()
+elif args.kungfu == 'model-ave':
+    from kungfu.optimizers import PeerModelAveragingOptimizer
+    opt = PeerModelAveragingOptimizer(opt, args.kungfu_fuse_variables)
+else:
+    pass
 
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
 target = tf.random_uniform([args.batch_size, 1],
@@ -120,14 +130,21 @@ def run(benchmark_step):
     log('Img/sec per %s: %.1f +-%.1f' % (device, img_sec_mean, img_sec_conf))
 
 
+loss = loss_function()
+train_opt = opt.minimize(loss)
+if hasattr(opt, 'distributed_initializer'):
+    kf_init = opt.distributed_initializer()
+else:
+    kf_init = None
+
 if tf.executing_eagerly():
     with tf.device(device):
-        run(lambda: opt.minimize(
-            loss_function, var_list=model.trainable_variables))
+        run(lambda: opt.minimize(loss_function,
+                                 var_list=model.trainable_variables))
 else:
+    init = tf.global_variables_initializer()
     with tf.Session(config=config) as session:
-        init.run()
-
-        loss = loss_function()
-        train_opt = opt.minimize(loss)
+        session.run(init)
+        if kf_init:
+            session.run(kf_init)
         run(lambda: session.run(train_opt))

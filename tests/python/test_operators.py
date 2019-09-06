@@ -22,7 +22,7 @@ def test_save_and_request():
 
     inc_op = tf.assign_add(global_step, 1)
     update_op = tf.assign(x, x + 1)
-    save_op = save_variable(global_step, x)
+    save_op = save_variable(x, global_step)
     y = request_variable(target, global_step, x.name, x.shape, x.dtype)
 
     with tf.Session() as sess:
