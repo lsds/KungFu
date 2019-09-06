@@ -7,6 +7,7 @@ from .core import KungFuOptimizer
 
 class SyncSGDOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
+
     def __init__(self,
                  optimizer,
                  average_gradients=True,
@@ -16,16 +17,16 @@ class SyncSGDOptimizer(KungFuOptimizer):
         self._average = average_gradients
         self._num_workers = _get_num_peers()  # FIXME: use a variable
 
-    def compute_gradients(self, *args, **kwargs):
-        grads_and_vars = super(SyncSGDOptimizer,
-                               self).compute_gradients(*args, **kwargs)
+    def apply_gradients(self, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
         summed_gradients = group_all_reduce(gradients)
         if self._average:
             reduced_grads = [g / self._num_workers for g in summed_gradients]
         else:
             reduced_grads = summed_gradients
-        return list(zip(reduced_grads, variables))
+        reduced_grads_and_vars = zip(reduced_grads, variables)
+        return self._optimizer.apply_gradients(reduced_grads_and_vars,
+                                               **kwargs)
 
     def distributed_initializer(self):
         ops = [tf.assign(v, broadcast(v)) for v in self.model_variables()]

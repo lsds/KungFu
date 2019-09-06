@@ -12,6 +12,44 @@ from kungfu.helpers.utils import show_size
 from kungfu.benchmarks.mnist import slp
 
 
+from kungfu.internal import _get_num_peers
+from kungfu.ops import all_reduce, broadcast, global_variance, group_all_reduce
+
+from kungfu.optimizers.core import KungFuOptimizer
+
+
+class VarianceBasedSyncSGDOptimizer(KungFuOptimizer):
+    def __init__(self, optimizer, name=None, use_locking=False):
+        super(VarianceBasedSyncSGDOptimizer,
+              self).__init__(optimizer, name, use_locking)
+        self._num_workers = _get_num_peers()  # FIXME: use a variable
+
+    def apply_gradients(self, grads_and_vars, **kwargs):
+        gradients, variables = list(zip(*grads_and_vars))
+        squared_gradients = [tf.square(g) for g in gradients]
+        summed_gradients = group_all_reduce(gradients)
+        summed_squared_gradients = group_all_reduce(squared_gradients)
+        reduced_grads = [g / self._num_workers for g in summed_gradients]
+        reduced_square_grads = [
+            g / self._num_workers for g in summed_squared_gradients
+        ]
+        grad_variances = [
+            square_grad - tf.square(grad)
+            for square_grad, grad in zip(reduced_square_grads, reduced_grads)
+        ]
+        variances = [
+            tf.norm(grad_variance) for grad_variance in grad_variances
+        ]
+        self._summed_variance = tf.reduce_sum(variances)
+        print(self._summed_variance)
+        return self._optimizer.apply_gradients(zip(reduced_grads, variables),
+                                               **kwargs)
+
+    def distributed_initializer(self):
+        ops = [tf.assign(v, broadcast(v)) for v in self.model_variables()]
+        return tf.group(ops)
+
+
 def save_vars(sess, variables, filename):
     values = sess.run(variables)
     npz = dict((var.name, val) for var, val in zip(variables, values))
@@ -33,6 +71,8 @@ def build_optimizer(name, shards=1):
     if name == 'sync-sgd':
         from kungfu.optimizers import SyncSGDOptimizer
         return SyncSGDOptimizer(optimizer)
+    if name == 'variance':
+        return VarianceBasedSyncSGDOptimizer(optimizer)
     elif name == 'model-avg':
         from kungfu.optimizers import PeerModelAveragingOptimizer
         return AdaptiveModelAveragingOptimizer(optimizer)
@@ -58,7 +98,7 @@ def test_mnist(sess, x, y_, test_op, dataset):
     return result
 
 
-def train_mnist(x, y_, train_op, test_op, dataset, n_epochs=1,
+def train_mnist(x, y_, train_op, optimizer, test_op, dataset, n_epochs=1,
                 batch_size=5000):
     # TODO: shard by task ID
     shards = 1
@@ -74,8 +114,8 @@ def train_mnist(x, y_, train_op, test_op, dataset, n_epochs=1,
     offset = batch_size * shard_id
 
     kf_init_op = None
-    if hasattr(opt, 'distributed_initializer'):
-        kf_init_op = opt.distributed_initializer()
+    if hasattr(optimizer, 'distributed_initializer'):
+        kf_init_op = optimizer.distributed_initializer()
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -126,7 +166,7 @@ def main():
     x, y_, train_op, test_op = build_ops(optimizer)
 
     mnist = load_datasets(args.data_dir, normalize=True, one_hot=True)
-    train_mnist(x, y_, train_op, test_op, mnist, args.n_epochs,
+    train_mnist(x, y_, train_op, optimizer, test_op, mnist, args.n_epochs,
                 args.batch_size)
 
 
