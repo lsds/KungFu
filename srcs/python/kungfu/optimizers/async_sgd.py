@@ -30,14 +30,15 @@ def get_random_peer(cluster_size, self_rank):
                    lambda: tf.identity(t))
 
 
-class ModelAveragingOptimizerNew(KungFuOptimizer):
+class PeerModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
+
     def __init__(self,
                  optimizer,
                  fuse_variables=True,
                  name=None,
                  use_locking=False):
-        super(ModelAveragingOptimizerNew,
+        super(PeerModelAveragingOptimizer,
               self).__init__(optimizer, name, use_locking)
         self._fuse_variables = fuse_variables
 
@@ -77,16 +78,11 @@ class ModelAveragingOptimizerNew(KungFuOptimizer):
                 with tf.control_dependencies([save_model_op]):
                     return tf.group(apply_op)
 
-    def _get_initializer_op(self, grads_and_vars):
-        _gradients, variables = list(zip(*grads_and_vars))
-
+    def distributed_initializer(self):
         bcast_ops = []
-        for v in variables:
+        for v in self.model_variables():
             bcast_ops.append(tf.assign(v, broadcast(v)))
 
         with tf.control_dependencies(bcast_ops):
             with tf.control_dependencies([self._save_model_op]):
                 return barrier()
-
-    def _negotiate_grads_by_strategy(self, grads_and_vars_to_negotiate):
-        return grads_and_vars_to_negotiate

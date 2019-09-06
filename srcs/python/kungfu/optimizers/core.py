@@ -3,32 +3,33 @@ import tensorflow as tf
 
 class KungFuOptimizer(tf.train.Optimizer):
     """An optimizer that would negotiate the gradients before apply it."""
+
     def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
             name = "KungFuOptimizer{}".format(type(optimizer).__name__)
         super(KungFuOptimizer, self).__init__(name=name,
                                               use_locking=use_locking)
-
         self._optimizer = optimizer
+        self._model_variables = None
 
-    # get_initializer must be called after minimize
-    def get_initializer_op(self):
-        if not self._grads_and_vars:
-            raise RuntimeError('compute_gradients NOT called')
-        return self._get_initializer_op(self._grads_and_vars)
+    # distributed_initializer must be called after minimize
+    def distributed_initializer(self):
+        raise RuntimeError(
+            'Distributed optimizers must implement how variables are replicated.')
 
-    # The subclass should implement this with its own negotiation strategy
-    def _negotiate_grads_by_strategy(self, grads_and_vars):
-        raise RuntimeError('Not implemented')
-
-    # The subclass can override this
-    def _get_initializer_op(self, grads_and_vars):
-        return tf.no_op()
+    def model_variables(self):
+        if not self._model_variables:
+            raise RuntimeError('minimize or compute_gradients is NOT called')
+        return self._model_variables
 
     def compute_gradients(self, *args, **kwargs):
         """Compute gradients and negotiate with peers."""
         grads_and_vars = self._optimizer.compute_gradients(*args, **kwargs)
-        self._grads_and_vars = grads_and_vars
+
+        # An optimizer could minimize variables other than tf.trainable_variables
+        # It is safer to get the correct list of variables that need synchornisation here
+        self._model_variables = [v for g, v in grads_and_vars]
+
         grads_and_vars_to_negotiate = [(g, v) for g, v in grads_and_vars
                                        if g is not None]
         return self._negotiate_grads_by_strategy(grads_and_vars_to_negotiate)

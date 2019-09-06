@@ -84,8 +84,8 @@ if args.kungfu == 'sync-sgd':
     from kungfu.optimizers import SyncSGDOptimizer
     opt = SyncSGDOptimizer(opt)
 elif args.kungfu == 'model-ave':
-    from kungfu.optimizers import ModelAveragingOptimizerNew
-    opt = ModelAveragingOptimizerNew(opt, args.kungfu_fuse_variables)
+    from kungfu.optimizers import PeerModelAveragingOptimizer
+    opt = PeerModelAveragingOptimizer(opt, args.kungfu_fuse_variables)
 else:
     pass
 
@@ -132,8 +132,8 @@ def run(benchmark_step):
 
 loss = loss_function()
 train_opt = opt.minimize(loss)
-if hasattr(opt, 'get_initializer_op'):
-    kf_init = opt.get_initializer_op()
+if hasattr(opt, 'distributed_initializer'):
+    kf_init = opt.distributed_initializer()
 else:
     kf_init = None
 
