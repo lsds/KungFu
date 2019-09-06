@@ -3,7 +3,6 @@ import tensorflow as tf
 
 class KungFuOptimizer(tf.train.Optimizer):
     """An optimizer that would negotiate the gradients before apply it."""
-
     def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
             name = "KungFuOptimizer{}".format(type(optimizer).__name__)
@@ -15,7 +14,8 @@ class KungFuOptimizer(tf.train.Optimizer):
     # distributed_initializer must be called after minimize
     def distributed_initializer(self):
         raise RuntimeError(
-            'Distributed optimizers must implement how variables are replicated.')
+            'Distributed optimizers must implement how variables are replicated.'
+        )
 
     def model_variables(self):
         if not self._model_variables:

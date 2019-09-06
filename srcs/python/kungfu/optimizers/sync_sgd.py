@@ -7,7 +7,6 @@ from .core import KungFuOptimizer
 
 class SyncSGDOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-
     def __init__(self,
                  optimizer,
                  average_gradients=True,
@@ -18,7 +17,8 @@ class SyncSGDOptimizer(KungFuOptimizer):
         self._num_workers = _get_num_peers()  # FIXME: use a variable
 
     def compute_gradients(self, *args, **kwargs):
-        grads_and_vars = super(SyncSGDOptimizer, self).compute_gradients(*args, **kwargs)
+        grads_and_vars = super(SyncSGDOptimizer,
+                               self).compute_gradients(*args, **kwargs)
         gradients, variables = list(zip(*grads_and_vars))
         summed_gradients = group_all_reduce(gradients)
         if self._average:

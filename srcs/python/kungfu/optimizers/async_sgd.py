@@ -32,7 +32,6 @@ def get_random_peer(cluster_size, self_rank):
 
 class PeerModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-
     def __init__(self,
                  optimizer,
                  fuse_variables=True,
