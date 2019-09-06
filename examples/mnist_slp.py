@@ -11,8 +11,7 @@ from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
 from kungfu.benchmarks.mnist import slp
 
-
-from kungfu.internal import _get_num_peers
+from kungfu.internal import _get_num_peers, _get_self_rank
 from kungfu.ops import all_reduce, broadcast, global_variance, group_all_reduce
 
 from kungfu.optimizers.core import KungFuOptimizer
@@ -41,9 +40,21 @@ class VarianceBasedSyncSGDOptimizer(KungFuOptimizer):
             tf.norm(grad_variance) for grad_variance in grad_variances
         ]
         self._summed_variance = tf.reduce_sum(variances)
-        print(self._summed_variance)
-        return self._optimizer.apply_gradients(zip(reduced_grads, variables),
-                                               **kwargs)
+        self._global_norm = tf.global_norm(reduced_grads)
+        self._b_simple = self._summed_variance / self._global_norm
+        print_op = tf.print(
+            'var:',
+            self._summed_variance,
+            'gn:',
+            self._global_norm,
+            'b_simple',
+            self._b_simple,
+            '1/b_simple',
+            1.0 / self._b_simple,
+        )
+        with tf.control_dependencies([print_op]):
+            return self._optimizer.apply_gradients(
+                zip(reduced_grads, variables), **kwargs)
 
     def distributed_initializer(self):
         ops = [tf.assign(v, broadcast(v)) for v in self.model_variables()]
@@ -65,6 +76,7 @@ def save_all(sess, prefix):
 def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
+
 def build_optimizer(name, shards=1):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
@@ -75,7 +87,7 @@ def build_optimizer(name, shards=1):
         return VarianceBasedSyncSGDOptimizer(optimizer)
     elif name == 'model-avg':
         from kungfu.optimizers import PeerModelAveragingOptimizer
-        return AdaptiveModelAveragingOptimizer(optimizer)
+        return PeerModelAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
 
@@ -98,11 +110,16 @@ def test_mnist(sess, x, y_, test_op, dataset):
     return result
 
 
-def train_mnist(x, y_, train_op, optimizer, test_op, dataset, n_epochs=1,
+def train_mnist(x,
+                y_,
+                train_op,
+                optimizer,
+                test_op,
+                dataset,
+                n_epochs=1,
                 batch_size=5000):
-    # TODO: shard by task ID
-    shards = 1
-    shard_id = 0
+    shards = _get_num_peers()
+    shard_id = _get_self_rank()
 
     train_data_size = 60000
     log_period = 100
