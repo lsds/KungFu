@@ -30,9 +30,7 @@ class KungFuOptimizer(tf.train.Optimizer):
         # It is safer to get the correct list of variables that need synchornisation here
         self._model_variables = [v for g, v in grads_and_vars]
 
-        grads_and_vars_to_negotiate = [(g, v) for g, v in grads_and_vars
-                                       if g is not None]
-        return self._negotiate_grads_by_strategy(grads_and_vars_to_negotiate)
+        return grads_and_vars
 
     def apply_gradients(self, *args, **kwargs):
         """Calls this same method on the underlying optimizer."""
