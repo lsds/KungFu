@@ -11,9 +11,6 @@ from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
 from kungfu.benchmarks.mnist import slp
 
-from kungfu.internal import _get_num_peers, _get_self_rank
-from kungfu.ops import all_reduce, broadcast, global_variance, group_all_reduce
-
 
 def save_vars(sess, variables, filename):
     values = sess.run(variables)
