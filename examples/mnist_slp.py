@@ -40,17 +40,9 @@ class VarianceBasedSyncSGDOptimizer(KungFuOptimizer):
             tf.norm(grad_variance) for grad_variance in grad_variances
         ]
         self._summed_variance = tf.reduce_sum(variances)
-        self._global_norm = tf.global_norm(reduced_grads)
-        self._b_simple = self._summed_variance / self._global_norm
         print_op = tf.print(
-            'var:',
-            self._summed_variance,
-            'gn:',
-            self._global_norm,
-            'b_simple',
-            self._b_simple,
-            '1/b_simple',
-            1.0 / self._b_simple,
+            'summed variance:',
+            self._summed_variance
         )
         with tf.control_dependencies([print_op]):
             return self._optimizer.apply_gradients(
