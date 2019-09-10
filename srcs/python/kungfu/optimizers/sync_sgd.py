@@ -7,7 +7,6 @@ from .core import KungFuOptimizer
 
 class SyncSGDOptimizer(KungFuOptimizer):
     """An optimizer that negotiates using the AllReduce operator."""
-
     def __init__(self,
                  optimizer,
                  average_gradients=True,
