@@ -14,44 +14,6 @@ from kungfu.benchmarks.mnist import slp
 from kungfu.internal import _get_num_peers, _get_self_rank
 from kungfu.ops import all_reduce, broadcast, global_variance, group_all_reduce
 
-from kungfu.optimizers.core import KungFuOptimizer
-
-
-class VarianceBasedSyncSGDOptimizer(KungFuOptimizer):
-    def __init__(self, optimizer, name=None, use_locking=False):
-        super(VarianceBasedSyncSGDOptimizer,
-              self).__init__(optimizer, name, use_locking)
-        self._num_workers = _get_num_peers()  # FIXME: use a variable
-
-    def apply_gradients(self, grads_and_vars, **kwargs):
-        gradients, variables = list(zip(*grads_and_vars))
-        squared_gradients = [tf.square(g) for g in gradients]
-        summed_gradients = group_all_reduce(gradients)
-        summed_squared_gradients = group_all_reduce(squared_gradients)
-        reduced_grads = [g / self._num_workers for g in summed_gradients]
-        reduced_square_grads = [
-            g / self._num_workers for g in summed_squared_gradients
-        ]
-        grad_variances = [
-            square_grad - tf.square(grad)
-            for square_grad, grad in zip(reduced_square_grads, reduced_grads)
-        ]
-        variances = [
-            tf.norm(grad_variance) for grad_variance in grad_variances
-        ]
-        self._summed_variance = tf.reduce_sum(variances)
-        print_op = tf.print(
-            'summed variance:',
-            self._summed_variance
-        )
-        with tf.control_dependencies([print_op]):
-            return self._optimizer.apply_gradients(
-                zip(reduced_grads, variables), **kwargs)
-
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.model_variables()]
-        return tf.group(ops)
-
 
 def save_vars(sess, variables, filename):
     values = sess.run(variables)
@@ -76,6 +38,7 @@ def build_optimizer(name, shards=1):
         from kungfu.optimizers import SyncSGDOptimizer
         return SyncSGDOptimizer(optimizer)
     if name == 'variance':
+        from kungfu.optimizers import VarianceBasedSyncSGDOptimizer
         return VarianceBasedSyncSGDOptimizer(optimizer)
     elif name == 'model-avg':
         from kungfu.optimizers import PeerModelAveragingOptimizer
