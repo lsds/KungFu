@@ -11,6 +11,7 @@ from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
 from kungfu.benchmarks.mnist import slp
 
+from kungfu.internal import _get_num_peers, _get_self_rank
 
 def save_vars(sess, variables, filename):
     values = sess.run(variables)
@@ -27,15 +28,19 @@ def save_all(sess, prefix):
 def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
+
 def build_optimizer(name, shards=1):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
     if name == 'sync-sgd':
         from kungfu.optimizers import SyncSGDOptimizer
         return SyncSGDOptimizer(optimizer)
+    if name == 'variance':
+        from kungfu.optimizers import SyncSGDWithGradVarianceOptimizer
+        return SyncSGDWithGradVarianceOptimizer(optimizer, monitor_interval=10)
     elif name == 'model-avg':
         from kungfu.optimizers import PeerModelAveragingOptimizer
-        return AdaptiveModelAveragingOptimizer(optimizer)
+        return PeerModelAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
 
@@ -58,11 +63,16 @@ def test_mnist(sess, x, y_, test_op, dataset):
     return result
 
 
-def train_mnist(x, y_, train_op, test_op, dataset, n_epochs=1,
+def train_mnist(x,
+                y_,
+                train_op,
+                optimizer,
+                test_op,
+                dataset,
+                n_epochs=1,
                 batch_size=5000):
-    # TODO: shard by task ID
-    shards = 1
-    shard_id = 0
+    shards = _get_num_peers()
+    shard_id = _get_self_rank()
 
     train_data_size = 60000
     log_period = 100
@@ -74,8 +84,8 @@ def train_mnist(x, y_, train_op, test_op, dataset, n_epochs=1,
     offset = batch_size * shard_id
 
     kf_init_op = None
-    if hasattr(opt, 'distributed_initializer'):
-        kf_init_op = opt.distributed_initializer()
+    if hasattr(optimizer, 'distributed_initializer'):
+        kf_init_op = optimizer.distributed_initializer()
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -126,7 +136,7 @@ def main():
     x, y_, train_op, test_op = build_ops(optimizer)
 
     mnist = load_datasets(args.data_dir, normalize=True, one_hot=True)
-    train_mnist(x, y_, train_op, test_op, mnist, args.n_epochs,
+    train_mnist(x, y_, train_op, optimizer, test_op, mnist, args.n_epochs,
                 args.batch_size)
 
 

@@ -26,6 +26,20 @@ env \
     pip3 install --no-index --user -U .
 ```
 
+
+## Build kungfu-prun
+
+```bash
+./configure --build-tools
+make
+```
+
+## Format code
+
+```bash
+./scripts/clean-code.sh --fmt-py
+```
+
 ## Example
 
 Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script.

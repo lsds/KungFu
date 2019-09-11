@@ -414,11 +414,12 @@ def gpu_group_all_reduce(ts):
         return [all_reduce_gpu(t) for t in ts]
 
 
-def group_all_reduce(ts):
+def group_all_reduce(ts, nccl=False):
     # FIXME: auto determine device
-    if _has_gpu:
+    if nccl:
+        print('Try to use GPU NCCL to perform all-reduce')
         return gpu_group_all_reduce(ts)
-    print('USING CPU GROUP ALL REDUCE')
+    print('Try to use KungFu MPI to perform all-reduce')
     return cpu_group_all_reduce(ts)
 
 
@@ -507,8 +508,10 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
 
 
 # deprecated
-def get_global_gradient_noise_operator(batch_small, concat_grad,
-                                       concat_negotiated_grad):
+def get_global_gradient_noise_operator(batch_small,
+                                       concat_grad,
+                                       concat_negotiated_grad,
+                                       alpha=0.6):
     import tensorflow as tf
     import json, os
     cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
@@ -528,7 +531,7 @@ def get_global_gradient_noise_operator(batch_small, concat_grad,
                                                 batch_small * G_sq_small)
     S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
 
-    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=0.6)
+    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=alpha)
 
     return global_noise_op
 
