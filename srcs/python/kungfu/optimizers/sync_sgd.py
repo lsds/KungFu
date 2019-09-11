@@ -32,33 +32,53 @@ class SyncSGDOptimizer(KungFuOptimizer):
         return tf.group(ops)
 
 
-class VarianceBasedSyncSGDOptimizer(KungFuOptimizer):
-    def __init__(self, optimizer, name=None, use_locking=False):
-        super(VarianceBasedSyncSGDOptimizer,
+class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
+    def __init__(self,
+                 optimizer,
+                 name=None,
+                 monitor_interval=1,
+                 use_locking=False):
+        super(SyncSGDWithGradVarianceOptimizer,
               self).__init__(optimizer, name, use_locking)
         self._num_workers = _get_num_peers()  # FIXME: use a variable
+        self._interval = monitor_interval
+        self._step = tf.Variable(0,
+                                 name='optimizer_step',
+                                 trainable=False,
+                                 dtype=tf.int32)
 
-    def apply_gradients(self, grads_and_vars, **kwargs):
-        gradients, variables = list(zip(*grads_and_vars))
-        squared_gradients = [tf.square(g) for g in gradients]
-        summed_gradients = group_all_reduce(gradients)
-        summed_squared_gradients = group_all_reduce(squared_gradients)
-        reduced_grads = [g / self._num_workers for g in summed_gradients]
+    def _monitor(self, grads):
+        square_grads = [tf.square(g) for g in grads]
+        summed_square_grads = group_all_reduce(square_grads)
         reduced_square_grads = [
-            g / self._num_workers for g in summed_squared_gradients
+            g / self._num_workers for g in summed_square_grads
         ]
         grad_variances = [
             square_grad - tf.square(grad)
             for square_grad, grad in zip(reduced_square_grads, reduced_grads)
         ]
-        variances = [
+        self._variances = [
             tf.norm(grad_variance) for grad_variance in grad_variances
         ]
-        self._summed_variance = tf.reduce_sum(variances)
+        self._summed_variance = tf.reduce_sum(self._variances)
         print_op = tf.print('summed variance:', self._summed_variance)
+
         with tf.control_dependencies([print_op]):
-            return self._optimizer.apply_gradients(
-                zip(reduced_grads, variables), **kwargs)
+            return tf.identity(self._summed_variance)
+
+    def apply_gradients(self, grads_and_vars, **kwargs):
+        grads, variables = list(zip(*grads_and_vars))
+        summed_grads = group_all_reduce(grads)
+        reduced_grads = [g / self._num_workers for g in summed_grads]
+
+        step_add_op = tf.assign_add(self._step, 1)
+        monitor_op = tf.cond(
+            tf.mod(self._step, self._interval) == 0, _monitor(grads),
+            lambda: tf.no_op)
+        with tf.control_dependencies([step_add_op]):
+            with tf.control_dependencies([monitor_op]):
+                return self._optimizer.apply_gradients(
+                    zip(reduced_grads, variables), **kwargs)
 
     def distributed_initializer(self):
         ops = [tf.assign(v, broadcast(v)) for v in self.model_variables()]

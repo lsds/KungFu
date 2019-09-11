@@ -35,8 +35,8 @@ def build_optimizer(name, shards=1):
         from kungfu.optimizers import SyncSGDOptimizer
         return SyncSGDOptimizer(optimizer)
     if name == 'variance':
-        from kungfu.optimizers import VarianceBasedSyncSGDOptimizer
-        return VarianceBasedSyncSGDOptimizer(optimizer)
+        from kungfu.optimizers import SyncSGDWithGradVarianceOptimizer
+        return SyncSGDWithGradVarianceOptimizer(optimizer)
     elif name == 'model-avg':
         from kungfu.optimizers import PeerModelAveragingOptimizer
         return PeerModelAveragingOptimizer(optimizer)
