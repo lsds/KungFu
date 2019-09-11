@@ -4,6 +4,7 @@ import (
 	"os"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 )
 
 // PeerSpec describes the system resources that will be used by the process of the peer
@@ -41,7 +42,7 @@ func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
 				DeviceID: j,
 				NetAddr: NetAddr{
 					Host: host.Hostname,
-					Port: uint16(10001 + j),
+					Port: kc.RchanPortRange.Get(j),
 				},
 				MonitoringPort: uint16(20001 + j),
 			}

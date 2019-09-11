@@ -17,6 +17,7 @@ const (
 	ShowDebugLogEnvKey     = `KUNGFU_CONFIG_SHOW_DEBUG_LOG`
 	ConfigServerEnvKey     = `KUNGFU_CONFIG_SERVER`
 	EnableAdaptiveEnvKey   = `KUNGFU_CONFIG_ENABLE_ADAPTIVE`
+	RchanPortRangeEnvKey   = `KUNGFU_CONFIG_RCHAN_PORT_RANGE`
 )
 
 var ConfigEnvKeys = []string{
@@ -28,6 +29,7 @@ var ConfigEnvKeys = []string{
 	ShowDebugLogEnvKey,
 	ConfigServerEnvKey,
 	EnableAdaptiveEnvKey,
+	RchanPortRangeEnvKey,
 }
 
 var (
@@ -38,6 +40,7 @@ var (
 	ShowDebugLog     = false
 	EnableAdaptive   = false
 	MonitoringPeriod = 1 * time.Second
+	RchanPortRange   = PortRange{begin: 10001}
 )
 
 func init() {
@@ -61,6 +64,9 @@ func init() {
 	}
 	if val := os.Getenv(LogConfigVarsEnvKey); len(val) > 0 {
 		LogConfigVars = isTrue(val)
+	}
+	if val := os.Getenv(RchanPortRangeEnvKey); len(val) > 0 {
+		RchanPortRange = parsePortRange(val)
 	}
 	if LogConfigVars {
 		logConfigVars()
