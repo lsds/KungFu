@@ -414,11 +414,12 @@ def gpu_group_all_reduce(ts):
         return [all_reduce_gpu(t) for t in ts]
 
 
-def group_all_reduce(ts):
+def group_all_reduce(ts, nccl=False):
     # FIXME: auto determine device
-    if _has_gpu:
+    if nccl:
+        print('Try to use GPU NCCL to perform all-reduce')
         return gpu_group_all_reduce(ts)
-    print('USING CPU GROUP ALL REDUCE')
+    print('Try to use KungFu MPI to perform all-reduce')
     return cpu_group_all_reduce(ts)
 
 

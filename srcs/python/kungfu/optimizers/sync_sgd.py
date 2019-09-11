@@ -61,7 +61,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
         print_op = tf.print('summed variance:', self._summed_variance)
 
         with tf.control_dependencies([print_op]):
-            return tf.no_op()                
+            return tf.no_op()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
@@ -71,13 +71,12 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
         reduced_grads = [g / self._num_workers for g in summed_grads]
 
         # Monitoring logic
-        add_step_op = tf.assign_add(self._step, 1)
         monitor_grads_op = tf.cond(
             tf.equal(tf.mod(self._step, self._interval), 0),
             lambda: self._monitor(grads, reduced_grads), lambda: tf.no_op())
 
         with tf.control_dependencies([monitor_grads_op]):
-            with tf.control_dependencies([add_step_op]):
+            with tf.control_dependencies([tf.assign_add(self._step, 1)]):
                 return self._optimizer.apply_gradients(
                     zip(reduced_grads, variables), **kwargs)
 
