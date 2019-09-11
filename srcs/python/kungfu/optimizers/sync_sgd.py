@@ -74,7 +74,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
         step_add_op = tf.assign_add(self._step, 1)
         monitor_op = tf.cond(
             tf.mod(self._step, self._interval) == 0, _monitor(grads),
-            lambda: tf.no_op)
+            lambda: tf.no_op())
 
         with tf.control_dependencies([monitor_op]):
             with tf.control_dependencies([step_add_op]):
