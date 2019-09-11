@@ -42,10 +42,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
               self).__init__(optimizer, name, use_locking)
         self._num_workers = _get_num_peers()  # FIXME: use a variable
         self._interval = monitor_interval
-        self._step = tf.Variable(0,
-                                 name='optimizer_step',
-                                 trainable=False,
-                                 dtype=tf.int32)
+        self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
 
     def _monitor(self, grads):
         square_grads = [tf.square(g) for g in grads]
