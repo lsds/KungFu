@@ -4,7 +4,7 @@ from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import tensorflow as tf
-from kungfu.ops import propose_update, update_cluster, all_reduce, get_init_version, get_start_step
+from kungfu.ops import barrier, propose_update, update_cluster, all_reduce, get_init_version, get_start_step
 
 
 def _create_version_tensor():
@@ -48,6 +48,8 @@ init = tf.global_variables_initializer()
 
 max_step = 10
 
+barrier_op = barrier()
+
 with tf.Session() as sess:
     sess.run(init)
     init_gs = sess.run(global_step)
@@ -59,7 +61,9 @@ with tf.Session() as sess:
 
         # BEGIN hook
         if gs in update_steps:
+            # sess.run(barrier_op) # FIXME: doesn't work!
             sess.run(update_op)
+            sess.run(barrier_op)
         # END hook
 
         v = sess.run(y)
