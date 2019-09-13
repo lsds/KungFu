@@ -55,7 +55,7 @@ def get_init_version():
     return version
 
 
-def start_step(version):
+def get_start_step(version):
     """
     Input:
         version: A scalar tensor of int32,

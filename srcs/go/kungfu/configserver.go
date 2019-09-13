@@ -76,6 +76,7 @@ func (cs *configServer) handleWriteConfig(w http.ResponseWriter, req *http.Reque
 		var blob *store.Blob
 		if err := cs.store.Get(version, name, &blob); err == nil {
 			if string(bs) != string(blob.Data) {
+				log.Printf("%s != %s", string(bs), string(blob.Data))
 				http.Error(w, "", http.StatusConflict)
 			}
 			return
