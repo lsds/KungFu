@@ -5,10 +5,14 @@ cd $(dirname $0)
 
 config_server_port=38080
 
+cap=16
+H=127.0.0.1:$cap
+
 kungfu_run() {
     local init_np=$1
     shift
     ../bin/kungfu-prun \
+        -H ${H} \
         -np $init_np \
         -timeout 2m \
         -config-server-port ${config_server_port} \

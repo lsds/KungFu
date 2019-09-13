@@ -135,6 +135,10 @@ func (sess *session) Warmup() int {
 }
 
 func (sess *session) Barrier() int {
+	return code(sess.barrier("kungfu::barrier"))
+}
+
+func (sess *session) barrier(name string) error {
 	k := len(sess.cluster.Peers)
 	count := k * 1
 	dtype := kb.KungFu_UINT8
@@ -142,9 +146,9 @@ func (sess *session) Barrier() int {
 		SendBuf: kb.NewBuffer(count, dtype),
 		RecvBuf: kb.NewBuffer(count, dtype),
 		OP:      kb.KungFu_SUM,
-		Name:    "kungfu::barrier", // TODO: use tag
+		Name:    name, // TODO: use tag
 	}
-	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
+	return sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers))
 }
 
 func (sess *session) AllReduce(w Workspace) int {

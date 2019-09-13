@@ -4,7 +4,7 @@ from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import tensorflow as tf
-from kungfu.ops import barrier, propose_update, update_cluster, all_reduce, get_init_version, get_start_step
+from kungfu.ops import propose_update, update_cluster, all_reduce, get_init_version, get_start_step
 
 
 def _create_version_tensor():
@@ -27,7 +27,15 @@ cluster_schedule = [
     # (gs, new_size) :: scale cluster to new_size after step gs
     (3, 3),
     (5, 4),
+    (6, 2),
+    #
+    (8, 1),
+    (10, 16),
+    (13, 1),
 ]
+
+max_step = 20  # 0, ..., 19,
+# 14, 15, 16, 17, 18, 19
 
 propose_steps = [gs for gs, _ in cluster_schedule]
 update_steps = [gs + 1 for gs, _ in cluster_schedule]
@@ -46,10 +54,6 @@ update_op = update_cluster(version)
 
 init = tf.global_variables_initializer()
 
-max_step = 10
-
-barrier_op = barrier()
-
 with tf.Session() as sess:
     sess.run(init)
     init_gs = sess.run(global_step)
@@ -61,14 +65,12 @@ with tf.Session() as sess:
 
         # BEGIN hook
         if gs in update_steps:
-            # sess.run(barrier_op) # FIXME: doesn't work!
             sess.run(update_op)
-            sess.run(barrier_op)
         # END hook
 
         v = sess.run(y)
         # sess.run(fake_train_op)
-        print(v)
+        print('step %d, result: %d' % (gs, v))
 
         # BEGIN hook
         if gs in propose_steps:

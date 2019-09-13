@@ -165,6 +165,9 @@ func (kf *Kungfu) updateSession(version string) bool {
 	if err != nil {
 		utils.ExitErr(err)
 	}
+	if err := sess.barrier("kungfu::newSession"); err != nil {
+		utils.ExitErr(err)
+	}
 	kf.currentSession = sess
 	return true
 }
