@@ -10,6 +10,10 @@
 extern "C" {
 extern void kungfu_tensorflow_init();
 extern void kungfu_tensorflow_init_gpu();
+
+// helpers APIs to access kungfu without tensorflow operators
+extern int kungfu_rank();          // get current rank
+extern int kungfu_cluster_size();  // get current size
 }
 
 extern std::unique_ptr<kungfu_world> _kungfu_world;

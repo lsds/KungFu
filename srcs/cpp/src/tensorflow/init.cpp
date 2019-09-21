@@ -7,6 +7,9 @@ std::unique_ptr<kungfu_world> _kungfu_world;
 
 void kungfu_tensorflow_init() { _kungfu_world.reset(new kungfu_world); }
 
+extern int kungfu_rank() { return _kungfu_world->Rank(); }
+extern int kungfu_cluster_size() { return _kungfu_world->ClusterSize(); }
+
 namespace kungfu
 {
 
