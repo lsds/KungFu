@@ -1,5 +1,6 @@
 import tensorflow as tf
-from kungfu.ops import all_reduce, broadcast, global_variance, group_all_reduce, current_cluster_size
+from kungfu.ops import (all_reduce, broadcast, current_cluster_size,
+                        global_variance, group_all_reduce)
 
 from .core import KungFuOptimizer
 
