@@ -1,6 +1,6 @@
 import tensorflow as tf
-from kungfu.internal import _get_num_peers
-from kungfu.ops import all_reduce, broadcast, global_variance, group_all_reduce
+from kungfu.ops import (all_reduce, broadcast, current_cluster_size,
+                        global_variance, group_all_reduce)
 
 from .core import KungFuOptimizer
 
@@ -14,7 +14,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
                  use_locking=False):
         super(SyncSGDOptimizer, self).__init__(optimizer, name, use_locking)
         self._average = average_gradients
-        self._num_workers = _get_num_peers()  # FIXME: use a variable
+        self._num_workers = current_cluster_size()  # FIXME: use a variable
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))

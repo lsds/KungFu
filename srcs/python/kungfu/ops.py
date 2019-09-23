@@ -35,10 +35,10 @@ def _load_and_init_op_lib():
     _init_lib = _load_init_lib('libkungfu_tensorflow_init')
     _call_method(_init_lib, 'kungfu_tensorflow_init')
     has_gpu = _call_method(_init_lib, 'kungfu_tensorflow_init_gpu')
-    return _op_lib, has_gpu
+    return _op_lib, _init_lib, has_gpu
 
 
-_op_lib, _has_gpu = _load_and_init_op_lib()
+_op_lib, _init_lib, _has_gpu = _load_and_init_op_lib()
 
 
 def _tensor_size(t):
@@ -46,6 +46,18 @@ def _tensor_size(t):
 
 
 # metadata APIs
+def current_rank():
+    return _init_lib.kungfu_rank()
+
+
+def current_cluster_size():
+    return _init_lib.kungfu_cluster_size()
+
+
+def start_step():  # temporary API for experiment
+    return _init_lib.kungfu_start_step()
+
+
 def get_init_version():
     """Returns a non-negative integer representing the cluster version."""
     init_sess = os.getenv('KUNGFU_INIT_SESS')
@@ -55,7 +67,7 @@ def get_init_version():
     return version
 
 
-def start_step(version):
+def get_start_step(version):
     """
     Input:
         version: A scalar tensor of int32,

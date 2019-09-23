@@ -58,6 +58,7 @@ func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog strin
 		wg.Add(1)
 	}
 	wg.Wait()
+	log.Printf("stop watching")
 }
 
 func watchConfigServer(configClient *kf.ConfigClient, newVersion chan string) {

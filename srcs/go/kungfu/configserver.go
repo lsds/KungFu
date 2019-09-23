@@ -3,7 +3,6 @@ package kungfu
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 
@@ -25,8 +24,8 @@ func NewConfigServer(updated chan string) http.Handler {
 }
 
 func (cs *configServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	peer := req.Header.Get("x-kungfu-peer")
-	log.Printf("%s %s %s from %s @ %s", req.Method, req.URL.Path, req.URL.RawQuery, peer, req.RemoteAddr)
+	// peer := req.Header.Get("x-kungfu-peer")
+	// log.Printf("%s %s %s from %s @ %s", req.Method, req.URL.Path, req.URL.RawQuery, peer, req.RemoteAddr)
 	if strings.HasPrefix(req.URL.Path, "/versions/next/") {
 		cs.handleGetNextVersion(w, req)
 		return

@@ -59,6 +59,7 @@ fix_all() {
 }
 
 fmt_py() {
+    # autoflake -i --remove-all-unused-imports --remove-unused-variables --remove-duplicate-keys $1
     autoflake -i $1
     isort -y $1
     yapf -i $1
