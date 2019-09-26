@@ -11,26 +11,16 @@ import (
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/tests/go/fakemodel"
 )
 
 var (
-	batchSize     = flag.Int("batch-size", 32, "")
-	imgPerSec     = flag.Int("img-per-sec", 185, "")
-	nIters        = flag.Int("n-iters", 11, "")
-	stepPerIter   = flag.Int("step-per-iter", 10, "")
-	model         = flag.String("model", modelNames[0], strings.Join(modelNames, " | "))
-	enableControl = flag.Bool("control", false, "mock control cluster size")
+	batchSize   = flag.Int("batch-size", 32, "")
+	imgPerSec   = flag.Int("img-per-sec", 185, "")
+	nIters      = flag.Int("n-iters", 11, "")
+	stepPerIter = flag.Int("step-per-iter", 10, "")
+	model       = flag.String("model", fakemodel.Names[0], strings.Join(fakemodel.Names, " | "))
 )
-
-type fakeBuffer struct {
-	sendBuf *kb.Buffer
-	recvBuf *kb.Buffer
-	name    string
-}
-
-type fakeModel struct {
-	buffers []fakeBuffer
-}
 
 func main() {
 	flag.Parse()
@@ -44,9 +34,7 @@ func main() {
 	kungfu.Start()
 	defer kungfu.Close()
 
-	model := &fakeModel{
-		buffers: createFakeBuffers(models[*model]),
-	}
+	model := fakemodel.New(fakemodel.Models[*model], kb.KungFu_FLOAT, false)
 	fakeTrain(kungfu, model)
 }
 
@@ -61,17 +49,13 @@ func logEstimatedSpeed(batches int, batchSize int, d time.Duration, np int) {
 		imgPerSec, imgPerSec*float64(np), np)
 }
 
-func fakeTrain(kungfu *kf.Kungfu, model *fakeModel) {
+func fakeTrain(kungfu *kf.Kungfu, model *fakemodel.FakeModel) {
 	var step int
 	t0 := time.Now()
-	trainStep := model.trainStep
-	if *enableControl {
-		trainStep = withControl(trainStep, model.control)
-	}
 	for i := 0; i < *nIters; i++ {
 		for j := 0; j < *stepPerIter; j++ {
 			step++
-			trainStep(kungfu)
+			trainStep(kungfu, model)
 		}
 		fmt.Printf("after %d steps\n", step)
 	}
@@ -80,53 +64,16 @@ func fakeTrain(kungfu *kf.Kungfu, model *fakeModel) {
 		time.Since(t0), np)
 }
 
-type TrainStep func(kungfu *kf.Kungfu)
-type ControlFunc func(kungfu *kf.Kungfu)
-
-func withControl(trainStep TrainStep, controlFunc ControlFunc) TrainStep {
-	return func(kungfu *kf.Kungfu) {
-		trainStep(kungfu)
-		controlFunc(kungfu)
-	}
-}
-
-func (m *fakeModel) control(kungfu *kf.Kungfu) {
-	// TODO: change cluster size
-	log.Printf("TODO: control cluster size")
-}
-
-func (m *fakeModel) trainStep(kungfu *kf.Kungfu) {
-	for _, b := range m.buffers {
+func trainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
+	for _, name := range m.Names {
+		b := m.Buffers[name]
 		w := kf.Workspace{
-			SendBuf: b.sendBuf,
-			RecvBuf: b.recvBuf,
+			SendBuf: b.SendBuf,
+			RecvBuf: b.RecvBuf,
 			OP:      kb.KungFu_SUM,
-			Name:    b.name,
+			Name:    name,
 		}
 		sess := kungfu.CurrentSession()
 		sess.AllReduce(w)
 	}
-}
-
-func createFakeBuffers(sizes []int) []fakeBuffer {
-	const dSize = 4
-	dType := kb.KungFu_FLOAT
-	var fbs []fakeBuffer
-	for i, size := range sizes {
-		fb := fakeBuffer{
-			sendBuf: &kb.Buffer{
-				Data:  make([]byte, size*dSize),
-				Count: size,
-				Type:  dType,
-			},
-			recvBuf: &kb.Buffer{
-				Data:  make([]byte, size*dSize),
-				Count: size,
-				Type:  dType,
-			},
-			name: fmt.Sprintf("NegotiatedGrad_%d/AllReduce", i),
-		}
-		fbs = append(fbs, fb)
-	}
-	return fbs
 }

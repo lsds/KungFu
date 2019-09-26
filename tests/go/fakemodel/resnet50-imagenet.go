@@ -1,6 +1,6 @@
-package main
+package fakemodel
 
-var resnet50GradSizes = []int{
+var resnet50Imagenet = []int{
 	1000, 2048000, 2048, 2048, 2048, 1048576, 512, 512,
 	512, 2359296, 512, 512, 512, 1048576, 2048, 2048,
 	2048, 1048576, 512, 512, 512, 2359296, 512, 512,
@@ -29,21 +29,3 @@ var resnet50GradSizes = []int{
 	16384, 16384, 64, 64, 64, 36864, 64, 64,
 	64, 4096, 64, 64, 64, 9408,
 }
-
-var mnistSLPSizes = []int{
-	28 * 28 * 10,
-	10,
-}
-
-var models = map[string][]int{
-	"resnet50":  resnet50GradSizes,
-	"mnist-slp": mnistSLPSizes,
-}
-
-var modelNames = func(m map[string][]int) []string {
-	var ks []string
-	for k := range m {
-		ks = append(ks, k)
-	}
-	return ks
-}(models)

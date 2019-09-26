@@ -85,9 +85,15 @@ func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.logf("[E]", format, v...)
 }
 
+func (l *Logger) Exitf(format string, v ...interface{}) {
+	l.logf("[E]", format, v...)
+	os.Exit(1)
+}
+
 var (
 	Debugf = std.Debugf
 	Infof  = std.Infof
 	Warnf  = std.Warnf
 	Errorf = std.Errorf
+	Exitf  = std.Exitf
 )
