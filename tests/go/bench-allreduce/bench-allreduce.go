@@ -102,6 +102,6 @@ func benchAllReduce(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 	}()
 
 	if rank == 0 {
-		log.Infof("Result: %s, rate: %s", m.Info(), testutils.ShowRate(workload, duration))
+		log.Infof("Result: model: %s, %s, mode: %s, rate: %s", *model, m.Info(), *mode, testutils.ShowRate(workload, duration))
 	}
 }
