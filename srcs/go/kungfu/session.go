@@ -292,7 +292,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 const (
 	Mi        = 1 << 20
-	chunkSize = 4 * Mi
+	chunkSize = 1 * Mi
 )
 
 func ceilDiv(a, b int) int {
