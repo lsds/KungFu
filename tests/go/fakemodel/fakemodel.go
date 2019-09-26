@@ -2,6 +2,7 @@ package fakemodel
 
 import (
 	"fmt"
+	"sort"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -19,6 +20,7 @@ var Names = func(m map[string][]int) []string {
 	for k := range m {
 		ks = append(ks, k)
 	}
+	sort.Strings(ks)
 	return ks
 }(Models)
 
