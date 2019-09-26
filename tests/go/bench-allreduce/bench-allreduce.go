@@ -67,9 +67,12 @@ func benchAllReduce(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 
 	np := sess.ClusterSize()
 	multiplier := 4 * (np - 1)
+	workload := int64(*epochs) * int64(multiplier) * int64(m.Size())
 
+	var duration time.Duration
 	logRate := func(d time.Duration) {
-		log.Infof("took %s, rate: %s\n", d, testutils.ShowRate(int64(*epochs)*int64(multiplier*m.Size()), d))
+		duration = d
+		log.Infof("took %s, rate: %s\n", d, testutils.ShowRate(workload, duration))
 	}
 
 	fns := map[string]func(){
@@ -97,4 +100,8 @@ func benchAllReduce(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 			runEpoch()
 		}
 	}()
+
+	if rank == 0 {
+		log.Infof("Result: %s, rate: %s", m.Info(), testutils.ShowRate(workload, duration))
+	}
 }

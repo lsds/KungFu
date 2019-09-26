@@ -92,9 +92,13 @@ func (m *FakeModel) MaxSize() int {
 	return s
 }
 
-func (m *FakeModel) ShowInfo() {
-	log.Infof("model has %d parameters, size ~ [%s, %s], total %s", len(m.Buffers),
+func (m *FakeModel) Info() string {
+	return fmt.Sprintf("%d parameters, size ~ [%s, %s], total %s", len(m.Buffers),
 		testutils.ShowSize(int64(m.MinSize())),
 		testutils.ShowSize(int64(m.MaxSize())),
 		testutils.ShowSize(int64(m.Size())))
+}
+
+func (m *FakeModel) ShowInfo() {
+	log.Infof("model has %s", m.Info())
 }
