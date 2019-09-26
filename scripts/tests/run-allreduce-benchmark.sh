@@ -6,6 +6,7 @@ cd $(dirname $0)/../..
 CMAKE_SOURCE_DIR=$(pwd)
 export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
 export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
+export CGO_CXXFLAGS="-std=c++11"
 
 reset_go_mod() {
     echo 'module github.com/lsds/KungFu' >go.mod

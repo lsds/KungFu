@@ -1,4 +1,5 @@
-SET(CGO_OUTPUT_DIRECTORY ${LIBRARY_OUTPUT_PATH}
+SET(CGO_OUTPUT_DIRECTORY
+    ${LIBRARY_OUTPUT_PATH}
     CACHE STRING "directory for CGO output")
 
 FUNCTION(ADD_CGO_LIBRARY target)
@@ -8,6 +9,7 @@ FUNCTION(ADD_CGO_LIBRARY target)
                       COMMAND env #
                               CGO_CFLAGS=${CGO_CFLAGS}
                               CGO_LDFLAGS=${CGO_LDFLAGS}
+                              CGO_CXXFLAGS=${CGO_CXXFLAGS}
                               go
                               build
                               -v
@@ -24,6 +26,7 @@ FUNCTION(ADD_CGO_SHARED_LIBRARY target)
                       COMMAND env #
                               CGO_CFLAGS=${CGO_CFLAGS}
                               CGO_LDFLAGS=${CGO_LDFLAGS}
+                              CGO_CXXFLAGS=${CGO_CXXFLAGS}
                               go
                               build
                               -v
