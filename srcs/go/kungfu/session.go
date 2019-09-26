@@ -290,15 +290,28 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	return nil
 }
 
+const (
+	Mi        = 1 << 20
+	chunkSize = 1 * Mi
+)
+
+func ceilDiv(a, b int) int {
+	if a%b == 0 {
+		return a / b
+	}
+	return a/b + 1
+}
+
 func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []strategy) error {
-	errs := make([]error, len(strategies))
+	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
+	errs := make([]error, k)
 	var wg sync.WaitGroup
-	for i, w := range w.split(p, len(strategies)) {
+	for i, w := range w.split(p, k) {
 		wg.Add(1)
 		go func(i int, w Workspace, s strategy) {
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			wg.Done()
-		}(i, w, strategies[i])
+		}(i, w, strategies[i%len(strategies)])
 	}
 	wg.Wait()
 	return mergeErrors(errs, "runStrategies")
