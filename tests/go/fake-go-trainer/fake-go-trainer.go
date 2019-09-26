@@ -34,7 +34,7 @@ func main() {
 	kungfu.Start()
 	defer kungfu.Close()
 
-	model := fakemodel.New(fakemodel.Models[*model], kb.KungFu_FLOAT)
+	model := fakemodel.New(fakemodel.Models[*model], kb.KungFu_FLOAT, false)
 	fakeTrain(kungfu, model)
 }
 
