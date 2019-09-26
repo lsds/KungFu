@@ -28,6 +28,7 @@ ENDIF()
 INCLUDE(cmake/cgo.cmake)
 SET(CGO_CFLAGS "-I${CMAKE_SOURCE_DIR}/srcs/cpp/include")
 SET(CGO_LDFLAGS "-L${LIBRARY_OUTPUT_PATH} -lkungfu-base -lstdc++")
+SET(CGO_CXXFLAGS "-std=c++11")
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 ADD_DEPENDENCIES(libkungfu-comm kungfu-base)
 
@@ -82,6 +83,7 @@ IF(KUNGFU_BUILD_TOOLS)
                                   GOBIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
                                   CGO_CFLAGS=${CGO_CFLAGS}
                                   CGO_LDFLAGS=${CGO_LDFLAGS}
+                                  CGO_CXXFLAGS=${CGO_CXXFLAGS}
                                   go
                                   install
                                   -v
