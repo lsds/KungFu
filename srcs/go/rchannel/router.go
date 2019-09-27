@@ -134,7 +134,7 @@ func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error)
 		return "", nil, err
 	}
 	var msg Message
-	if mh.BodyInShm != 0 {
+	if mh.HasFlag(BodyInShm) {
 		log.Errorf("%s", "Should not get here")
 		var mt messageTail
 		if err := mt.ReadFrom(conn); err != nil {

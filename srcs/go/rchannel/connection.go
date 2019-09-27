@@ -122,7 +122,7 @@ func (c *shmConnection) Send(name string, m Message) error {
 	mh := messageHeader{
 		NameLength: uint32(len(bs)),
 		Name:       bs,
-		BodyInShm:  1,
+		Flags:      BodyInShm,
 	}
 	if err := mh.WriteTo(c.conn); err != nil {
 		return err
