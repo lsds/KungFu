@@ -207,6 +207,8 @@ func (sess *session) runGather(w Workspace) error {
 				m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
 				b := &kb.Buffer{Data: m.Data, Count: recvBuf.Count, Type: recvBuf.Type}
 				recvBuf.CopyFrom(b)
+
+				// Return m
 			}
 			wg.Done()
 		}(rank, peer, w.RecvBuf.Slice(count*rank, count*(rank+1)))
@@ -247,6 +249,8 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			kb.Transform(w.RecvBuf, b, w.OP)
 		}
 		recvCount++
+		
+		// Return m
 		return nil
 	}
 
