@@ -34,6 +34,8 @@ func (h *connectionHeader) ReadFrom(r io.Reader) error {
 	return binary.Read(r, endian, h)
 }
 
+const NoFlag uint32 = 0
+
 const (
 	WaitRecvBuf = 1 << iota // The recevier should wait receive buffer
 	BodyInShm   = 1 << iota //

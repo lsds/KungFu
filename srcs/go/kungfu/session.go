@@ -194,7 +194,7 @@ func asMessage(b *kb.Buffer) rch.Message {
 func (sess *session) runGather(w Workspace) error {
 	if sess.myRank != defaultRoot {
 		peer := sess.cluster.Peers[defaultRoot]
-		return sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective, 0)
+		return sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective, rch.NoFlag)
 	}
 	var wg sync.WaitGroup
 	count := w.SendBuf.Count
@@ -229,7 +229,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return w.RecvBuf.Data
 	}
 	sendOnto := func(peer plan.PeerSpec) error {
-		return sess.router.Send(peer.NetAddr.WithName(w.Name), effectiveData(), rch.ConnCollective, 0)
+		return sess.router.Send(peer.NetAddr.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.NoFlag)
 	}
 	sendInto := func(peer plan.PeerSpec) error {
 		return sess.router.Send(peer.NetAddr.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.WaitRecvBuf)
