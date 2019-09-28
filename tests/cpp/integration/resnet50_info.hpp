@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-std::vector<int> resnet50_grad_sizes()
+inline std::vector<int> resnet50_grad_sizes()
 {
     return {
         1000,    2048000, 2048, 2048, 2048,    1048576, 512,  512,
