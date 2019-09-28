@@ -14,7 +14,7 @@ import (
 // Connection is a simplex logical connection from one peer to another
 type Connection interface {
 	io.Closer
-	Send(msgName string, m Message) error
+	Send(msgName string, m Message, flags uint32) error
 	Read(msgName string, m Message) error
 }
 
@@ -71,13 +71,14 @@ type tcpConnection struct {
 	conn net.Conn
 }
 
-func (c *tcpConnection) Send(msgName string, m Message) error {
+func (c *tcpConnection) Send(msgName string, m Message, flags uint32) error {
 	c.Lock()
 	defer c.Unlock()
 	bs := []byte(msgName)
 	mh := messageHeader{
 		NameLength: uint32(len(bs)),
 		Name:       bs,
+		Flags:      flags,
 	}
 	if err := mh.WriteTo(c.conn); err != nil {
 		return err
@@ -115,14 +116,14 @@ func (c *shmConnection) handleAck() error {
 	}
 }
 
-func (c *shmConnection) Send(name string, m Message) error {
+func (c *shmConnection) Send(name string, m Message, flags uint32) error {
 	c.Lock()
 	defer c.Unlock()
 	bs := []byte(name)
 	mh := messageHeader{
 		NameLength: uint32(len(bs)),
 		Name:       bs,
-		BodyInShm:  1,
+		Flags:      flags | BodyInShm,
 	}
 	if err := mh.WriteTo(c.conn); err != nil {
 		return err

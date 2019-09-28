@@ -1,25 +1,25 @@
 package rchannel
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	"github.com/lsds/KungFu/srcs/go/shm"
 	"github.com/lsds/KungFu/srcs/go/store"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type Router struct {
-	localAddr  plan.NetAddr
-	bufferPool *BufferPool
-	connPool   *ConnectionPool
-	monitor    monitor.Monitor
+	localAddr plan.NetAddr
+	waitQ     *BufferPool
+	recvQ     *BufferPool
+	connPool  *ConnectionPool
+	monitor   monitor.Monitor
 
 	store      *store.VersionedStore
 	localStore *LocalStore // FIXME: deprecated
@@ -29,8 +29,11 @@ type Router struct {
 
 func NewRouter(self plan.PeerSpec, store *store.VersionedStore) *Router {
 	return &Router{
-		localAddr:  self.NetAddr,
-		bufferPool: newBufferPool(),     // in-comming messages
+		localAddr: self.NetAddr,
+
+		waitQ: newBufferPool(),
+		recvQ: newBufferPool(),
+
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
 		store:      store,
@@ -59,7 +62,7 @@ func (r *Router) Request(a plan.Addr, buf *kb.Buffer) error {
 	}
 	r.reqMu.Lock() // FIXME: lock per target
 	defer r.reqMu.Unlock()
-	if err := ch.Send(Message{}); err != nil {
+	if err := ch.Send(Message{}, NoFlag); err != nil {
 		return err
 	}
 	msg := Message{
@@ -81,7 +84,7 @@ func (r *Router) Pull(version string, a plan.Addr, buf *kb.Buffer) error {
 	r.reqMu.Lock() // FIXME: lock per target
 	defer r.reqMu.Unlock()
 	bs := []byte(version)
-	if err := ch.Send(Message{Length: uint32(len(bs)), Data: bs}); err != nil {
+	if err := ch.Send(Message{Length: uint32(len(bs)), Data: bs}, NoFlag); err != nil {
 		return err
 	}
 	msg := Message{
@@ -96,24 +99,24 @@ func (r *Router) Pull(version string, a plan.Addr, buf *kb.Buffer) error {
 }
 
 // Send sends data in buf to given Addr
-func (r *Router) Send(a plan.Addr, buf []byte, t ConnType) error {
+func (r *Router) Send(a plan.Addr, buf []byte, t ConnType, flags uint32) error {
 	msg := Message{
 		Length: uint32(len(buf)),
 		Data:   buf,
 	}
-	if err := r.send(a, msg, t); err != nil {
+	if err := r.send(a, msg, t, flags); err != nil {
 		return err
 	}
 	r.monitor.Egress(int64(msg.Length), a.NetAddr())
 	return nil
 }
 
-func (r *Router) send(a plan.Addr, msg Message, t ConnType) error {
+func (r *Router) send(a plan.Addr, msg Message, t ConnType, flags uint32) error {
 	ch, err := r.getChannel(a, t)
 	if err != nil {
 		return err
 	}
-	if err := ch.Send(msg); err != nil {
+	if err := ch.Send(msg, flags); err != nil {
 		return err
 	}
 	return nil
@@ -121,36 +124,43 @@ func (r *Router) send(a plan.Addr, msg Message, t ConnType) error {
 
 // Recv recevies a message from given Addr
 func (r *Router) Recv(a plan.Addr) Message {
-	// log.Infof("%s::%s(%s)", "Router", "Recv", a)
-	// TODO: reduce memory copy
-	msg := *<-r.bufferPool.require(a)
-	// TODO: add timeout
-	return msg
+	return *<-r.recvQ.require(a)
 }
 
-func (r *Router) acceptOne(conn net.Conn, shm shm.Shm) (string, *Message, error) {
+var errRegisteredBufferNotUsed = errors.New("registered buffer not used")
+
+// RecvInto receives a message into given buffer
+func (r *Router) RecvInto(a plan.Addr, m Message) error {
+	r.waitQ.require(a) <- &m
+	pm := <-r.recvQ.require(a)
+	if !m.same(pm) {
+		return errRegisteredBufferNotUsed
+	}
+	return nil
+}
+
+func (r *Router) acceptOne(conn net.Conn, remote plan.NetAddr) (string, *Message, error) {
 	var mh messageHeader
 	if err := mh.ReadFrom(conn); err != nil {
 		return "", nil, err
 	}
-	var msg Message
-	if mh.BodyInShm != 0 {
-		log.Errorf("%s", "Should not get here")
-		var mt messageTail
-		if err := mt.ReadFrom(conn); err != nil {
+	name := string(mh.Name)
+	if mh.HasFlag(WaitRecvBuf) {
+		m := <-r.waitQ.require(remote.WithName(name))
+		if err := m.ReadInto(conn); err != nil {
 			return "", nil, err
 		}
-		msg.Length = mt.Length
-		msg.Data = make([]byte, msg.Length)
-		shm.Seek(int(mt.Offset))
-		shm.Read(msg.Data, int(msg.Length))
-		mt.WriteTo(conn)
-	} else {
-		if err := msg.ReadFrom(conn); err != nil {
-			return "", nil, err
-		}
+		return name, m, nil
 	}
-	return string(mh.Name), &msg, nil
+	var m Message
+	if err := m.ReadFrom(conn); err != nil {
+		return "", nil, err
+	}
+	return name, &m, nil
+}
+
+func (r *Router) handleCollective(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
+	r.recvQ.require(remote.WithName(name)) <- msg
 }
 
 func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
@@ -218,30 +228,15 @@ func (r *Router) Save(name string, model *kb.Buffer) error {
 	return nil
 }
 
-var newShm = shm.New
+var errInvalidConnectionType = errors.New("invalid connection type")
 
-func (r *Router) stream(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
-	var shm shm.Shm
-	if kc.UseShm && remote.Host == r.localAddr.Host {
-		var err error
-		if shm, err = newShm(plan.ShmNameFor(remote, r.localAddr)); err != nil {
-			return 0, err
-		}
-		defer shm.Close()
-	}
-	for i := 0; ; i++ {
-		name, msg, err := r.acceptOne(conn, shm)
-		if err != nil {
-			return i, err
-		}
-		r.monitor.Ingress(int64(msg.Length), remote)
-		switch t {
-		case ConnCollective:
-			r.bufferPool.require(remote.WithName(name)) <- msg
-		case ConnPeerToPeer:
-			r.handlePeerToPeerConn(name, msg, conn, remote)
-		default:
-			log.Infof("no handler for type %s", t)
-		}
+func (r *Router) handle(conn net.Conn, remote plan.NetAddr, t ConnType) (int, error) {
+	switch t {
+	case ConnCollective:
+		return stream(conn, remote, r.acceptOne, r.handleCollective)
+	case ConnPeerToPeer:
+		return stream(conn, remote, r.acceptOne, r.handlePeerToPeerConn)
+	default:
+		return 0, errInvalidConnectionType
 	}
 }

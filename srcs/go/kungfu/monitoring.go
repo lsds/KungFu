@@ -46,7 +46,7 @@ func getLatency(self, peer plan.PeerSpec) time.Duration {
 	defer conn.Close()
 	t0 = time.Now() // reset t0
 	var empty rch.Message
-	conn.Send("ping", empty)
+	conn.Send("ping", empty, rch.NoFlag)
 	conn.Read("ping", empty)
 	// FIXME: handle timeout
 	return time.Since(t0)

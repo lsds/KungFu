@@ -184,10 +184,17 @@ func (sess *session) Save(name string, buf *kb.Buffer) int {
 	return code(sess.router.Save(name, buf))
 }
 
+func asMessage(b *kb.Buffer) rch.Message {
+	return rch.Message{
+		Length: uint32(len(b.Data)),
+		Data:   b.Data,
+	}
+}
+
 func (sess *session) runGather(w Workspace) error {
 	if sess.myRank != defaultRoot {
 		peer := sess.cluster.Peers[defaultRoot]
-		return sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective)
+		return sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective, rch.NoFlag)
 	}
 	var wg sync.WaitGroup
 	count := w.SendBuf.Count
@@ -215,14 +222,17 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	}
 
 	var recvCount int
-	sendTo := func(peer plan.PeerSpec) error {
-		data := func() []byte {
-			if recvCount == 0 {
-				return w.SendBuf.Data
-			}
-			return w.RecvBuf.Data
-		}()
-		return sess.router.Send(peer.NetAddr.WithName(w.Name), data, rch.ConnCollective)
+	effectiveData := func() []byte {
+		if recvCount == 0 {
+			return w.SendBuf.Data
+		}
+		return w.RecvBuf.Data
+	}
+	sendOnto := func(peer plan.PeerSpec) error {
+		return sess.router.Send(peer.NetAddr.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.NoFlag)
+	}
+	sendInto := func(peer plan.PeerSpec) error {
+		return sess.router.Send(peer.NetAddr.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.WaitRecvBuf)
 	}
 
 	var lock sync.Mutex
@@ -241,9 +251,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	}
 
 	recvInto := func(peer plan.PeerSpec) {
-		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
-		b := &kb.Buffer{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
-		w.RecvBuf.CopyFrom(b)
+		sess.router.RecvInto(peer.NetAddr.WithName(w.Name), asMessage(w.RecvBuf))
 		recvCount++
 	}
 
@@ -273,6 +281,9 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			if err := par(prevs, recvOnto); err != nil {
 				return err
 			}
+			if err := par(g.Nexts(sess.myRank), sendOnto); err != nil {
+				return err
+			}
 		} else {
 			if len(prevs) > 1 {
 				log.Errorf("more than once recvInto detected at node %d", sess.myRank)
@@ -282,9 +293,9 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			} else {
 				seq(prevs, recvInto) // len(prevs) == 1 is expected
 			}
-		}
-		if err := par(g.Nexts(sess.myRank), sendTo); err != nil {
-			return err
+			if err := par(g.Nexts(sess.myRank), sendInto); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

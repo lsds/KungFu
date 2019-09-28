@@ -34,20 +34,31 @@ func (h *connectionHeader) ReadFrom(r io.Reader) error {
 	return binary.Read(r, endian, h)
 }
 
+const NoFlag uint32 = 0
+
+const (
+	WaitRecvBuf = 1 << iota // The recevier should wait receive buffer
+	BodyInShm   = 1 << iota //
+)
+
 type messageHeader struct {
 	NameLength uint32
 	Name       []byte
-	BodyInShm  uint32
+	Flags      uint32
 }
 
-func (h messageHeader) WriteTo(w io.Writer) error {
+func (h *messageHeader) HasFlag(flag uint32) bool {
+	return h.Flags&flag == flag
+}
+
+func (h *messageHeader) WriteTo(w io.Writer) error {
 	if err := binary.Write(w, endian, h.NameLength); err != nil {
 		return err
 	}
 	if _, err := w.Write(h.Name); err != nil {
 		return err
 	}
-	if err := binary.Write(w, endian, h.BodyInShm); err != nil {
+	if err := binary.Write(w, endian, h.Flags); err != nil {
 		return err
 	}
 	return nil
@@ -63,7 +74,7 @@ func (h *messageHeader) ReadFrom(r io.Reader) error {
 	if err := readN(r, h.Name, int(h.NameLength)); err != nil {
 		return err
 	}
-	if err := binary.Read(r, endian, &h.BodyInShm); err != nil {
+	if err := binary.Read(r, endian, &h.Flags); err != nil {
 		return err
 	}
 	return nil
@@ -85,7 +96,7 @@ func (h *messageHeader) ReadFromLike(r io.Reader, hint string) error {
 	if string(h.Name) != hint {
 		return fmt.Errorf("unexpected name %s", h.Name)
 	}
-	if err := binary.Read(r, endian, &h.BodyInShm); err != nil {
+	if err := binary.Read(r, endian, &h.Flags); err != nil {
 		return err
 	}
 	return nil
@@ -125,6 +136,10 @@ func (m *messageTail) ReadFrom(r io.Reader) error {
 type Message struct {
 	Length uint32
 	Data   []byte
+}
+
+func (m *Message) same(pm *Message) bool {
+	return &m.Data[0] == &pm.Data[0]
 }
 
 func (m Message) WriteTo(w io.Writer) error {
