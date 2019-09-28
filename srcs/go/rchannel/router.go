@@ -62,7 +62,7 @@ func (r *Router) Request(a plan.Addr, buf *kb.Buffer) error {
 	}
 	r.reqMu.Lock() // FIXME: lock per target
 	defer r.reqMu.Unlock()
-	if err := ch.Send(Message{}, 0); err != nil {
+	if err := ch.Send(Message{}, NoFlag); err != nil {
 		return err
 	}
 	msg := Message{
@@ -84,7 +84,7 @@ func (r *Router) Pull(version string, a plan.Addr, buf *kb.Buffer) error {
 	r.reqMu.Lock() // FIXME: lock per target
 	defer r.reqMu.Unlock()
 	bs := []byte(version)
-	if err := ch.Send(Message{Length: uint32(len(bs)), Data: bs}, 0); err != nil {
+	if err := ch.Send(Message{Length: uint32(len(bs)), Data: bs}, NoFlag); err != nil {
 		return err
 	}
 	msg := Message{
