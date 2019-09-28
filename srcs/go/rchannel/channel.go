@@ -14,8 +14,8 @@ func newChannel(name string, conn Connection) *Channel {
 }
 
 // Send sends a message to the other end of the channel
-func (c *Channel) Send(m Message) error {
-	return c.conn.Send(c.name, m)
+func (c *Channel) Send(m Message, flags uint32) error {
+	return c.conn.Send(c.name, m, flags)
 }
 
 func (c *Channel) Receive(m Message) error {

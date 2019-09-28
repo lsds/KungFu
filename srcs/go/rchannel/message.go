@@ -136,6 +136,10 @@ type Message struct {
 	Data   []byte
 }
 
+func (m *Message) same(pm *Message) bool {
+	return &m.Data[0] == &pm.Data[0]
+}
+
 func (m Message) WriteTo(w io.Writer) error {
 	if err := binary.Write(w, endian, m.Length); err != nil {
 		return err

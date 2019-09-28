@@ -129,15 +129,15 @@ func (s *Server) handleControl(remoteNetAddr plan.NetAddr, conn net.Conn) error 
 }
 
 func (s *Server) handleCollective(remoteNetAddr plan.NetAddr, conn net.Conn) error {
-	if n, err := s.router.stream(conn, remoteNetAddr, ConnCollective); err != nil && err != io.EOF {
-		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
+	if n, err := s.router.handle(conn, remoteNetAddr, ConnCollective); err != nil && err != io.EOF {
+		return fmt.Errorf("handle error after handled %d messages: %v", n, err)
 	}
 	return nil
 }
 
 func (s *Server) handlePeerToPeer(remoteNetAddr plan.NetAddr, conn net.Conn) error {
-	if n, err := s.router.stream(conn, remoteNetAddr, ConnPeerToPeer); err != nil && err != io.EOF {
-		return fmt.Errorf("stream error after handled %d messages: %v", n, err)
+	if n, err := s.router.handle(conn, remoteNetAddr, ConnPeerToPeer); err != nil && err != io.EOF {
+		return fmt.Errorf("handle error after handled %d messages: %v", n, err)
 	}
 	return nil
 }
