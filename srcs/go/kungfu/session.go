@@ -247,6 +247,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			kb.Transform(w.RecvBuf, b, w.OP)
 		}
 		recvCount++
+		rch.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
 		return nil
 	}
 

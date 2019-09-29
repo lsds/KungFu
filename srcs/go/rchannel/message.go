@@ -156,7 +156,8 @@ func (m *Message) ReadFrom(r io.Reader) error {
 	if err := binary.Read(r, endian, &m.Length); err != nil {
 		return err
 	}
-	m.Data = make([]byte, m.Length)
+	// m.Data = make([]byte, m.Length)
+	m.Data = GetBuf(m.Length) // Use leaky pool
 	if err := readN(r, m.Data, int(m.Length)); err != nil {
 		return err
 	}

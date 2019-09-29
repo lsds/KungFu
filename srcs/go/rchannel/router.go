@@ -124,7 +124,8 @@ func (r *Router) send(a plan.Addr, msg Message, t ConnType, flags uint32) error 
 
 // Recv recevies a message from given Addr
 func (r *Router) Recv(a plan.Addr) Message {
-	return *<-r.recvQ.require(a)
+	m := <-r.recvQ.require(a)
+	return *m
 }
 
 var errRegisteredBufferNotUsed = errors.New("registered buffer not used")
