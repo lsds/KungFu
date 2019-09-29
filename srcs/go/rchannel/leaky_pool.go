@@ -5,14 +5,14 @@ import (
 )
 
 // Reuse pool: chunk size -> pool.
-var buffers = map[int]*sync.Pool{}
+var buffers = map[uint32]*sync.Pool{}
 var mu sync.Mutex
 
-const minBufSize int = 512 // Minimum chunk size that is reused, reusing chunks too small will result in overhead.
+const minBufSize uint32 = 512 // Minimum chunk size that is reused, reusing chunks too small will result in overhead.
 
 // PutBuf puts a chunk to reuse pool if it can be reused.
 func PutBuf(buf []byte) {
-	size := cap(buf)
+	size := uint32(cap(buf))
 	if size < minBufSize {
 		return
 	}
@@ -24,7 +24,7 @@ func PutBuf(buf []byte) {
 }
 
 // GetBuf gets a chunk from reuse pool or creates a new one if reuse failed.
-func GetBuf(size int) []byte {
+func GetBuf(size uint32) []byte {
 	if size < minBufSize {
 		return make([]byte, size)
 	}
