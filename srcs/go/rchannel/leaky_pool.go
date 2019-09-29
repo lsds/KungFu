@@ -8,12 +8,12 @@ import (
 var buffers = map[int]*sync.Pool{}
 var mu sync.Mutex
 
-const pooledSize int = 512 // Minimum chunk size that is reused, reusing chunks too small will result in overhead.
+const minBufSize int = 512 // Minimum chunk size that is reused, reusing chunks too small will result in overhead.
 
 // PutBuf puts a chunk to reuse pool if it can be reused.
 func PutBuf(buf []byte) {
 	size := cap(buf)
-	if size < pooledSize {
+	if size < minBufSize {
 		return
 	}
 	mu.Lock()
@@ -25,7 +25,7 @@ func PutBuf(buf []byte) {
 
 // GetBuf gets a chunk from reuse pool or creates a new one if reuse failed.
 func GetBuf(size int) []byte {
-	if size < pooledSize {
+	if size < minBufSize {
 		return make([]byte, size)
 	}
 
