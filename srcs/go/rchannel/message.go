@@ -157,6 +157,7 @@ func (m *Message) ReadFrom(r io.Reader) error {
 		return err
 	}
 	// m.Data = make([]byte, m.Length)
+	fmt.Println("call GetBuf")
 	m.Data = GetBuf(int(m.Length))
 	if err := readN(r, m.Data, int(m.Length)); err != nil {
 		return err

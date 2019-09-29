@@ -249,6 +249,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		recvCount++
 		
 		// Return m
+		fmt.Println("call put")
 		rch.PutBuf(m.Data)
 		return nil
 	}
