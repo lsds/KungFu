@@ -12,39 +12,47 @@ type ByteSlicePool struct {
 
 const minBufSize uint32 = 512 // Minimum chunk size that is reused, reusing chunks too small will result in overhead.
 
-var bsPool = ByteSlicePool{
-	buffers: map[uint32]*sync.Pool{},
+var (
+	defaultPool = newByteSlicePool()
+	GetBuf      = defaultPool.GetBuf
+	PutBuf      = defaultPool.PutBuf
+)
+
+// newByteSlicePool create a byte slice pool
+func newByteSlicePool() *ByteSlicePool {
+	return &ByteSlicePool{
+		buffers: make(map[uint32]*sync.Pool),
+	}
 }
 
 // PutBuf puts a chunk to reuse pool if it can be reused.
-func PutBuf(buf []byte) {
+func (p *ByteSlicePool) PutBuf(buf []byte) {
 	size := uint32(cap(buf))
 	if size < minBufSize {
 		return
 	}
-	bsPool.Lock()
-	defer bsPool.Unlock()
-	if c := bsPool.buffers[size]; c != nil {
+	p.Lock()
+	defer p.Unlock()
+	if c := p.buffers[size]; c != nil {
 		c.Put(buf)
 	}
 }
 
 // GetBuf gets a chunk from reuse pool or creates a new one if reuse failed.
-func GetBuf(size uint32) []byte {
+func (p *ByteSlicePool) GetBuf(size uint32) []byte {
 	if size < minBufSize {
 		return make([]byte, size)
 	}
 
-	bsPool.Lock()
-	c := bsPool.buffers[size]
-	if c == nil {
+	p.Lock()
+	c, ok := p.buffers[size]
+	if !ok {
 		c = new(sync.Pool)
-		bsPool.buffers[size] = c
+		p.buffers[size] = c
 	}
-	bsPool.Unlock()
+	p.Unlock()
 
-	v := c.Get()
-	if v != nil {
+	if v := c.Get(); v != nil {
 		return v.([]byte)
 	}
 

@@ -22,7 +22,7 @@ type Router struct {
 	monitor   monitor.Monitor
 
 	store      *store.VersionedStore
-	localStore *LocalStore // FIXME: deprecated
+	localStore *LocalStore // TODO: replaced by verison store
 
 	reqMu sync.Mutex
 }
@@ -37,7 +37,7 @@ func NewRouter(self plan.PeerSpec, store *store.VersionedStore) *Router {
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
 		store:      store,
-		localStore: newLocalStore(), // FIXME: deprecated
+		localStore: newLocalStore(), // TODO: replaced by verison store
 	}
 }
 
