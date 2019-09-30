@@ -166,7 +166,40 @@ func (r *Router) handleCollective(name string, msg *Message, conn net.Conn, remo
 
 func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
 	version := string(msg.Data)
-	if len(version) > 0 {
+	if len(version) == 0 {
+		// TODO: Always using the verisoned tensor store.
+		r.localStore.RLock()
+		defer r.localStore.RUnlock()
+
+		modelBuffer := r.localStore.data[name]
+		if modelBuffer == nil {
+			utils.ExitErr(fmt.Errorf("Model buffer[%s] is nil", name))
+		}
+
+		bs := []byte(name)
+		mh := messageHeader{
+			NameLength: uint32(len(bs)),
+			Name:       bs,
+		}
+
+		if err := mh.WriteTo(conn); err != nil {
+			log.Errorf("Could not write variable from store to connection: %s", name)
+			utils.ExitErr(err)
+		}
+
+		m := Message{
+			Length: uint32(modelBuffer.Count * modelBuffer.Type.Size()),
+			Data:   modelBuffer.Data,
+		}
+
+		if err := m.WriteTo(conn); err != nil {
+			log.Errorf("Could not write variable from store to connection: %s", name)
+			utils.ExitErr(err)
+		}
+
+		r.monitor.Egress(int64(m.Length), remote)
+	} else {
+		// NOTE: This part is currently not used by any optimizer.
 		var blob *store.Blob // FIXME: copy elision
 		if err := r.store.Get(version, name, &blob); err != nil {
 			utils.ExitErr(fmt.Errorf("Router.store.Get(%s, %s): %v", version, name, err))
@@ -188,40 +221,9 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 			log.Errorf("Could not write variable from store to connection: %s", name)
 			utils.ExitErr(err)
 		}
+
 		r.monitor.Egress(int64(m.Length), remote)
-		return
 	}
-
-	// FIXME: deprecated
-	r.localStore.RLock()
-	defer r.localStore.RUnlock()
-
-	modelBuffer := r.localStore.data[name]
-	if modelBuffer == nil {
-		utils.ExitErr(fmt.Errorf("Model buffer[%s] is nil", name))
-	}
-
-	bs := []byte(name)
-	mh := messageHeader{
-		NameLength: uint32(len(bs)),
-		Name:       bs,
-	}
-
-	if err := mh.WriteTo(conn); err != nil {
-		log.Errorf("Could not write variable from store to connection: %s", name)
-		utils.ExitErr(err)
-	}
-
-	m := Message{
-		Length: uint32(modelBuffer.Count * modelBuffer.Type.Size()),
-		Data:   modelBuffer.Data,
-	}
-
-	if err := m.WriteTo(conn); err != nil {
-		log.Errorf("Could not write variable from store to connection: %s", name)
-		utils.ExitErr(err)
-	}
-	r.monitor.Egress(int64(m.Length), remote)
 }
 
 func (r *Router) Save(name string, model *kb.Buffer) error {

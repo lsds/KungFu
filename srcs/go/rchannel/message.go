@@ -157,7 +157,7 @@ func (m *Message) ReadFrom(r io.Reader) error {
 		return err
 	}
 	// m.Data = make([]byte, m.Length)
-	m.Data = GetBuf(m.Length) // Use leaky pool
+	m.Data = GetBuf(m.Length) // Use memory pool
 	if err := readN(r, m.Data, int(m.Length)); err != nil {
 		return err
 	}
