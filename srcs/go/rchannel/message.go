@@ -38,7 +38,6 @@ const NoFlag uint32 = 0
 
 const (
 	WaitRecvBuf = 1 << iota // The recevier should wait receive buffer
-	BodyInShm   = 1 << iota //
 )
 
 type messageHeader struct {
@@ -104,32 +103,6 @@ func (h *messageHeader) ReadFromLike(r io.Reader, hint string) error {
 
 func (h messageHeader) String() string {
 	return fmt.Sprintf("messageHeader{length=%d,name=%s}", h.NameLength, string(h.Name))
-}
-
-// messageTail will be sent when messageHeader.BodyInShm != 0.
-type messageTail struct {
-	Offset uint32
-	Length uint32
-}
-
-func (m messageTail) WriteTo(w io.Writer) error {
-	if err := binary.Write(w, endian, m.Offset); err != nil {
-		return err
-	}
-	if err := binary.Write(w, endian, m.Length); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *messageTail) ReadFrom(r io.Reader) error {
-	if err := binary.Read(r, endian, &m.Offset); err != nil {
-		return err
-	}
-	if err := binary.Read(r, endian, &m.Length); err != nil {
-		return err
-	}
-	return nil
 }
 
 // Message is the data transferred via channel
