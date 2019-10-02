@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+# This example shows how a MNIST Single Layer Perception Model training program 
+# can adopt various distributed synchronization strategies using KungFu.
+# 
+# In principle, KungFu requires users to make three changes:
+# 1. KungFu provides distributed optimizers that can wrap the original optimizer. 
+# The distributed optimizer defines how local gradients and model weights are synchronized. 
+# 2. KungFu provides distributed variable initializers that defines how model weights are
+# initialized on distributed devices.
+# 3. (Optional) In a distributed training setting, the training dataset is often partitioned.  
 
 import argparse
 import os
@@ -30,9 +39,11 @@ def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
 
-def build_optimizer(name, shards=1):
+def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate / n_shards)
+
+    # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
         from kungfu.optimizers import SyncSGDOptimizer
         return SyncSGDOptimizer(optimizer)
@@ -72,19 +83,23 @@ def train_mnist(x,
                 dataset,
                 n_epochs=1,
                 batch_size=5000):
-    shards = current_cluster_size()
+    n_shards = current_cluster_size()
     shard_id = current_rank()
 
     train_data_size = 60000
     log_period = 100
 
-    step_per_epoch = train_data_size // batch_size
+    shard_size = train_data_size // n_shards
+    step_per_epoch = shard_size // batch_size
     n_steps = step_per_epoch * n_epochs
     print('step_per_epoch: %d, %d steps in total' % (step_per_epoch, n_steps))
 
+    # KUNGFU: Each replica is responsible for a data shard.
     offset = batch_size * shard_id
 
     kf_init_op = None
+
+    # KUNGFU: KungFu initilizer defines how model weights are initilised on distributed devices
     if hasattr(optimizer, 'distributed_initializer'):
         kf_init_op = optimizer.distributed_initializer()
 
@@ -97,7 +112,7 @@ def train_mnist(x,
         for step in range(1, n_steps + 1):
             xs = dataset.train.images[offset:offset + batch_size, :]
             y_s = dataset.train.labels[offset:offset + batch_size]
-            offset = (offset + batch_size * shards) % train_data_size
+            offset = (offset + batch_size * n_shards) % train_data_size
             sess.run(train_op, {
                 x: xs.reshape(batch_size, 28 * 28),
                 y_: y_s,
