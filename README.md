@@ -4,7 +4,7 @@ High-performance, adaptive, distributed deep learning.
 
 ## Install
 
-KungFu requires Python 3, [Golang 1.10+](https://golang.org/dl/) and [TensorFlow 1.x](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
+KungFu requires Python 3, [Golang 1.11+](https://golang.org/dl/) and [TensorFlow 1.x](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
 
 ```bash
 # Install tensorflow CPU

@@ -4,7 +4,7 @@
 # 
 # In principle, KungFu requires users to make three changes:
 # 1. KungFu provides distributed optimizers that can wrap the original optimizer. 
-# The distributed optimizer defines how local gradients and model weights are synchronised. 
+# The distributed optimizer defines how local gradients and model weights are synchronized. 
 # 2. KungFu provides distributed variable initializers that defines how model weights are
 # initialized on distributed devices.
 # 3. (Optional) In a distributed training setting, the training dataset is often partitioned.  
