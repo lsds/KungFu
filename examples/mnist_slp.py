@@ -39,9 +39,9 @@ def xentropy(y_, y):
     return -tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1])
 
 
-def build_optimizer(name, shards=1):
+def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate / n_shards)
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
@@ -83,13 +83,14 @@ def train_mnist(x,
                 dataset,
                 n_epochs=1,
                 batch_size=5000):
-    shards = current_cluster_size()
+    n_shards = current_cluster_size()
     shard_id = current_rank()
 
     train_data_size = 60000
     log_period = 100
 
-    step_per_epoch = train_data_size // batch_size
+    shard_size = train_data_size // n_shards
+    step_per_epoch = shard_size // batch_size
     n_steps = step_per_epoch * n_epochs
     print('step_per_epoch: %d, %d steps in total' % (step_per_epoch, n_steps))
 
@@ -111,7 +112,7 @@ def train_mnist(x,
         for step in range(1, n_steps + 1):
             xs = dataset.train.images[offset:offset + batch_size, :]
             y_s = dataset.train.labels[offset:offset + batch_size]
-            offset = (offset + batch_size * shards) % train_data_size
+            offset = (offset + batch_size * n_shards) % train_data_size
             sess.run(train_op, {
                 x: xs.reshape(batch_size, 28 * 28),
                 y_: y_s,
