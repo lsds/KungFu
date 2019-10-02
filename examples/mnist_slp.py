@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+# This example shows how a MNIST Single Layer Perception Model training program 
+# can adopt various distributed synchronization strategies using KungFu.
+# 
+# In principle, KungFu requires users to make three changes:
+# 1. KungFu provides distributed optimizers that can wrap the original optimizer. 
+# The distributed optimizer defines how local gradients and model weights are synchronised. 
+# 2. KungFu provides distributed variable initializers that defines how model weights are
+# initialized on distributed devices.
+# 3. (Optional) In a distributed training setting, the training dataset is often partitioned.  
 
 import argparse
 import os
@@ -33,6 +42,8 @@ def xentropy(y_, y):
 def build_optimizer(name, shards=1):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate / shards)
+
+    # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
         from kungfu.optimizers import SyncSGDOptimizer
         return SyncSGDOptimizer(optimizer)
@@ -82,9 +93,12 @@ def train_mnist(x,
     n_steps = step_per_epoch * n_epochs
     print('step_per_epoch: %d, %d steps in total' % (step_per_epoch, n_steps))
 
+    # KUNGFU: Each replica is responsible for a data shard.
     offset = batch_size * shard_id
 
     kf_init_op = None
+
+    # KUNGFU: KungFu initilizer defines how model weights are initilised on distributed devices
     if hasattr(optimizer, 'distributed_initializer'):
         kf_init_op = optimizer.distributed_initializer()
 
