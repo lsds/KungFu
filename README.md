@@ -56,8 +56,8 @@ export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.d
 Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script.
 
 ```bash
-# Train the mnist_mlp program using 4 CPUs.
-./bin/kungfu-prun -np 4 -timeout 1h python3 examples/mnist_mlp.py
+# Train the mnist_slp program using 4 CPUs.
+./bin/kungfu-prun -np 4 -timeout 1h python3 examples/mnist_slp.py
 ```
 
 ## Contribution
