@@ -19,7 +19,7 @@ git clone https://github.com/lsds/KungFu.git
 pip3 install .
 ```
 
-KungFu provides a tool: *kungfu-prun*, similar to [mpirun](https://horovod.readthedocs.io/en/latest/mpirun.html), to launch parallel TensorFlow training processes on multiple GPU/CPU devices on a local server.
+KungFu uses: *kungfu-prun*, similar to [mpirun](https://horovod.readthedocs.io/en/latest/mpirun.html), to launch a TensorFlow program on multiple GPU/CPU devices on a local server.
 Using the following command to build kungfu-prun.
 
 ```bash
@@ -57,6 +57,9 @@ env \
 Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script.
 
 ```bash
+# Download the MNIST dataset in a mnist folder in the current directory.
+./scripts/download-mnist.sh
+
 # Train the mnist_slp program using 4 CPUs.
 ./bin/kungfu-prun -np 4 -timeout 1h python3 examples/mnist_slp.py
 ```
