@@ -31,6 +31,14 @@ make
 ./bin/kungfu-prun -help
 ```
 
+### (Optional) Mac Users
+
+For Mac users, the following is required after the install:
+
+```bash
+export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
+```
+
 ### (Optional) NVIDIA NCCL Support
 
 KungFu can use NCCL to accelerate GPU-GPU communication.
@@ -42,14 +50,6 @@ KungFu can use NCCL to accelerate GPU-GPU communication.
 env \
     KUNGFU_USE_NCCL=1 \
     pip3 install --no-index --user -U .
-```
-
-### (Optional) Mac Users
-
-For Mac users, the following is required after the install:
-
-```bash
-export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 ```
 
 ## Example
