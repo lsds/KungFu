@@ -1,6 +1,6 @@
 # KungFu
 
-KungFu distributed machine learning framework for TensorFlow.
+High-performance, adaptive, distributed machine learning.
 
 ## Install
 
@@ -19,15 +19,16 @@ git clone https://github.com/lsds/KungFu.git
 pip3 install .
 ```
 
-### Build kungfu-prun
-
-KungFu uses kungfu-prun to launch parallel TensorFlow training programs on multiple GPU/CPU devices.
-To build kungfu-prun, you can use the following command:
+KungFu provides a tool: *kungfu-prun*, similar to [mpirun](https://horovod.readthedocs.io/en/latest/mpirun.html), to launch parallel TensorFlow training processes on multiple GPU/CPU devices on a local server.
+Using the following command to build kungfu-prun.
 
 ```bash
-# Build kungfu-prun in the current directory.
+# Build kungfu-prun in the current ./bin/ directory.
 ./configure --build-tools
 make
+
+# Check if kungfu-prun is built
+./bin/kungfu-prun -help
 ```
 
 ### (Optional) NVIDIA NCCL Support
