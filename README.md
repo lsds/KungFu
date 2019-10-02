@@ -1,21 +1,38 @@
 # KungFu
 
-KungFu distributed machine learning framework
+KungFu distributed machine learning framework for TensorFlow.
 
 ## Install
 
-Make sure you have `tensorflow` or `tensorflow-gpu` python library installed.
+KungFu has pre-requisites of Python 3.6, golang and TensorFlow 1.x.
 
 ```bash
-# install
-export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) # 4 seconds faster
-pip3 install --no-index -U .
+# install tensorflow CPU
+pip3 install tensorflow==1.13.1
+# pip3 install tensorflow-gpu==1.13.1 # Using GPUs
 
-# FIXME: For Mac users, the following is required after the install:
-# export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
+# downaload the KungFu source code
+git clone https://github.com/lsds/KungFu.git
+
+# install KungFu
+# export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) # Parallel install.
+pip3 install .
 ```
 
-To enable NCCL support
+### Build kungfu-prun
+
+KungFu uses kungfu-prun to launch parallel TensorFlow training programs on multiple GPU/CPU devices.
+To build kungfu-prun, you can use the following command:
+
+```bash
+# Build kungfu-prun in the current directory.
+./configure --build-tools
+make
+```
+
+### (Optional) NVIDIA NCCL Support
+
+KungFu can use NCCL to accelerate GPU-GPU communication.
 
 ```bash
 # uncomment to use your own NCCL
@@ -26,18 +43,12 @@ env \
     pip3 install --no-index --user -U .
 ```
 
+### (Optional) Mac Users
 
-## Build kungfu-prun
-
-```bash
-./configure --build-tools
-make
-```
-
-## Format code
+For Mac users, the following is required after the install:
 
 ```bash
-./scripts/clean-code.sh --fmt-py
+export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 ```
 
 ## Example
@@ -45,10 +56,19 @@ make
 Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script.
 
 ```bash
-python3 examples/mnist_mlp.py
+# Train the mnist_mlp program using 4 CPUs.
+./bin/kungfu-prun -np 4 -timeout 1h python3 examples/mnist_mlp.py
 ```
 
-## Build for release
+## Contribution
+
+### Format code
+
+```bash
+./scripts/clean-code.sh --fmt-py
+```
+
+### Build for release
 
 ```bash
 # build a .whl package for release
