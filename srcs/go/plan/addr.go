@@ -28,10 +28,6 @@ func (a NetAddr) WithName(name string) Addr {
 	}
 }
 
-func ShmNameFor(from, to NetAddr) string {
-	return fmt.Sprintf("kungfu-shm-%s.%d-to-%s.%d", from.Host, from.Port, to.Host, to.Port)
-}
-
 // Addr is the logical address of a named channel
 type Addr struct {
 	Host string

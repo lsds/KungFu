@@ -1,14 +1,11 @@
 package rchannel
 
 import (
-	"errors"
 	"io"
 	"net"
 	"sync"
 
-	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	"github.com/lsds/KungFu/srcs/go/shmpool"
 )
 
 // Connection is a simplex logical connection from one peer to another
@@ -50,20 +47,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	if err := h.WriteTo(conn); err != nil {
 		return nil, err
 	}
-	tc := tcpConnection{conn: conn}
-	if kc.UseShm && remote.Host == local.Host {
-		pool, err := shmpool.New(plan.ShmNameFor(local, remote))
-		if err != nil {
-			return nil, err
-		}
-		sc := &shmConnection{
-			tcpConnection: tc,
-			pool:          pool,
-		}
-		go sc.handleAck()
-		return sc, nil
-	}
-	return &tc, nil
+	return &tcpConnection{conn: conn}, nil
 }
 
 type tcpConnection struct {
@@ -98,45 +82,4 @@ func (c *tcpConnection) Read(msgName string, m Message) error {
 
 func (c *tcpConnection) Close() error {
 	return c.conn.Close()
-}
-
-type shmConnection struct {
-	tcpConnection
-	pool *shmpool.Pool
-}
-
-func (c *shmConnection) handleAck() error {
-	for {
-		var mt messageTail
-		if err := mt.ReadFrom(c.conn); err != nil {
-			return err
-		}
-		b := shmpool.Block{Offset: int(mt.Offset), Size: int(mt.Length)}
-		c.pool.Put(b)
-	}
-}
-
-func (c *shmConnection) Send(name string, m Message, flags uint32) error {
-	c.Lock()
-	defer c.Unlock()
-	bs := []byte(name)
-	mh := messageHeader{
-		NameLength: uint32(len(bs)),
-		Name:       bs,
-		Flags:      flags | BodyInShm,
-	}
-	if err := mh.WriteTo(c.conn); err != nil {
-		return err
-	}
-	b := c.pool.Get(int(m.Length))
-	c.pool.Write(b, m.Data)
-	mt := messageTail{
-		Offset: uint32(b.Offset),
-		Length: m.Length,
-	}
-	return mt.WriteTo(c.conn)
-}
-
-func (c *shmConnection) Read(name string, m Message) error {
-	return errors.New("Unsupported shared memory read")
 }
