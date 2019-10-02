@@ -39,17 +39,6 @@ For Mac users, the following is required after the install:
 export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 ```
 
-### (Optional) NVIDIA NCCL Support
-
-KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU direct communication.
-
-```bash
-# uncomment to use your own NCCL
-# export NCCL_HOME=$HOME/local/nccl
-
-KUNGFU_USE_NCCL=1 pip3 install .
-```
-
 ## Example
 
 Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script.
@@ -75,4 +64,16 @@ Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the followi
 ```bash
 # build a .whl package for release
 pip3 wheel -vvv --no-index .
+```
+
+### (Optional) NVIDIA NCCL Support
+
+KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU direct communication.
+However, NCCL enforces KungFu to serialise the execution of concurrent all-reduce operations, which can hurt performance.
+
+```bash
+# uncomment to use your own NCCL
+# export NCCL_HOME=$HOME/local/nccl
+
+KUNGFU_USE_NCCL=1 pip3 install .
 ```
