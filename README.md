@@ -45,7 +45,7 @@ make
 Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script.
 
 ```bash
-python3 examples/mnist_mlp.py
+python3 examples/mnist_slp.py
 ```
 
 ## Build for release

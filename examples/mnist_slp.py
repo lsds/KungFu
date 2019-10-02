@@ -11,7 +11,8 @@ from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
 from kungfu.benchmarks.mnist import slp
 
-from kungfu.internal import _get_num_peers, _get_self_rank
+from kungfu.ops import current_cluster_size, current_rank
+
 
 def save_vars(sess, variables, filename):
     values = sess.run(variables)
@@ -71,8 +72,8 @@ def train_mnist(x,
                 dataset,
                 n_epochs=1,
                 batch_size=5000):
-    shards = _get_num_peers()
-    shard_id = _get_self_rank()
+    shards = current_cluster_size()
+    shard_id = current_rank()
 
     train_data_size = 60000
     log_period = 100
