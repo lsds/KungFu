@@ -4,7 +4,7 @@ KungFu distributed machine learning framework for TensorFlow.
 
 ## Install
 
-KungFu has pre-requisites of Python 3.6, golang and TensorFlow 1.x.
+KungFu has pre-requisites of Python 3, [Golang](https://golang.org/dl/) and [TensorFlow 1.x](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
 
 ```bash
 # install tensorflow CPU
