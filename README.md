@@ -11,7 +11,7 @@ KungFu requires Python 3, [Golang 1.10+](https://golang.org/dl/) and [TensorFlow
 pip3 install tensorflow==1.13.1
 # pip3 install tensorflow-gpu==1.13.1 # Using GPUs
 
-# Downaload the KungFu source code
+# Download the KungFu source code
 git clone https://github.com/lsds/KungFu.git
 
 # Install KungFu
@@ -23,7 +23,7 @@ KungFu provides: *kungfu-prun*, similar to [mpirun](https://horovod.readthedocs.
 Using the following command to build kungfu-prun.
 
 ```bash
-# Build kungfu-prun in the current ./bin/ directory.
+# Build kungfu-prun in a ./bin folder under the current directory.
 ./configure --build-tools
 make
 
@@ -44,11 +44,11 @@ export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.d
 Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script.
 
 ```bash
-# Download the MNIST dataset in a mnist folder in the current directory.
+# Download the MNIST dataset in a ./mnist folder in the current directory.
 ./scripts/download-mnist.sh
 
-# Train the mnist_slp program using 4 CPUs.
-./bin/kungfu-prun -np 4 -timeout 1h python3 examples/mnist_slp.py
+# Train a Single Layer Perception (SLP) model for the MNIST dataset using 4 CPUs for 10 data epochs.
+./bin/kungfu-prun -np 4 -timeout 1h python3 examples/mnist_slp.py --n-epochs 10
 ```
 
 ## Contribution
@@ -69,7 +69,7 @@ pip3 wheel -vvv --no-index .
 ### (Optional) Use NVIDIA NCCL
 
 KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU direct communication.
-However, NCCL enforces KungFu to serialise the execution of concurrent all-reduce operations, which can hurt performance.
+However, the use of NCCL enforces KungFu to serialize the execution of all-reduce operations, which can hurt performance.
 
 ```bash
 # uncomment to use your own NCCL
