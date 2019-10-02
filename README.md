@@ -1,6 +1,6 @@
 # KungFu
 
-KungFu distributed machine learning framework for TensorFlow.
+High-performance, adaptive, distributed machine learning.
 
 ## Install
 
