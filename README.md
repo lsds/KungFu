@@ -47,9 +47,7 @@ KungFu can use NCCL to accelerate GPU-GPU communication.
 # uncomment to use your own NCCL
 # export NCCL_HOME=$HOME/local/nccl
 
-env \
-    KUNGFU_USE_NCCL=1 \
-    pip3 install --no-index --user -U .
+KUNGFU_USE_NCCL=1 pip3 install .
 ```
 
 ## Example
