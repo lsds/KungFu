@@ -41,7 +41,7 @@ export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.d
 
 ### (Optional) NVIDIA NCCL Support
 
-KungFu can use NCCL to accelerate GPU-GPU communication.
+KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU direct communication.
 
 ```bash
 # uncomment to use your own NCCL
