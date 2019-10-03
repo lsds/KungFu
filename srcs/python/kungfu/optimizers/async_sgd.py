@@ -1,7 +1,6 @@
 import tensorflow as tf
-from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
-from kungfu.ops import (barrier, broadcast, request_variable_with_template,
-                        save_variable)
+from kungfu.ops import (barrier, broadcast, current_cluster_size, current_rank,
+                        request_variable_with_template, save_variable)
 
 from .core import KungFuOptimizer
 
@@ -59,7 +58,7 @@ class PeerModelAveragingOptimizer(KungFuOptimizer):
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
-        np, rank = _get_num_peers(), _get_self_rank()
+        np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
         variables = [v for _g, v in grads_and_vars]
         other_peer_vars, save_model_op = self._build_request_and_save_ops(
