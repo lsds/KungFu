@@ -40,7 +40,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
                  use_locking=False):
         super(SyncSGDWithGradVarianceOptimizer,
               self).__init__(optimizer, name, use_locking)
-        self._num_workers = _get_num_peers()  # FIXME: use a variable
+        self._num_workers = current_cluster_size()  # FIXME: use a variable
         self._interval = monitor_interval
         self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
 
