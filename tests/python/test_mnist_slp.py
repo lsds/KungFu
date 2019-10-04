@@ -32,8 +32,8 @@ def dense(x, logits, act):
 
 def fake_get_shard_info(use_kungfu):
     if use_kungfu:
-        from kungfu.internal import _get_num_peers, _get_self_rank
-        return _get_self_rank(), _get_num_peers()
+        from kungfu.ops import current_cluster_size, current_rank
+        return current_rank(), current_cluster_size()
     return 0, 1
 
 
