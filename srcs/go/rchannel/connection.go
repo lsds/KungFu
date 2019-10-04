@@ -30,7 +30,7 @@ func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
 
 func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	conn, err := func() (net.Conn, error) {
-		if remote.Host == local.Host {
+		if remote.ColocatedWith(local) {
 			addr := net.UnixAddr{remote.SockFile(), "unix"}
 			return net.DialUnix(addr.Net, nil, &addr)
 		}

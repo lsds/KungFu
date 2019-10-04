@@ -6,10 +6,14 @@ import (
 	"strconv"
 )
 
-// Addr is the network address of a named channel
+// NetAddr is the network address of a Peer
 type NetAddr struct {
 	Host string
 	Port uint16
+}
+
+func (a NetAddr) ColocatedWith(b NetAddr) bool {
+	return a.Host == b.Host
 }
 
 func (a NetAddr) String() string {

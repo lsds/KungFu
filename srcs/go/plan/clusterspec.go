@@ -29,7 +29,7 @@ func (pl PeerList) LocalRank(ps PeerSpec) (int, bool) {
 		if p == ps {
 			return i, true
 		}
-		if ps.ColocatedWith(p) {
+		if ps.NetAddr.ColocatedWith(p.NetAddr) {
 			i++
 		}
 	}

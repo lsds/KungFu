@@ -79,8 +79,7 @@ func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungF
 	configEnvs := getConfigEnvs()
 	var ps []Proc
 	for i, self := range cs.Peers {
-		// name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
-		localRank := 0
+		localRank, _ := plan.LocalRank(cs.Peers, self)
 		name := fmt.Sprintf("%s.%d", self.NetAddr.Host, self.NetAddr.Port)
 		envs := Envs{
 			kb.ClusterSpecEnvKey:    cs.String(),

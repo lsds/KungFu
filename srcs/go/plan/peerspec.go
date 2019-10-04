@@ -11,10 +11,6 @@ type PeerSpec struct {
 	NetAddr NetAddr
 }
 
-func (ps PeerSpec) ColocatedWith(q PeerSpec) bool {
-	return ps.NetAddr.Host == q.NetAddr.Host
-}
-
 func (ps PeerSpec) String() string {
 	return toString(ps)
 }
