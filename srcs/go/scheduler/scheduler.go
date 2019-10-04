@@ -34,12 +34,12 @@ func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.
 	}
 }
 
-func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr string) ([]Proc, *plan.ClusterSpec, error) {
+func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr string) ([]Proc, plan.PeerList, error) {
 	hostSpecs, err := plan.ParseHostSpec(jc.HostList)
 	if err != nil {
 		return nil, nil, err
 	}
-	cs, err := plan.GenClusterSpec(jc.PeerCount, hostSpecs)
+	pl, err := plan.GenPeerList(jc.PeerCount, hostSpecs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -49,11 +49,11 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 	}
 	configEnvs := getConfigEnvs()
 	var ps []Proc
-	for i, self := range cs.Peers {
-		localRank, _ := plan.LocalRank(cs.Peers, self)
+	for i, self := range pl {
+		localRank, _ := pl.LocalRank(self)
 		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.ClusterSpecEnvKey:    cs.String(),     // TODO: remove it
+			kb.PeerListEnvKey:       pl.String(),     // TODO: remove it
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
 			kb.AllReduceAlgoEnvKey:  algo.String(), // FIXME: remove it
@@ -72,17 +72,17 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 			PubAddr: pubAddr[self.Host],
 		})
 	}
-	return ps, cs, nil
+	return ps, pl, nil
 }
 
-func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungFu_AllReduceAlgo, disableNCCL bool) ([]Proc, error) {
+func CreateProcs(prog string, args []string, pl plan.PeerList, algo kb.KungFu_AllReduceAlgo, disableNCCL bool) ([]Proc, error) {
 	configEnvs := getConfigEnvs()
 	var ps []Proc
-	for i, self := range cs.Peers {
-		localRank, _ := plan.LocalRank(cs.Peers, self)
+	for i, self := range pl {
+		localRank, _ := pl.LocalRank(self)
 		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.ClusterSpecEnvKey:    cs.String(),
+			kb.PeerListEnvKey:       pl.String(),
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
 			kb.AllReduceAlgoEnvKey:  algo.String(),

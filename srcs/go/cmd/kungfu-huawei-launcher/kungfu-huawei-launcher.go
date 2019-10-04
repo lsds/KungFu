@@ -45,7 +45,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	ps, err := sch.CreateProcs(prog, args, env.ClusterSpec, kb.ParseAlgo(*algo), *disableNCCL)
+	ps, err := sch.CreateProcs(prog, args, env.PeerList, kb.ParseAlgo(*algo), *disableNCCL)
 	if err != nil {
 		utils.ExitErr(err)
 	}

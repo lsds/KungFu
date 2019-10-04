@@ -19,8 +19,8 @@ const (
 )
 
 type ContainerInfo struct {
-	SelfIPv4    string
-	ClusterSpec *plan.ClusterSpec
+	SelfIPv4 string
+	PeerList plan.PeerList
 }
 
 func ParseEnv() (*ContainerInfo, error) {
@@ -32,7 +32,7 @@ func ParseEnv() (*ContainerInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	clusterSpec, err := parseClusterSpec(num)
+	pl, err := parsePeerList(num)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +45,8 @@ func ParseEnv() (*ContainerInfo, error) {
 		idx = 0
 	}
 	return &ContainerInfo{
-		SelfIPv4:    clusterSpec.Peers[idx].Host,
-		ClusterSpec: clusterSpec,
+		SelfIPv4: pl[idx].Host,
+		PeerList: pl,
 	}, nil
 }
 
@@ -62,13 +62,13 @@ func requireInt(key string) (int, error) {
 	return n, nil
 }
 
-func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
+func parsePeerList(n int) (plan.PeerList, error) {
 	if n == 1 {
 		peer := plan.PeerID{
 			Host: "127.0.0.1",
 			Port: uint16(38888),
 		}
-		return &plan.ClusterSpec{Peers: []plan.PeerID{peer}}, nil
+		return []plan.PeerID{peer}, nil
 	}
 
 	var peers []plan.PeerID
@@ -90,7 +90,7 @@ func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
 		log.Infof("peer: %d: %#v", i, peer)
 		peers = append(peers, peer)
 	}
-	return &plan.ClusterSpec{Peers: peers}, nil
+	return peers, nil
 }
 
 func resolvePeer(hostPort string) (string, int, error) {

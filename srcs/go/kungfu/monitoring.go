@@ -10,9 +10,9 @@ import (
 )
 
 func (sess *session) GetPeerLatencies() []time.Duration {
-	results := make([]time.Duration, len(sess.cluster.Peers))
+	results := make([]time.Duration, len(sess.cluster))
 	var wg sync.WaitGroup
-	for rank, peer := range sess.cluster.Peers {
+	for rank, peer := range sess.cluster {
 		if rank != sess.myRank {
 			wg.Add(1)
 			go func(rank int, peer plan.PeerID) {

@@ -181,12 +181,12 @@ func runConfigServer(addr string, updated chan string) {
 	server.ListenAndServe()
 }
 
-func initConfig(c *kf.ConfigClient, configServerAddr string, hostSpecs []plan.HostSpec, cs *plan.ClusterSpec) error {
+func initConfig(c *kf.ConfigClient, configServerAddr string, hostSpecs []plan.HostSpec, pl plan.PeerList) error {
 	const initToken = "0"
 	if err := c.PutConfig(initToken, kb.HostSpecEnvKey, hostSpecs); err != nil {
 		return err
 	}
-	if err := c.PutConfig(initToken, kb.ClusterSpecEnvKey, cs); err != nil {
+	if err := c.PutConfig(initToken, kb.PeerListEnvKey, pl); err != nil {
 		return err
 	}
 	return nil

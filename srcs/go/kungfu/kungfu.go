@@ -112,12 +112,12 @@ func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bo
 		return false, err
 	}
 	log.Infof("generating new cluster spec of size %d", newSize)
-	cs, err := plan.GenClusterSpec(newSize, hostSpecs)
+	cs, err := plan.GenPeerList(newSize, hostSpecs)
 	if err != nil {
 		log.Errorf("failed to generate new cluster spec: %v", err)
 		return false, err
 	}
-	if err := kf.configClient.PutConfig(version, kb.ClusterSpecEnvKey, cs); err != nil {
+	if err := kf.configClient.PutConfig(version, kb.PeerListEnvKey, cs); err != nil {
 		log.Warnf("failed to write config: %v", err)
 		return false, err
 	}
@@ -151,15 +151,15 @@ func (kf *Kungfu) UpdateSession(version string) bool {
 
 func (kf *Kungfu) updateSession(version string) bool {
 	log.Infof("Kungfu::updateSession with version %q", version)
-	var cs plan.ClusterSpec
-	if err := kf.configClient.GetConfig(version, kb.ClusterSpecEnvKey, &cs); err != nil {
+	var pl plan.PeerList
+	if err := kf.configClient.GetConfig(version, kb.PeerListEnvKey, &pl); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
-		cs = plan.ClusterSpec{Peers: []plan.PeerID{*kf.self}}
+		pl = []plan.PeerID{*kf.self}
 		// utils.ExitErr(err)
 	}
-	log.Infof("creating session of %d peers", len(cs.Peers))
+	log.Infof("creating session of %d peers", len(pl))
 	kf.router.ResetConnections()
-	sess, exist, err := newSession(kf.config, kf.self, &cs, kf.router)
+	sess, exist, err := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
 		return false
 	}
