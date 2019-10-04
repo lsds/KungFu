@@ -24,16 +24,16 @@ func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog strin
 	defer cancel()
 
 	var wg sync.WaitGroup
-	currentPeers := make(peerList)
+	var current plan.PeerList
 
 	reconcileCluster := func(version string) {
-		var cs plan.PeerList
-		if err := c.GetConfig(version, kb.PeerListEnvKey, &cs); err != nil {
+		var pl plan.PeerList
+		if err := c.GetConfig(version, kb.PeerListEnvKey, &pl); err != nil {
 			log.Printf("%v", err)
 			return
 		}
 		log.Printf("updated to %q", version)
-		newPeers, removedPeers := diffPeers(currentPeers, cs) // FIXME: also wait termination
+		newPeers, removedPeers := current.Diff(pl) // FIXME: also wait termination
 		log.Printf("%d new %s will be created, %d old %s will be removed",
 			len(newPeers), utils.Pluralize(len(newPeers), "peer", "peers"),
 			len(removedPeers), utils.Pluralize(len(removedPeers), "peer", "peers"))
@@ -44,7 +44,7 @@ func watchRun(c *kf.ConfigClient, selfIP string, updated chan string, prog strin
 			wg.Add(1)
 			go runProc(ctx, cancel, proc, &wg, version)
 		}
-		currentPeers = makePeerList(cs)
+		current = pl
 	}
 	reconcileCluster(<-updated)
 	go func() {
@@ -76,19 +76,6 @@ func watchConfigServer(configClient *kf.ConfigClient, newVersion chan string) {
 			newVersion <- next
 		}
 	}
-}
-
-func makePeerList(cs plan.PeerList) peerList {
-	pl := make(peerList)
-	for _, peer := range cs {
-		pl[peer.String()] = peer
-	}
-	return pl
-}
-
-func diffPeers(oldPeers peerList, cs plan.PeerList) ([]plan.PeerID, []plan.PeerID) {
-	newPeers := makePeerList(cs)
-	return newPeers.Sub(oldPeers), oldPeers.Sub(newPeers)
 }
 
 func createProcs(version string, pl plan.PeerList, prog string, args []string, configServerAddr string) []sch.Proc {
