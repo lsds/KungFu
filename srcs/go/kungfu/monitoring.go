@@ -16,7 +16,7 @@ func (sess *session) GetPeerLatencies() []time.Duration {
 		if rank != sess.myRank {
 			wg.Add(1)
 			go func(rank int, peer plan.PeerID) {
-				results[rank] = getLatency(*sess.self, peer)
+				results[rank] = getLatency(sess.self, peer)
 				wg.Done()
 			}(rank, peer)
 		} else {

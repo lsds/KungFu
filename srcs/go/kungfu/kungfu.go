@@ -31,7 +31,7 @@ type Kungfu struct {
 	sync.Mutex
 
 	configClient   *ConfigClient
-	self           *plan.PeerID
+	self           plan.PeerID
 	currentSession *session
 
 	store       *store.VersionedStore
@@ -62,7 +62,7 @@ func New(config Config) (*Kungfu, error) {
 	}
 	return &Kungfu{
 		configClient: configClient,
-		self:         self,
+		self:         *self,
 		store:        store,
 		router:       router,
 		server:       server,
@@ -125,7 +125,7 @@ func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bo
 		log.Warnf("failed to write config: %v", err)
 		return false, err
 	}
-	_, keep := cs.Lookup(*kf.self)
+	_, keep := cs.Lookup(kf.self)
 	return keep, nil
 }
 
@@ -154,7 +154,7 @@ func (kf *Kungfu) updateSession(version string) bool {
 	var pl plan.PeerList
 	if err := kf.configClient.GetConfig(version, kb.PeerListEnvKey, &pl); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
-		pl = []plan.PeerID{*kf.self}
+		pl = []plan.PeerID{kf.self}
 		// utils.ExitErr(err)
 	}
 	log.Infof("creating session of %d peers", len(pl))

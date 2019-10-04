@@ -25,7 +25,7 @@ type strategy struct {
 // session contains the immutable topology and strategies for a given period of logical duration
 type session struct {
 	strategies []strategy
-	self       *plan.PeerID
+	self       plan.PeerID
 	cluster    plan.PeerList
 	myRank     int
 	router     *rch.Router
@@ -40,13 +40,13 @@ var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
 	kb.KungFu_Tree:   createTreeStrategies,
 }
 
-func newSession(c Config, self *plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool, error) {
+func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool, error) {
 	f := partitionStrategies[c.Algo]
 	if f == nil {
 		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
 		f = createStarStrategies
 	}
-	myRank, ok := pl.Lookup(*self)
+	myRank, ok := pl.Lookup(self)
 	if !ok {
 		return nil, false, nil
 	}
