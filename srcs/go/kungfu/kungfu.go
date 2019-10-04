@@ -31,7 +31,7 @@ type Kungfu struct {
 	sync.Mutex
 
 	configClient   *ConfigClient
-	self           *plan.PeerSpec
+	self           *plan.PeerID
 	currentSession *session
 
 	store       *store.VersionedStore
@@ -75,13 +75,13 @@ func (kf *Kungfu) Start() int {
 	go kf.server.Serve()
 	go kf.localServer.Serve()
 	if kc.EnableMonitoring {
-		monitoringPort := kf.self.NetAddr.Port + 10000
+		monitoringPort := kf.self.Port + 10000
 		monitor.StartServer(int(monitoringPort))
 		monitorAddr := plan.NetAddr{
-			Host: kf.self.NetAddr.Host, // FIXME: use pubAddr
+			Host: kf.self.Host, // FIXME: use pubAddr
 			Port: monitoringPort,
 		}
-		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self.NetAddr, monitorAddr)
+		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self, monitorAddr)
 	}
 	return 0
 }
@@ -154,7 +154,7 @@ func (kf *Kungfu) updateSession(version string) bool {
 	var cs plan.ClusterSpec
 	if err := kf.configClient.GetConfig(version, kb.ClusterSpecEnvKey, &cs); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
-		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
+		cs = plan.ClusterSpec{Peers: []plan.PeerID{*kf.self}}
 		// utils.ExitErr(err)
 	}
 	log.Infof("creating session of %d peers", len(cs.Peers))

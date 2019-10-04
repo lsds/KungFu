@@ -28,9 +28,9 @@ All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 
 ### Concepts
 
-* PeerSpec: PeerSpec is the metadata that describes a single worker, it tells the runner how to start the worker and also tells all peers how to find each other.
+* PeerID: PeerID is the unique identifier of a peer, it tells the runner how to start the peer and also tells all peers how to find each other.
 
-* ClusterSpec: ClusterSpec is the list of **PeerSpec** from all peers in the cluster. It is a common constant shared among all peers in the cluster.
+* ClusterSpec: ClusterSpec is the ordered list of **PeerID** from all peers in the cluster. It is a common constant shared among all peers in the cluster.
 
 * HostSpec: HostSpec is the metadata that describes a host machine.
 

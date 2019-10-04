@@ -17,7 +17,7 @@ type JobConfig struct {
 	Args      []string
 }
 
-func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.PeerSpec, localRank int) Proc {
+func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.PeerID, localRank int) Proc {
 	configEnvs := getConfigEnvs()
 	envs := Envs{
 		kb.SelfSpecEnvKey:      peer.String(),
@@ -29,8 +29,8 @@ func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.
 		Prog: prog,
 		Args: args,
 		Envs: merge(merge(configEnvs, envs), extraEnvs),
-		Host: peer.NetAddr.Host,
-		// PubAddr: pubAddr[self.NetAddr.Host],
+		Host: peer.Host,
+		// PubAddr: pubAddr[self.Host],
 	}
 }
 
@@ -51,7 +51,7 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 	var ps []Proc
 	for i, self := range cs.Peers {
 		localRank, _ := plan.LocalRank(cs.Peers, self)
-		name := fmt.Sprintf("%s.%d", self.NetAddr.Host, self.NetAddr.Port)
+		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
 			kb.ClusterSpecEnvKey:    cs.String(),     // TODO: remove it
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
@@ -68,8 +68,8 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 			Prog:    jc.Prog,
 			Args:    jc.Args,
 			Envs:    merge(configEnvs, envs),
-			Host:    self.NetAddr.Host,
-			PubAddr: pubAddr[self.NetAddr.Host],
+			Host:    self.Host,
+			PubAddr: pubAddr[self.Host],
 		})
 	}
 	return ps, cs, nil
@@ -80,7 +80,7 @@ func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungF
 	var ps []Proc
 	for i, self := range cs.Peers {
 		localRank, _ := plan.LocalRank(cs.Peers, self)
-		name := fmt.Sprintf("%s.%d", self.NetAddr.Host, self.NetAddr.Port)
+		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
 			kb.ClusterSpecEnvKey:    cs.String(),
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
@@ -97,8 +97,8 @@ func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungF
 			Prog:    prog,
 			Args:    args,
 			Envs:    merge(configEnvs, envs),
-			Host:    self.NetAddr.Host,
-			PubAddr: self.NetAddr.Host,
+			Host:    self.Host,
+			PubAddr: self.Host,
 		})
 	}
 	return ps, nil

@@ -7,7 +7,7 @@ func Test_graph(t *testing.T) {
 	hosts := fakeHosts(n)
 
 	k := n * 4
-	peers := genPeerSpecs(k, hosts)
+	peers := genPeerIDs(k, hosts)
 
 	bcastGraph := GenDefaultBcastGraph(peers)
 	reduceGraph := GenDefaultReduceGraph(bcastGraph)

@@ -4,17 +4,17 @@ import (
 	"fmt"
 )
 
-type PeerList []PeerSpec
+type PeerList []PeerID
 
 type ClusterSpec struct {
-	Peers []PeerSpec
+	Peers []PeerID
 }
 
 func (cs ClusterSpec) String() string {
 	return toString(cs)
 }
 
-func (cs ClusterSpec) Lookup(ps PeerSpec) (int, bool) {
+func (cs ClusterSpec) Lookup(ps PeerID) (int, bool) {
 	for i, p := range cs.Peers {
 		if p == ps {
 			return i, true
@@ -23,20 +23,20 @@ func (cs ClusterSpec) Lookup(ps PeerSpec) (int, bool) {
 	return -1, false
 }
 
-func (pl PeerList) LocalRank(ps PeerSpec) (int, bool) {
+func (pl PeerList) LocalRank(ps PeerID) (int, bool) {
 	var i int
 	for _, p := range pl {
 		if p == ps {
 			return i, true
 		}
-		if ps.NetAddr.ColocatedWith(p.NetAddr) {
+		if ps.ColocatedWith(p) {
 			i++
 		}
 	}
 	return -1, false
 }
 
-func LocalRank(pl PeerList, ps PeerSpec) (int, bool) {
+func LocalRank(pl PeerList, ps PeerID) (int, bool) {
 	return pl.LocalRank(ps)
 }
 
@@ -44,5 +44,5 @@ func GenClusterSpec(k int, hostSpecs []HostSpec) (*ClusterSpec, error) {
 	if cap := TotalCap(hostSpecs); cap < k {
 		return nil, fmt.Errorf("can run %d peers at most", cap)
 	}
-	return &ClusterSpec{Peers: genPeerSpecs(k, hostSpecs)}, nil
+	return &ClusterSpec{Peers: genPeerIDs(k, hostSpecs)}, nil
 }

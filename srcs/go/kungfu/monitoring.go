@@ -15,7 +15,7 @@ func (sess *session) GetPeerLatencies() []time.Duration {
 	for rank, peer := range sess.cluster.Peers {
 		if rank != sess.myRank {
 			wg.Add(1)
-			go func(rank int, peer plan.PeerSpec) {
+			go func(rank int, peer plan.PeerID) {
 				results[rank] = getLatency(*sess.self, peer)
 				wg.Done()
 			}(rank, peer)
@@ -27,12 +27,12 @@ func (sess *session) GetPeerLatencies() []time.Duration {
 	return results
 }
 
-func getLatency(self, peer plan.PeerSpec) time.Duration {
+func getLatency(self, peer plan.PeerID) time.Duration {
 	t0 := time.Now()
 	var conn rch.Connection
 	for i := 0; i < 10; i++ {
 		var err error
-		conn, err = rch.NewPingConnection(self.NetAddr, peer.NetAddr)
+		conn, err = rch.NewPingConnection(plan.NetAddr(self), plan.NetAddr(peer))
 		if err == nil {
 			break
 		}

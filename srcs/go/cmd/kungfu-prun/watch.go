@@ -81,17 +81,17 @@ func watchConfigServer(configClient *kf.ConfigClient, newVersion chan string) {
 func makePeerList(cs plan.ClusterSpec) peerList {
 	pl := make(peerList)
 	for _, peer := range cs.Peers {
-		pl[peer.NetAddr.String()] = peer
+		pl[peer.String()] = peer
 	}
 	return pl
 }
 
-func diffPeers(oldPeers peerList, cs plan.ClusterSpec) ([]plan.PeerSpec, []plan.PeerSpec) {
+func diffPeers(oldPeers peerList, cs plan.ClusterSpec) ([]plan.PeerID, []plan.PeerID) {
 	newPeers := makePeerList(cs)
 	return newPeers.Sub(oldPeers), oldPeers.Sub(newPeers)
 }
 
-func createProcs(version string, peers []plan.PeerSpec, prog string, args []string, configServerAddr string) []sch.Proc {
+func createProcs(version string, peers []plan.PeerID, prog string, args []string, configServerAddr string) []sch.Proc {
 	envs := sch.Envs{
 		kc.ConfigServerEnvKey: configServerAddr,
 		kb.InitSessEnvKey:     version,
@@ -99,7 +99,7 @@ func createProcs(version string, peers []plan.PeerSpec, prog string, args []stri
 	var procs []sch.Proc
 	for _, peer := range peers {
 		localRank, _ := plan.LocalRank(peers, peer)
-		name := fmt.Sprintf("%s:%d", peer.NetAddr.Host, peer.NetAddr.Port)
+		name := fmt.Sprintf("%s:%d", peer.Host, peer.Port)
 		procs = append(procs, sch.NewProc(name, prog, args, envs, peer, localRank))
 	}
 	return procs
