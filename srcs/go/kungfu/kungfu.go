@@ -75,10 +75,11 @@ func (kf *Kungfu) Start() int {
 	go kf.server.Serve()
 	go kf.localServer.Serve()
 	if kc.EnableMonitoring {
-		monitor.StartServer(int(kf.self.MonitoringPort))
+		monitoringPort := kf.self.NetAddr.Port + 10000
+		monitor.StartServer(int(monitoringPort))
 		monitorAddr := plan.NetAddr{
 			Host: kf.self.NetAddr.Host, // FIXME: use pubAddr
-			Port: kf.self.MonitoringPort,
+			Port: monitoringPort,
 		}
 		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self.NetAddr, monitorAddr)
 	}

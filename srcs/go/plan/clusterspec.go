@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+type PeerList []PeerSpec
+
 type ClusterSpec struct {
 	Peers []PeerSpec
 }
@@ -19,6 +21,23 @@ func (cs ClusterSpec) Lookup(ps PeerSpec) (int, bool) {
 		}
 	}
 	return -1, false
+}
+
+func (pl PeerList) LocalRank(ps PeerSpec) (int, bool) {
+	var i int
+	for _, p := range pl {
+		if p == ps {
+			return i, true
+		}
+		if ps.ColocatedWith(p) {
+			i++
+		}
+	}
+	return -1, false
+}
+
+func LocalRank(pl PeerList, ps PeerSpec) (int, bool) {
+	return pl.LocalRank(ps)
 }
 
 func GenClusterSpec(k int, hostSpecs []HostSpec) (*ClusterSpec, error) {

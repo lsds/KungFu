@@ -98,8 +98,9 @@ func createProcs(version string, peers []plan.PeerSpec, prog string, args []stri
 	}
 	var procs []sch.Proc
 	for _, peer := range peers {
+		localRank, _ := plan.LocalRank(peers, peer)
 		name := fmt.Sprintf("%s:%d", peer.NetAddr.Host, peer.NetAddr.Port)
-		procs = append(procs, sch.NewProc(name, prog, args, envs, peer))
+		procs = append(procs, sch.NewProc(name, prog, args, envs, peer, localRank))
 	}
 	return procs
 }

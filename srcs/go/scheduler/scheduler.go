@@ -17,11 +17,11 @@ type JobConfig struct {
 	Args      []string
 }
 
-func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.PeerSpec) Proc {
+func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.PeerSpec, localRank int) Proc {
 	configEnvs := getConfigEnvs()
 	envs := Envs{
 		kb.SelfSpecEnvKey:      peer.String(),
-		`CUDA_VISIBLE_DEVICES`: strconv.Itoa(peer.DeviceID),
+		`CUDA_VISIBLE_DEVICES`: strconv.Itoa(localRank),
 		`PYTHONUNBUFFERED`:     `1`,
 	}
 	return Proc{
@@ -50,16 +50,15 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 	configEnvs := getConfigEnvs()
 	var ps []Proc
 	for i, self := range cs.Peers {
-		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
+		localRank, _ := plan.LocalRank(cs.Peers, self)
+		name := fmt.Sprintf("%s.%d", self.NetAddr.Host, self.NetAddr.Port)
 		envs := Envs{
 			kb.ClusterSpecEnvKey:    cs.String(),     // TODO: remove it
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
 			kb.AllReduceAlgoEnvKey:  algo.String(), // FIXME: remove it
-			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(self.DeviceID),
+			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
 			`PYTHONUNBUFFERED`:      `1`,
-			// TODO: add LD_PRELOAD to tcmalloc path
-			// `LD_PRELOAD`:``,
 		}
 		if len(configServerAddr) > 0 {
 			envs[kc.ConfigServerEnvKey] = configServerAddr
@@ -80,16 +79,16 @@ func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungF
 	configEnvs := getConfigEnvs()
 	var ps []Proc
 	for i, self := range cs.Peers {
-		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
+		// name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
+		localRank := 0
+		name := fmt.Sprintf("%s.%d", self.NetAddr.Host, self.NetAddr.Port)
 		envs := Envs{
 			kb.ClusterSpecEnvKey:    cs.String(),
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
 			kb.AllReduceAlgoEnvKey:  algo.String(),
-			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(self.DeviceID),
+			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
 			`PYTHONUNBUFFERED`:      `1`,
-			// TODO: add LD_PRELOAD to tcmalloc path
-			// `LD_PRELOAD`:``,
 		}
 		if disableNCCL {
 			envs[`KUNGFU_DISABLE_NCCL`] = `1`

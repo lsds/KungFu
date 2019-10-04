@@ -8,9 +8,11 @@ import (
 
 // PeerSpec describes the system resources that will be used by the process of the peer
 type PeerSpec struct {
-	DeviceID       int
-	NetAddr        NetAddr
-	MonitoringPort uint16
+	NetAddr NetAddr
+}
+
+func (ps PeerSpec) ColocatedWith(q PeerSpec) bool {
+	return ps.NetAddr.Host == q.NetAddr.Host
 }
 
 func (ps PeerSpec) String() string {
@@ -38,12 +40,10 @@ func genPeerSpecs(k int, hostSpecs []HostSpec) []PeerSpec {
 	for _, host := range hostSpecs {
 		for j := 0; j < host.Slots; j++ {
 			peer := PeerSpec{
-				DeviceID: j,
 				NetAddr: NetAddr{
 					Host: host.Hostname,
 					Port: uint16(10001 + j),
 				},
-				MonitoringPort: uint16(20001 + j),
 			}
 			peers = append(peers, peer)
 			if len(peers) >= k {

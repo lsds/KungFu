@@ -65,12 +65,10 @@ func requireInt(key string) (int, error) {
 func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
 	if n == 1 {
 		peer := plan.PeerSpec{
-			DeviceID: 0,
 			NetAddr: plan.NetAddr{
 				Host: "127.0.0.1",
 				Port: uint16(38888),
 			},
-			MonitoringPort: uint16(20001),
 		}
 		return &plan.ClusterSpec{Peers: []plan.PeerSpec{peer}}, nil
 	}
@@ -88,12 +86,10 @@ func parseClusterSpec(n int) (*plan.ClusterSpec, error) {
 		}
 		log.Infof("%s resolved as %s:%d", val, ipv4, port)
 		peer := plan.PeerSpec{
-			DeviceID: 0,
 			NetAddr: plan.NetAddr{
 				Host: ipv4,
 				Port: uint16(port),
 			},
-			MonitoringPort: uint16(20001),
 		}
 		log.Infof("peer: %d: %#v", i, peer)
 		peers = append(peers, peer)
