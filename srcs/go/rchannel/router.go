@@ -27,9 +27,9 @@ type Router struct {
 	reqMu sync.Mutex
 }
 
-func NewRouter(self plan.PeerSpec, store *store.VersionedStore) *Router {
+func NewRouter(self plan.PeerID, store *store.VersionedStore) *Router {
 	return &Router{
-		localAddr: self.NetAddr,
+		localAddr: plan.NetAddr(self),
 
 		waitQ: newBufferPool(),
 		recvQ: newBufferPool(),

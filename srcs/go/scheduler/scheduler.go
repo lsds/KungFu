@@ -17,11 +17,11 @@ type JobConfig struct {
 	Args      []string
 }
 
-func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.PeerSpec) Proc {
+func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.PeerID, localRank int) Proc {
 	configEnvs := getConfigEnvs()
 	envs := Envs{
 		kb.SelfSpecEnvKey:      peer.String(),
-		`CUDA_VISIBLE_DEVICES`: strconv.Itoa(peer.DeviceID),
+		`CUDA_VISIBLE_DEVICES`: strconv.Itoa(localRank),
 		`PYTHONUNBUFFERED`:     `1`,
 	}
 	return Proc{
@@ -29,17 +29,17 @@ func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.
 		Prog: prog,
 		Args: args,
 		Envs: merge(merge(configEnvs, envs), extraEnvs),
-		Host: peer.NetAddr.Host,
-		// PubAddr: pubAddr[self.NetAddr.Host],
+		Host: peer.Host,
+		// PubAddr: pubAddr[self.Host],
 	}
 }
 
-func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr string) ([]Proc, *plan.ClusterSpec, error) {
+func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr string) ([]Proc, plan.PeerList, error) {
 	hostSpecs, err := plan.ParseHostSpec(jc.HostList)
 	if err != nil {
 		return nil, nil, err
 	}
-	cs, err := plan.GenClusterSpec(jc.PeerCount, hostSpecs)
+	pl, err := plan.GenPeerList(jc.PeerCount, hostSpecs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -49,17 +49,16 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 	}
 	configEnvs := getConfigEnvs()
 	var ps []Proc
-	for i, self := range cs.Peers {
-		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
+	for i, self := range pl {
+		localRank, _ := pl.LocalRank(self)
+		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.ClusterSpecEnvKey:    cs.String(),     // TODO: remove it
+			kb.PeerListEnvKey:       pl.String(),     // TODO: remove it
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
 			kb.AllReduceAlgoEnvKey:  algo.String(), // FIXME: remove it
-			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(self.DeviceID),
+			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
 			`PYTHONUNBUFFERED`:      `1`,
-			// TODO: add LD_PRELOAD to tcmalloc path
-			// `LD_PRELOAD`:``,
 		}
 		if len(configServerAddr) > 0 {
 			envs[kc.ConfigServerEnvKey] = configServerAddr
@@ -69,27 +68,26 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 			Prog:    jc.Prog,
 			Args:    jc.Args,
 			Envs:    merge(configEnvs, envs),
-			Host:    self.NetAddr.Host,
-			PubAddr: pubAddr[self.NetAddr.Host],
+			Host:    self.Host,
+			PubAddr: pubAddr[self.Host],
 		})
 	}
-	return ps, cs, nil
+	return ps, pl, nil
 }
 
-func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungFu_AllReduceAlgo, disableNCCL bool) ([]Proc, error) {
+func CreateProcs(prog string, args []string, pl plan.PeerList, algo kb.KungFu_AllReduceAlgo, disableNCCL bool) ([]Proc, error) {
 	configEnvs := getConfigEnvs()
 	var ps []Proc
-	for i, self := range cs.Peers {
-		name := fmt.Sprintf("%02s/%02d/%02d-of-%02d", self.NetAddr.Host, self.DeviceID, i, len(cs.Peers))
+	for i, self := range pl {
+		localRank, _ := pl.LocalRank(self)
+		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.ClusterSpecEnvKey:    cs.String(),
+			kb.PeerListEnvKey:       pl.String(),
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
 			kb.AllReduceAlgoEnvKey:  algo.String(),
-			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(self.DeviceID),
+			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
 			`PYTHONUNBUFFERED`:      `1`,
-			// TODO: add LD_PRELOAD to tcmalloc path
-			// `LD_PRELOAD`:``,
 		}
 		if disableNCCL {
 			envs[`KUNGFU_DISABLE_NCCL`] = `1`
@@ -99,8 +97,8 @@ func CreateProcs(prog string, args []string, cs *plan.ClusterSpec, algo kb.KungF
 			Prog:    prog,
 			Args:    args,
 			Envs:    merge(configEnvs, envs),
-			Host:    self.NetAddr.Host,
-			PubAddr: self.NetAddr.Host,
+			Host:    self.Host,
+			PubAddr: self.Host,
 		})
 	}
 	return ps, nil

@@ -31,7 +31,7 @@ type Kungfu struct {
 	sync.Mutex
 
 	configClient   *ConfigClient
-	self           *plan.PeerSpec
+	self           plan.PeerID
 	currentSession *session
 
 	store       *store.VersionedStore
@@ -62,7 +62,7 @@ func New(config Config) (*Kungfu, error) {
 	}
 	return &Kungfu{
 		configClient: configClient,
-		self:         self,
+		self:         *self,
 		store:        store,
 		router:       router,
 		server:       server,
@@ -75,12 +75,13 @@ func (kf *Kungfu) Start() int {
 	go kf.server.Serve()
 	go kf.localServer.Serve()
 	if kc.EnableMonitoring {
-		monitor.StartServer(int(kf.self.MonitoringPort))
+		monitoringPort := kf.self.Port + 10000
+		monitor.StartServer(int(monitoringPort))
 		monitorAddr := plan.NetAddr{
-			Host: kf.self.NetAddr.Host, // FIXME: use pubAddr
-			Port: kf.self.MonitoringPort,
+			Host: kf.self.Host, // FIXME: use pubAddr
+			Port: monitoringPort,
 		}
-		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self.NetAddr, monitorAddr)
+		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self, monitorAddr)
 	}
 	return 0
 }
@@ -111,12 +112,12 @@ func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bo
 		return false, err
 	}
 	log.Infof("generating new cluster spec of size %d", newSize)
-	cs, err := plan.GenClusterSpec(newSize, hostSpecs)
+	cs, err := plan.GenPeerList(newSize, hostSpecs)
 	if err != nil {
 		log.Errorf("failed to generate new cluster spec: %v", err)
 		return false, err
 	}
-	if err := kf.configClient.PutConfig(version, kb.ClusterSpecEnvKey, cs); err != nil {
+	if err := kf.configClient.PutConfig(version, kb.PeerListEnvKey, cs); err != nil {
 		log.Warnf("failed to write config: %v", err)
 		return false, err
 	}
@@ -124,7 +125,7 @@ func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bo
 		log.Warnf("failed to write config: %v", err)
 		return false, err
 	}
-	_, keep := cs.Lookup(*kf.self)
+	_, keep := cs.Lookup(kf.self)
 	return keep, nil
 }
 
@@ -150,15 +151,15 @@ func (kf *Kungfu) UpdateSession(version string) bool {
 
 func (kf *Kungfu) updateSession(version string) bool {
 	log.Infof("Kungfu::updateSession with version %q", version)
-	var cs plan.ClusterSpec
-	if err := kf.configClient.GetConfig(version, kb.ClusterSpecEnvKey, &cs); err != nil {
+	var pl plan.PeerList
+	if err := kf.configClient.GetConfig(version, kb.PeerListEnvKey, &pl); err != nil {
 		log.Warnf("failed to get config: %v, running in single mode", err)
-		cs = plan.ClusterSpec{Peers: []plan.PeerSpec{*kf.self}}
+		pl = []plan.PeerID{kf.self}
 		// utils.ExitErr(err)
 	}
-	log.Infof("creating session of %d peers", len(cs.Peers))
+	log.Infof("creating session of %d peers", len(pl))
 	kf.router.ResetConnections()
-	sess, exist, err := newSession(kf.config, kf.self, &cs, kf.router)
+	sess, exist, err := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
 		return false
 	}

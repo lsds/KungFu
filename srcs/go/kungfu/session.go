@@ -25,13 +25,13 @@ type strategy struct {
 // session contains the immutable topology and strategies for a given period of logical duration
 type session struct {
 	strategies []strategy
-	self       *plan.PeerSpec
-	cluster    *plan.ClusterSpec
+	self       plan.PeerID
+	cluster    plan.PeerList
 	myRank     int
 	router     *rch.Router
 }
 
-type partitionStrategy func([]plan.PeerSpec) []strategy
+type partitionStrategy func([]plan.PeerID) []strategy
 
 var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
 	kb.KungFu_Star:   createStarStrategies,
@@ -40,20 +40,20 @@ var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
 	kb.KungFu_Tree:   createTreeStrategies,
 }
 
-func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch.Router) (*session, bool, error) {
+func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool, error) {
 	f := partitionStrategies[c.Algo]
 	if f == nil {
 		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
 		f = createStarStrategies
 	}
-	myRank, ok := cs.Lookup(*self)
+	myRank, ok := pl.Lookup(self)
 	if !ok {
 		return nil, false, nil
 	}
 	sess := &session{
-		strategies: f(cs.Peers),
+		strategies: f(pl),
 		self:       self,
-		cluster:    cs,
+		cluster:    pl,
 		myRank:     myRank,
 		router:     router,
 	}
@@ -63,7 +63,7 @@ func newSession(c Config, self *plan.PeerSpec, cs *plan.ClusterSpec, router *rch
 	return sess, true, nil
 }
 
-func createStarStrategies(peers []plan.PeerSpec) []strategy {
+func createStarStrategies(peers []plan.PeerID) []strategy {
 	k := len(peers)
 	bcastGraph := plan.GenStarBcastGraph(k, defaultRoot)
 	reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
@@ -75,7 +75,7 @@ func createStarStrategies(peers []plan.PeerSpec) []strategy {
 	}
 }
 
-func createTreeStrategies(peers []plan.PeerSpec) []strategy {
+func createTreeStrategies(peers []plan.PeerID) []strategy {
 	bcastGraph := plan.GenDefaultBcastGraph(peers)
 	reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
 	return []strategy{
@@ -86,7 +86,7 @@ func createTreeStrategies(peers []plan.PeerSpec) []strategy {
 	}
 }
 
-func createCliqueStrategies(peers []plan.PeerSpec) []strategy {
+func createCliqueStrategies(peers []plan.PeerID) []strategy {
 	k := len(peers)
 	var ss []strategy
 	for r := 0; r < k; r++ {
@@ -100,7 +100,7 @@ func createCliqueStrategies(peers []plan.PeerSpec) []strategy {
 	return ss
 }
 
-func createRingStrategies(peers []plan.PeerSpec) []strategy {
+func createRingStrategies(peers []plan.PeerID) []strategy {
 	k := len(peers)
 	var ss []strategy
 	for r := 0; r < k; r++ {
@@ -114,7 +114,7 @@ func createRingStrategies(peers []plan.PeerSpec) []strategy {
 }
 
 func (sess *session) ClusterSize() int {
-	return len(sess.cluster.Peers)
+	return len(sess.cluster)
 }
 
 func (sess *session) Rank() int {
@@ -122,7 +122,7 @@ func (sess *session) Rank() int {
 }
 
 func (sess *session) Warmup() int {
-	k := len(sess.cluster.Peers)
+	k := len(sess.cluster)
 	count := k * 4
 	dtype := kb.KungFu_INT32
 	w := Workspace{
@@ -131,11 +131,11 @@ func (sess *session) Warmup() int {
 		OP:      kb.KungFu_SUM,
 		Name:    "kungfu::warmup", // TODO: use tag
 	}
-	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
+	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster)))
 }
 
 func (sess *session) Barrier() int {
-	k := len(sess.cluster.Peers)
+	k := len(sess.cluster)
 	count := k * 1
 	dtype := kb.KungFu_UINT8
 	w := Workspace{
@@ -144,7 +144,7 @@ func (sess *session) Barrier() int {
 		OP:      kb.KungFu_SUM,
 		Name:    "kungfu::barrier", // TODO: use tag
 	}
-	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster.Peers)))
+	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster)))
 }
 
 func (sess *session) AllReduce(w Workspace) int {
@@ -167,16 +167,16 @@ func (sess *session) Gather(w Workspace) int {
 }
 
 func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
-	if rank < 0 || len(sess.cluster.Peers) <= rank {
+	if rank < 0 || len(sess.cluster) <= rank {
 		return code(errInvalidRank)
 	}
-	peer := sess.cluster.Peers[rank]
-	return code(sess.router.Request(peer.NetAddr.WithName(name), model))
+	peer := sess.cluster[rank]
+	return code(sess.router.Request(peer.WithName(name), model))
 }
 
 func (sess *session) Pull(rank int, version, name string, model *kb.Buffer) int {
-	peer := sess.cluster.Peers[rank]
-	return code(sess.router.Pull(version, peer.NetAddr.WithName(name), model))
+	peer := sess.cluster[rank]
+	return code(sess.router.Pull(version, peer.WithName(name), model))
 }
 
 // FIXME: move it to kungfu
@@ -193,18 +193,18 @@ func asMessage(b *kb.Buffer) rch.Message {
 
 func (sess *session) runGather(w Workspace) error {
 	if sess.myRank != defaultRoot {
-		peer := sess.cluster.Peers[defaultRoot]
-		return sess.router.Send(peer.NetAddr.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective, rch.NoFlag)
+		peer := sess.cluster[defaultRoot]
+		return sess.router.Send(peer.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective, rch.NoFlag)
 	}
 	var wg sync.WaitGroup
 	count := w.SendBuf.Count
-	for rank, peer := range sess.cluster.Peers {
+	for rank, peer := range sess.cluster {
 		wg.Add(1)
-		go func(rank int, peer plan.PeerSpec, recvBuf *kb.Buffer) {
+		go func(rank int, peer plan.PeerID, recvBuf *kb.Buffer) {
 			if rank == sess.myRank {
 				recvBuf.CopyFrom(w.SendBuf)
 			} else {
-				m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
+				m := sess.router.Recv(peer.WithName(w.Name))
 				b := &kb.Buffer{Data: m.Data, Count: recvBuf.Count, Type: recvBuf.Type}
 				recvBuf.CopyFrom(b)
 			}
@@ -216,7 +216,7 @@ func (sess *session) runGather(w Workspace) error {
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
-	if len(sess.cluster.Peers) == 1 {
+	if len(sess.cluster) == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)
 		return nil
 	}
@@ -228,16 +228,16 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		}
 		return w.RecvBuf.Data
 	}
-	sendOnto := func(peer plan.PeerSpec) error {
-		return sess.router.Send(peer.NetAddr.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.NoFlag)
+	sendOnto := func(peer plan.PeerID) error {
+		return sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.NoFlag)
 	}
-	sendInto := func(peer plan.PeerSpec) error {
-		return sess.router.Send(peer.NetAddr.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.WaitRecvBuf)
+	sendInto := func(peer plan.PeerID) error {
+		return sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.WaitRecvBuf)
 	}
 
 	var lock sync.Mutex
-	recvOnto := func(peer plan.PeerSpec) error {
-		m := sess.router.Recv(peer.NetAddr.WithName(w.Name))
+	recvOnto := func(peer plan.PeerID) error {
+		m := sess.router.Recv(peer.WithName(w.Name))
 		b := &kb.Buffer{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
 		defer lock.Unlock()
@@ -251,18 +251,18 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return nil
 	}
 
-	recvInto := func(peer plan.PeerSpec) {
-		sess.router.RecvInto(peer.NetAddr.WithName(w.Name), asMessage(w.RecvBuf))
+	recvInto := func(peer plan.PeerID) {
+		sess.router.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 		recvCount++
 	}
 
-	par := func(ranks []int, op func(plan.PeerSpec) error) error {
+	par := func(ranks []int, op func(plan.PeerID) error) error {
 		errs := make([]error, len(ranks))
 		var wg sync.WaitGroup
 		for i, rank := range ranks {
 			wg.Add(1)
 			go func(i, rank int) {
-				errs[i] = op(sess.cluster.Peers[rank])
+				errs[i] = op(sess.cluster[rank])
 				wg.Done()
 			}(i, rank)
 		}
@@ -270,9 +270,9 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return mergeErrors(errs, "par")
 	}
 
-	seq := func(ranks []int, op func(plan.PeerSpec)) {
+	seq := func(ranks []int, op func(plan.PeerID)) {
 		for _, rank := range ranks {
-			op(sess.cluster.Peers[rank])
+			op(sess.cluster[rank])
 		}
 	}
 
