@@ -9,6 +9,10 @@ import (
 )
 
 const (
+	UseUnixSock = true
+)
+
+const (
 	LogConfigVarsEnvKey    = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
 	RunWarmupEnvKey        = `KUNGFU_CONFIG_RUN_WARMUP`
 	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`

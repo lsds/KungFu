@@ -34,11 +34,10 @@ type Kungfu struct {
 	self           plan.PeerID
 	currentSession *session
 
-	store       *store.VersionedStore
-	router      *rch.Router
-	server      *rch.Server
-	localServer *rch.Server
-	config      Config
+	store  *store.VersionedStore
+	router *rch.Router
+	server rch.Server
+	config Config
 }
 
 func New(config Config) (*Kungfu, error) {
@@ -56,24 +55,18 @@ func New(config Config) (*Kungfu, error) {
 	if err != nil {
 		return nil, err
 	}
-	localServer, err := rch.NewLocalServer(router)
-	if err != nil {
-		return nil, err
-	}
 	return &Kungfu{
 		configClient: configClient,
 		self:         *self,
 		store:        store,
 		router:       router,
 		server:       server,
-		localServer:  localServer,
 		config:       config.complete(),
 	}, nil
 }
 
 func (kf *Kungfu) Start() int {
 	go kf.server.Serve()
-	go kf.localServer.Serve()
 	if kc.EnableMonitoring {
 		monitoringPort := kf.self.Port + 10000
 		monitor.StartServer(int(monitoringPort))
@@ -91,7 +84,6 @@ func (kf *Kungfu) Close() int {
 		monitor.StopServer()
 	}
 	kf.server.Close() // TODO: check error
-	kf.localServer.Close()
 	return 0
 }
 
