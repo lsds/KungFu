@@ -53,8 +53,7 @@ func parseID(val string) (*PeerID, error) {
 func GetSelfFromEnv() (*PeerID, error) {
 	config, ok := os.LookupEnv(kb.SelfSpecEnvKey)
 	if !ok {
-		ps := genPeerIDs(1, []HostSpec{DefaultHostSpec()})
-		return &ps[0], nil
+		return nil, fmt.Errorf("%s not set", kb.SelfSpecEnvKey)
 	}
 	return parseID(config)
 }

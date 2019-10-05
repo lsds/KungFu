@@ -87,7 +87,7 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 
 	jc := sch.JobConfig{
 		PeerCount: plan.TotalCap(hosts),
-		HostList:  plan.FormatHostSpec(hosts),
+		HostList:  hosts,
 		Prog:      prog,
 		Args:      args,
 	}
@@ -122,11 +122,11 @@ func runExperiment(logDir string, hosts []plan.HostSpec, prog string, args []str
 	return &res, nil
 }
 
-func reschedule(hosts []plan.HostSpec, partition []int) ([]plan.HostSpec, error) {
+func reschedule(hosts []plan.HostSpec, partition []int) (plan.HostList, error) {
 	if len(hosts) < len(partition) {
 		return nil, errors.New("hosts not enough")
 	}
-	var workers []plan.HostSpec
+	var workers plan.HostList
 	for i, p := range partition {
 		w := hosts[i]
 		if w.Slots < p {

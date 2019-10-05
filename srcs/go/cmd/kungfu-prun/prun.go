@@ -81,7 +81,7 @@ func main() {
 	}
 	procs, peers, err := jc.CreateProcs(kb.ParseAlgo(*algo))
 	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to create job: %v", err))
+		utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
 	}
 
 	if *watch {

@@ -54,7 +54,8 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, plan.Peer
 		localRank, _ := pl.LocalRank(self)
 		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.PeerListEnvKey:       pl.String(),     // TODO: remove it
+			kb.ParentIDEnvKey:       jc.Parent.String(),
+			kb.PeerListEnvKey:       pl.String(),
 			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:       self.String(),
 			kb.AllReduceAlgoEnvKey:  algo.String(), // FIXME: remove it

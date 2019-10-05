@@ -50,33 +50,21 @@ type Kungfu struct {
 }
 
 func New(config Config) (*Kungfu, error) {
-	self, err := plan.GetSelfFromEnv()
-	if err != nil {
-		return nil, err
-	}
-	parent, err := plan.GetParentFromEnv()
-	if err != nil {
-		return nil, err
-	}
-	hostList, err := plan.GetHostListFromEnv()
-	if err != nil {
-		return nil, err
-	}
-	currentPeers, err := plan.GetInitPeersFromEnv()
+	env, err := plan.ParseEnv()
 	if err != nil {
 		return nil, err
 	}
 	store := store.NewVersionedStore(3)
-	router := rch.NewRouter(*self, store)
+	router := rch.NewRouter(env.Self, store)
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
 	}
 	return &Kungfu{
-		parent:       *parent,
-		currentPeers: currentPeers,
-		self:         *self,
-		hostList:     hostList,
+		parent:       env.Parent,
+		currentPeers: env.InitPeers,
+		self:         env.Self,
+		hostList:     env.HostList,
 		checkpoint:   os.Getenv(kb.CheckpointEnvKey),
 		store:        store,
 		router:       router,
@@ -160,7 +148,7 @@ func (kf *Kungfu) UpdateSession(version string) bool {
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
-	log.Infof("Kungfu::updateTo(%s)", pl)
+	log.Debugf("Kungfu::updateTo(%s)", pl)
 	kf.router.ResetConnections()
 	sess, exist, err := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
