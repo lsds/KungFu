@@ -53,6 +53,16 @@ func (pl PeerList) Diff(ql PeerList) (PeerList, PeerList) {
 	return pl.sub(ql), ql.sub(pl)
 }
 
+func (pl PeerList) On(host string) PeerList {
+	var ql PeerList
+	for _, p := range pl {
+		if p.Host == host {
+			ql = append(ql, p)
+		}
+	}
+	return ql
+}
+
 func GenPeerList(k int, hostSpecs []HostSpec) (PeerList, error) {
 	if cap := TotalCap(hostSpecs); cap < k {
 		return nil, fmt.Errorf("can run %d peers at most", cap)

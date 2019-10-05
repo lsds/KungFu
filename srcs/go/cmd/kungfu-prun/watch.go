@@ -15,7 +15,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func watchRun(selfIP string, ch chan prun.Stage, prog string, args []string) {
+func watchRun(localhost string, ch chan prun.Stage, prog string, args []string) {
 	log.Printf("watching config server")
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
@@ -25,15 +25,16 @@ func watchRun(selfIP string, ch chan prun.Stage, prog string, args []string) {
 	var current plan.PeerList
 
 	reconcileCluster := func(s prun.Stage) {
-		log.Printf("updated to %q", s.Checkpoint)
-		newPeers, removedPeers := current.Diff(s.Cluster) // FIXME: also wait termination
-		log.Printf("%d new %s will be created, %d old %s will be removed",
-			len(newPeers), utils.Pluralize(len(newPeers), "peer", "peers"),
-			len(removedPeers), utils.Pluralize(len(removedPeers), "peer", "peers"))
-		newProcs := createProcs(s.Checkpoint, newPeers, prog, args)
-		localProcs := sch.ForHost(selfIP, newProcs)
-		log.Printf("%d new %s will be created on this host", len(localProcs), utils.Pluralize(len(localProcs), "proc", "proc"))
-		for _, proc := range localProcs {
+		a, b := current.Diff(s.Cluster)
+		del := a.On(localhost)
+		add := b.On(localhost)
+		log.Printf("arrived at %s, will remove %d %s (%d locally), will add %d %s (%d locally)",
+			s.Checkpoint,
+			len(a), utils.Pluralize(len(a), "peer", "peers"), len(del),
+			len(b), utils.Pluralize(len(b), "peer", "peers"), len(add))
+		// FIXME: also wait termination
+		newProcs := createProcs(s.Checkpoint, add, prog, args)
+		for _, proc := range newProcs {
 			wg.Add(1)
 			go runProc(ctx, cancel, proc, &wg, s.Checkpoint)
 		}
