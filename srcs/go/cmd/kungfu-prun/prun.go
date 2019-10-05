@@ -7,16 +7,15 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	prun "github.com/lsds/KungFu/srcs/go/kungfuprun"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -36,6 +35,7 @@ var (
 	watch            = flag.Bool("w", false, "watch config")
 	watchPeriod      = flag.Duration("watch-period", 500*time.Millisecond, "")
 	keep             = flag.Bool("k", false, "don't stop watch")
+	checkpoint       = flag.String("checkpoint", "0", "")
 	logFile          = flag.String("log-file", "", "")
 )
 
@@ -56,6 +56,10 @@ func init() {
 	utils.LogNCCLEnv()
 }
 
+var (
+	errMissingProgramName = errors.New("missing program name")
+)
+
 func main() {
 	selfIP := func() string {
 		switch {
@@ -69,15 +73,10 @@ func main() {
 	log.Printf("Using selfHost=%s", selfIP)
 	restArgs := flag.Args()
 	if len(restArgs) < 1 {
-		utils.ExitErr(errors.New("missing program name"))
+		utils.ExitErr(errMissingProgramName)
 	}
 	prog := restArgs[0]
 	args := restArgs[1:]
-
-	hostSpecs, err := plan.ParseHostSpec(*hostList)
-	if err != nil {
-		utils.ExitErr(err)
-	}
 
 	jc := sch.JobConfig{
 		PeerCount: *np,
@@ -86,44 +85,24 @@ func main() {
 		Args:      args,
 	}
 
-	useConfigServer := *configServerPort > 0
-
-	var configServerAddr string
-	if useConfigServer {
-		configServerAddr = net.JoinHostPort(*configServerHost, strconv.Itoa(*configServerPort))
-	}
-
-	ps, cs, err := jc.CreateProcs(kb.ParseAlgo(*algo), configServerAddr)
+	procs, peers, err := jc.CreateProcs(kb.ParseAlgo(*algo))
 	if err != nil {
-		utils.ExitErr(err)
-	}
-
-	configClient, err := kf.NewConfigClient(configServerAddr)
-	if err != nil {
-		utils.ExitErr(err)
-	}
-
-	var updated chan string
-
-	if useConfigServer {
-		updated = make(chan string, 1)
-		go watchConfigServer(configClient, updated)
-		go runConfigServer(configServerAddr, nil)
-
-		// updated = make(chan string, 1)
-		// go runConfigServer(configServerAddr, updated)
-
-		log.Printf("config server running at %s", configServerAddr)
-		time.Sleep(50 * time.Millisecond) // FIXME: wait config server
-		if err := initConfig(configClient, configServerAddr, hostSpecs, cs); err != nil {
-			utils.ExitErr(err)
-		}
+		utils.ExitErr(fmt.Errorf("failed to create job: %v", err))
 	}
 
 	if *watch {
-		watchRun(configClient, selfIP, updated, prog, args, configServerAddr)
+		ch := make(chan prun.Stage, 1)
+		ch <- prun.Stage{Cluster: peers, Checkpoint: *checkpoint}
+		parent := &plan.PeerID{Host: selfIP, Port: uint16(*configServerPort)}
+		server, err := rch.NewServer(prun.NewHandler(*parent, ch))
+		if err != nil {
+			utils.ExitErr(fmt.Errorf("failed to create server: %v", err))
+		}
+		go server.Serve()
+		defer server.Close()
+		watchRun(selfIP, ch, prog, args)
 	} else {
-		simpleRun(selfIP, ps, prog, args)
+		simpleRun(selfIP, procs, prog, args)
 	}
 }
 
@@ -171,23 +150,4 @@ func inferIP(nicName string) string {
 		}
 	}
 	return "127.0.0.1"
-}
-
-func runConfigServer(addr string, updated chan string) {
-	server := http.Server{
-		Addr:    addr,
-		Handler: kf.NewConfigServer(updated),
-	}
-	server.ListenAndServe()
-}
-
-func initConfig(c *kf.ConfigClient, configServerAddr string, hostSpecs []plan.HostSpec, pl plan.PeerList) error {
-	const initToken = "0"
-	if err := c.PutConfig(initToken, kb.HostSpecEnvKey, hostSpecs); err != nil {
-		return err
-	}
-	if err := c.PutConfig(initToken, kb.PeerListEnvKey, pl); err != nil {
-		return err
-	}
-	return nil
 }

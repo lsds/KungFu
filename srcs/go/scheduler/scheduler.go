@@ -34,7 +34,7 @@ func NewProc(name string, prog string, args []string, extraEnvs Envs, peer plan.
 	}
 }
 
-func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr string) ([]Proc, plan.PeerList, error) {
+func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, plan.PeerList, error) {
 	hostSpecs, err := plan.ParseHostSpec(jc.HostList)
 	if err != nil {
 		return nil, nil, err
@@ -59,9 +59,6 @@ func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo, configServerAddr s
 			kb.AllReduceAlgoEnvKey:  algo.String(), // FIXME: remove it
 			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
 			`PYTHONUNBUFFERED`:      `1`,
-		}
-		if len(configServerAddr) > 0 {
-			envs[kc.ConfigServerEnvKey] = configServerAddr
 		}
 		ps = append(ps, Proc{
 			Name:    name,

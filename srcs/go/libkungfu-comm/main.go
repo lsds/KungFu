@@ -25,7 +25,7 @@ func GoKungfuInit(algo C.KungFu_AllReduceAlgo) int {
 	config := kf.Config{Algo: kb.KungFu_AllReduceAlgo(algo)}
 	kungfu, err = kf.New(config)
 	if err != nil {
-		utils.ExitErr(err)
+		utils.ExitErr(fmt.Errorf("failed to create KungFu instance: %v", err))
 	}
 	return kungfu.Start()
 }

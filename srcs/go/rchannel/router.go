@@ -235,7 +235,7 @@ func (r *Router) Save(name string, model *kb.Buffer) error {
 	return nil
 }
 
-var errInvalidConnectionType = errors.New("invalid connection type")
+var ErrInvalidConnectionType = errors.New("invalid connection type")
 
 func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error {
 	switch t {
@@ -246,6 +246,6 @@ func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error {
 		_, err := stream(conn, remote, r.acceptOne, r.handlePeerToPeerConn)
 		return err
 	default:
-		return errInvalidConnectionType
+		return ErrInvalidConnectionType
 	}
 }
