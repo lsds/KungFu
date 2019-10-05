@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"sync/atomic"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	prun "github.com/lsds/KungFu/srcs/go/kungfuprun"
@@ -21,8 +20,9 @@ func watchRun(localhost string, ch chan prun.Stage, prog string, args []string) 
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
 
-	var wg sync.WaitGroup
+	var all sync.WaitGroup
 	var current plan.PeerList
+	gs := make(map[plan.PeerID]*sync.WaitGroup)
 
 	reconcileCluster := func(s prun.Stage) {
 		a, b := current.Diff(s.Cluster)
@@ -32,57 +32,54 @@ func watchRun(localhost string, ch chan prun.Stage, prog string, args []string) 
 			s.Checkpoint,
 			len(a), utils.Pluralize(len(a), "peer", "peers"), len(del),
 			len(b), utils.Pluralize(len(b), "peer", "peers"), len(add))
-		// FIXME: also wait termination
-		newProcs := createProcs(s.Checkpoint, add, prog, args)
-		for _, proc := range newProcs {
-			wg.Add(1)
-			go runProc(ctx, cancel, proc, &wg, s.Checkpoint)
+		for _, id := range del {
+			gs[id].Wait()
+			delete(gs, id)
+		}
+		// log.Debugf("%d peers removed", len(del))
+		for _, id := range add {
+			gs[id] = new(sync.WaitGroup)
+			gs[id].Add(1)
+			all.Add(1)
+			go func(g *sync.WaitGroup, id plan.PeerID, chpt string) {
+				localRank, _ := s.Cluster.LocalRank(id)
+				name := fmt.Sprintf("%s.%d", id.Host, id.Port)
+				envs := sch.Envs{
+					kb.InitSessEnvKey: s.Checkpoint,
+				}
+				proc := sch.NewProc(name, prog, args, envs, id, localRank)
+				runProc(ctx, cancel, proc, s.Checkpoint)
+				g.Done()
+				all.Done()
+			}(gs[id], id, s.Checkpoint)
 		}
 		current = s.Cluster
 	}
 	reconcileCluster(<-ch)
 	go func() {
 		for s := range ch {
-			wg.Add(1)
+			all.Add(1)
 			reconcileCluster(s)
-			wg.Done()
+			all.Done()
 		}
 	}()
 	if *keep {
-		wg.Add(1)
+		err := <-ctx.Done()
+		log.Printf("context is done: %v", err)
 	}
-	wg.Wait()
+	all.Wait()
 	log.Printf("stop watching")
 }
 
-func createProcs(version string, pl plan.PeerList, prog string, args []string) []sch.Proc {
-	envs := sch.Envs{
-		kb.InitSessEnvKey: version,
-	}
-	var procs []sch.Proc
-	for _, peer := range pl {
-		localRank, _ := pl.LocalRank(peer)
-		name := fmt.Sprintf("%s:%d", peer.Host, peer.Port)
-		procs = append(procs, sch.NewProc(name, prog, args, envs, peer, localRank))
-	}
-	return procs
-}
-
-var running int32
-
-func runProc(ctx context.Context, cancel context.CancelFunc, proc sch.Proc, wg *sync.WaitGroup, version string) {
-	defer wg.Done()
+func runProc(ctx context.Context, cancel context.CancelFunc, proc sch.Proc, version string) {
 	r := &runner.Runner{}
 	r.SetName(proc.Name)
 	r.SetLogPrefix(proc.Name + "@" + version)
 	r.SetVerbose(true)
-	atomic.AddInt32(&running, 1)
 	err := r.Run(ctx, proc.Cmd())
-	n := atomic.AddInt32(&running, -1)
 	if err != nil {
-		log.Printf("%s finished with error: %v, %d still running", proc.Name, err, n)
+		log.Printf("%s finished with error: %v", proc.Name, err)
 		cancel()
 		return
 	}
-	log.Printf("%s finished succefully, %d still running", proc.Name, n)
 }
