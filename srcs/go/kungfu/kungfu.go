@@ -117,7 +117,7 @@ func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bo
 		for _, h := range kf.hostList {
 			id := plan.PeerID{Host: h.Hostname, Port: kf.parent.Port}
 			if err := kf.router.Send(id.WithName("update"), stage.Encode(), rch.ConnControl, 0); err != nil {
-				return err
+				return false, err
 			}
 		}
 	}
