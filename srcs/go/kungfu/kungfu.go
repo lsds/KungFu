@@ -9,7 +9,7 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
-	prun "github.com/lsds/KungFu/srcs/go/kungfuprun"
+	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -112,11 +112,13 @@ func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bo
 	}
 	checkpoint := strconv.Itoa(globalStep)
 	{
-		stage := prun.Stage{Checkpoint: checkpoint, Cluster: peers}
+		stage := run.Stage{Checkpoint: checkpoint, Cluster: peers}
+		// FIXME: use par
 		for _, h := range kf.hostList {
 			id := plan.PeerID{Host: h.Hostname, Port: kf.parent.Port}
-			log.Infof("will send to %s %s", id, rch.ConnControl)
-			kf.router.Send(id.WithName("update"), stage.Encode(), rch.ConnControl, 0)
+			if err := kf.router.Send(id.WithName("update"), stage.Encode(), rch.ConnControl, 0); err != nil {
+				return err
+			}
 		}
 	}
 	func() {

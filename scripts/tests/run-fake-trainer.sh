@@ -8,7 +8,7 @@ cd ../..
 . ./scripts/utils/measure.sh
 
 export MPI_HOME=$HOME/local/openmpi
-KUNGFU_PRUN=$(pwd)/bin/kungfu-prun
+KUNGFU_RUN=$(pwd)/bin/kungfu-run
 
 reinstall() {
     ./scripts/go-install.sh
@@ -28,7 +28,7 @@ run_fake_kungfu_trainer() {
     env \
         KUNGFU_CONFIG_LOG_CONFIG_VARS=true \
         KUNGFU_TEST_CLUSTER_SIZE=$np \
-        ${KUNGFU_PRUN} \
+        ${KUNGFU_RUN} \
         -np=$np \
         -algo="${ALGO}" \
         -H $H \
@@ -50,7 +50,7 @@ run_fake_nccl_trainer() {
     env \
         KUNGFU_CONFIG_LOG_CONFIG_VARS=true \
         KUNGFU_TEST_CLUSTER_SIZE=$np \
-        ${KUNGFU_PRUN} \
+        ${KUNGFU_RUN} \
         -np=$np \
         -H $H \
         -timeout=120s \
@@ -62,7 +62,7 @@ run_fake_go_trainer() {
     local H=127.0.0.1:$np
     env \
         KUNGFU_TEST_CLUSTER_SIZE=$np \
-        ${KUNGFU_PRUN} \
+        ${KUNGFU_RUN} \
         -np=$np \
         -H $H \
         -timeout=120s \
@@ -90,7 +90,7 @@ run_fake_tf_trainer() {
 
     env \
         KUNGFU_TEST_CLUSTER_SIZE=$np \
-        ${KUNGFU_PRUN} \
+        ${KUNGFU_RUN} \
         -np=$np \
         -H $H \
         -timeout=120s \

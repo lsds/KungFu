@@ -12,7 +12,7 @@ H=127.0.0.1:$cap
 kungfu_run() {
     local init_np=$1
     shift
-    ../bin/kungfu-prun \
+    ../bin/kungfu-run \
         -H ${H} \
         -np $init_np \
         -timeout ${timeout} \

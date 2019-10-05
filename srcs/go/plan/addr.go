@@ -22,7 +22,7 @@ func (a NetAddr) String() string {
 }
 
 func (a NetAddr) SockFile() string {
-	return fmt.Sprintf(`/tmp/kungfu-prun-%d.sock`, a.Port)
+	return fmt.Sprintf(`/tmp/kungfu-run-%d.sock`, a.Port)
 }
 
 func (a NetAddr) WithName(name string) Addr {

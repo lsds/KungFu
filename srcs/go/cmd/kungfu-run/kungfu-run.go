@@ -11,7 +11,7 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	prun "github.com/lsds/KungFu/srcs/go/kungfuprun"
+	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
@@ -85,9 +85,9 @@ func main() {
 	}
 
 	if *watch {
-		ch := make(chan prun.Stage, 1)
-		ch <- prun.Stage{Cluster: peers, Checkpoint: *checkpoint}
-		server, err := rch.NewServer(prun.NewHandler(parent, ch))
+		ch := make(chan run.Stage, 1)
+		ch <- run.Stage{Cluster: peers, Checkpoint: *checkpoint}
+		server, err := rch.NewServer(run.NewHandler(parent, ch))
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create server: %v", err))
 		}

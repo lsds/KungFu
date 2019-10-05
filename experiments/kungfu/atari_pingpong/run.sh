@@ -14,8 +14,8 @@ single_train() {
 }
 
 parallel_train() {
-    local KUNGFU_PRUN=${ROOT}/bin/kungfu-prun
-    if [ ! -f ${KUNGFU_PRUN} ]; then
+    local KUNGFU_RUN=${ROOT}/bin/kungfu-run
+    if [ ! -f ${KUNGFU_RUN} ]; then
         ${ROOT}/scripts/go-install.sh
     fi
 
@@ -28,7 +28,7 @@ parallel_train() {
     python3 ./pingpong.py --init=1 --checkpoint=$checkpoint
     local timeout=10m
 
-    ${KUNGFU_PRUN} \
+    ${KUNGFU_RUN} \
         -timeout $timeout \
         -np $np \
         python3 \

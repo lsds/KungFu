@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	prun "github.com/lsds/KungFu/srcs/go/kungfuprun"
+	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
@@ -14,7 +14,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func watchRun(localhost string, ch chan prun.Stage, jc sch.JobConfig) {
+func watchRun(localhost string, ch chan run.Stage, jc sch.JobConfig) {
 	log.Infof("watching config server")
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
@@ -24,7 +24,7 @@ func watchRun(localhost string, ch chan prun.Stage, jc sch.JobConfig) {
 	var current plan.PeerList
 	gs := make(map[plan.PeerID]*sync.WaitGroup)
 
-	reconcileCluster := func(s prun.Stage) {
+	reconcileCluster := func(s run.Stage) {
 		a, b := current.Diff(s.Cluster)
 		del := a.On(localhost)
 		add := b.On(localhost)
@@ -42,7 +42,7 @@ func watchRun(localhost string, ch chan prun.Stage, jc sch.JobConfig) {
 			gs[id] = new(sync.WaitGroup)
 			gs[id].Add(1)
 			all.Add(1)
-			go func(g *sync.WaitGroup, id plan.PeerID, s prun.Stage) {
+			go func(g *sync.WaitGroup, id plan.PeerID, s run.Stage) {
 				localRank, _ := s.Cluster.LocalRank(id)
 				name := fmt.Sprintf("%s.%d", id.Host, id.Port)
 				envs := sch.Envs{

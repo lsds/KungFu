@@ -1,4 +1,4 @@
-package kungfuprun
+package kungfurun
 
 import (
 	"bytes"
