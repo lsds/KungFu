@@ -21,6 +21,10 @@ func (p PeerID) WithName(name string) Addr {
 	return NetAddr(p).WithName(name)
 }
 
+func (p PeerID) SockFile() string {
+	return NetAddr(p).SockFile()
+}
+
 func GetSelfFromEnv() (*PeerID, error) {
 	config := os.Getenv(kb.SelfSpecEnvKey)
 	if len(config) == 0 {

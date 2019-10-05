@@ -8,6 +8,15 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
+type ConnHandler interface {
+	Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error
+}
+
+type Endpoint interface {
+	Self() plan.PeerID
+	ConnHandler
+}
+
 type acceptFunc func(conn net.Conn, remote plan.NetAddr) (string, *Message, error)
 
 type msgHandleFunc func(name string, msg *Message, conn net.Conn, remote plan.NetAddr)

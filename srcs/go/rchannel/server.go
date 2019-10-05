@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"strconv"
 	"sync"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -21,15 +20,15 @@ type Server interface {
 }
 
 // NewServer creates a new Server
-func NewServer(router *Router) (Server, error) {
-	tcpServer, err := newTCPServer(router)
+func NewServer(endpoint Endpoint) (Server, error) {
+	tcpServer, err := newTCPServer(endpoint)
 	if err != nil {
 		return nil, err
 	}
 	var unixServer *server
 	if kc.UseUnixSock {
 		var err error
-		unixServer, err = newUnixServer(router)
+		unixServer, err = newUnixServer(endpoint)
 		if err != nil {
 			return nil, err
 		}
@@ -70,12 +69,12 @@ func (s *composedServer) Close() {
 
 type server struct {
 	listener net.Listener
-	router   *Router
+	endpoint Endpoint
 	unix     bool
 }
 
-func newTCPServer(router *Router) (*server, error) {
-	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(int(router.localAddr.Port)))
+func newTCPServer(endpoint Endpoint) (*server, error) {
+	addr := endpoint.Self().String()
 	log.Debugf("listening: %s", addr)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -83,13 +82,13 @@ func newTCPServer(router *Router) (*server, error) {
 	}
 	return &server{
 		listener: listener,
-		router:   router,
+		endpoint: endpoint,
 	}, nil
 }
 
 // newUnixServer creates a new Server listening Unix socket
-func newUnixServer(router *Router) (*server, error) {
-	sockFile := router.localAddr.SockFile()
+func newUnixServer(endpoint Endpoint) (*server, error) {
+	sockFile := endpoint.Self().SockFile()
 	cleanSockFile := true
 	if cleanSockFile {
 		os.Remove(sockFile)
@@ -100,7 +99,7 @@ func newUnixServer(router *Router) (*server, error) {
 	}
 	return &server{
 		listener: listener,
-		router:   router,
+		endpoint: endpoint,
 		unix:     true,
 	}, nil
 }
@@ -129,7 +128,7 @@ func (s *server) Close() {
 	// TODO: to be graceful
 	s.listener.Close()
 	if s.unix {
-		os.Remove(s.router.localAddr.SockFile())
+		os.Remove(s.endpoint.Self().SockFile())
 	}
 }
 
@@ -144,26 +143,26 @@ func (s *server) handle(conn net.Conn) error {
 	if err := ch.ReadFrom(conn); err != nil {
 		return err
 	}
-	remoteNetAddr := plan.NetAddr{
+	remote := plan.NetAddr{
 		Host: formatIPv4(ch.SrcIPv4), // formatIPv4 :: uint32 -> str
 		Port: ch.SrcPort,
 	}
-	log.Debugf("got new connection of type %d from: %s", ch.Type, remoteNetAddr)
+	log.Debugf("got new connection of type %d from: %s", ch.Type, remote)
 	switch ConnType(ch.Type) {
 	case ConnPing:
-		return s.handlePing(remoteNetAddr, conn)
+		return s.handlePing(remote, conn)
 	case ConnControl:
-		return s.handleControl(remoteNetAddr, conn)
+		return s.handleControl(remote, conn)
 	case ConnCollective:
-		return s.handleCollective(remoteNetAddr, conn)
+		return s.handleCollective(remote, conn)
 	case ConnPeerToPeer:
-		return s.handlePeerToPeer(remoteNetAddr, conn)
+		return s.handlePeerToPeer(remote, conn)
 	default:
 		return errInvalidConnectionHeader
 	}
 }
 
-func (s *server) handlePing(remoteNetAddr plan.NetAddr, conn net.Conn) error {
+func (s *server) handlePing(remote plan.NetAddr, conn net.Conn) error {
 	var mh messageHeader
 	if err := mh.ReadFrom(conn); err != nil {
 		return err
@@ -178,20 +177,20 @@ func (s *server) handlePing(remoteNetAddr plan.NetAddr, conn net.Conn) error {
 	return empty.WriteTo(conn)
 }
 
-func (s *server) handleControl(remoteNetAddr plan.NetAddr, conn net.Conn) error {
+func (s *server) handleControl(remote plan.NetAddr, conn net.Conn) error {
 	return errNotImplemented
 }
 
-func (s *server) handleCollective(remoteNetAddr plan.NetAddr, conn net.Conn) error {
-	if n, err := s.router.handle(conn, remoteNetAddr, ConnCollective); err != nil && err != io.EOF {
-		return fmt.Errorf("handle error after handled %d messages: %v", n, err)
+func (s *server) handleCollective(remote plan.NetAddr, conn net.Conn) error {
+	if err := s.endpoint.Handle(conn, remote, ConnCollective); err != nil && err != io.EOF {
+		return fmt.Errorf("handle error: %v", err)
 	}
 	return nil
 }
 
-func (s *server) handlePeerToPeer(remoteNetAddr plan.NetAddr, conn net.Conn) error {
-	if n, err := s.router.handle(conn, remoteNetAddr, ConnPeerToPeer); err != nil && err != io.EOF {
-		return fmt.Errorf("handle error after handled %d messages: %v", n, err)
+func (s *server) handlePeerToPeer(remote plan.NetAddr, conn net.Conn) error {
+	if err := s.endpoint.Handle(conn, remote, ConnPeerToPeer); err != nil && err != io.EOF {
+		return fmt.Errorf("handle error: %v", err)
 	}
 	return nil
 }
