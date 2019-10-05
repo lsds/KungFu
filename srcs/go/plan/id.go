@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -50,12 +51,20 @@ func parseID(val string) (*PeerID, error) {
 }
 
 func GetSelfFromEnv() (*PeerID, error) {
-	config := os.Getenv(kb.SelfSpecEnvKey)
-	if len(config) == 0 {
+	config, ok := os.LookupEnv(kb.SelfSpecEnvKey)
+	if !ok {
 		ps := genPeerIDs(1, []HostSpec{DefaultHostSpec()})
 		return &ps[0], nil
 	}
 	return parseID(config)
+}
+
+func GetParentFromEnv() (*PeerID, error) {
+	val, ok := os.LookupEnv(kb.ParentIDEnvKey)
+	if !ok {
+		return nil, fmt.Errorf("%s not set", kb.ParentIDEnvKey)
+	}
+	return parseID(val)
 }
 
 func genPeerIDs(k int, hostSpecs []HostSpec) []PeerID {
@@ -67,7 +76,7 @@ func genPeerIDs(k int, hostSpecs []HostSpec) []PeerID {
 		for j := 0; j < host.Slots; j++ {
 			peer := PeerID{
 				Host: host.Hostname,
-				Port: uint16(10001 + j),
+				Port: uint16(10000 + j),
 			}
 			peers = append(peers, peer)
 			if len(peers) >= k {

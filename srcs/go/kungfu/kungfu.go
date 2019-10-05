@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	prun "github.com/lsds/KungFu/srcs/go/kungfuprun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -30,22 +32,37 @@ func (c Config) complete() Config {
 type Kungfu struct {
 	sync.Mutex
 
-	configClient   *ConfigClient
-	self           plan.PeerID
-	currentSession *session
+	// immutable
+	parent   plan.PeerID
+	hostList plan.HostList
+	self     plan.PeerID
 
 	store  *store.VersionedStore
 	router *rch.Router
 	server rch.Server
 	config Config
+
+	// dynamic
+	currentSession *session
+	currentPeers   plan.PeerList
+	checkpoint     string
+	updated        bool
 }
 
 func New(config Config) (*Kungfu, error) {
-	configClient, err := NewDefaultConfigClient()
+	self, err := plan.GetSelfFromEnv()
 	if err != nil {
 		return nil, err
 	}
-	self, err := plan.GetSelfFromEnv()
+	parent, err := plan.GetParentFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	hostList, err := plan.GetHostListFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	currentPeers, err := plan.GetInitPeersFromEnv()
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +73,11 @@ func New(config Config) (*Kungfu, error) {
 		return nil, err
 	}
 	return &Kungfu{
-		configClient: configClient,
+		parent:       *parent,
+		currentPeers: currentPeers,
 		self:         *self,
+		hostList:     hostList,
+		checkpoint:   os.Getenv(kb.CheckpointEnvKey),
 		store:        store,
 		router:       router,
 		server:       server,
@@ -88,36 +108,37 @@ func (kf *Kungfu) Close() int {
 }
 
 func (kf *Kungfu) StartStep(version string) int {
-	var globalStep int
-	if err := kf.configClient.GetConfig(version, kb.InitStepEnvKey, &globalStep); err != nil {
-		err := fmt.Errorf("failed to get %s@%s: %v", kb.InitStepEnvKey, version, err)
-		utils.ExitErr(err)
+	n, err := strconv.Atoi(kf.checkpoint)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse checkpoint: %q", kf.checkpoint))
 	}
-	return globalStep
+	return n
 }
 
 func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bool, error) {
-	log.Infof("Kungfu::ProposeUpdate with (%d@%q, %d)", globalStep, version, newSize)
-	var hostSpecs []plan.HostSpec
-	if err := kf.configClient.GetConfig("0", kb.HostSpecEnvKey, &hostSpecs); err != nil {
-		log.Errorf("failed to get %s: %v", kb.HostSpecEnvKey, err)
-		return false, err
-	}
 	log.Infof("generating new cluster spec of size %d", newSize)
-	cs, err := plan.GenPeerList(newSize, hostSpecs)
+	peers, err := plan.GenPeerList(newSize, kf.hostList)
 	if err != nil {
 		log.Errorf("failed to generate new cluster spec: %v", err)
 		return false, err
 	}
-	if err := kf.configClient.PutConfig(version, kb.PeerListEnvKey, cs); err != nil {
-		log.Warnf("failed to write config: %v", err)
-		return false, err
+	checkpoint := strconv.Itoa(globalStep)
+	{
+		stage := prun.Stage{Checkpoint: checkpoint, Cluster: peers}
+		for _, h := range kf.hostList {
+			id := plan.PeerID{Host: h.Hostname, Port: kf.parent.Port}
+			log.Infof("will send to %s %s", id, rch.ConnControl)
+			kf.router.Send(id.WithName("update"), stage.Encode(), rch.ConnControl, 0)
+		}
 	}
-	if err := kf.configClient.PutConfig(version, kb.InitStepEnvKey, globalStep); err != nil {
-		log.Warnf("failed to write config: %v", err)
-		return false, err
-	}
-	_, keep := cs.Lookup(kf.self)
+	func() {
+		kf.Lock()
+		defer kf.Unlock()
+		kf.currentPeers = peers
+		kf.checkpoint = checkpoint
+		kf.updated = false
+	}()
+	_, keep := peers.Lookup(kf.self)
 	return keep, nil
 }
 
@@ -127,10 +148,7 @@ func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
-		initSession := os.Getenv(kb.InitSessEnvKey)
-		if exist := kf.updateSession(initSession); !exist {
-			utils.ExitErr(errSelfNotInCluster)
-		}
+		kf.updateTo(kf.currentPeers)
 	}
 	return kf.currentSession
 }
@@ -138,18 +156,11 @@ func (kf *Kungfu) CurrentSession() *session {
 func (kf *Kungfu) UpdateSession(version string) bool {
 	kf.Lock()
 	defer kf.Unlock()
-	return kf.updateSession(version)
+	return kf.updateTo(kf.currentPeers)
 }
 
-func (kf *Kungfu) updateSession(version string) bool {
-	log.Infof("Kungfu::updateSession with version %q", version)
-	var pl plan.PeerList
-	if err := kf.configClient.GetConfig(version, kb.PeerListEnvKey, &pl); err != nil {
-		log.Warnf("failed to get config: %v, running in single mode", err)
-		pl = []plan.PeerID{kf.self}
-		// utils.ExitErr(err)
-	}
-	log.Infof("creating session of %d peers", len(pl))
+func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
+	log.Infof("Kungfu::updateTo(%s)", pl)
 	kf.router.ResetConnections()
 	sess, exist, err := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {

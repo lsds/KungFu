@@ -5,15 +5,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"runtime"
 	"strings"
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	prun "github.com/lsds/KungFu/srcs/go/kungfuprun"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
@@ -36,19 +35,10 @@ var (
 	watchPeriod      = flag.Duration("watch-period", 500*time.Millisecond, "")
 	keep             = flag.Bool("k", false, "don't stop watch")
 	checkpoint       = flag.String("checkpoint", "0", "")
-	logFile          = flag.String("log-file", "", "")
 )
 
 func init() {
-	log.SetPrefix("[kungfu-prun] ")
 	flag.Parse()
-	if len(*logFile) > 0 {
-		lf, err := os.Create(*logFile)
-		if err != nil {
-			utils.ExitErr(err)
-		}
-		log.SetOutput(lf)
-	}
 	utils.LogArgs()
 	utils.LogKungfuEnv()
 	utils.LogNICInfo()
@@ -70,21 +60,25 @@ func main() {
 		}
 		return "127.0.0.1"
 	}()
-	log.Printf("Using selfHost=%s", selfIP)
+	log.Infof("Using selfHost=%s", selfIP)
 	restArgs := flag.Args()
 	if len(restArgs) < 1 {
 		utils.ExitErr(errMissingProgramName)
 	}
 	prog := restArgs[0]
 	args := restArgs[1:]
-
+	hl, err := plan.ParseHostList(*hostList)
+	if err != nil {
+		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
+	}
+	parent := plan.PeerID{Host: selfIP, Port: uint16(*configServerPort)}
 	jc := sch.JobConfig{
 		PeerCount: *np,
-		HostList:  *hostList,
+		Parent:    parent,
+		HostList:  hl,
 		Prog:      prog,
 		Args:      args,
 	}
-
 	procs, peers, err := jc.CreateProcs(kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to create job: %v", err))
@@ -93,14 +87,13 @@ func main() {
 	if *watch {
 		ch := make(chan prun.Stage, 1)
 		ch <- prun.Stage{Cluster: peers, Checkpoint: *checkpoint}
-		parent := &plan.PeerID{Host: selfIP, Port: uint16(*configServerPort)}
-		server, err := rch.NewServer(prun.NewHandler(*parent, ch))
+		server, err := rch.NewServer(prun.NewHandler(parent, ch))
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create server: %v", err))
 		}
 		go server.Serve()
 		defer server.Close()
-		watchRun(selfIP, ch, prog, args)
+		watchRun(selfIP, ch, jc)
 	} else {
 		simpleRun(selfIP, procs, prog, args)
 	}
@@ -109,15 +102,15 @@ func main() {
 func simpleRun(selfIP string, ps []sch.Proc, prog string, args []string) {
 	myPs := sch.ForHost(selfIP, ps)
 	if len(myPs) <= 0 {
-		log.Print("No task to run on this node")
+		log.Infof("No task to run on this node")
 		return
 	}
-	log.Printf("will parallel run %d instances of %s with %q", len(myPs), prog, args)
+	log.Infof("will parallel run %d instances of %s with %q", len(myPs), prog, args)
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
 	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, *verboseLog) })
-	log.Printf("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
+	log.Infof("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
 	if err != nil && err != context.DeadlineExceeded {
 		utils.ExitErr(err)
 	}

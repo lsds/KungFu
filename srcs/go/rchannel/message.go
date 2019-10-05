@@ -16,6 +16,21 @@ const (
 	ConnPeerToPeer ConnType = iota
 )
 
+func (t ConnType) String() string {
+	switch t {
+	case ConnPing:
+		return "Ping"
+	case ConnControl:
+		return "Control"
+	case ConnCollective:
+		return "Collective"
+	case ConnPeerToPeer:
+		return "PeerToPeer"
+	default:
+		return ""
+	}
+}
+
 var endian = binary.LittleEndian
 
 var errUnexpectedEnd = errors.New("Unexpected End")

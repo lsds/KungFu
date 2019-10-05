@@ -147,8 +147,9 @@ func (s *server) handle(conn net.Conn) error {
 		Host: formatIPv4(ch.SrcIPv4), // formatIPv4 :: uint32 -> str
 		Port: ch.SrcPort,
 	}
-	log.Debugf("got new connection of type %d from: %s", ch.Type, remote)
-	switch ConnType(ch.Type) {
+	t := ConnType(ch.Type)
+	log.Debugf("got new connection of type %s from: %s", t, remote)
+	switch t {
 	case ConnPing:
 		return s.handlePing(remote, conn)
 	case ConnControl:
@@ -178,7 +179,10 @@ func (s *server) handlePing(remote plan.NetAddr, conn net.Conn) error {
 }
 
 func (s *server) handleControl(remote plan.NetAddr, conn net.Conn) error {
-	return errNotImplemented
+	if err := s.endpoint.Handle(conn, remote, ConnControl); err != nil && err != io.EOF {
+		return fmt.Errorf("handle error: %v", err)
+	}
+	return nil
 }
 
 func (s *server) handleCollective(remote plan.NetAddr, conn net.Conn) error {

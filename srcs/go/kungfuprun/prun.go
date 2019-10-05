@@ -56,7 +56,7 @@ func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t rch.ConnType) err
 		}
 		return nil
 	default:
-		return rch.ErrInvalidConnectionType
+		return fmt.Errorf("%v: %s from %s", rch.ErrInvalidConnectionType, t, remote)
 	}
 }
 
@@ -77,7 +77,7 @@ func (h *Handler) handleControl(name string, msg *rch.Message, _conn net.Conn, r
 			}
 			h.checkpoints[s.Checkpoint] = s
 			h.ch <- s
-			log.Debugf("update to %s with %d peers", s.Checkpoint, len(s.Cluster))
+			log.Debugf("update to %q with %d peers", s.Checkpoint, len(s.Cluster))
 		}()
 	}
 }
