@@ -14,11 +14,9 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func watchRun(localhost string, ch chan run.Stage, jc sch.JobConfig) {
+func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.JobConfig) {
 	log.Infof("watching config server")
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, *timeout)
-	defer cancel()
+	ctx, cancel := context.WithCancel(ctx)
 
 	var all sync.WaitGroup
 	var current plan.PeerList

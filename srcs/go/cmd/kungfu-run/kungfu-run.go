@@ -24,7 +24,7 @@ var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
 	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
 	selfHost   = flag.String("self", "", "internal IP")
-	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
+	timeout    = flag.Duration("timeout", 0, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
 	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
@@ -84,6 +84,12 @@ func main() {
 		utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	if *timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, *timeout)
+		defer cancel()
+	}
+
 	if *watch {
 		ch := make(chan run.Stage, 1)
 		ch <- run.Stage{Cluster: peers, Checkpoint: *checkpoint}
@@ -93,22 +99,19 @@ func main() {
 		}
 		go server.Serve()
 		defer server.Close()
-		watchRun(selfIP, ch, jc)
+		watchRun(ctx, selfIP, ch, jc)
 	} else {
-		simpleRun(selfIP, procs, prog, args)
+		simpleRun(ctx, selfIP, procs, prog, args)
 	}
 }
 
-func simpleRun(selfIP string, ps []sch.Proc, prog string, args []string) {
+func simpleRun(ctx context.Context, selfIP string, ps []sch.Proc, prog string, args []string) {
 	myPs := sch.ForHost(selfIP, ps)
 	if len(myPs) <= 0 {
 		log.Infof("No task to run on this node")
 		return
 	}
 	log.Infof("will parallel run %d instances of %s with %q", len(myPs), prog, args)
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, *timeout)
-	defer cancel()
 	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, *verboseLog) })
 	log.Infof("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
 	if err != nil && err != context.DeadlineExceeded {
