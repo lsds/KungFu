@@ -17,6 +17,7 @@ RUN pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple tensorflow==1.12
 
 WORKDIR /src/kungfu
 ENV PATH ${PATH}:/usr/local/go/bin:/src/kungfu/bin
+ENV TF_CPP_MIN_LOG_LEVEL 2
 
 ADD . .
 
