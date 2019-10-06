@@ -6,8 +6,8 @@ from .collective import (all_reduce, all_reduce_gpu, barrier, broadcast,
                          cpu_group_all_reduce, global_variance,
                          gpu_group_all_reduce, group_all_reduce)
 from .loader import _has_gpu, _init_lib, _op_lib
-from .p2p import request_variable, request_variable_with_template
 from .local import save_variable, save_variables
+from .p2p import request_variable, request_variable_with_template
 
 
 def _tensor_size(t):
