@@ -36,7 +36,7 @@ env
 experiment-results.txt
 hosts.txt
 kungfu.cbp
-Makefile
+/Makefile
 Makefile.auto
 src/tensorflow.cmake
 tensorflow-prefix
