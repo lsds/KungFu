@@ -34,7 +34,7 @@ func main() {
 	prog := restArgs[0]
 	args := restArgs[1:]
 
-	hostSpecs, err := plan.ParseHostSpec(*hostList)
+	hostSpecs, err := plan.ParseHostList(*hostList)
 	if err != nil {
 		utils.ExitErr(err)
 	}

@@ -20,17 +20,16 @@ reset_go_mod() {
     fi
 }
 
-KUNGFU_PRUN=${ROOT}/bin/kungfu-prun
+KUNGFU_RUN=${ROOT}/bin/kungfu-run
 
-ensure_kungfu_prun() {
-    if [ ! -f ${KUNGFU_PRUN} ]; then
+ensure_kungfu_run() {
+    if [ ! -f ${KUNGFU_RUN} ]; then
         reset_go_mod
         ./configure --no-tests --build-tools && make
     fi
 }
 
-ensure_kungfu_prun
-
+ensure_kungfu_run
 if [ $(uname -s) = "Darwin" ]; then
     export DYLD_LIBRARY_PATH=$(${PYTHON} -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 fi
@@ -39,7 +38,7 @@ run_operator_tests() {
     local SCRIPT=$1
     for np in $(seq 4); do
         local hosts=127.0.0.1:$np
-        $KUNGFU_PRUN \
+        $KUNGFU_RUN \
             -np $np \
             -H $hosts \
             ${PYTHON} \

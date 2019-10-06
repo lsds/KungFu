@@ -95,7 +95,7 @@ IF(KUNGFU_BUILD_TOOLS)
         ADD_DEPENDENCIES(${target} kungfu-base)
     ENDFUNCTION()
 
-    ADD_KUNGFU_GO_BINARY(kungfu-prun)
+    ADD_KUNGFU_GO_BINARY(kungfu-run)
     ADD_KUNGFU_GO_BINARY(kungfu-huawei-launcher)
 ENDIF()
 

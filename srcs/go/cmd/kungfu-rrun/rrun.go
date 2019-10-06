@@ -38,13 +38,16 @@ func main() {
 	if len(restArgs) < 1 {
 		utils.ExitErr(errors.New("missing program name"))
 	}
-	jc := sch.JobConfig{
-		PeerCount: *np,
-		HostList:  *hostList,
-		Prog:      restArgs[0],
-		Args:      restArgs[1:],
+	hl, err := plan.ParseHostList(*hostList)
+	if err != nil {
+		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	ps, _, err := jc.CreateProcs(kb.ParseAlgo(*algo), "")
+	jc := sch.JobConfig{
+		HostList: hl,
+		Prog:     restArgs[0],
+		Args:     restArgs[1:],
+	}
+	ps, _, err := jc.CreateProcs(*np, kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}

@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-func fakeHosts(n int) []HostSpec {
-	var hosts []HostSpec
+func fakeHosts(n int) HostList {
+	var hosts HostList
 	for i := 0; i < n; i++ {
 		ip := fmt.Sprintf(`192.168.1.%d`, 11+i)
 		host := HostSpec{

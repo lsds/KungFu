@@ -27,7 +27,7 @@ run_fake_cluster() {
 
     echo "running test with algorithm $ALGO"
     KUNGFU_TEST_CLUSTER_SIZE=$np \
-        ./bin/kungfu-prun \
+        ./bin/kungfu-run \
         -np=$np \
         -algo="${ALGO}" \
         -H $H \

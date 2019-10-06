@@ -5,7 +5,7 @@
 train() {
     DEVICE=$1
     MODE=$2
-    kungfu-prun  -np 4 -H 127.0.0.1:4 -timeout 1000000s \
+    kungfu-run -np 4 -H 127.0.0.1:4 -timeout 1000000s \
         python3 tf_cnn_benchmarks.py --model=resnet32 --data_name=cifar10 \
         --num_batches=50 \
         --eval=False \

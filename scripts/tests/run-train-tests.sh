@@ -20,16 +20,16 @@ reset_go_mod() {
     fi
 }
 
-KUNGFU_PRUN=${ROOT}/bin/kungfu-prun
+KUNGFU_RUN=${ROOT}/bin/kungfu-run
 
-ensure_kungfu_prun() {
-    if [ ! -f ${KUNGFU_PRUN} ]; then
+ensure_kungfu_run() {
+    if [ ! -f ${KUNGFU_RUN} ]; then
         reset_go_mod
         ./configure --no-tests --build-tools && make
     fi
 }
 
-ensure_kungfu_prun
+ensure_kungfu_run
 export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
 
 if [ $(uname -s) = "Darwin" ]; then
@@ -57,7 +57,7 @@ run_parallel_train_test() {
     local timeout=$((np * 6))s
     local batch_size=$((total_batch_size / np))
 
-    ${KUNGFU_PRUN} \
+    ${KUNGFU_RUN} \
         -timeout $timeout \
         -np $np \
         -H $hosts \

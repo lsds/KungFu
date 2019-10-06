@@ -3,9 +3,12 @@ package plan
 import (
 	"errors"
 	"fmt"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
+
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
 // FIXME: make members private, public is required by JSON encoding for now
@@ -51,17 +54,19 @@ func parseHostSpec(spec string) (*HostSpec, error) {
 	return nil, errInvalidHostSpec
 }
 
-func FormatHostSpec(hosts []HostSpec) string {
+type HostList []HostSpec
+
+func (hl HostList) String() string {
 	var ss []string
-	for _, h := range hosts {
+	for _, h := range hl {
 		ss = append(ss, h.String())
 	}
 	return strings.Join(ss, ",")
 }
 
-func ParseHostSpec(h string) ([]HostSpec, error) {
-	var hostSpecs []HostSpec
-	for _, h := range strings.Split(h, ",") {
+func ParseHostList(hostlist string) (HostList, error) {
+	var hostSpecs HostList
+	for _, h := range strings.Split(hostlist, ",") {
 		spec, err := parseHostSpec(h)
 		if err != nil {
 			return nil, err
@@ -71,10 +76,48 @@ func ParseHostSpec(h string) ([]HostSpec, error) {
 	return hostSpecs, nil
 }
 
-func TotalCap(hostSpecs []HostSpec) int {
+func (hl HostList) Cap() int {
 	var cap int
-	for _, h := range hostSpecs {
+	for _, h := range hl {
 		cap += h.Slots
 	}
 	return cap
+}
+
+type PortRange struct {
+	Begin uint16
+	// Count int
+}
+
+var DefaultPortRange = PortRange{Begin: 10000}
+
+func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
+	var pl PeerList
+	for _, host := range hl {
+		for j := 0; j < host.Slots; j++ {
+			id := PeerID{
+				Host: host.Hostname,
+				Port: pr.Begin + uint16(j),
+			}
+			pl = append(pl, id)
+			if len(pl) >= np {
+				return pl
+			}
+		}
+	}
+	return pl
+}
+
+var errNoEnoughCapacity = errors.New("no enough capacity")
+
+func (hl HostList) GenPeerList(np int) (PeerList, error) {
+	if hl.Cap() < np {
+		return nil, errNoEnoughCapacity
+	}
+	return hl.genPeerList(np, DefaultPortRange), nil
+}
+
+func GetHostListFromEnv() (HostList, error) {
+	val := os.Getenv(kb.HostListEnvKey)
+	return ParseHostList(val)
 }

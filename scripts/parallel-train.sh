@@ -31,7 +31,7 @@ prun() {
     fi
 
     echo "$self $np $model_name"
-    ./bin/kungfu-prun \
+    ./bin/kungfu-run \
         -np $np \
         -H $hosts \
         -self $self \

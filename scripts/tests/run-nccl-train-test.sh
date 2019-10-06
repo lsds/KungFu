@@ -14,8 +14,8 @@ env \
     KUNGFU_USE_NCCL=1 \
     pip3 install --no-index -U .
 
-KUNGFU_PRUN=${ROOT}/bin/kungfu-prun
-if [ ! -f ${KUNGFU_PRUN} ]; then
+KUNGFU_RUN=${ROOT}/bin/kungfu-run
+if [ ! -f ${KUNGFU_RUN} ]; then
     ${ROOT}/scripts/go-install.sh
 fi
 
@@ -28,7 +28,7 @@ run_nccl_experiment() {
     local timeout=45s
     env \
         TF_CPP_MIN_LOG_LEVEL=1 \
-        ${KUNGFU_PRUN} \
+        ${KUNGFU_RUN} \
         -timeout $timeout \
         -np $np \
         python3 $@

@@ -26,7 +26,7 @@ prun() {
     local np=$1
     shift
     local H="127.0.0.1:$np"
-    ./bin/kungfu-prun \
+    ./bin/kungfu-run \
         -timeout 1m \
         -H $H \
         -np $np \

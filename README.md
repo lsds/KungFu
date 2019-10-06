@@ -19,16 +19,16 @@ git clone https://github.com/lsds/KungFu.git
 pip3 install .
 ```
 
-KungFu provides: *kungfu-prun*, similar to [mpirun](https://horovod.readthedocs.io/en/latest/mpirun.html), to launch a TensorFlow program on multiple GPU/CPU devices in a server.
-Using the following command to build kungfu-prun.
+KungFu provides: *kungfu-run*, similar to [mpirun](https://horovod.readthedocs.io/en/latest/mpirun.html), to launch a TensorFlow program on multiple GPU/CPU devices in a server.
+Using the following command to build kungfu-run.
 
 ```bash
-# Build kungfu-prun in a ./bin folder under the current directory.
+# Build kungfu-run in a ./bin folder under the current directory.
 ./configure --build-tools
 make
 
-# Check if kungfu-prun is built
-./bin/kungfu-prun -help
+# Check if kungfu-run is built
+./bin/kungfu-run -help
 ```
 
 ### Mac Users
@@ -48,7 +48,7 @@ Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the followi
 ./scripts/download-mnist.sh
 
 # Train a Single Layer Perception (SLP) model for the MNIST dataset using 4 CPUs for 10 data epochs.
-./bin/kungfu-prun -np 4 -timeout 1h python3 examples/mnist_slp.py --n-epochs 10
+./bin/kungfu-run -np 4 -timeout 1h python3 examples/mnist_slp.py --n-epochs 10
 ```
 
 ## Contribution

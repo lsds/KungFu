@@ -1,11 +1,21 @@
 package plan
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+)
 
 type PeerList []PeerID
 
 func (pl PeerList) String() string {
-	return toString(pl)
+	var parts []string
+	for _, p := range pl {
+		parts = append(parts, p.String())
+	}
+	return strings.Join(parts, ",")
 }
 
 func (pl PeerList) Lookup(ps PeerID) (int, bool) {
@@ -53,9 +63,45 @@ func (pl PeerList) Diff(ql PeerList) (PeerList, PeerList) {
 	return pl.sub(ql), ql.sub(pl)
 }
 
-func GenPeerList(k int, hostSpecs []HostSpec) (PeerList, error) {
-	if cap := TotalCap(hostSpecs); cap < k {
-		return nil, fmt.Errorf("can run %d peers at most", cap)
+func (pl PeerList) Eq(ql PeerList) bool {
+	if len(pl) != len(ql) {
+		return false
 	}
-	return genPeerIDs(k, hostSpecs), nil
+	for i, p := range pl {
+		if p != ql[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func (pl PeerList) On(host string) PeerList {
+	var ql PeerList
+	for _, p := range pl {
+		if p.Host == host {
+			ql = append(ql, p)
+		}
+	}
+	return ql
+}
+
+func parsePeerList(val string) (PeerList, error) {
+	parts := strings.Split(val, ",")
+	var pl PeerList
+	for _, p := range parts {
+		id, err := parseID(p)
+		if err != nil {
+			return nil, err
+		}
+		pl = append(pl, *id)
+	}
+	return pl, nil
+}
+
+func GetInitPeersFromEnv() (PeerList, error) {
+	val, ok := os.LookupEnv(kb.PeerListEnvKey)
+	if !ok {
+		return nil, fmt.Errorf("%s not set", kb.PeerListEnvKey)
+	}
+	return parsePeerList(val)
 }
