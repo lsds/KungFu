@@ -29,12 +29,11 @@ var (
 	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
 	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
 
-	configServerHost = flag.String("config-server-host", "127.0.0.1", "host of config server")
-	configServerPort = flag.Int("config-server-port", 0, "will run config server on this port if not zero")
-	watch            = flag.Bool("w", false, "watch config")
-	watchPeriod      = flag.Duration("watch-period", 500*time.Millisecond, "")
-	keep             = flag.Bool("k", false, "don't stop watch")
-	checkpoint       = flag.String("checkpoint", "0", "")
+	port        = flag.Int("port", 38080, "port for rchannel")
+	watch       = flag.Bool("w", false, "watch config")
+	watchPeriod = flag.Duration("watch-period", 500*time.Millisecond, "")
+	keep        = flag.Bool("k", false, "don't stop watch")
+	checkpoint  = flag.String("checkpoint", "0", "")
 )
 
 func init() {
@@ -71,7 +70,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	parent := plan.PeerID{Host: selfIP, Port: uint16(*configServerPort)}
+	parent := plan.PeerID{Host: selfIP, Port: uint16(*port)}
 	jc := sch.JobConfig{
 		PeerCount: *np,
 		Parent:    parent,

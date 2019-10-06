@@ -3,7 +3,6 @@ set -e
 
 cd $(dirname $0)
 
-config_server_port=38080
 timeout=2m
 
 cap=16
@@ -16,7 +15,6 @@ kungfu_run() {
         -H ${H} \
         -np $init_np \
         -timeout ${timeout} \
-        -config-server-port ${config_server_port} \
         -w \
         $@
 }
