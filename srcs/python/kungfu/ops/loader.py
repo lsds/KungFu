@@ -6,18 +6,21 @@ from ctypes import cdll
 EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
 
+def _module_path():
+    dirname = os.path.dirname
+    return dirname(dirname(__file__))
+
+
 def _load_op_lib(name):
-    module_path = os.path.dirname(__file__)
     suffix = sysconfig.get_config_var(EXT_SUFFIX_KEY)
-    filename = os.path.join(module_path, name + suffix)
+    filename = os.path.join(_module_path(), name + suffix)
     import tensorflow as tf
     return tf.load_op_library(filename)
 
 
 def _load_init_lib(name):
-    module_path = os.path.dirname(__file__)
     suffix = 'so' if platform.uname()[0] != 'Darwin' else 'dylib'
-    filename = os.path.join(module_path, name + '.' + suffix)
+    filename = os.path.join(_module_path(), name + '.' + suffix)
     return cdll.LoadLibrary(filename)
 
 
