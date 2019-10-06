@@ -23,11 +23,10 @@ integration test:
   image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   script:
-  - |
-    ./configure --build-tests
-    make
-  - |
-    ./scripts/tests/run-integration-tests.sh
+  - ./configure --build-tests
+  - make
+  - ./scripts/tests/run-integration-tests.sh
+  - ./benchmarks/bench-adaptation.sh # FIXME: make it a test
 
 python3 test:
   stage: test
