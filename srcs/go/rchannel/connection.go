@@ -15,20 +15,15 @@ type Connection interface {
 	Read(msgName string, m Message) error
 }
 
-func parseIPv4(host string) uint32 {
-	ip := net.ParseIP(host).To4()
-	a := uint32(ip[0]) << 24
-	b := uint32(ip[1]) << 16
-	c := uint32(ip[2]) << 8
-	d := uint32(ip[3])
-	return a | b | c | d
-}
-
 func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
 	return newConnection(remote, local, ConnPing)
 }
 
 func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
+	ipv4, err := plan.ParseIPv4(local.Host)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := func() (net.Conn, error) {
 		if remote.ColocatedWith(local) {
 			addr := net.UnixAddr{remote.SockFile(), "unix"}
@@ -41,7 +36,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	}
 	h := connectionHeader{
 		Type:    uint16(t),
-		SrcIPv4: parseIPv4(local.Host), // parseIPv4 :: str -> uint32
+		SrcIPv4: ipv4,
 		SrcPort: local.Port,
 	}
 	if err := h.WriteTo(conn); err != nil {

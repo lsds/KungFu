@@ -11,11 +11,10 @@ import (
 )
 
 type JobConfig struct {
-	PeerCount int
-	Parent    plan.PeerID
-	HostList  plan.HostList
-	Prog      string
-	Args      []string
+	Parent   plan.PeerID
+	HostList plan.HostList
+	Prog     string
+	Args     []string
 }
 
 func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
@@ -39,8 +38,8 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 	}
 }
 
-func (jc JobConfig) CreateProcs(algo kb.KungFu_AllReduceAlgo) ([]Proc, plan.PeerList, error) {
-	pl, err := plan.GenPeerList(jc.PeerCount, jc.HostList)
+func (jc JobConfig) CreateProcs(np int, algo kb.KungFu_AllReduceAlgo) ([]Proc, plan.PeerList, error) {
+	pl, err := jc.HostList.GenPeerList(np)
 	if err != nil {
 		return nil, nil, err
 	}

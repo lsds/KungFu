@@ -76,12 +76,45 @@ func ParseHostList(hostlist string) (HostList, error) {
 	return hostSpecs, nil
 }
 
-func TotalCap(hostSpecs []HostSpec) int {
+func (hl HostList) Cap() int {
 	var cap int
-	for _, h := range hostSpecs {
+	for _, h := range hl {
 		cap += h.Slots
 	}
 	return cap
+}
+
+type PortRange struct {
+	Begin uint16
+	// Count int
+}
+
+var DefaultPortRange = PortRange{Begin: 10000}
+
+func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
+	var pl PeerList
+	for _, host := range hl {
+		for j := 0; j < host.Slots; j++ {
+			id := PeerID{
+				Host: host.Hostname,
+				Port: pr.Begin + uint16(j),
+			}
+			pl = append(pl, id)
+			if len(pl) >= np {
+				return pl
+			}
+		}
+	}
+	return pl
+}
+
+var errNoEnoughCapacity = errors.New("no enough capacity")
+
+func (hl HostList) GenPeerList(np int) (PeerList, error) {
+	if hl.Cap() < np {
+		return nil, errNoEnoughCapacity
+	}
+	return hl.genPeerList(np, DefaultPortRange), nil
 }
 
 func GetHostListFromEnv() (HostList, error) {

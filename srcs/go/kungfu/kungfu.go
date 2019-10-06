@@ -105,7 +105,7 @@ func (kf *Kungfu) StartStep(version string) int {
 
 func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bool, error) {
 	log.Infof("generating new cluster spec of size %d", newSize)
-	peers, err := plan.GenPeerList(newSize, kf.hostList)
+	peers, err := kf.hostList.GenPeerList(newSize)
 	if err != nil {
 		log.Errorf("failed to generate new cluster spec: %v", err)
 		return false, err

@@ -42,7 +42,8 @@ func ParseEnv() (*Env, error) {
 }
 
 func singleEnv() *Env {
-	self := genPeerIDs(1, []HostSpec{DefaultHostSpec()})[0]
+	hl := HostList{DefaultHostSpec()}
+	self := hl.genPeerList(1, DefaultPortRange)[0]
 	return &Env{
 		Self:      self,
 		InitPeers: PeerList{self},

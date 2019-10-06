@@ -144,7 +144,7 @@ func (s *server) handle(conn net.Conn) error {
 		return err
 	}
 	remote := plan.NetAddr{
-		Host: formatIPv4(ch.SrcIPv4), // formatIPv4 :: uint32 -> str
+		Host: plan.FormatIPv4(ch.SrcIPv4),
 		Port: ch.SrcPort,
 	}
 	t := ConnType(ch.Type)
@@ -208,9 +208,4 @@ func isNetClosingErr(err error) bool {
 		return msg == e.Err.Error()
 	}
 	return false
-}
-
-func formatIPv4(ipv4 uint32) string {
-	ip := net.IPv4(byte(ipv4>>24), byte(ipv4>>16), byte(ipv4>>8), byte(ipv4))
-	return ip.String()
 }

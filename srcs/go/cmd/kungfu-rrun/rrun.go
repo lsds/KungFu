@@ -43,12 +43,11 @@ func main() {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
 	jc := sch.JobConfig{
-		PeerCount: *np,
-		HostList:  hl,
-		Prog:      restArgs[0],
-		Args:      restArgs[1:],
+		HostList: hl,
+		Prog:     restArgs[0],
+		Args:     restArgs[1:],
 	}
-	ps, _, err := jc.CreateProcs(kb.ParseAlgo(*algo))
+	ps, _, err := jc.CreateProcs(*np, kb.ParseAlgo(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}

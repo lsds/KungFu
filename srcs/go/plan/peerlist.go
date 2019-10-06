@@ -105,10 +105,3 @@ func GetInitPeersFromEnv() (PeerList, error) {
 	}
 	return parsePeerList(val)
 }
-
-func GenPeerList(k int, hostSpecs []HostSpec) (PeerList, error) {
-	if cap := TotalCap(hostSpecs); cap < k {
-		return nil, fmt.Errorf("can run %d peers at most", cap)
-	}
-	return genPeerIDs(k, hostSpecs), nil
-}

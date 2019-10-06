@@ -65,23 +65,3 @@ func GetParentFromEnv() (*PeerID, error) {
 	}
 	return parseID(val)
 }
-
-func genPeerIDs(k int, hostSpecs []HostSpec) []PeerID {
-	if k == 0 {
-		return nil
-	}
-	var peers []PeerID
-	for _, host := range hostSpecs {
-		for j := 0; j < host.Slots; j++ {
-			peer := PeerID{
-				Host: host.Hostname,
-				Port: uint16(10000 + j),
-			}
-			peers = append(peers, peer)
-			if len(peers) >= k {
-				return peers
-			}
-		}
-	}
-	return peers
-}

@@ -64,25 +64,17 @@ func main() {
 	if len(restArgs) < 1 {
 		utils.ExitErr(errMissingProgramName)
 	}
-	prog := restArgs[0]
-	args := restArgs[1:]
 	hl, err := plan.ParseHostList(*hostList)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
 	parent := plan.PeerID{Host: selfIP, Port: uint16(*port)}
 	jc := sch.JobConfig{
-		PeerCount: *np,
-		Parent:    parent,
-		HostList:  hl,
-		Prog:      prog,
-		Args:      args,
+		Parent:   parent,
+		HostList: hl,
+		Prog:     restArgs[0],
+		Args:     restArgs[1:],
 	}
-	procs, peers, err := jc.CreateProcs(kb.ParseAlgo(*algo))
-	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	if *timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, *timeout)
@@ -90,6 +82,10 @@ func main() {
 	}
 
 	if *watch {
+		peers, err := hl.GenPeerList(*np)
+		if err != nil {
+			utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
+		}
 		ch := make(chan run.Stage, 1)
 		ch <- run.Stage{Cluster: peers, Checkpoint: *checkpoint}
 		server, err := rch.NewServer(run.NewHandler(parent, ch))
@@ -100,17 +96,21 @@ func main() {
 		defer server.Close()
 		watchRun(ctx, selfIP, ch, jc)
 	} else {
-		simpleRun(ctx, selfIP, procs, prog, args)
+		procs, _, err := jc.CreateProcs(*np, kb.ParseAlgo(*algo))
+		if err != nil {
+			utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
+		}
+		simpleRun(ctx, selfIP, procs, jc)
 	}
 }
 
-func simpleRun(ctx context.Context, selfIP string, ps []sch.Proc, prog string, args []string) {
+func simpleRun(ctx context.Context, selfIP string, ps []sch.Proc, jc sch.JobConfig) {
 	myPs := sch.ForHost(selfIP, ps)
 	if len(myPs) <= 0 {
 		log.Infof("No task to run on this node")
 		return
 	}
-	log.Infof("will parallel run %d instances of %s with %q", len(myPs), prog, args)
+	log.Infof("will parallel run %d instances of %s with %q", len(myPs), jc.Prog, jc.Args)
 	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, *verboseLog) })
 	log.Infof("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
 	if err != nil && err != context.DeadlineExceeded {
