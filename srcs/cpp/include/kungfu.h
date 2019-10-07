@@ -153,11 +153,6 @@ class kungfu_world
 
     // control APIs
     int ResizeCluster(const char *ckpt, int new_size, bool *keep);
-
-    int ProposeUpdate(int global_stepl, const char *version, int new_size,
-                      bool *accepted, bool *keep);
-
-    int UpdateCluster(const char *version, bool *exist);
 };
 
 #endif

@@ -2,9 +2,7 @@ package kungfu
 
 import (
 	"errors"
-	"fmt"
 	"os"
-	"strconv"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -95,44 +93,6 @@ func (kf *Kungfu) Close() int {
 	return 0
 }
 
-func (kf *Kungfu) StartStep(version string) int {
-	n, err := strconv.Atoi(kf.checkpoint)
-	if err != nil {
-		panic(fmt.Errorf("failed to parse checkpoint: %q", kf.checkpoint))
-	}
-	return n
-}
-
-// deprecated
-func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bool, error) {
-	log.Infof("generating new cluster spec of size %d", newSize)
-	peers, err := kf.hostList.GenPeerList(newSize)
-	if err != nil {
-		log.Errorf("failed to generate new cluster spec: %v", err)
-		return false, err
-	}
-	checkpoint := strconv.Itoa(globalStep)
-	{
-		stage := run.Stage{Checkpoint: checkpoint, Cluster: peers}
-		// FIXME: use par
-		for _, h := range kf.hostList {
-			id := plan.PeerID{Host: h.Hostname, Port: kf.parent.Port}
-			if err := kf.router.Send(id.WithName("update"), stage.Encode(), rch.ConnControl, 0); err != nil {
-				return false, err
-			}
-		}
-	}
-	func() {
-		kf.Lock()
-		defer kf.Unlock()
-		kf.currentPeers = peers
-		kf.checkpoint = checkpoint
-		kf.updated = false
-	}()
-	_, keep := peers.Lookup(kf.self)
-	return keep, nil
-}
-
 var errSelfNotInCluster = errors.New("self not in cluster")
 
 func (kf *Kungfu) CurrentSession() *session {
@@ -145,13 +105,6 @@ func (kf *Kungfu) CurrentSession() *session {
 }
 
 func (kf *Kungfu) Update() bool {
-	kf.Lock()
-	defer kf.Unlock()
-	return kf.updateTo(kf.currentPeers)
-}
-
-// deprecated
-func (kf *Kungfu) UpdateSession(version string) bool {
 	kf.Lock()
 	defer kf.Unlock()
 	return kf.updateTo(kf.currentPeers)

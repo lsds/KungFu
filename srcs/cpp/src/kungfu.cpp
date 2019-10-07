@@ -219,19 +219,3 @@ int kungfu_world::ResizeCluster(const char *ckpt, int new_size, bool *keep)
     return GoKungfuResizeCluster(const_cast<char *>(ckpt), GoInt(new_size),
                                  reinterpret_cast<char *>(keep));
 }
-
-int kungfu_world::ProposeUpdate(int global_stepl, const char *version,
-                                int new_size, bool *accepted, bool *keep)
-{
-    static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuProposeUpdate(
-        GoInt(global_stepl), const_cast<char *>(version), GoInt(new_size),
-        reinterpret_cast<char *>(accepted), reinterpret_cast<char *>(keep));
-}
-
-int kungfu_world::UpdateCluster(const char *version, bool *exist)
-{
-    static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuUpdateCluster(const_cast<char *>(version),
-                                 reinterpret_cast<char *>(exist));
-}

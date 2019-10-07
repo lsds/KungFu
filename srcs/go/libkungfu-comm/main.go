@@ -239,27 +239,6 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 	return 0
 }
 
-//export GoKungfuProposeUpdate
-func GoKungfuProposeUpdate(globalStep int, token *C.char, newSize int, accepted, keep *C.char) int {
-	ok := true // FIXME: compute ok by all reduce
-	*accepted = boolToChar(ok)
-	*keep = boolToChar(true)
-	if ok {
-		goKeep, err := kungfu.ProposeUpdate(globalStep, C.GoString(token), newSize)
-		if err != nil {
-			utils.ExitErr(err)
-		}
-		*keep = boolToChar(goKeep)
-	}
-	return 0
-}
-
-//export GoKungfuUpdateCluster
-func GoKungfuUpdateCluster(token *C.char, exist *C.char) int {
-	*exist = boolToChar(kungfu.UpdateSession(C.GoString(token)))
-	return 0
-}
-
 //export GoKungfuGetAlgoFromEnv
 func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
 	name := os.Getenv(kb.AllReduceAlgoEnvKey)
