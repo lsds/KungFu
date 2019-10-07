@@ -7,7 +7,9 @@
 # The distributed optimizer defines how local gradients and model weights are synchronized. 
 # 2. KungFu provides distributed variable initializers that defines how model weights are
 # initialized on distributed devices.
-# 3. (Optional) In a distributed training setting, the training dataset is often partitioned.  
+# 3. (Optional) In a distributed training setting, the training dataset is often partitioned. 
+
+# inspired by https://www.tensorflow.org/guide/keras/train_and_evaluate 
 
 import argparse
 import os
@@ -27,9 +29,11 @@ def load_dataset():
     y_test = y_test.astype('float32')
     # create dataset
     dataset = dict()
-    dataset['x_train'] = x_train
+    dataset['x_val'] = x_train[-10000:]
+    dataset['y_val'] = y_train[-10000:]
+    dataset['x_train'] = x_train[:-10000]
+    dataset['y_train'] = y_train[:-10000]
     dataset['x_test'] = x_test
-    dataset['y_train'] = y_train
     dataset['y_test'] = y_test
 
     return dataset
@@ -57,12 +61,15 @@ def build_model(optimizer):
     num_classes = 10
     # create a model with keras
     model = tf.keras.Sequential()
+    # add two hidden layer
+    model.add(tf.keras.layers.Dense(64, activation='relu'))
+    model.add(tf.keras.layers.Dense(64, activation='relu'))
     # add a dense layer with number of classes of nodes and softmax
     model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
     # compile the model
     model.compile(optimizer=optimizer,
-                    loss='categorical_crossentropy',
-                    metrics=['accuracy'])
+                    loss='sparse_categorical_crossentropy',
+                    metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
 
     return model
 
@@ -80,10 +87,10 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
     # calculate the offset for the data of the KungFu node
     offset = batch_size * shard_id
     # extract the data for learning of the KungFu node
-    x = dataset['x_train'][offset:offset + batch_size, :]
+    x = dataset['x_train'][offset:offset + batch_size]
     y = dataset['y_train'][offset:offset + batch_size]
     # train the model
-    model.fit(x, y, batch_size=batch_size, epochs=n_epochs)
+    model.fit(x, y, batch_size=batch_size, epochs=n_epochs, validation_data=(dataset['x_val'], dataset['y_val']))
 
 
 def test_model(model, dataset):
