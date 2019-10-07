@@ -66,7 +66,8 @@ func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.J
 		}
 	}()
 	if *keep {
-		err := <-ctx.Done()
+		<-ctx.Done()
+		err := ctx.Err()
 		log.Infof("context is done: %v", err)
 	}
 	all.Wait()

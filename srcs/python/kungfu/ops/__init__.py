@@ -1,44 +1,13 @@
-import os
-import platform
-import sysconfig
-from ctypes import cdll
-
 from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
 
-EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
-
-
-def _load_op_lib(name):
-    module_path = os.path.dirname(__file__)
-    suffix = sysconfig.get_config_var(EXT_SUFFIX_KEY)
-    filename = os.path.join(module_path, name + suffix)
-    import tensorflow as tf
-    return tf.load_op_library(filename)
-
-
-def _load_init_lib(name):
-    module_path = os.path.dirname(__file__)
-    suffix = 'so' if platform.uname()[0] != 'Darwin' else 'dylib'
-    filename = os.path.join(module_path, name + '.' + suffix)
-    return cdll.LoadLibrary(filename)
-
-
-def _call_method(lib, name):
-    if hasattr(lib, name):
-        getattr(lib, name)()
-        return True
-    return False
-
-
-def _load_and_init_op_lib():
-    _op_lib = _load_op_lib('kungfu_tensorflow_ops')
-    _init_lib = _load_init_lib('libkungfu_tensorflow_init')
-    _call_method(_init_lib, 'kungfu_tensorflow_init')
-    has_gpu = _call_method(_init_lib, 'kungfu_tensorflow_init_gpu')
-    return _op_lib, _init_lib, has_gpu
-
-
-_op_lib, _init_lib, _has_gpu = _load_and_init_op_lib()
+from .adapt import (get_init_checkpoint, get_init_version, get_start_step,
+                    propose_update, resize_cluster, start_step, update_cluster)
+from .collective import (all_reduce, all_reduce_gpu, barrier, broadcast,
+                         cpu_group_all_reduce, global_variance,
+                         gpu_group_all_reduce, group_all_reduce)
+from .loader import _has_gpu, _init_lib, _op_lib
+from .local import save_variable, save_variables
+from .p2p import request_variable, request_variable_with_template
 
 
 def _tensor_size(t):
@@ -54,29 +23,6 @@ def current_cluster_size():
     return _init_lib.kungfu_cluster_size()
 
 
-def start_step():  # temporary API for experiment
-    return _init_lib.kungfu_start_step()
-
-
-def get_init_version():
-    """Returns a non-negative integer representing the cluster version."""
-    init_sess = os.getenv('KUNGFU_INIT_SESS')
-    version = int(init_sess)
-    if version < 0:
-        raise RuntimeError('invalid version')
-    return version
-
-
-def get_start_step(version):
-    """
-    Input:
-        version: A scalar tensor of int32,
-    Returns:
-        a scalar tensors of int64, the start global step
-    """
-    return _op_lib.kungfu_get_start_step(version)
-
-
 def peer_info(version):
     """
     Inputs:
@@ -89,83 +35,6 @@ def peer_info(version):
 
 
 # TODO: group ops by category
-
-
-def barrier():
-    return _op_lib.kungfu_barrier()
-
-
-def propose_update(target_global_step, target_version, new_size):
-    """
-    Inputs:
-        target_global_step: a scalar tensor of int64
-        target_version: a scalar tensor of int32
-        new_size: a scalar tensor of int32
-    Returns:
-        a pair of scalar tensors of bool: (accepted, keep)
-        accepted: indicates if proposal is accepts
-        keep: indicates if self is still in the new cluster
-    """
-    return _op_lib.kungfu_propose_update(target_global_step, target_version,
-                                         new_size)
-
-
-def update_cluster(version):
-    """Returns a bool scalar which indicates if this peer is still in the cluster."""
-    return _op_lib.kungfu_update_cluster(version)
-
-
-def save_variable(t, version=None):
-    """
-    t: the tensor variable to save
-    version: a scalar tensor of int64 or None
-    """
-    if version is None:
-        version = 0
-        use_version = False
-    else:
-        use_version = True
-    return _op_lib.kungfu_save_variable(version,
-                                        t,
-                                        input_tensor_name=t.name,
-                                        use_version=use_version)
-
-
-def save_variables(variables):
-    return _op_lib.save_variables(variables, names=[v.name for v in variables])
-
-
-def request_variable(target, version=None, name=None, shape=None, dtype=None):
-    """
-    target: a scalar tensor of int32
-    version: a scalar tensor of int64
-    name: string
-    """
-    if version is None:
-        version = 0
-        use_version = False
-    else:
-        use_version = True
-    if name is None:
-        raise RuntimeError('name is required')
-    if shape is None:
-        raise RuntimeError('shape is required')
-    if dtype is None:
-        raise RuntimeError('dtype is required')
-    return _op_lib.kungfu_request_variable(target,
-                                           version,
-                                           tensor_name=name,
-                                           shape=shape,
-                                           T=dtype,
-                                           use_version=use_version)
-
-
-def request_variable_with_template(target, template, version=None):
-    return request_variable(target,
-                            version=version,
-                            name=template.name,
-                            shape=template.shape,
-                            dtype=template.dtype)
 
 
 def get_peer_latencies(local_step=None):
@@ -208,15 +77,6 @@ def get_neighbour_mask(edges):
 
 def round_robin(mask):
     return _op_lib.kungfu_round_robin(mask)
-
-
-def save_model(variables):
-    import tensorflow as tf
-    var_sizes = [var.shape.num_elements()
-                 for var in variables]  # number of floats it has
-    return _op_lib.save_model(variables,
-                              var_type_size=variables[0].dtype.size,
-                              var_sizes=var_sizes)
 
 
 def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
@@ -297,26 +157,6 @@ def adaptive_request_variables(variables, window_size):
         names=[v.name for v in variables],
         ranks=ranks,
         window_size=window_size)
-
-
-def broadcast(t):
-    return _op_lib.broadcast(t)
-
-
-def all_reduce(t):
-    return _op_lib.all_reduce(t, input_tensor_name=t.name)
-
-
-def all_reduce_gpu(t):
-    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
-
-
-def global_variance(t):
-    return _op_lib.global_variance(t)
-
-
-def start_gpu_group(*args, **kwargs):
-    return _op_lib.start_gpu_group(*args, **kwargs)
 
 
 def _parse_schedule(schedule, batch_size, num_train):
@@ -410,29 +250,6 @@ def adaptive_partial_exchange_with_cpu_allreduce(ts,
 
         with tf.control_dependencies([increment_global_step_op]):
             return [tf.identity(pnt) for pnt in partial_negotiated_ts]
-
-
-def cpu_group_all_reduce(ts):
-    return [all_reduce(t) for t in ts]
-
-
-def gpu_group_all_reduce(ts):
-    names = [t.name for t in ts]
-    names = list(sorted(names))  # FIXME: use topsort
-    import tensorflow as tf
-    with tf.control_dependencies([
-            start_gpu_group(names),
-    ]):
-        return [all_reduce_gpu(t) for t in ts]
-
-
-def group_all_reduce(ts, nccl=False):
-    # FIXME: auto determine device
-    if nccl:
-        print('Try to use GPU NCCL to perform all-reduce')
-        return gpu_group_all_reduce(ts)
-    print('Try to use KungFu MPI to perform all-reduce')
-    return cpu_group_all_reduce(ts)
 
 
 def _bin_pack(sizes, budget, adjust_budget=False):

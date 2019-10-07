@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"os"
+	"path"
 	"runtime"
 	"strings"
 	"time"
@@ -49,7 +51,16 @@ var (
 	errMissingProgramName = errors.New("missing program name")
 )
 
+func progName() string {
+	if len(os.Args) > 0 {
+		return path.Base(os.Args[0])
+	}
+	return ""
+}
+
 func main() {
+	t0 := time.Now()
+	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
 	selfIP := func() string {
 		switch {
 		case len(*selfHost) > 0:
