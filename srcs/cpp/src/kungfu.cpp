@@ -35,20 +35,9 @@ kungfu_world::kungfu_world()
 
 kungfu_world::~kungfu_world() { GoKungfuFinalize(); }
 
-int kungfu_world::Rank(int version) const
-{
-    return GoKungfuRank(GoInt(version));
-}
+int kungfu_world::Rank() const { return GoKungfuRank(); }
 
-int kungfu_world::ClusterSize(int version) const
-{
-    return GoKungfuClusterSize(GoInt(version));
-}
-
-int kungfu_world::StartStep(int version) const
-{
-    return GoKungfuStartStep(GoInt(version));
-}
+int kungfu_world::ClusterSize() const { return GoKungfuClusterSize(); }
 
 int kungfu_world::Save(const char *name, const void *buf, int count,
                        KungFu_Datatype dtype)
@@ -218,20 +207,4 @@ int kungfu_world::ResizeCluster(const char *ckpt, int new_size, bool *keep)
     static_assert(sizeof(bool) == sizeof(char), "");
     return GoKungfuResizeCluster(const_cast<char *>(ckpt), GoInt(new_size),
                                  reinterpret_cast<char *>(keep));
-}
-
-int kungfu_world::ProposeUpdate(int global_stepl, const char *version,
-                                int new_size, bool *accepted, bool *keep)
-{
-    static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuProposeUpdate(
-        GoInt(global_stepl), const_cast<char *>(version), GoInt(new_size),
-        reinterpret_cast<char *>(accepted), reinterpret_cast<char *>(keep));
-}
-
-int kungfu_world::UpdateCluster(const char *version, bool *exist)
-{
-    static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuUpdateCluster(const_cast<char *>(version),
-                                 reinterpret_cast<char *>(exist));
 }

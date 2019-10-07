@@ -66,11 +66,8 @@ class kungfu_world
     ~kungfu_world();
 
     // metadata APIs
-
-    // will use current version if version < 0
-    int Rank(int version = -1) const;
-    int ClusterSize(int version = -1) const;
-    int StartStep(int version = -1) const;
+    int Rank() const;
+    int ClusterSize() const;
 
     // local API
     int Save(const char *name, const void *buf, int count,
@@ -153,11 +150,6 @@ class kungfu_world
 
     // control APIs
     int ResizeCluster(const char *ckpt, int new_size, bool *keep);
-
-    int ProposeUpdate(int global_stepl, const char *version, int new_size,
-                      bool *accepted, bool *keep);
-
-    int UpdateCluster(const char *version, bool *exist);
 };
 
 #endif

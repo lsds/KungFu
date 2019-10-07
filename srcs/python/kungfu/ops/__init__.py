@@ -1,7 +1,6 @@
 from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
 
-from .adapt import (get_init_checkpoint, get_init_version, get_start_step,
-                    propose_update, resize_cluster, start_step, update_cluster)
+from .adapt import get_init_checkpoint, resize_cluster
 from .collective import (all_reduce, all_reduce_gpu, barrier, broadcast,
                          cpu_group_all_reduce, global_variance,
                          gpu_group_all_reduce, group_all_reduce)

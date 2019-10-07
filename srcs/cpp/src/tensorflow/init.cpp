@@ -11,16 +11,6 @@ int kungfu_rank() { return _kungfu_world->Rank(); }
 
 int kungfu_cluster_size() { return _kungfu_world->ClusterSize(); }
 
-int kungfu_start_step()
-{
-    std::string version;
-    const char *p = std::getenv("KUNGFU_INIT_SESS");
-    if (p) { version = p; }
-    int v;
-    sscanf(version.c_str(), "%d", &v);
-    return _kungfu_world->StartStep(v);
-}
-
 namespace kungfu
 {
 
