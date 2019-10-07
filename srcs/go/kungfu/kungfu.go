@@ -159,7 +159,7 @@ func (kf *Kungfu) UpdateSession(version string) bool {
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	if kf.updated {
-		log.Warnf("ignore update")
+		log.Debugf("ignore update")
 		return true
 	}
 	log.Debugf("Kungfu::updateTo(%s)", pl)
@@ -183,7 +183,7 @@ func (kf *Kungfu) Save(version, name string, buf *kb.Buffer) int {
 
 func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 	if peers.Eq(kf.currentPeers) {
-		log.Debugf("ingore identical update")
+		log.Debugf("ingore unchanged proposal")
 		return true
 	}
 	{
