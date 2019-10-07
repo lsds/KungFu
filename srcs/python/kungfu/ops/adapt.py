@@ -17,10 +17,11 @@ def resize_cluster(checkpoint, new_size):
     """Resize cluster to given size.
 
     Inputs:
-        checkpoint: string, new peers should be able to restore to this checkpoint.
-        new_size: int, the new cluster size.
+        checkpoint: A scalar tensor of type string, new peers should be able to restore to this checkpoint.
+        new_size: A scalar tensor of type int32, the new cluster size.
     Returns:
-        A bool indicates if the current peer should quit.
+        A scalar tensor of type bool indicates if the current peer is still in the new cluster,
+        the peer should quit if false.
     """
     return _op_lib.kungfu_resize_cluster(checkpoint, new_size)
 
