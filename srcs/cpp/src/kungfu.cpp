@@ -45,11 +45,6 @@ int kungfu_world::ClusterSize(int version) const
     return GoKungfuClusterSize(GoInt(version));
 }
 
-int kungfu_world::StartStep(int version) const
-{
-    return GoKungfuStartStep(GoInt(version));
-}
-
 int kungfu_world::Save(const char *name, const void *buf, int count,
                        KungFu_Datatype dtype)
 {

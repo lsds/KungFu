@@ -8,35 +8,6 @@
 
 namespace tensorflow
 {
-REGISTER_OP("KungfuGetStartStep")
-    .Input("version: int32")
-    .Output("global_step: int64")
-    .SetShapeFn([](shape_inference::InferenceContext *c) {
-        c->set_output(0, c->Scalar());
-        return Status::OK();
-    });
-
-class GetStartStep : public AsyncOpKernel
-{
-    using AsyncOpKernel::AsyncOpKernel;
-
-  public:
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
-    {
-        Tensor *global_step = nullptr;
-        OP_REQUIRES_OK_ASYNC(
-            context,
-            context->allocate_output(0, MakeTensorShape(), &global_step), done);
-        const int32_t version = context->input(0).scalar<int32_t>()();
-        global_step->scalar<int64_t>()() = _kungfu_world->StartStep(version);
-        done();
-    }
-};
-
-// TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuGetStartStep").Device(DEVICE_CPU),
-                        GetStartStep);
-
 REGISTER_OP("KungfuGetPeerInfo")
     .Input("version: int32")
     .Output("rank: int32")

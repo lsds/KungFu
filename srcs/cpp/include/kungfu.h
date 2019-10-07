@@ -70,7 +70,6 @@ class kungfu_world
     // will use current version if version < 0
     int Rank(int version = -1) const;
     int ClusterSize(int version = -1) const;
-    int StartStep(int version = -1) const;
 
     // local API
     int Save(const char *name, const void *buf, int count,

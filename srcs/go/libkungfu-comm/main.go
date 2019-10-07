@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"unsafe"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
@@ -55,14 +54,6 @@ func GoKungfuRank(version int) int {
 	log.Warnf("GoKungfuRank for version >= 0 is NOT supported, using current version")
 	sess := kungfu.CurrentSession()
 	return sess.Rank()
-}
-
-//export GoKungfuStartStep
-func GoKungfuStartStep(version int) int {
-	if version <= 0 {
-		return 0
-	}
-	return kungfu.StartStep(strconv.Itoa(version))
 }
 
 //export GoKungfuBarrier
