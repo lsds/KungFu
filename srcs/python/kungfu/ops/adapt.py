@@ -1,6 +1,31 @@
 import os
 
-from .loader import _has_gpu, _init_lib, _op_lib
+from .loader import _init_lib, _op_lib
+
+
+def get_init_checkpoint():
+    """Get the initial checkpoint.
+
+    Returns:
+        A string represents the checkpoint.
+    """
+    # FIXME: call C API
+    return os.getenv('KUNGFU_INIT_CKPT')
+
+
+def resize_cluster(checkpoint, new_size):
+    """Resize cluster to given size.
+
+    Inputs:
+        checkpoint: string, new peers should be able to restore to this checkpoint.
+        new_size: int, the new cluster size.
+    Returns:
+        A bool indicates if the current peer should quit.
+    """
+    return _op_lib.kungfu_resize_cluster(checkpoint, new_size)
+
+
+# The following APIs are deprecated.
 
 
 def start_step():  # temporary API for experiment

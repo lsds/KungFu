@@ -152,6 +152,8 @@ class kungfu_world
     int GetPeerLatencies(float *recvbuf, int recv_count);
 
     // control APIs
+    int ResizeCluster(const char *ckpt, int new_size, bool *keep);
+
     int ProposeUpdate(int global_stepl, const char *version, int new_size,
                       bool *accepted, bool *keep);
 

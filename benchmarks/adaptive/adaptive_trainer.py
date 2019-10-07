@@ -4,24 +4,19 @@ from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import tensorflow as tf
-from kungfu.ops import propose_update, update_cluster, all_reduce, get_init_version, get_start_step
+from kungfu.ops import all_reduce, current_cluster_size
+from kungfu.ops.adapt import get_init_checkpoint, resize_cluster
 
 
-def _create_version_tensor():
-    init_version = get_init_version()
-    version_tensor = tf.Variable(tf.constant(init_version, tf.int32),
-                                 trainable=False)
-    return version_tensor
+def get_new_size(i, sch, old):
+    for j, n in reversed(sch):
+        if i >= j:
+            return n
+    return old
 
 
 x = tf.Variable(tf.ones([], dtype=tf.int32))
 y = all_reduce(x)
-
-version = _create_version_tensor()
-advance_version = tf.assign_add(version, 1)
-
-global_step = tf.Variable(get_start_step(version), trainable=False)
-advance_global_step = tf.assign_add(global_step, 1)
 
 cluster_schedule = [
     # (gs, new_size) :: scale cluster to new_size after step gs
@@ -37,51 +32,36 @@ cluster_schedule = [
 max_step = 20  # 0, ..., 19,
 # 14, 15, 16, 17, 18, 19
 
-propose_steps = [gs for gs, _ in cluster_schedule]
-update_steps = [gs + 1 for gs, _ in cluster_schedule]
+gs = 0
 
 
-def compute_new_size(schedule, global_step, init):
-    schedule = reversed(sorted(schedule))
-    return tf.case([(tf.greater_equal(
-        global_step, step), lambda size=size: tf.constant(size))
-                    for step, size in schedule], lambda: tf.constant(init))
+def restore(checkpoint):
+    global gs
+    gs = int(checkpoint)
+    print('restored to %d' % (gs))
 
 
-new_cluster_size = compute_new_size(cluster_schedule, global_step, 0)
-propose_op = propose_update(global_step + 1, version, new_cluster_size)
-update_op = update_cluster(version)
+ckpt = tf.placeholder(tf.string)
+new_size = tf.placeholder(tf.int32)
+resize_op = resize_cluster(ckpt, new_size)
 
 init = tf.global_variables_initializer()
 
 with tf.Session() as sess:
     sess.run(init)
-    init_gs = sess.run(global_step)
-    print('init step is %d' % (init_gs))
+
+    restore(get_init_checkpoint())
+    np = current_cluster_size()
 
     while True:
-        gs = sess.run(global_step)
-        print('step: %d' % (gs))
-
-        # BEGIN hook
-        if gs in update_steps:
-            sess.run(update_op)
-        # END hook
-
         v = sess.run(y)
-        # sess.run(fake_train_op)
         print('step %d, result: %d' % (gs, v))
 
         # BEGIN hook
-        if gs in propose_steps:
-            sess.run(advance_version)
-            # all peers write to config server with idential content (the new cluster size)
-            _, keep = sess.run(propose_op)
-            if not keep:
-                print('Should Stop at step %d' % (gs))
-                break
-        # END hook
-
-        gs = sess.run(advance_global_step)
+        gs += 1
+        np = get_new_size(gs, cluster_schedule, np)
+        keep = sess.run(resize_op, feed_dict={ckpt: str(gs), new_size: np})
+        if not keep:
+            break
         if gs >= max_step:
             break
