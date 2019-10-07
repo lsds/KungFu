@@ -90,10 +90,17 @@ func (l *Logger) Exitf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+func (l *Logger) SetOutput(w io.Writer) {
+	l.Lock()
+	defer l.Unlock()
+	l.w = w
+}
+
 var (
-	Debugf = std.Debugf
-	Infof  = std.Infof
-	Warnf  = std.Warnf
-	Errorf = std.Errorf
-	Exitf  = std.Exitf
+	Debugf    = std.Debugf
+	Infof     = std.Infof
+	Warnf     = std.Warnf
+	Errorf    = std.Errorf
+	Exitf     = std.Exitf
+	SetOutput = std.SetOutput
 )

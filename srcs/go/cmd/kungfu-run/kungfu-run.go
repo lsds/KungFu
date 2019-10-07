@@ -36,6 +36,8 @@ var (
 	watchPeriod = flag.Duration("watch-period", 500*time.Millisecond, "")
 	keep        = flag.Bool("k", false, "don't stop watch")
 	checkpoint  = flag.String("checkpoint", "0", "")
+
+	logfile = flag.String("logfile", "", "path to log file")
 )
 
 func init() {
@@ -59,6 +61,14 @@ func progName() string {
 }
 
 func main() {
+	if len(*logfile) > 0 {
+		lf, err := os.Create(*logfile)
+		if err != nil {
+			utils.ExitErr(err)
+		}
+		defer lf.Close()
+		log.SetOutput(lf)
+	}
 	t0 := time.Now()
 	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
 	selfIP := func() string {
