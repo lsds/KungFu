@@ -103,6 +103,7 @@ func (kf *Kungfu) StartStep(version string) int {
 	return n
 }
 
+// deprecated
 func (kf *Kungfu) ProposeUpdate(globalStep int, version string, newSize int) (bool, error) {
 	log.Infof("generating new cluster spec of size %d", newSize)
 	peers, err := kf.hostList.GenPeerList(newSize)
@@ -143,6 +144,13 @@ func (kf *Kungfu) CurrentSession() *session {
 	return kf.currentSession
 }
 
+func (kf *Kungfu) Update() bool {
+	kf.Lock()
+	defer kf.Unlock()
+	return kf.updateTo(kf.currentPeers)
+}
+
+// deprecated
 func (kf *Kungfu) UpdateSession(version string) bool {
 	kf.Lock()
 	defer kf.Unlock()
@@ -150,8 +158,12 @@ func (kf *Kungfu) UpdateSession(version string) bool {
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
+	if kf.updated {
+		log.Debugf("ignore update")
+		return true
+	}
 	log.Debugf("Kungfu::updateTo(%s)", pl)
-	kf.router.ResetConnections()
+	kf.router.ResetConnections() // FIXME: don't reset all connections
 	sess, exist, err := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
 		return false
@@ -160,10 +172,49 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 		utils.ExitErr(err)
 	}
 	kf.currentSession = sess
+	kf.updated = true
 	return true
 }
 
 func (kf *Kungfu) Save(version, name string, buf *kb.Buffer) int {
 	blob := &store.Blob{Data: buf.Data}
 	return code(kf.store.Create(version, name, blob))
+}
+
+func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
+	if peers.Eq(kf.currentPeers) {
+		log.Debugf("ingore unchanged proposal")
+		return true
+	}
+	{
+		stage := run.Stage{Checkpoint: ckpt, Cluster: peers}
+		// FIXME: use par
+		for _, h := range kf.hostList {
+			id := plan.PeerID{Host: h.Hostname, Port: kf.parent.Port}
+			if err := kf.router.Send(id.WithName("update"), stage.Encode(), rch.ConnControl, 0); err != nil {
+				utils.ExitErr(err)
+			}
+		}
+	}
+	func() {
+		kf.Lock()
+		defer kf.Unlock()
+		kf.currentPeers = peers
+		kf.checkpoint = ckpt
+		kf.updated = false
+	}()
+	_, keep := peers.Lookup(kf.self)
+	return keep
+}
+
+func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, error) {
+	log.Debugf("resize cluster to %d at %q", newSize, ckpt)
+	peers, err := kf.hostList.GenPeerList(newSize)
+	if err != nil {
+		return true, err
+	}
+	if keep := kf.propose(ckpt, peers); !keep {
+		return false, nil
+	}
+	return kf.Update(), nil
 }
