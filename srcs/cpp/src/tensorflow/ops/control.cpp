@@ -17,9 +17,9 @@ class KungfuResizeCluster : public AsyncOpKernel
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        const std::string chpt = context->input(0).scalar<std::string>()();
-        const int32_t new_size = context->input(1).scalar<int32_t>()();
-        Tensor *keep           = nullptr;
+        const std::string &chpt = context->input(0).scalar<std::string>()();
+        const int32_t new_size  = context->input(1).scalar<int32_t>()();
+        Tensor *keep            = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &keep));
         _kungfu_world->ResizeCluster(chpt.c_str(), new_size,
