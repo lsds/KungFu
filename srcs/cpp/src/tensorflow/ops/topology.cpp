@@ -8,37 +8,8 @@
 
 namespace tensorflow
 {
-REGISTER_OP("KungfuGetStartStep")
-    .Input("version: int32")
-    .Output("global_step: int64")
-    .SetShapeFn([](shape_inference::InferenceContext *c) {
-        c->set_output(0, c->Scalar());
-        return Status::OK();
-    });
-
-class GetStartStep : public AsyncOpKernel
-{
-    using AsyncOpKernel::AsyncOpKernel;
-
-  public:
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
-    {
-        Tensor *global_step = nullptr;
-        OP_REQUIRES_OK_ASYNC(
-            context,
-            context->allocate_output(0, MakeTensorShape(), &global_step), done);
-        const int32_t version = context->input(0).scalar<int32_t>()();
-        global_step->scalar<int64_t>()() = _kungfu_world->StartStep(version);
-        done();
-    }
-};
-
-// TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuGetStartStep").Device(DEVICE_CPU),
-                        GetStartStep);
-
 REGISTER_OP("KungfuGetPeerInfo")
-    .Input("version: int32")
+    .Input("version: int32")  // FIXME: not used
     .Output("rank: int32")
     .Output("cluster_size: int32")
     .SetShapeFn([](shape_inference::InferenceContext *c) {
@@ -63,9 +34,8 @@ class GetPeerInfo : public AsyncOpKernel
             context,
             context->allocate_output(1, MakeTensorShape(), &cluster_size),
             done);
-        const int32_t version     = context->input(0).scalar<int32_t>()();
-        rank->scalar<int32_t>()() = _kungfu_world->Rank(version);
-        cluster_size->scalar<int32_t>()() = _kungfu_world->ClusterSize(version);
+        rank->scalar<int32_t>()()         = _kungfu_world->Rank();
+        cluster_size->scalar<int32_t>()() = _kungfu_world->ClusterSize();
         done();
     }
 };

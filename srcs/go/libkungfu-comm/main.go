@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"strconv"
 	"unsafe"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -36,33 +34,15 @@ func GoKungfuFinalize() int {
 }
 
 //export GoKungfuClusterSize
-func GoKungfuClusterSize(version int) int {
-	if version < 0 {
-		sess := kungfu.CurrentSession()
-		return sess.ClusterSize()
-	}
-	log.Warnf("GoKungfuClusterSize for version >= 0 is NOT supported, using current version")
+func GoKungfuClusterSize() int {
 	sess := kungfu.CurrentSession()
 	return sess.ClusterSize()
 }
 
 //export GoKungfuRank
-func GoKungfuRank(version int) int {
-	if version < 0 {
-		sess := kungfu.CurrentSession()
-		return sess.Rank()
-	}
-	log.Warnf("GoKungfuRank for version >= 0 is NOT supported, using current version")
+func GoKungfuRank() int {
 	sess := kungfu.CurrentSession()
 	return sess.Rank()
-}
-
-//export GoKungfuStartStep
-func GoKungfuStartStep(version int) int {
-	if version <= 0 {
-		return 0
-	}
-	return kungfu.StartStep(strconv.Itoa(version))
 }
 
 //export GoKungfuBarrier
@@ -236,27 +216,6 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 	for i := range results {
 		results[i] = float32(latencies[i])
 	}
-	return 0
-}
-
-//export GoKungfuProposeUpdate
-func GoKungfuProposeUpdate(globalStep int, token *C.char, newSize int, accepted, keep *C.char) int {
-	ok := true // FIXME: compute ok by all reduce
-	*accepted = boolToChar(ok)
-	*keep = boolToChar(true)
-	if ok {
-		goKeep, err := kungfu.ProposeUpdate(globalStep, C.GoString(token), newSize)
-		if err != nil {
-			utils.ExitErr(err)
-		}
-		*keep = boolToChar(goKeep)
-	}
-	return 0
-}
-
-//export GoKungfuUpdateCluster
-func GoKungfuUpdateCluster(token *C.char, exist *C.char) int {
-	*exist = boolToChar(kungfu.UpdateSession(C.GoString(token)))
 	return 0
 }
 
