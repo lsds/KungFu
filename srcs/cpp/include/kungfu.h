@@ -66,10 +66,8 @@ class kungfu_world
     ~kungfu_world();
 
     // metadata APIs
-
-    // will use current version if version < 0
-    int Rank(int version = -1) const;
-    int ClusterSize(int version = -1) const;
+    int Rank() const;
+    int ClusterSize() const;
 
     // local API
     int Save(const char *name, const void *buf, int count,

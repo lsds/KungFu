@@ -8,7 +8,6 @@ import (
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -35,23 +34,13 @@ func GoKungfuFinalize() int {
 }
 
 //export GoKungfuClusterSize
-func GoKungfuClusterSize(version int) int {
-	if version < 0 {
-		sess := kungfu.CurrentSession()
-		return sess.ClusterSize()
-	}
-	log.Warnf("GoKungfuClusterSize for version >= 0 is NOT supported, using current version")
+func GoKungfuClusterSize() int {
 	sess := kungfu.CurrentSession()
 	return sess.ClusterSize()
 }
 
 //export GoKungfuRank
-func GoKungfuRank(version int) int {
-	if version < 0 {
-		sess := kungfu.CurrentSession()
-		return sess.Rank()
-	}
-	log.Warnf("GoKungfuRank for version >= 0 is NOT supported, using current version")
+func GoKungfuRank() int {
 	sess := kungfu.CurrentSession()
 	return sess.Rank()
 }
