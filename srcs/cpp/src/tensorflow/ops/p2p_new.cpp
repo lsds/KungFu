@@ -19,8 +19,8 @@ REGISTER_OP("KungfuRequestVariable")
     .SetShapeFn([](shape_inference::InferenceContext *c) {
         shape_inference::ShapeHandle handle;
         TensorShapeProto shape;
-        c->GetAttr("shape", &shape);
-        c->MakeShapeFromShapeProto(shape, &handle);
+        TF_RETURN_IF_ERROR(c->GetAttr("shape", &shape));
+        TF_RETURN_IF_ERROR(c->MakeShapeFromShapeProto(shape, &handle));
         c->set_output(0, handle);
         return Status::OK();
     });
