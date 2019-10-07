@@ -30,6 +30,8 @@ def parse_schedule(config):
 
 
 cluster_size_schedule, max_step = parse_schedule(args.schedule)
+print(cluster_size_schedule)
+print(max_step)
 
 
 def get_new_size(i, sch, old):
@@ -57,18 +59,25 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
 
-    gs = restore(get_init_checkpoint())
-    print('restored to %d' % (gs))
+    init_gs = restore(get_init_checkpoint())
+    print('restored to %d' % (init_gs))
     np = current_cluster_size()
+    init_np = get_new_size(init_gs, cluster_size_schedule, np)
+    if np != init_np:
+        print(
+            '[W] init cluster size (%d) is not consistent with schedule (%d)' %
+            (np, init_np))
 
-    while True:
+    for gs in range(init_gs, max_step):
         v = sess.run(y)
         print('step %d, result: %d' % (gs, v))
 
-        gs += 1
-        np = get_new_size(gs, cluster_size_schedule, np)
-        keep = sess.run(resize_op, feed_dict={ckpt: str(gs), new_size: np})
+        next_gs = gs + 1
+        np = get_new_size(next_gs, cluster_size_schedule, np)
+        keep = sess.run(resize_op,
+                        feed_dict={
+                            ckpt: str(next_gs),
+                            new_size: np
+                        })
         if not keep:
-            break
-        if gs >= max_step:
             break
