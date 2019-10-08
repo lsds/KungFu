@@ -34,7 +34,7 @@ func main() {
 	kungfu.Start()
 	defer kungfu.Close()
 
-	model := fakemodel.New(fakemodel.Models[*model], kb.KungFu_FLOAT, false)
+	model := fakemodel.New(fakemodel.Models[*model], kb.F32, false)
 	fakeTrain(kungfu, model)
 }
 
@@ -70,7 +70,7 @@ func trainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 		w := kf.Workspace{
 			SendBuf: b.SendBuf,
 			RecvBuf: b.RecvBuf,
-			OP:      kb.KungFu_SUM,
+			OP:      kb.SUM,
 			Name:    name,
 		}
 		sess := kungfu.CurrentSession()
