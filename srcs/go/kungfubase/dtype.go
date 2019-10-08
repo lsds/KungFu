@@ -1,6 +1,6 @@
 package kungfubase
 
-// #include "dtype.h"
+// #include "kungfu/dtype.h"
 import "C"
 
 type DataType C.KungFu_Datatype

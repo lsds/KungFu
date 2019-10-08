@@ -1,6 +1,6 @@
 package kungfubase
 
-// #include "strategy.h"
+// #include "kungfu/strategy.h"
 import "C"
 
 type Strategy C.KungFu_AllReduceStrategy

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "dtype.h"
+#include "kungfu/dtype.h"
 
 uint32_t kungfu_type_size(KungFu_Datatype dt)
 {

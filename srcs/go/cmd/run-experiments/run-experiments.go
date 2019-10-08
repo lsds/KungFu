@@ -124,13 +124,13 @@ func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args [
 		}(lastID)
 	}
 
-	algos := []kb.Strategy{
-		kb.KungFu_Star,
-		kb.KungFu_Ring,
-		kb.KungFu_Clique,
-		kb.KungFu_Tree,
+	strategies := []kb.Strategy{
+		kb.Star,
+		kb.Ring,
+		kb.Clique,
+		kb.Tree,
 	}
-	for _, a := range algos {
+	for _, a := range strategies {
 		run(a, []int{1})
 		run(a, []int{2})
 		run(a, []int{3})

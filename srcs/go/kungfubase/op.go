@@ -2,7 +2,7 @@ package kungfubase
 
 import "unsafe"
 
-// #include "op.h"
+// #include "kungfu/op.h"
 import "C"
 
 type OP C.KungFu_Op

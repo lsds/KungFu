@@ -1,5 +1,5 @@
 #pragma once
-#include "dtype.h"
+#include <kungfu/dtype.h>
 
 #ifdef __cplusplus
 extern "C" {
