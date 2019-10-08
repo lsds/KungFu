@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <kungfu/callback.h>
 #include <kungfu/dtype.h>
 #include <kungfu/op.h>
 #include <kungfu/strategy.h>
@@ -9,8 +10,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct CallbackWrapper callback_t;
 
 typedef struct order_group_s order_group_t;
 

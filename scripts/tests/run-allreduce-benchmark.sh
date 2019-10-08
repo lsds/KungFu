@@ -13,7 +13,6 @@ reset_go_mod() {
 }
 
 rebuild() {
-    ./configure --no-tests --build-tools && make
     env \
         GOBIN=$(pwd)/bin \
         go install -v ./tests/go/...

@@ -48,7 +48,6 @@ go_clean() {
 }
 
 go_install() {
-    ./configure --no-tests && make
     env \
         GOPROXY=https://goproxy.io \
         GOBIN=$(pwd)/bin \
@@ -56,5 +55,6 @@ go_install() {
 }
 
 go_clean
+reset_go_mod
 go_install
 reset_go_mod

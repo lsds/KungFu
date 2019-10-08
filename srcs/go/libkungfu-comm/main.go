@@ -8,6 +8,7 @@ import (
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -22,12 +23,13 @@ import "C"
 var kungfu *kf.Kungfu
 
 //export GoKungfuInit
-func GoKungfuInit(algo C.KungFu_AllReduceStrategy) int {
+func GoKungfuInit(strategy C.KungFu_AllReduceStrategy) int {
 	var err error
-	config := kf.Config{Strategy: kb.Strategy(algo)}
+	config := kf.Config{Strategy: kb.Strategy(strategy)}
 	kungfu, err = kf.New(config)
 	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to create KungFu instance: %v", err))
+		log.Errorf("failed to create KungFu instance: %v", err)
+		return 1
 	}
 	return kungfu.Start()
 }

@@ -12,8 +12,6 @@ KUNGFU_RUN=$(pwd)/bin/kungfu-run
 
 reinstall() {
     ./scripts/go-install.sh
-
-    local CMAKE_SOURCE_DIR=$(pwd)
     env \
         GOBIN=$(pwd)/bin \
         go install -v ./tests/go/...

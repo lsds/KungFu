@@ -8,7 +8,6 @@ cd ../..
 . ./scripts/utils/measure.sh
 
 reinstall() {
-    CMAKE_SOURCE_DIR=$(pwd)
     ./scripts/go-install.sh
 }
 
