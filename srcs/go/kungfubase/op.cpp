@@ -54,8 +54,8 @@ struct workspace {
     }
 };
 
-void std_transform_2_new(const void *input1, const void *input2, void *output,
-                         const int n, const dtype dt, const op o)
+void std_transform_2(const void *input1, const void *input2, void *output,
+                     const int n, const dtype dt, const op o)
 {
     const workspace w = {
         .input1 = input1,

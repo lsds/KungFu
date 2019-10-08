@@ -38,7 +38,7 @@ const KungFu_Op KungFu_MAX = kungfu::op_encoder::value<kungfu::op_max>();
 const KungFu_Op KungFu_MIN = kungfu::op_encoder::value<kungfu::op_min>();
 const KungFu_Op KungFu_SUM = kungfu::op_encoder::value<kungfu::op_sum>();
 
-const KungFu_AllReduceAlgo KungFu_StarAllReduce   = 0;
-const KungFu_AllReduceAlgo KungFu_RingAllReduce   = 1;
-const KungFu_AllReduceAlgo KungFu_CliqueAllReduce = 2;
-const KungFu_AllReduceAlgo KungFu_TreeAllReduce   = 3;
+const KungFu_AllReduceAlgo KungFu_StarAllReduce   = star;
+const KungFu_AllReduceAlgo KungFu_RingAllReduce   = ring;
+const KungFu_AllReduceAlgo KungFu_CliqueAllReduce = clique;
+const KungFu_AllReduceAlgo KungFu_TreeAllReduce   = tree;

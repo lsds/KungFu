@@ -1,6 +1,6 @@
 package kungfubase
 
-// #include <kungfu.h>
+// #include "strategy.h"
 import "C"
 
 const (
@@ -16,35 +16,37 @@ const (
 	AllReduceAlgoEnvKey = `KUNGFU_ALLREDUCE_ALGO` // FIXME: remove it
 )
 
-type KungFu_Datatype C.KungFu_Datatype
+type KungFu_Datatype DataType
 
 var (
-	KungFu_UINT8  = KungFu_Datatype(C.KungFu_UINT8)
-	KungFu_INT32  = KungFu_Datatype(C.KungFu_INT32)
-	KungFu_INT64  = KungFu_Datatype(C.KungFu_INT64)
-	KungFu_FLOAT  = KungFu_Datatype(C.KungFu_FLOAT)
-	KungFu_DOUBLE = KungFu_Datatype(C.KungFu_DOUBLE)
+	KungFu_UINT8  = KungFu_Datatype(U8)
+	KungFu_INT32  = KungFu_Datatype(I32)
+	KungFu_INT64  = KungFu_Datatype(I64)
+	KungFu_FLOAT  = KungFu_Datatype(F32)
+	KungFu_DOUBLE = KungFu_Datatype(F64)
 )
 
 func (dtype KungFu_Datatype) Size() int {
-	return int(C.kungfu_type_size(C.KungFu_Datatype(dtype)))
+	return DataType(dtype).Size()
 }
 
-type KungFu_Op C.KungFu_Op
+type KungFu_Op OP
 
 var (
-	KungFu_SUM = KungFu_Op(C.KungFu_SUM)
-	KungFu_MIN = KungFu_Op(C.KungFu_MIN)
-	KungFu_MAX = KungFu_Op(C.KungFu_MAX)
+	KungFu_SUM = KungFu_Op(SUM)
+	KungFu_MIN = KungFu_Op(MIN)
+	KungFu_MAX = KungFu_Op(MAX)
 )
 
-type KungFu_AllReduceAlgo C.KungFu_AllReduceAlgo
+type KungFu_AllReduceAlgo int
+
+// C.KungFu_AllReduceAlgo
 
 var (
-	KungFu_Star   = KungFu_AllReduceAlgo(C.KungFu_StarAllReduce)
-	KungFu_Ring   = KungFu_AllReduceAlgo(C.KungFu_RingAllReduce)
-	KungFu_Clique = KungFu_AllReduceAlgo(C.KungFu_CliqueAllReduce)
-	KungFu_Tree   = KungFu_AllReduceAlgo(C.KungFu_TreeAllReduce)
+	KungFu_Star   = KungFu_AllReduceAlgo(C.star)
+	KungFu_Ring   = KungFu_AllReduceAlgo(C.ring)
+	KungFu_Clique = KungFu_AllReduceAlgo(C.clique)
+	KungFu_Tree   = KungFu_AllReduceAlgo(C.tree)
 
 	algoNames = map[KungFu_AllReduceAlgo]string{
 		KungFu_Star:   `STAR`,

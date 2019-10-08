@@ -3,9 +3,6 @@
 extern "C" {
 #endif
 
-extern void std_transform_2(const void *input_1, const void *input_2,
-                            void *output, int n, int dtype, int binary_op);
-
 // TODO: rename it to done_callback_t
 typedef struct CallbackWrapper callback_t;
 
@@ -15,8 +12,6 @@ extern void delete_callback(callback_t *);
 typedef struct data_callback_s data_callback_t;
 extern void invoke_data_callback(data_callback_t *, void *);
 extern void delete_data_callback(data_callback_t *);
-
-extern void float16_sum(void *z, const void *x, const void *y, int len);
 
 #ifdef __cplusplus
 }

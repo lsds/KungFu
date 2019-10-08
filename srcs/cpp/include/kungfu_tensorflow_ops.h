@@ -30,12 +30,6 @@ inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
     }
 }
 
-inline void add_tensor(Tensor &out, const void *a, const void *b)
-{
-    std_transform_2(a, b, (void *)out.tensor_data().data(), out.NumElements(),
-                    to_kungfu_type(out.dtype()), KungFu_SUM);
-}
-
 template <typename... Dims> TensorShape MakeTensorShape(const Dims &... dims)
 {
     std::array<int, sizeof...(Dims)> ds({static_cast<int>(dims)...});
