@@ -122,7 +122,7 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	return true
 }
 
-func (kf *Kungfu) Save(version, name string, buf *kb.Buffer) int {
+func (kf *Kungfu) Save(version, name string, buf *kb.Vector) int {
 	blob := &store.Blob{Data: buf.Data}
 	return code(kf.store.Create(version, name, blob))
 }

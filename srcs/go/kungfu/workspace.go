@@ -9,15 +9,15 @@ import (
 
 // Workspace contains the data that a Kungfu operation will be performed on.
 type Workspace struct {
-	SendBuf *kb.Buffer
-	RecvBuf *kb.Buffer // TODO: if nil, will use SendBuf as in-place result
+	SendBuf *kb.Vector
+	RecvBuf *kb.Vector // TODO: if nil, will use SendBuf as in-place result
 	OP      kb.OP
 	Name    string
 }
 
 // 0 <= begin < end <= count - 1
 func (w Workspace) slice(begin, end int) Workspace {
-	var recvBuf *kb.Buffer
+	var recvBuf *kb.Vector
 	if w.RecvBuf != nil {
 		recvBuf = w.RecvBuf.Slice(begin, end)
 	}

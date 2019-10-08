@@ -53,13 +53,13 @@ func (jc JobConfig) CreateProcs(np int, algo kb.Strategy) ([]Proc, plan.PeerList
 		localRank, _ := pl.LocalRank(self)
 		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.ParentIDEnvKey:       jc.Parent.String(),
-			kb.PeerListEnvKey:       pl.String(),
-			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
-			kb.SelfSpecEnvKey:       self.String(),
-			kb.AllReduceStrategyEnvKey:  algo.String(), // FIXME: remove it
-			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
-			`PYTHONUNBUFFERED`:      `1`,
+			kb.ParentIDEnvKey:          jc.Parent.String(),
+			kb.PeerListEnvKey:          pl.String(),
+			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
+			kb.SelfSpecEnvKey:          self.String(),
+			kb.AllReduceStrategyEnvKey: algo.String(), // FIXME: remove it
+			`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
+			`PYTHONUNBUFFERED`:         `1`,
 		}
 		ps = append(ps, Proc{
 			Name:    name,
@@ -80,12 +80,12 @@ func CreateProcs(prog string, args []string, pl plan.PeerList, algo kb.Strategy,
 		localRank, _ := pl.LocalRank(self)
 		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.PeerListEnvKey:       pl.String(),
-			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
-			kb.SelfSpecEnvKey:       self.String(),
-			kb.AllReduceStrategyEnvKey:  algo.String(),
-			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
-			`PYTHONUNBUFFERED`:      `1`,
+			kb.PeerListEnvKey:          pl.String(),
+			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
+			kb.SelfSpecEnvKey:          self.String(),
+			kb.AllReduceStrategyEnvKey: algo.String(),
+			`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
+			`PYTHONUNBUFFERED`:         `1`,
 		}
 		if disableNCCL {
 			envs[`KUNGFU_DISABLE_NCCL`] = `1`

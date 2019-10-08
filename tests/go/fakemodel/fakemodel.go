@@ -33,14 +33,14 @@ func sum(a []int) int {
 }
 
 type DoubleBuffer struct {
-	SendBuf *kb.Buffer
-	RecvBuf *kb.Buffer
+	SendBuf *kb.Vector
+	RecvBuf *kb.Vector
 }
 
 func newDoubleBuffer(dtype kb.DataType, count int) DoubleBuffer {
 	return DoubleBuffer{
-		SendBuf: kb.NewBuffer(count, dtype),
-		RecvBuf: kb.NewBuffer(count, dtype),
+		SendBuf: kb.NewVector(count, dtype),
+		RecvBuf: kb.NewVector(count, dtype),
 	}
 }
 

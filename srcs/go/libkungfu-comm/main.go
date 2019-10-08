@@ -68,7 +68,7 @@ func GoKungfuBarrier(done *C.callback_t) int {
 func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
-	b := toBuffer(buf, count, dtype)
+	b := toVector(buf, count, dtype)
 	if done == nil {
 		// Synchronous case
 		return sess.Request(rank, goName, b)
@@ -86,7 +86,7 @@ func GoKungfuRequestVersion(rank int, version, name *C.char, buf unsafe.Pointer,
 	sess := kungfu.CurrentSession()
 	goVersion := C.GoString(version)
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
-	b := toBuffer(buf, count, dtype)
+	b := toVector(buf, count, dtype)
 	if done == nil {
 		return sess.Pull(rank, goVersion, goName, b)
 	}
@@ -102,7 +102,7 @@ func GoKungfuRequestVersion(rank int, version, name *C.char, buf unsafe.Pointer,
 func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
-	b := toBuffer(buf, count, dtype)
+	b := toVector(buf, count, dtype)
 	if done == nil {
 		return sess.Save(goName, b)
 	}
@@ -118,7 +118,7 @@ func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Da
 func GoKungfuSaveVersion(version, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	goVersion := C.GoString(version)
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
-	b := toBuffer(buf, count, dtype)
+	b := toVector(buf, count, dtype)
 	if done == nil {
 		return kungfu.Save(goVersion, goName, b)
 	}
@@ -133,8 +133,8 @@ func GoKungfuSaveVersion(version, name *C.char, buf unsafe.Pointer, count int, d
 //export GoKungfuAllReduce
 func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
-		SendBuf: toBuffer(sendBuf, count, dtype),
-		RecvBuf: toBuffer(recvBuf, count, dtype),
+		SendBuf: toVector(sendBuf, count, dtype),
+		RecvBuf: toVector(recvBuf, count, dtype),
 		OP:      kb.OP(op),
 		Name:    C.GoString(name),
 	}
@@ -153,8 +153,8 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 //export GoKungfuReduce
 func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
-		SendBuf: toBuffer(sendBuf, count, dtype),
-		RecvBuf: toBuffer(recvBuf, count, dtype),
+		SendBuf: toVector(sendBuf, count, dtype),
+		RecvBuf: toVector(recvBuf, count, dtype),
 		OP:      kb.OP(op),
 		Name:    C.GoString(name),
 	}
@@ -173,8 +173,8 @@ func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_D
 //export GoKungfuBroadcast
 func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
-		SendBuf: toBuffer(sendBuf, count, dtype),
-		RecvBuf: toBuffer(recvBuf, count, dtype),
+		SendBuf: toVector(sendBuf, count, dtype),
+		RecvBuf: toVector(recvBuf, count, dtype),
 		// OP:      0, // FIXME: assert that OP is not used
 		Name: C.GoString(name),
 	}
@@ -195,8 +195,8 @@ func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Da
 	recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype,
 	name *C.char, done *C.callback_t) int {
 	w := kf.Workspace{
-		SendBuf: toBuffer(sendBuf, sendCount, sendDtype),
-		RecvBuf: toBuffer(recvBuf, recvCount, recvDtype),
+		SendBuf: toVector(sendBuf, sendCount, sendDtype),
+		RecvBuf: toVector(recvBuf, recvCount, recvDtype),
 		// OP:      0, // FIXME: assert that OP is not used
 		Name: C.GoString(name),
 	}
@@ -214,7 +214,7 @@ func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Da
 
 //export GoKungfuGetPeerLatencies
 func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype) int {
-	results := toBuffer(recvBuf, recvCount, recvDtype).AsF32()
+	results := toVector(recvBuf, recvCount, recvDtype).AsF32()
 	sess := kungfu.CurrentSession()
 	latencies := sess.GetPeerLatencies()
 	// FIXME: check length
@@ -232,10 +232,10 @@ func GoKungfuGetStrategyFromEnv() C.KungFu_AllReduceStrategy {
 
 func main() {}
 
-func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer {
+func toVector(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Vector {
 	if ptr == nil {
 		if count > 0 {
-			utils.ExitErr(fmt.Errorf("toBuffer: ptr is nil but count = %d", count))
+			utils.ExitErr(fmt.Errorf("toVector: ptr is nil but count = %d", count))
 		}
 	}
 	dt := kb.DataType(dtype)
@@ -245,7 +245,7 @@ func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer
 		Len:  size,
 		Cap:  size,
 	}
-	return &kb.Buffer{
+	return &kb.Vector{
 		Data:  *(*[]byte)(unsafe.Pointer(sh)),
 		Count: count,
 		Type:  dt,

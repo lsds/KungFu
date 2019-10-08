@@ -126,8 +126,8 @@ func (sess *session) Warmup() int {
 	count := k * 4
 	dtype := kb.I32
 	w := Workspace{
-		SendBuf: kb.NewBuffer(count, dtype),
-		RecvBuf: kb.NewBuffer(count, dtype),
+		SendBuf: kb.NewVector(count, dtype),
+		RecvBuf: kb.NewVector(count, dtype),
 		OP:      kb.SUM,
 		Name:    "kungfu::warmup", // TODO: use tag
 	}
@@ -139,8 +139,8 @@ func (sess *session) Barrier() int {
 	count := k * 1
 	dtype := kb.U8
 	w := Workspace{
-		SendBuf: kb.NewBuffer(count, dtype),
-		RecvBuf: kb.NewBuffer(count, dtype),
+		SendBuf: kb.NewVector(count, dtype),
+		RecvBuf: kb.NewVector(count, dtype),
 		OP:      kb.SUM,
 		Name:    "kungfu::barrier", // TODO: use tag
 	}
@@ -166,7 +166,7 @@ func (sess *session) Gather(w Workspace) int {
 	return code(sess.runGather(w))
 }
 
-func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
+func (sess *session) Request(rank int, name string, model *kb.Vector) int {
 	if rank < 0 || len(sess.cluster) <= rank {
 		return code(errInvalidRank)
 	}
@@ -174,17 +174,17 @@ func (sess *session) Request(rank int, name string, model *kb.Buffer) int {
 	return code(sess.router.Request(peer.WithName(name), model))
 }
 
-func (sess *session) Pull(rank int, version, name string, model *kb.Buffer) int {
+func (sess *session) Pull(rank int, version, name string, model *kb.Vector) int {
 	peer := sess.cluster[rank]
 	return code(sess.router.Pull(version, peer.WithName(name), model))
 }
 
 // FIXME: move it to kungfu
-func (sess *session) Save(name string, buf *kb.Buffer) int {
+func (sess *session) Save(name string, buf *kb.Vector) int {
 	return code(sess.router.Save(name, buf))
 }
 
-func asMessage(b *kb.Buffer) rch.Message {
+func asMessage(b *kb.Vector) rch.Message {
 	return rch.Message{
 		Length: uint32(len(b.Data)),
 		Data:   b.Data,
@@ -200,12 +200,12 @@ func (sess *session) runGather(w Workspace) error {
 	count := w.SendBuf.Count
 	for rank, peer := range sess.cluster {
 		wg.Add(1)
-		go func(rank int, peer plan.PeerID, recvBuf *kb.Buffer) {
+		go func(rank int, peer plan.PeerID, recvBuf *kb.Vector) {
 			if rank == sess.myRank {
 				recvBuf.CopyFrom(w.SendBuf)
 			} else {
 				m := sess.router.Recv(peer.WithName(w.Name))
-				b := &kb.Buffer{Data: m.Data, Count: recvBuf.Count, Type: recvBuf.Type}
+				b := &kb.Vector{Data: m.Data, Count: recvBuf.Count, Type: recvBuf.Type}
 				recvBuf.CopyFrom(b)
 			}
 			wg.Done()
@@ -238,7 +238,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	var lock sync.Mutex
 	recvOnto := func(peer plan.PeerID) error {
 		m := sess.router.Recv(peer.WithName(w.Name))
-		b := &kb.Buffer{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
+		b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
 		defer lock.Unlock()
 		if recvCount == 0 {
