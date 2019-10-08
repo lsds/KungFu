@@ -2,42 +2,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <kungfu/callback.h>
+#include <kungfu/dtype.h>
+#include <kungfu/op.h>
+#include <kungfu/strategy.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef int KungFu_Datatype;
-
-// extern const KungFu_Datatype KungFu_INT8;
-extern const KungFu_Datatype KungFu_UINT8;
-// extern const KungFu_Datatype KungFu_INT16;
-// extern const KungFu_Datatype KungFu_UINT16;
-extern const KungFu_Datatype KungFu_INT32;
-// extern const KungFu_Datatype KungFu_UINT32;
-extern const KungFu_Datatype KungFu_INT64;
-// extern const KungFu_Datatype KungFu_UINT64;
-extern const KungFu_Datatype KungFu_FLOAT16;
-extern const KungFu_Datatype KungFu_FLOAT;
-extern const KungFu_Datatype KungFu_DOUBLE;
-// extern const KungFu_Datatype KungFu_LONG_DOUBLE;
-
-extern uint32_t kungfu_type_size(KungFu_Datatype);
-
-typedef int KungFu_Op;
-
-extern const KungFu_Op KungFu_MAX;
-extern const KungFu_Op KungFu_MIN;
-extern const KungFu_Op KungFu_SUM;
-
-typedef int KungFu_AllReduceAlgo;
-
-extern const KungFu_AllReduceAlgo KungFu_StarAllReduce;
-extern const KungFu_AllReduceAlgo KungFu_RingAllReduce;
-extern const KungFu_AllReduceAlgo KungFu_CliqueAllReduce;
-extern const KungFu_AllReduceAlgo KungFu_TreeAllReduce;
-// extern KungFu_AllReduceAlgo KungFu_DynamicAllReduce;
-
-typedef struct CallbackWrapper callback_t;
 
 typedef struct order_group_s order_group_t;
 

@@ -4,9 +4,6 @@ set -e
 cd $(dirname $0)/../..
 
 CMAKE_SOURCE_DIR=$(pwd)
-export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
-export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
-export CGO_CXXFLAGS="-std=c++11"
 
 reset_go_mod() {
     echo 'module github.com/lsds/KungFu' >go.mod
@@ -16,20 +13,13 @@ reset_go_mod() {
 }
 
 rebuild() {
-    ./configure --no-tests && make
     env \
         GOBIN=$(pwd)/bin \
         go install -v ./tests/go/...
 }
 
 run_unit_tests() {
-    # go test -v ./srcs/go/... # FIXME: use this
-
-    go test -v ./srcs/go/rchannel
-    go test -v ./srcs/go/plan
-    go test -v ./srcs/go/monitor
-    go test -v ./srcs/go/ordergroup
-    go test -v ./srcs/go/store
+    go test -v ./srcs/go/...
 }
 
 run_integration_tests() {

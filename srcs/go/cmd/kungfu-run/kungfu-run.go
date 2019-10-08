@@ -29,7 +29,7 @@ var (
 	timeout    = flag.Duration("timeout", 0, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
-	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
+	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 
 	port        = flag.Int("port", 38080, "port for rchannel")
 	watch       = flag.Bool("w", false, "watch config")
@@ -117,7 +117,7 @@ func main() {
 		defer server.Close()
 		watchRun(ctx, selfIP, ch, jc)
 	} else {
-		procs, _, err := jc.CreateProcs(*np, kb.ParseAlgo(*algo))
+		procs, _, err := jc.CreateProcs(*np, kb.ParseStrategy(*algo))
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
 		}

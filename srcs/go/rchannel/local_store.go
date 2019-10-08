@@ -10,21 +10,21 @@ import (
 type LocalStore struct {
 	sync.RWMutex
 
-	data map[string]*kb.Buffer
+	data map[string]*kb.Vector
 }
 
 func newLocalStore() *LocalStore {
 	return &LocalStore{
-		data: make(map[string]*kb.Buffer),
+		data: make(map[string]*kb.Vector),
 	}
 }
 
-func (s *LocalStore) Emplace(name string, buf *kb.Buffer) {
+func (s *LocalStore) Emplace(name string, buf *kb.Vector) {
 	s.Lock()
 	defer s.Unlock()
 	if _, ok := s.data[name]; !ok {
 		log.Warnf("%s has no entry in the store, init as %s[%d].", name, buf.Type /* TODO: show dtype name*/, buf.Count)
-		s.data[name] = kb.NewBuffer(buf.Count, buf.Type)
+		s.data[name] = kb.NewVector(buf.Count, buf.Type)
 		// TODO: support GC
 	} else {
 		// TODO: check shape here

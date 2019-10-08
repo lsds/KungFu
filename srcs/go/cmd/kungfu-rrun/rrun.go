@@ -23,7 +23,7 @@ var (
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
-	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
+	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 )
 
 func init() {
@@ -47,7 +47,7 @@ func main() {
 		Prog:     restArgs[0],
 		Args:     restArgs[1:],
 	}
-	ps, _, err := jc.CreateProcs(*np, kb.ParseAlgo(*algo))
+	ps, _, err := jc.CreateProcs(*np, kb.ParseStrategy(*algo))
 	if err != nil {
 		utils.ExitErr(err)
 	}

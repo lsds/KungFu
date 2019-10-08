@@ -33,14 +33,14 @@ func sum(a []int) int {
 }
 
 type DoubleBuffer struct {
-	SendBuf *kb.Buffer
-	RecvBuf *kb.Buffer
+	SendBuf *kb.Vector
+	RecvBuf *kb.Vector
 }
 
-func newDoubleBuffer(dtype kb.KungFu_Datatype, count int) DoubleBuffer {
+func newDoubleBuffer(dtype kb.DataType, count int) DoubleBuffer {
 	return DoubleBuffer{
-		SendBuf: kb.NewBuffer(count, dtype),
-		RecvBuf: kb.NewBuffer(count, dtype),
+		SendBuf: kb.NewVector(count, dtype),
+		RecvBuf: kb.NewVector(count, dtype),
 	}
 }
 
@@ -49,7 +49,7 @@ type FakeModel struct {
 	Buffers map[string]DoubleBuffer
 }
 
-func New(sizes []int, dtype kb.KungFu_Datatype, fuse bool) *FakeModel {
+func New(sizes []int, dtype kb.DataType, fuse bool) *FakeModel {
 	if fuse {
 		sizes = []int{sum(sizes)}
 	}

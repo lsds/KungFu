@@ -38,7 +38,7 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 	}
 }
 
-func (jc JobConfig) CreateProcs(np int, algo kb.KungFu_AllReduceAlgo) ([]Proc, plan.PeerList, error) {
+func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.PeerList, error) {
 	pl, err := jc.HostList.GenPeerList(np)
 	if err != nil {
 		return nil, nil, err
@@ -53,13 +53,13 @@ func (jc JobConfig) CreateProcs(np int, algo kb.KungFu_AllReduceAlgo) ([]Proc, p
 		localRank, _ := pl.LocalRank(self)
 		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.ParentIDEnvKey:       jc.Parent.String(),
-			kb.PeerListEnvKey:       pl.String(),
-			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
-			kb.SelfSpecEnvKey:       self.String(),
-			kb.AllReduceAlgoEnvKey:  algo.String(), // FIXME: remove it
-			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
-			`PYTHONUNBUFFERED`:      `1`,
+			kb.ParentIDEnvKey:          jc.Parent.String(),
+			kb.PeerListEnvKey:          pl.String(),
+			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
+			kb.SelfSpecEnvKey:          self.String(),
+			kb.AllReduceStrategyEnvKey: strategy.String(), // FIXME: remove it
+			`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
+			`PYTHONUNBUFFERED`:         `1`,
 		}
 		ps = append(ps, Proc{
 			Name:    name,
@@ -73,19 +73,19 @@ func (jc JobConfig) CreateProcs(np int, algo kb.KungFu_AllReduceAlgo) ([]Proc, p
 	return ps, pl, nil
 }
 
-func CreateProcs(prog string, args []string, pl plan.PeerList, algo kb.KungFu_AllReduceAlgo, disableNCCL bool) ([]Proc, error) {
+func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strategy, disableNCCL bool) ([]Proc, error) {
 	configEnvs := getConfigEnvs()
 	var ps []Proc
 	for i, self := range pl {
 		localRank, _ := pl.LocalRank(self)
 		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
 		envs := Envs{
-			kb.PeerListEnvKey:       pl.String(),
-			`KUNGFU_TEST_SELF_RANK`: strconv.Itoa(i), // FIXME: remove it
-			kb.SelfSpecEnvKey:       self.String(),
-			kb.AllReduceAlgoEnvKey:  algo.String(),
-			`CUDA_VISIBLE_DEVICES`:  strconv.Itoa(localRank),
-			`PYTHONUNBUFFERED`:      `1`,
+			kb.PeerListEnvKey:          pl.String(),
+			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
+			kb.SelfSpecEnvKey:          self.String(),
+			kb.AllReduceStrategyEnvKey: strategy.String(),
+			`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
+			`PYTHONUNBUFFERED`:         `1`,
 		}
 		if disableNCCL {
 			envs[`KUNGFU_DISABLE_NCCL`] = `1`

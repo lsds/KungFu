@@ -5,7 +5,6 @@
 #include <tensorflow/core/framework/shape_inference.h>
 
 #include <kungfu.h>
-#include <kungfu_base.h>
 #include <kungfu_tensorflow_init.h>
 
 namespace tensorflow
@@ -28,12 +27,6 @@ inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
         // TODO: add more types
         throw std::invalid_argument("unsupported dtype");
     }
-}
-
-inline void add_tensor(Tensor &out, const void *a, const void *b)
-{
-    std_transform_2(a, b, (void *)out.tensor_data().data(), out.NumElements(),
-                    to_kungfu_type(out.dtype()), KungFu_SUM);
 }
 
 template <typename... Dims> TensorShape MakeTensorShape(const Dims &... dims)
