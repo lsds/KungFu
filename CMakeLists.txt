@@ -18,15 +18,11 @@ LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 ADD_LIBRARY(kungfu-base srcs/cpp/src/kungfu_types.cpp
                         srcs/cpp/src/kungfu_base.cpp)
 IF(KUNGFU_ENABLE_FLOAT16)
-    TARGET_SOURCES(kungfu-base PRIVATE srcs/cpp/src/kungfu_half.c)
-    TARGET_COMPILE_OPTIONS(kungfu-base
-                           PRIVATE -mavx # _mm256_add_ps
-                                   -mf16c # _mm256_cvtph_ps, _mm256_cvtps_ph
-                           )
+    SET(CGO_CFLAGS "${CGO_CFLAGS} -DENABLE_F16 -mf16c -mavx")
 ENDIF()
 
 INCLUDE(cmake/cgo.cmake)
-SET(CGO_CFLAGS "-I${CMAKE_SOURCE_DIR}/srcs/cpp/include")
+SET(CGO_CFLAGS "${CGO_CFLAGS} -I${CMAKE_SOURCE_DIR}/srcs/cpp/include")
 SET(CGO_LDFLAGS "-L${LIBRARY_OUTPUT_PATH} -lkungfu-base -lstdc++")
 SET(CGO_CXXFLAGS "-std=c++11")
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)

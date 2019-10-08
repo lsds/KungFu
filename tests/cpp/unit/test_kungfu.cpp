@@ -15,6 +15,7 @@ TEST(kungfu_test, test_transform)
     std::vector<float> y(n);
     x[0] = 1;
     y[0] = 2;
-    std_transform_2(x.data(), y.data(), x.data(), n, KungFu_FLOAT, KungFu_SUM);
+    std_transform_2(x.data(), y.data(), x.data(), n, dtype(KungFu_FLOAT),
+                    op(KungFu_SUM));
     ASSERT_FLOAT_EQ(x[0], static_cast<float>(3));
 }
