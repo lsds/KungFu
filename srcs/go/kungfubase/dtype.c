@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "dtype.h"
@@ -24,6 +25,7 @@ int dtype_size(dtype dt)
         CASE(f32, float);
         CASE(f64, double);
     default:
+        fprintf(stderr, "unknown dtype: %d\n", (int)(dt));
         exit(1);
     };
 
