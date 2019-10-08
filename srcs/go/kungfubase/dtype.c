@@ -4,26 +4,26 @@
 
 #include "dtype.h"
 
-int dtype_size(dtype dt)
+uint32_t kungfu_type_size(KungFu_Datatype dt)
 {
 #define CASE(t, T)                                                             \
     case t:                                                                    \
         return sizeof(T);
 
     switch (dt) {
-        CASE(u8, uint8_t);
-        CASE(u16, uint16_t);
-        CASE(u32, uint32_t);
-        CASE(u64, uint64_t);
+        CASE(KungFu_UINT8, uint8_t);
+        CASE(KungFu_UINT16, uint16_t);
+        CASE(KungFu_UINT32, uint32_t);
+        CASE(KungFu_UINT64, uint64_t);
 
-        CASE(i8, int8_t);
-        CASE(i16, int16_t);
-        CASE(i32, int32_t);
-        CASE(i64, int64_t);
+        CASE(KungFu_INT8, int8_t);
+        CASE(KungFu_INT16, int16_t);
+        CASE(KungFu_INT32, int32_t);
+        CASE(KungFu_INT64, int64_t);
 
-        CASE(f16, uint16_t);  //
-        CASE(f32, float);
-        CASE(f64, double);
+        CASE(KungFu_FLOAT16, uint16_t);  //
+        CASE(KungFu_FLOAT, float);
+        CASE(KungFu_DOUBLE, double);
     default:
         fprintf(stderr, "unknown dtype: %d\n", (int)(dt));
         exit(1);

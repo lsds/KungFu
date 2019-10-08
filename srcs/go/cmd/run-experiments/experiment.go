@@ -68,7 +68,7 @@ func grep(pattern string, input []string) []string {
 	return lines
 }
 
-func runExperiment(logDir string, hosts plan.HostList, prog string, args []string, algo kb.Strategy, partition []int, timeout time.Duration) (*Result, error) {
+func runExperiment(logDir string, hosts plan.HostList, prog string, args []string, strategy kb.Strategy, partition []int, timeout time.Duration) (*Result, error) {
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func runExperiment(logDir string, hosts plan.HostList, prog string, args []strin
 	}
 	defer lf.Close()
 	fmt.Fprintf(lf, "%s\n", humanizeHostSpecs(hosts))
-	fmt.Fprintf(lf, "%s %v\n", algo.String(), partition)
+	fmt.Fprintf(lf, "%s %v\n", strategy.String(), partition)
 	hosts, err = reschedule(hosts, partition)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func runExperiment(logDir string, hosts plan.HostList, prog string, args []strin
 		Prog:     prog,
 		Args:     args,
 	}
-	ps, _, err := jc.CreateProcs(hosts.Cap(), algo)
+	ps, _, err := jc.CreateProcs(hosts.Cap(), strategy)
 	if err != nil {
 		return nil, err
 	}

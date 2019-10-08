@@ -17,30 +17,30 @@ namespace types
 {
 template <typename R> struct data_type_t;
 
-using V = dtype;
+using V = KungFu_Datatype;
 
 template <> struct data_type_t<uint8_t> {
-    static constexpr V value = u8;
+    static constexpr V value = KungFu_UINT8;
 };
 
 template <> struct data_type_t<int32_t> {
-    static constexpr V value = i32;
+    static constexpr V value = KungFu_INT32;
 };
 
 template <> struct data_type_t<int64_t> {
-    static constexpr V value = i64;
+    static constexpr V value = KungFu_INT64;
 };
 
 template <> struct data_type_t<float16> {
-    static constexpr V value = f16;
+    static constexpr V value = KungFu_FLOAT16;
 };
 
 template <> struct data_type_t<float> {
-    static constexpr V value = f32;
+    static constexpr V value = KungFu_FLOAT;
 };
 
 template <> struct data_type_t<double> {
-    static constexpr V value = f64;
+    static constexpr V value = KungFu_DOUBLE;
 };
 
 struct encoding {
@@ -63,18 +63,18 @@ namespace ops
 {
 template <typename O> struct op_type_t;
 
-using V = op;
+using V = KungFu_Op;
 
 template <> struct op_type_t<op_max> {
-    static constexpr V value = max;
+    static constexpr V value = KungFu_MAX;
 };
 
 template <> struct op_type_t<op_min> {
-    static constexpr V value = min;
+    static constexpr V value = KungFu_MIN;
 };
 
 template <> struct op_type_t<op_sum> {
-    static constexpr V value = sum;
+    static constexpr V value = KungFu_SUM;
 };
 
 struct encoding {

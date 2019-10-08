@@ -3,24 +3,24 @@ package kungfubase
 // #include "strategy.h"
 import "C"
 
-type Strategy C.strategy
+type Strategy C.KungFu_AllReduceStrategy
 
 const (
-	KungFu_Star   Strategy = C.star
-	KungFu_Ring   Strategy = C.ring
-	KungFu_Clique Strategy = C.clique
-	KungFu_Tree   Strategy = C.tree
+	Star   Strategy = C.KungFu_StarAllReduce
+	Ring   Strategy = C.KungFu_RingAllReduce
+	Clique Strategy = C.KungFu_CliqueAllReduce
+	Tree   Strategy = C.KungFu_TreeAllReduce
 )
 
 var (
 	strategyNames = map[Strategy]string{
-		KungFu_Star:   `STAR`,
-		KungFu_Ring:   `RING`,
-		KungFu_Clique: `CLIQUE`,
-		KungFu_Tree:   `TREE`,
+		Star:   `STAR`,
+		Ring:   `RING`,
+		Clique: `CLIQUE`,
+		Tree:   `TREE`,
 	}
 
-	defaultStrategy = KungFu_Tree
+	defaultStrategy = Tree
 )
 
 func StrategyNames() []string {

@@ -19,22 +19,22 @@ struct workspace {
     const void *input2;
     void *output;
 
-    template <typename T> void call_as(int n, op o) const
+    template <typename T> void call_as(const int n, const KungFu_Op o) const
     {
         const T *x = reinterpret_cast<const T *>(input1);
         const T *y = reinterpret_cast<const T *>(input2);
         T *z       = reinterpret_cast<T *>(output);
         switch (o) {
-        case sum:
+        case KungFu_SUM:
             std::transform(x, x + n, y, z, std::plus<T>());
             break;
-        case min:
+        case KungFu_MIN:
             std::transform(x, x + n, y, z, std_min<T>());
             break;
-        case max:
+        case KungFu_MAX:
             std::transform(x, x + n, y, z, std_max<T>());
             break;
-        case prod:
+        case KungFu_PROD:
             std::transform(x, x + n, y, z, std::multiplies<T>());
             break;
         default:
@@ -42,10 +42,10 @@ struct workspace {
         }
     }
 
-    void call_as_f16(int n, op o) const
+    void call_as_f16(const int n, const KungFu_Op o) const
     {
         switch (o) {
-        case sum:
+        case KungFu_SUM:
             float16_sum(output, input1, input2, n);
             break;
         default:
@@ -55,7 +55,7 @@ struct workspace {
 };
 
 void std_transform_2(const void *input1, const void *input2, void *output,
-                     const int n, const dtype dt, const op o)
+                     const int n, const KungFu_Datatype dt, const KungFu_Op o)
 {
     const workspace w = {
         .input1 = input1,
@@ -69,22 +69,22 @@ void std_transform_2(const void *input1, const void *input2, void *output,
         break
 
     switch (dt) {
-        CASE(u8, uint8_t);
-        CASE(u16, uint16_t);
-        CASE(u32, uint32_t);
-        CASE(u64, uint64_t);
+        CASE(KungFu_UINT8, uint8_t);
+        CASE(KungFu_UINT16, uint16_t);
+        CASE(KungFu_UINT32, uint32_t);
+        CASE(KungFu_UINT64, uint64_t);
 
-        CASE(i8, int8_t);
-        CASE(i16, int16_t);
-        CASE(i32, int32_t);
-        CASE(i64, int64_t);
+        CASE(KungFu_INT8, int8_t);
+        CASE(KungFu_INT16, int16_t);
+        CASE(KungFu_INT32, int32_t);
+        CASE(KungFu_INT64, int64_t);
 
-    case f16:
+    case KungFu_FLOAT16:
         w.call_as_f16(n, o);
         break;
 
-        CASE(f32, float);
-        CASE(f64, double);
+        CASE(KungFu_FLOAT, float);
+        CASE(KungFu_DOUBLE, double);
     default:
         exit(1);
     };

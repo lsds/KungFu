@@ -38,7 +38,7 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 	}
 }
 
-func (jc JobConfig) CreateProcs(np int, algo kb.Strategy) ([]Proc, plan.PeerList, error) {
+func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.PeerList, error) {
 	pl, err := jc.HostList.GenPeerList(np)
 	if err != nil {
 		return nil, nil, err
@@ -57,7 +57,7 @@ func (jc JobConfig) CreateProcs(np int, algo kb.Strategy) ([]Proc, plan.PeerList
 			kb.PeerListEnvKey:          pl.String(),
 			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:          self.String(),
-			kb.AllReduceStrategyEnvKey: algo.String(), // FIXME: remove it
+			kb.AllReduceStrategyEnvKey: strategy.String(), // FIXME: remove it
 			`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
 			`PYTHONUNBUFFERED`:         `1`,
 		}
@@ -73,7 +73,7 @@ func (jc JobConfig) CreateProcs(np int, algo kb.Strategy) ([]Proc, plan.PeerList
 	return ps, pl, nil
 }
 
-func CreateProcs(prog string, args []string, pl plan.PeerList, algo kb.Strategy, disableNCCL bool) ([]Proc, error) {
+func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strategy, disableNCCL bool) ([]Proc, error) {
 	configEnvs := getConfigEnvs()
 	var ps []Proc
 	for i, self := range pl {
@@ -83,7 +83,7 @@ func CreateProcs(prog string, args []string, pl plan.PeerList, algo kb.Strategy,
 			kb.PeerListEnvKey:          pl.String(),
 			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:          self.String(),
-			kb.AllReduceStrategyEnvKey: algo.String(),
+			kb.AllReduceStrategyEnvKey: strategy.String(),
 			`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
 			`PYTHONUNBUFFERED`:         `1`,
 		}

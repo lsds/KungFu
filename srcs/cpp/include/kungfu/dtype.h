@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,25 +18,27 @@ bits-per-byte : 8
 
 #define TYPE_CODE(c, b) ((c << 16) | (b << 8) | 8)
 
-typedef enum {
-    u8  = TYPE_CODE(0, 1),
-    u16 = TYPE_CODE(0, 2),
-    u32 = TYPE_CODE(0, 4),
-    u64 = TYPE_CODE(0, 8),
+enum KungFu_Datatype {
+    KungFu_UINT8  = TYPE_CODE(0, 1),
+    KungFu_UINT16 = TYPE_CODE(0, 2),
+    KungFu_UINT32 = TYPE_CODE(0, 4),
+    KungFu_UINT64 = TYPE_CODE(0, 8),
 
-    i8  = TYPE_CODE(1, 1),
-    i16 = TYPE_CODE(1, 2),
-    i32 = TYPE_CODE(1, 4),
-    i64 = TYPE_CODE(1, 8),
+    KungFu_INT8  = TYPE_CODE(1, 1),
+    KungFu_INT16 = TYPE_CODE(1, 2),
+    KungFu_INT32 = TYPE_CODE(1, 4),
+    KungFu_INT64 = TYPE_CODE(1, 8),
 
-    f16 = TYPE_CODE(2, 2),
-    f32 = TYPE_CODE(2, 4),
-    f64 = TYPE_CODE(2, 8),
-} dtype;
+    KungFu_FLOAT16 = TYPE_CODE(2, 2),
+    KungFu_FLOAT   = TYPE_CODE(2, 4),
+    KungFu_DOUBLE  = TYPE_CODE(2, 8),
+};
+
+typedef enum KungFu_Datatype KungFu_Datatype;
 
 #undef TYPE_CODE
 
-extern int dtype_size(dtype dt);
+extern uint32_t kungfu_type_size(KungFu_Datatype dt);
 
 #ifdef __cplusplus
 }

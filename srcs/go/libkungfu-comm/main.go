@@ -13,10 +13,9 @@ import (
 
 /*
 #include <kungfu/callback.h>
-
-typedef int KungFu_Datatype;
-typedef int KungFu_Op;
-typedef int KungFu_AllReduceStrategy;
+#include <kungfu/dtype.h>
+#include <kungfu/op.h>
+#include <kungfu/strategy.h>
 */
 import "C"
 

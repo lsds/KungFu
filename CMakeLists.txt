@@ -22,7 +22,7 @@ ENDIF()
 INCLUDE(cmake/cgo.cmake)
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 
-ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/kungfu_types.cpp)
+ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
 TARGET_LINK_LIBRARIES(kungfu kungfu-comm)
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 ADD_CGO_DEPS(kungfu)

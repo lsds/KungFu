@@ -25,8 +25,8 @@ void order_group_wait(order_group_t *og) { GoOrderGroupWait(og); }
 
 kungfu_world::kungfu_world()
 {
-    const int strategy = GoKungfuGetStrategyFromEnv();
-    const int err      = GoKungfuInit(strategy);
+    const KungFu_AllReduceStrategy strategy = GoKungfuGetStrategyFromEnv();
+    const int err                           = GoKungfuInit(strategy);
     if (err) {
         fprintf(stderr, "%s failed\n", "GoKungfuInit");
         exit(1);
@@ -43,14 +43,14 @@ int kungfu_world::Save(const char *name, const void *buf, int count,
                        KungFu_Datatype dtype)
 {
     return GoKungfuSave(const_cast<char *>(name), const_cast<void *>(buf),
-                        GoInt(count), GoInt(dtype), nullptr);
+                        GoInt(count), dtype, nullptr);
 }
 
 int kungfu_world::Save(const char *name, const void *buf, int count,
                        KungFu_Datatype dtype, const DoneCallback &done)
 {
     return GoKungfuSave(const_cast<char *>(name), const_cast<void *>(buf),
-                        GoInt(count), GoInt(dtype), new CallbackWrapper(done));
+                        GoInt(count), dtype, new CallbackWrapper(done));
 }
 
 int kungfu_world::Save(const char *version, const char *name, const void *buf,
@@ -58,7 +58,7 @@ int kungfu_world::Save(const char *version, const char *name, const void *buf,
 {
     return GoKungfuSaveVersion(
         const_cast<char *>(version), const_cast<char *>(name),
-        const_cast<void *>(buf), GoInt(count), GoInt(dtype), nullptr);
+        const_cast<void *>(buf), GoInt(count), dtype, nullptr);
 }
 
 int kungfu_world::Save(const char *version, const char *name, const void *buf,
@@ -67,8 +67,8 @@ int kungfu_world::Save(const char *version, const char *name, const void *buf,
 {
     return GoKungfuSaveVersion(const_cast<char *>(version),
                                const_cast<char *>(name),
-                               const_cast<void *>(buf), GoInt(count),
-                               GoInt(dtype), new CallbackWrapper(done));
+                               const_cast<void *>(buf), GoInt(count), dtype,
+                               new CallbackWrapper(done));
 }
 
 int kungfu_world::Barrier() { return GoKungfuBarrier(nullptr); }
@@ -82,15 +82,14 @@ int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
                           KungFu_Datatype dtype)
 {
     return GoKungfuRequest(destRank, const_cast<char *>(name), buf,
-                           GoInt(count), GoInt(dtype), nullptr);
+                           GoInt(count), dtype, nullptr);
 }
 
 int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
                           KungFu_Datatype dtype, const DoneCallback &done)
 {
     return GoKungfuRequest(destRank, const_cast<char *>(name), buf,
-                           GoInt(count), GoInt(dtype),
-                           new CallbackWrapper(done));
+                           GoInt(count), dtype, new CallbackWrapper(done));
 }
 
 int kungfu_world::Request(int rank, const char *version, const char *name,
@@ -98,7 +97,7 @@ int kungfu_world::Request(int rank, const char *version, const char *name,
 {
     return GoKungfuRequestVersion(rank, const_cast<char *>(version),
                                   const_cast<char *>(name), buf, GoInt(count),
-                                  GoInt(dtype), nullptr);
+                                  dtype, nullptr);
 }
 
 int kungfu_world::Request(int rank, const char *version, const char *name,
@@ -107,7 +106,7 @@ int kungfu_world::Request(int rank, const char *version, const char *name,
 {
     return GoKungfuRequestVersion(rank, const_cast<char *>(version),
                                   const_cast<char *>(name), buf, GoInt(count),
-                                  GoInt(dtype), new CallbackWrapper(done));
+                                  dtype, new CallbackWrapper(done));
 }
 
 int kungfu_world::Reduce(const void *sendbuf, void *recvbuf, int count,
@@ -115,7 +114,7 @@ int kungfu_world::Reduce(const void *sendbuf, void *recvbuf, int count,
                          const DoneCallback &done)
 {
     return GoKungfuReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                          GoInt(dtype), GoInt(op), const_cast<char *>(name),
+                          dtype, op, const_cast<char *>(name),
                           new CallbackWrapper(done));
 }
 
@@ -124,8 +123,7 @@ int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
                             const char *name)
 {
     return GoKungfuAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             GoInt(dtype), GoInt(op), const_cast<char *>(name),
-                             nullptr);
+                             dtype, op, const_cast<char *>(name), nullptr);
 }
 
 int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
@@ -133,7 +131,7 @@ int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
                             const char *name, const DoneCallback &done)
 {
     return GoKungfuAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             GoInt(dtype), GoInt(op), const_cast<char *>(name),
+                             dtype, op, const_cast<char *>(name),
                              new CallbackWrapper(done));
 }
 
@@ -141,7 +139,7 @@ int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
                             KungFu_Datatype dtype, const char *name)
 {
     return GoKungfuBroadcast(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             GoInt(dtype), const_cast<char *>(name), nullptr);
+                             dtype, const_cast<char *>(name), nullptr);
 }
 
 int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
@@ -149,7 +147,7 @@ int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
                             const DoneCallback &done)
 {
     return GoKungfuBroadcast(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             GoInt(dtype), const_cast<char *>(name),
+                             dtype, const_cast<char *>(name),
                              new CallbackWrapper(done));
 }
 
@@ -159,8 +157,8 @@ int kungfu_world::Gather(const void *sendbuf, int send_count,
                          const char *name)
 {
     return GoKungfuGather(const_cast<void *>(sendbuf), GoInt(send_count),
-                          GoInt(send_dtype), recvbuf, GoInt(recv_count),
-                          GoInt(recv_dtype), const_cast<char *>(name), nullptr);
+                          send_dtype, recvbuf, GoInt(recv_count), recv_dtype,
+                          const_cast<char *>(name), nullptr);
 }
 
 int kungfu_world::Gather(const void *sendbuf, int send_count,
@@ -169,9 +167,8 @@ int kungfu_world::Gather(const void *sendbuf, int send_count,
                          const char *name, const DoneCallback &done)
 {
     return GoKungfuGather(const_cast<void *>(sendbuf), GoInt(send_count),
-                          GoInt(send_dtype), recvbuf, GoInt(recv_count),
-                          GoInt(recv_dtype), const_cast<char *>(name),
-                          new CallbackWrapper(done));
+                          send_dtype, recvbuf, GoInt(recv_count), recv_dtype,
+                          const_cast<char *>(name), new CallbackWrapper(done));
 }
 
 int kungfu_world::AllGatherTransform(const void *input, int input_count,
