@@ -15,8 +15,7 @@ OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
-ADD_LIBRARY(kungfu-base srcs/cpp/src/kungfu_types.cpp
-                        srcs/cpp/src/kungfu_base.cpp)
+ADD_LIBRARY(kungfu-base srcs/cpp/src/kungfu_types.cpp)
 IF(KUNGFU_ENABLE_FLOAT16)
     SET(CGO_CFLAGS "${CGO_CFLAGS} -DENABLE_F16 -mf16c -mavx")
 ENDIF()

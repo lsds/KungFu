@@ -7,7 +7,7 @@ import (
 )
 
 /*
-#include <kungfu_base.h>
+#include <kungfu/callback.h>
 
 struct order_group_s {
     void * _go_ptr;

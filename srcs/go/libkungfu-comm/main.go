@@ -11,8 +11,13 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-// #include <kungfu.h>
-// #include <kungfu_base.h>
+/*
+#include <kungfu/callback.h>
+
+typedef int KungFu_Datatype;
+typedef int KungFu_Op;
+typedef int KungFu_AllReduceAlgo;
+*/
 import "C"
 
 var kungfu *kf.Kungfu
