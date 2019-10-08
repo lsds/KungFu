@@ -11,10 +11,10 @@ import (
 type Buffer struct {
 	Data  []byte
 	Count int
-	Type  KungFu_Datatype
+	Type  DataType
 }
 
-func NewBuffer(count int, dtype KungFu_Datatype) *Buffer {
+func NewBuffer(count int, dtype DataType) *Buffer {
 	return &Buffer{
 		Data:  make([]byte, count*dtype.Size()),
 		Count: count,
@@ -54,7 +54,7 @@ func (b *Buffer) copyFrom(c *Buffer) error {
 }
 
 func (b *Buffer) AsF32() []float32 {
-	if b.Type != KungFu_FLOAT {
+	if b.Type != F32 {
 		utils.ExitErr(fmt.Errorf("buffer type is %d", b.Type))
 	}
 	sh := &reflect.SliceHeader{

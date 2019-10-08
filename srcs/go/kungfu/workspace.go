@@ -11,7 +11,7 @@ import (
 type Workspace struct {
 	SendBuf *kb.Buffer
 	RecvBuf *kb.Buffer // TODO: if nil, will use SendBuf as in-place result
-	OP      kb.KungFu_Op
+	OP      kb.OP
 	Name    string
 }
 

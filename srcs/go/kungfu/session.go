@@ -124,11 +124,11 @@ func (sess *session) Rank() int {
 func (sess *session) Warmup() int {
 	k := len(sess.cluster)
 	count := k * 4
-	dtype := kb.KungFu_INT32
+	dtype := kb.I32
 	w := Workspace{
 		SendBuf: kb.NewBuffer(count, dtype),
 		RecvBuf: kb.NewBuffer(count, dtype),
-		OP:      kb.KungFu_SUM,
+		OP:      kb.SUM,
 		Name:    "kungfu::warmup", // TODO: use tag
 	}
 	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster)))
@@ -137,11 +137,11 @@ func (sess *session) Warmup() int {
 func (sess *session) Barrier() int {
 	k := len(sess.cluster)
 	count := k * 1
-	dtype := kb.KungFu_UINT8
+	dtype := kb.U8
 	w := Workspace{
 		SendBuf: kb.NewBuffer(count, dtype),
 		RecvBuf: kb.NewBuffer(count, dtype),
-		OP:      kb.KungFu_SUM,
+		OP:      kb.SUM,
 		Name:    "kungfu::barrier", // TODO: use tag
 	}
 	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster)))

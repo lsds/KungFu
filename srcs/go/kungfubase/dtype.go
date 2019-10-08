@@ -3,7 +3,7 @@ package kungfubase
 // #include "dtype.h"
 import "C"
 
-type DataType int
+type DataType C.dtype
 
 const (
 	U8  DataType = C.u8

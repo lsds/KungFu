@@ -135,7 +135,7 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	w := kf.Workspace{
 		SendBuf: toBuffer(sendBuf, count, dtype),
 		RecvBuf: toBuffer(recvBuf, count, dtype),
-		OP:      kb.KungFu_Op(op),
+		OP:      kb.OP(op),
 		Name:    C.GoString(name),
 	}
 	sess := kungfu.CurrentSession()
@@ -155,7 +155,7 @@ func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_D
 	w := kf.Workspace{
 		SendBuf: toBuffer(sendBuf, count, dtype),
 		RecvBuf: toBuffer(recvBuf, count, dtype),
-		OP:      kb.KungFu_Op(op),
+		OP:      kb.OP(op),
 		Name:    C.GoString(name),
 	}
 	sess := kungfu.CurrentSession()
@@ -238,7 +238,7 @@ func toBuffer(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Buffer
 			utils.ExitErr(fmt.Errorf("toBuffer: ptr is nil but count = %d", count))
 		}
 	}
-	dt := kb.KungFu_Datatype(dtype)
+	dt := kb.DataType(dtype)
 	size := count * dt.Size()
 	sh := &reflect.SliceHeader{
 		Data: uintptr(ptr),
