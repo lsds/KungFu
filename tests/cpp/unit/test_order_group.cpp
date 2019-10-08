@@ -2,7 +2,7 @@
 #include <numeric>
 #include <vector>
 
-#include <kungfu_base.h>
+#include <kungfu/callback.h>
 
 #include "testing.hpp"
 
