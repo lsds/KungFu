@@ -17,7 +17,7 @@ import os
 import tensorflow as tf
 
 import kungfu as kf
-from kungfu.ops import current_cluster_size, current_rank
+from kungfu.ops import broadcast, current_cluster_size, current_rank
 
 
 def load_dataset():
@@ -62,7 +62,7 @@ def build_model(optimizer):
     # create a model with keras
     model = tf.keras.Sequential()
     # add two hidden layer
-    model.add(tf.keras.layers.Dense(64, activation='relu'))
+    model.add(tf.keras.layers.Dense(64, input_shape=(784,), activation='relu'))
     model.add(tf.keras.layers.Dense(64, activation='relu'))
     # add a dense layer with number of classes of nodes and softmax
     model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
@@ -70,6 +70,11 @@ def build_model(optimizer):
     model.compile(optimizer=optimizer,
                     loss='sparse_categorical_crossentropy',
                     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
+
+    # TODO the syncronisation of weights seems not to work
+    if hasattr(optimizer, 'distributed_initializer'):
+        for weight in model.weights:
+            weight = broadcast(weight)
 
     return model
 
@@ -82,7 +87,7 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
     # calculate the offset for the data of the KungFu node
     shard_size = train_data_size // n_shards    
     offset = batch_size * shard_id
-    
+
     # extract the data for learning of the KungFu node
     x = dataset['x_train'][offset:offset + shard_size]
     y = dataset['y_train'][offset:offset + shard_size]
