@@ -79,16 +79,13 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
     shard_id = current_rank()
     train_data_size = len(dataset['x_train'])
 
-    shard_size = train_data_size // n_shards
-    step_per_epoch = shard_size // batch_size
-    n_steps = step_per_epoch * n_epochs
-    print('step_per_epoch: %d, %d steps in total' % (step_per_epoch, n_steps))
-
     # calculate the offset for the data of the KungFu node
+    shard_size = train_data_size // n_shards    
     offset = batch_size * shard_id
+    
     # extract the data for learning of the KungFu node
-    x = dataset['x_train'][offset:offset + batch_size]
-    y = dataset['y_train'][offset:offset + batch_size]
+    x = dataset['x_train'][offset:offset + shard_size]
+    y = dataset['y_train'][offset:offset + shard_size]
     # train the model
     model.fit(x, y, batch_size=batch_size, epochs=n_epochs, validation_data=(dataset['x_val'], dataset['y_val']))
 
