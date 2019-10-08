@@ -1,6 +1,10 @@
 #pragma once
 #include <cstdint>
 
+#include <kungfu/dtype.h>
+#include <kungfu/op.h>
+#include <kungfu/strategy.h>
+
 namespace kungfu
 {
 struct float16 {
@@ -13,30 +17,30 @@ namespace types
 {
 template <typename R> struct data_type_t;
 
-using V = std::uint8_t;
+using V = KungFu_Datatype;
 
 template <> struct data_type_t<uint8_t> {
-    static constexpr V value = 1;
+    static constexpr V value = KungFu_UINT8;
 };
 
 template <> struct data_type_t<int32_t> {
-    static constexpr V value = 2;
+    static constexpr V value = KungFu_INT32;
 };
 
 template <> struct data_type_t<int64_t> {
-    static constexpr V value = 3;
+    static constexpr V value = KungFu_INT64;
 };
 
 template <> struct data_type_t<float16> {
-    static constexpr V value = 4;
+    static constexpr V value = KungFu_FLOAT16;
 };
 
 template <> struct data_type_t<float> {
-    static constexpr V value = 5;
+    static constexpr V value = KungFu_FLOAT;
 };
 
 template <> struct data_type_t<double> {
-    static constexpr V value = 6;
+    static constexpr V value = KungFu_DOUBLE;
 };
 
 struct encoding {
@@ -59,18 +63,18 @@ namespace ops
 {
 template <typename O> struct op_type_t;
 
-using V = std::uint8_t;
+using V = KungFu_Op;
 
 template <> struct op_type_t<op_max> {
-    static constexpr V value = 1;
+    static constexpr V value = KungFu_MAX;
 };
 
 template <> struct op_type_t<op_min> {
-    static constexpr V value = 2;
+    static constexpr V value = KungFu_MIN;
 };
 
 template <> struct op_type_t<op_sum> {
-    static constexpr V value = 3;
+    static constexpr V value = KungFu_SUM;
 };
 
 struct encoding {

@@ -59,7 +59,7 @@ func (r *Router) ResetConnections() {
 }
 
 // Request sends request name to given Addr
-func (r *Router) Request(a plan.Addr, buf *kb.Buffer) error {
+func (r *Router) Request(a plan.Addr, buf *kb.Vector) error {
 	ch, err := r.getChannel(a, ConnPeerToPeer)
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func (r *Router) Request(a plan.Addr, buf *kb.Buffer) error {
 	return nil
 }
 
-func (r *Router) Pull(version string, a plan.Addr, buf *kb.Buffer) error {
+func (r *Router) Pull(version string, a plan.Addr, buf *kb.Vector) error {
 	ch, err := r.getChannel(a, ConnPeerToPeer)
 	if err != nil {
 		return err
@@ -230,7 +230,7 @@ func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, 
 	}
 }
 
-func (r *Router) Save(name string, model *kb.Buffer) error {
+func (r *Router) Save(name string, model *kb.Vector) error {
 	r.localStore.Emplace(name, model)
 	return nil
 }

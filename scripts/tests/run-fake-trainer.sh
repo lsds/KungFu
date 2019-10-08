@@ -12,11 +12,7 @@ KUNGFU_RUN=$(pwd)/bin/kungfu-run
 
 reinstall() {
     ./scripts/go-install.sh
-
-    local CMAKE_SOURCE_DIR=$(pwd)
     env \
-        CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include" \
-        CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++" \
         GOBIN=$(pwd)/bin \
         go install -v ./tests/go/...
 }

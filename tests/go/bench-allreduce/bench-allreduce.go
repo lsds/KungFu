@@ -35,7 +35,7 @@ func main() {
 	if !ok {
 		log.Exitf("invalid model name: %s", *model)
 	}
-	m := fakemodel.New(sizes, kb.KungFu_FLOAT, *fuse)
+	m := fakemodel.New(sizes, kb.F32, *fuse)
 	benchAllReduce(kungfu, m)
 }
 
@@ -57,7 +57,7 @@ func benchAllReduce(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 				w := kf.Workspace{
 					SendBuf: b.SendBuf,
 					RecvBuf: b.RecvBuf,
-					OP:      kb.KungFu_SUM,
+					OP:      kb.SUM,
 					Name:    name,
 				}
 				sess.AllReduce(w)

@@ -25,8 +25,9 @@ var (
 func main() {
 	flag.Parse()
 	log.Printf("[%s]", os.Args[0])
-	algo := kb.ParseAlgo(os.Getenv(kb.AllReduceAlgoEnvKey))
-	config := kf.Config{Algo: algo}
+	config := kf.Config{
+		Strategy: kb.ParseStrategy(os.Getenv(kb.AllReduceStrategyEnvKey)),
+	}
 	kungfu, err := kf.New(config)
 	if err != nil {
 		utils.ExitErr(err)
@@ -34,7 +35,7 @@ func main() {
 	kungfu.Start()
 	defer kungfu.Close()
 
-	model := fakemodel.New(fakemodel.Models[*model], kb.KungFu_FLOAT, false)
+	model := fakemodel.New(fakemodel.Models[*model], kb.F32, false)
 	fakeTrain(kungfu, model)
 }
 
@@ -70,7 +71,7 @@ func trainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 		w := kf.Workspace{
 			SendBuf: b.SendBuf,
 			RecvBuf: b.RecvBuf,
-			OP:      kb.KungFu_SUM,
+			OP:      kb.SUM,
 			Name:    name,
 		}
 		sess := kungfu.CurrentSession()

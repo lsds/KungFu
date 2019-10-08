@@ -1,8 +1,12 @@
-#include <kungfu_base.h>
+#include "f16.h"
 
 #include <stdint.h>
 
+#ifdef ENABLE_F16
 #include <immintrin.h>
+
+// -mavx # for _mm256_add_ps
+// -mf16c # for _mm256_cvtph_ps, _mm256_cvtps_ph
 
 // FIXME: inline error when building TF extension
 //   Undefined symbols for architecture x86_64:
@@ -44,3 +48,16 @@ void float16_sum(void *pz, const void *px, const void *py, int len)
         for (int i = 0; i < m; ++i) { z[i] = wz[i]; }
     }
 }
+
+#else
+
+#include <stdio.h>
+#include <stdlib.h>
+
+void float16_sum(void *z, const void *x, const void *y, int len)
+{
+    fprintf(stderr, "f16 support not enabled\n");
+    exit(1);
+}
+
+#endif

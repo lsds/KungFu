@@ -5,9 +5,6 @@ cd $(dirname $0)/..
 ROOT=$(pwd)
 
 CMAKE_SOURCE_DIR=$(pwd)
-export CGO_CFLAGS="-I${CMAKE_SOURCE_DIR}/srcs/cpp/include"
-export CGO_LDFLAGS="-L${CMAKE_SOURCE_DIR}/lib -lkungfu-base -lstdc++"
-export CGO_CXXFLAGS="-std=c++11"
 
 reset_go_mod() {
     echo 'module github.com/lsds/KungFu' >go.mod
@@ -51,7 +48,6 @@ go_clean() {
 }
 
 go_install() {
-    ./configure --no-tests && make
     env \
         GOPROXY=https://goproxy.io \
         GOBIN=$(pwd)/bin \
@@ -59,5 +55,6 @@ go_install() {
 }
 
 go_clean
+reset_go_mod
 go_install
 reset_go_mod
