@@ -15,20 +15,15 @@ OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
-ADD_LIBRARY(kungfu-base srcs/cpp/src/kungfu_types.cpp)
 IF(KUNGFU_ENABLE_FLOAT16)
-    SET(CGO_CFLAGS "${CGO_CFLAGS} -DENABLE_F16 -mf16c -mavx")
+    SET(CGO_CFLAGS "-DENABLE_F16 -mf16c -mavx")
 ENDIF()
 
 INCLUDE(cmake/cgo.cmake)
-SET(CGO_CFLAGS "${CGO_CFLAGS} -I${CMAKE_SOURCE_DIR}/srcs/cpp/include")
-SET(CGO_LDFLAGS "-L${LIBRARY_OUTPUT_PATH} -lkungfu-base -lstdc++")
-SET(CGO_CXXFLAGS "-std=c++11")
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
-ADD_DEPENDENCIES(libkungfu-comm kungfu-base)
 
-ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
-TARGET_LINK_LIBRARIES(kungfu kungfu-comm kungfu-base)
+ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/kungfu_types.cpp)
+TARGET_LINK_LIBRARIES(kungfu kungfu-comm)
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 ADD_CGO_DEPS(kungfu)
 
@@ -87,7 +82,6 @@ IF(KUNGFU_BUILD_TOOLS)
 
     FUNCTION(ADD_KUNGFU_GO_BINARY target)
         ADD_GO_BINARY(${target} ${CMAKE_SOURCE_DIR}/srcs/go/cmd/${target})
-        ADD_DEPENDENCIES(${target} kungfu-base)
     ENDFUNCTION()
 
     ADD_KUNGFU_GO_BINARY(kungfu-run)

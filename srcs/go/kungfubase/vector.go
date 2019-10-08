@@ -38,16 +38,12 @@ func (b *Buffer) CopyFrom(c *Buffer) {
 	}
 }
 
-func (b *Buffer) MaybeCopyFrom(c *Buffer) error {
-	return b.copyFrom(c)
-}
-
 func (b *Buffer) copyFrom(c *Buffer) error {
 	if b.Count != c.Count {
 		return fmt.Errorf("Buffer::Copy error: inconsistent count: %d vs %d", b.Count, c.Count)
 	}
 	if b.Type != c.Type {
-		return fmt.Errorf("Buffer::Copy error: inconsistent type: %s vs %s", b.Type, c.Type)
+		return fmt.Errorf("Buffer::Copy error: inconsistent type: %d vs %d", b.Type, c.Type)
 	}
 	copy(b.Data, c.Data)
 	return nil
