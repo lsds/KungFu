@@ -23,9 +23,8 @@ KungFu provides: *kungfu-run*, similar to [mpirun](https://horovod.readthedocs.i
 Using the following command to build kungfu-run.
 
 ```bash
-# Build kungfu-run in a ./bin folder under the current directory.
-./configure --build-tools
-make
+# Build kungfu-run in the given GOBIN directory.
+GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run/
 
 # Check if kungfu-run is built
 ./bin/kungfu-run -help
