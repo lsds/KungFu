@@ -72,8 +72,9 @@ def build_model(optimizer):
                     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
 
     # TODO the syncronisation of weights seems not to work
+    tf.keras.backend.get_session().run(tf.global_variables_initializer())
     if hasattr(optimizer, 'distributed_initializer'):
-        for weight in model.weights:
+        for weight in model.get_weights():
             weight = broadcast(weight)
 
     return model
