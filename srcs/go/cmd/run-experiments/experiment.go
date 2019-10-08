@@ -29,12 +29,12 @@ type Record struct {
 	ID        int
 	Took      time.Duration
 	Partition []int
-	Algo      kb.KungFu_AllReduceAlgo
+	Strategy  kb.Strategy
 	Result    Result
 }
 
 func (r Record) String() string {
-	return fmt.Sprintf("%s %v %s took %s", r.Algo, r.Partition, r.Result, r.Took)
+	return fmt.Sprintf("%s %v %s took %s", r.Strategy, r.Partition, r.Result, r.Took)
 }
 
 type Result struct {
@@ -68,7 +68,7 @@ func grep(pattern string, input []string) []string {
 	return lines
 }
 
-func runExperiment(logDir string, hosts plan.HostList, prog string, args []string, algo kb.KungFu_AllReduceAlgo, partition []int, timeout time.Duration) (*Result, error) {
+func runExperiment(logDir string, hosts plan.HostList, prog string, args []string, algo kb.Strategy, partition []int, timeout time.Duration) (*Result, error) {
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
 		return nil, err
 	}

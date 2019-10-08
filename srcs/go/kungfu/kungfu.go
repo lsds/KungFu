@@ -17,14 +17,7 @@ import (
 )
 
 type Config struct {
-	Algo kb.KungFu_AllReduceAlgo
-}
-
-func (c Config) complete() Config {
-	newConfig := Config{
-		Algo: c.Algo,
-	}
-	return newConfig
+	Strategy kb.Strategy
 }
 
 type Kungfu struct {
@@ -67,7 +60,7 @@ func New(config Config) (*Kungfu, error) {
 		store:        store,
 		router:       router,
 		server:       server,
-		config:       config.complete(),
+		config:       config,
 	}, nil
 }
 

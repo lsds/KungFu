@@ -91,7 +91,7 @@ func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args [
 	var records []Record
 	var lock sync.Mutex
 	var lastID int
-	run := func(algo kb.KungFu_AllReduceAlgo, partition []int) {
+	run := func(algo kb.Strategy, partition []int) {
 		if len(hosts) < len(partition) {
 			return // total resource not sufficient
 		}
@@ -112,7 +112,7 @@ func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args [
 			r := Record{
 				ID:        id,
 				Took:      time.Since(t0),
-				Algo:      algo,
+				Strategy:  algo,
 				Partition: partition,
 				Result:    *res,
 			}
@@ -124,7 +124,7 @@ func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args [
 		}(lastID)
 	}
 
-	algos := []kb.KungFu_AllReduceAlgo{
+	algos := []kb.Strategy{
 		kb.KungFu_Star,
 		kb.KungFu_Ring,
 		kb.KungFu_Clique,

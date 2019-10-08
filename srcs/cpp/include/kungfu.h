@@ -29,13 +29,12 @@ extern const KungFu_Op KungFu_MAX;
 extern const KungFu_Op KungFu_MIN;
 extern const KungFu_Op KungFu_SUM;
 
-typedef int KungFu_AllReduceAlgo;
+typedef int KungFu_AllReduceStrategy;
 
-extern const KungFu_AllReduceAlgo KungFu_StarAllReduce;
-extern const KungFu_AllReduceAlgo KungFu_RingAllReduce;
-extern const KungFu_AllReduceAlgo KungFu_CliqueAllReduce;
-extern const KungFu_AllReduceAlgo KungFu_TreeAllReduce;
-// extern KungFu_AllReduceAlgo KungFu_DynamicAllReduce;
+extern const KungFu_AllReduceStrategy KungFu_StarAllReduce;
+extern const KungFu_AllReduceStrategy KungFu_RingAllReduce;
+extern const KungFu_AllReduceStrategy KungFu_CliqueAllReduce;
+extern const KungFu_AllReduceStrategy KungFu_TreeAllReduce;
 
 typedef struct CallbackWrapper callback_t;
 

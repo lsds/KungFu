@@ -33,7 +33,7 @@ type session struct {
 
 type partitionStrategy func([]plan.PeerID) []strategy
 
-var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
+var partitionStrategies = map[kb.Strategy]partitionStrategy{
 	kb.KungFu_Star:   createStarStrategies,
 	kb.KungFu_Clique: createCliqueStrategies,
 	kb.KungFu_Ring:   createRingStrategies,
@@ -41,9 +41,9 @@ var partitionStrategies = map[kb.KungFu_AllReduceAlgo]partitionStrategy{
 }
 
 func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool, error) {
-	f := partitionStrategies[c.Algo]
+	f := partitionStrategies[c.Strategy]
 	if f == nil {
-		log.Warnf("%s is not implemeted, fallback to %s", c.Algo, kb.KungFu_Star)
+		log.Warnf("%s is not implemeted, fallback to %s", c.Strategy, kb.KungFu_Star)
 		f = createStarStrategies
 	}
 	myRank, ok := pl.Lookup(self)

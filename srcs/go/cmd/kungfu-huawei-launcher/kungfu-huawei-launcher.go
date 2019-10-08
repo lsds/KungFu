@@ -19,7 +19,7 @@ import (
 var (
 	verboseLog  = flag.Bool("v", true, "show task log")
 	timeout     = flag.Duration("timeout", 10*time.Second, "timeout")
-	algo        = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.AllAlgoNames(), " | ")))
+	algo        = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 	disableNCCL = flag.Bool("disable-nccl", true, "disable NCCL")
 )
 
@@ -45,7 +45,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	ps, err := sch.CreateProcs(prog, args, env.PeerList, kb.ParseAlgo(*algo), *disableNCCL)
+	ps, err := sch.CreateProcs(prog, args, env.PeerList, kb.ParseStrategy(*algo), *disableNCCL)
 	if err != nil {
 		utils.ExitErr(err)
 	}

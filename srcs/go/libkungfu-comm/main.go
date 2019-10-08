@@ -16,16 +16,16 @@ import (
 
 typedef int KungFu_Datatype;
 typedef int KungFu_Op;
-typedef int KungFu_AllReduceAlgo;
+typedef int KungFu_AllReduceStrategy;
 */
 import "C"
 
 var kungfu *kf.Kungfu
 
 //export GoKungfuInit
-func GoKungfuInit(algo C.KungFu_AllReduceAlgo) int {
+func GoKungfuInit(algo C.KungFu_AllReduceStrategy) int {
 	var err error
-	config := kf.Config{Algo: kb.KungFu_AllReduceAlgo(algo)}
+	config := kf.Config{Strategy: kb.Strategy(algo)}
 	kungfu, err = kf.New(config)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to create KungFu instance: %v", err))
@@ -224,10 +224,10 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 	return 0
 }
 
-//export GoKungfuGetAlgoFromEnv
-func GoKungfuGetAlgoFromEnv() C.KungFu_AllReduceAlgo {
-	name := os.Getenv(kb.AllReduceAlgoEnvKey)
-	return C.KungFu_AllReduceAlgo(kb.ParseAlgo(name))
+//export GoKungfuGetStrategyFromEnv
+func GoKungfuGetStrategyFromEnv() C.KungFu_AllReduceStrategy {
+	name := os.Getenv(kb.AllReduceStrategyEnvKey)
+	return C.KungFu_AllReduceStrategy(kb.ParseStrategy(name))
 }
 
 func main() {}
