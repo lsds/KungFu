@@ -47,17 +47,21 @@ def load_dataset():
 
 def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate / n_shards)
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
         from kungfu.optimizers import SyncSGDOptimizer
+        optimizer = tf.train.GradientDescentOptimizer(
+            learning_rate * n_shards)  # Scale learning rate in sync. training
         return SyncSGDOptimizer(optimizer)
     if name == 'variance':
         from kungfu.optimizers import SyncSGDWithGradVarianceOptimizer
+        optimizer = tf.train.GradientDescentOptimizer(
+            learning_rate * n_shards)  # Scale learning rate in sync. training
         return SyncSGDWithGradVarianceOptimizer(optimizer, monitor_interval=10)
     elif name == 'model-avg':
         from kungfu.optimizers import PeerModelAveragingOptimizer
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate)
         return PeerModelAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
