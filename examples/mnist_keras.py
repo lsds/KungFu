@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-# This example shows how a MNIST Single Layer Perception Model training program
-# can adopt various distributed synchronization strategies using KungFu.
+# This example is inspired by https://www.tensorflow.org/guide/keras/train_and_evaluate
 #
-# In principle, KungFu requires users to make three changes:
+# KungFu requires users to make four changes:
 # 1. KungFu provides distributed optimizers that can wrap the original optimizer.
 # The distributed optimizer defines how local gradients and model weights are synchronized.
 # 2. KungFu provides distributed variable initializers that defines how model weights are
 # initialized on distributed devices.
 # 3. (Optional) In a distributed training setting, the training dataset is often partitioned.
-
-# inspired by https://www.tensorflow.org/guide/keras/train_and_evaluate
+# 4. (Optional) Scaling the learning rate of your local optimizer
+#
+# Command to run this script:
+# $ ./bin/kungfu-run -np 4 -timeout 1h python3 examples/mnist_keras.py --n-epochs 10
 
 import argparse
 
@@ -48,20 +49,18 @@ def load_dataset():
 def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
 
+    # Scale learning rate in sync. training
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate * n_shards)
+
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
         from kungfu.optimizers import SyncSGDOptimizer
-        optimizer = tf.train.GradientDescentOptimizer(
-            learning_rate * n_shards)  # Scale learning rate in sync. training
         return SyncSGDOptimizer(optimizer)
     if name == 'variance':
         from kungfu.optimizers import SyncSGDWithGradVarianceOptimizer
-        optimizer = tf.train.GradientDescentOptimizer(
-            learning_rate * n_shards)  # Scale learning rate in sync. training
         return SyncSGDWithGradVarianceOptimizer(optimizer, monitor_interval=10)
     elif name == 'model-avg':
         from kungfu.optimizers import PeerModelAveragingOptimizer
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate)
         return PeerModelAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
@@ -124,10 +123,6 @@ def parse_args():
                         type=int,
                         default=50,
                         help='batch size')
-    parser.add_argument('--data-dir',
-                        type=str,
-                        default='mnist',
-                        help='Path to the MNIST dataset directory.')
     return parser.parse_args()
 
 
@@ -139,7 +134,7 @@ def main():
     # build the Tensorflow model
     model = build_model(optimizer)
     # load mnist dataset
-    dataset = load_dataset()
+    dataset = load_dataset(args.data_dir)
     # train the Tensorflow model
     train_model(model, dataset, args.n_epochs, args.batch_size)
     # test the performance of the Tensorflow model
