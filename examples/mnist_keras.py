@@ -99,7 +99,8 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
               batch_size=batch_size,
               epochs=n_epochs,
               callbacks=[InitalizationCallback()],
-              validation_data=(dataset['x_val'], dataset['y_val']))
+              validation_data=(dataset['x_val'], dataset['y_val']),
+              verbose=2)
 
 
 def test_model(model, dataset):
