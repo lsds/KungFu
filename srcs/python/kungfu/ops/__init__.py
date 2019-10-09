@@ -1,5 +1,3 @@
-from kungfu.internal import _get_num_peers, _get_other_ranks, _get_self_rank
-
 from .adapt import get_init_checkpoint, resize_cluster
 from .collective import (all_reduce, all_reduce_gpu, barrier, broadcast,
                          cpu_group_all_reduce, global_variance,
@@ -20,6 +18,12 @@ def current_rank():
 
 def current_cluster_size():
     return _init_lib.kungfu_cluster_size()
+
+
+def _get_other_ranks():
+    self_rank = current_rank()
+    ranks = list(range(current_cluster_size()))
+    return [r for r in ranks if r != self_rank]
 
 
 def peer_info(version):
@@ -45,8 +49,8 @@ def get_peer_latencies(local_step=None):
     if local_step is None:
         import tensorflow as tf
         local_step = tf.Variable(tf.zeros([], tf.int64), trainable=False)
-    return _op_lib.kungfu_get_peer_latencies(local_step,
-                                             cluster_size=_get_num_peers())
+    return _op_lib.kungfu_get_peer_latencies(
+        local_step, cluster_size=current_cluster_size())
 
 
 def global_minimum_spanning_tree(self_weights):
@@ -69,9 +73,8 @@ def get_neighbour_mask(edges):
     For the peer of rank i, v[j] = true if (i, j) is an edge of the MST,
     otherwise v[j] = false.
     """
-    return _op_lib.kungfu_get_neighbour_mask(edges,
-                                             self_rank=_get_self_rank(),
-                                             cluster_size=_get_num_peers())
+    return _op_lib.kungfu_get_neighbour_mask(
+        edges, self_rank=current_rank(), cluster_size=current_cluster_size())
 
 
 def round_robin(mask):
@@ -83,14 +86,14 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
     var_sizes = [var.shape.num_elements() for var in variables]
 
     # Remove self rank from the list
-    peer_ranks.remove(_get_self_rank())
+    peer_ranks.remove(current_rank())
 
     if mode == 'async':
         print(
             "Applying model averaging with a model requested asynchronously.")
         model_averaging = _op_lib.async_model_averaging(
             variables,
-            self_rank=_get_self_rank(),
+            self_rank=current_rank(),
             ranks=peer_ranks,
             var_type_size=variables[0].dtype.size,
             var_sizes=var_sizes,
@@ -99,7 +102,7 @@ def model_averaging(peer_ranks, variables, mode, peer_selection_strategy):
         print("Applying model averaging with a model requested synchronously.")
         model_averaging = _op_lib.model_averaging(
             variables,
-            self_rank=_get_self_rank(),
+            self_rank=current_rank(),
             ranks=peer_ranks,
             var_type_size=variables[0].dtype.size,
             var_sizes=var_sizes,
@@ -117,13 +120,13 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
     var_sizes = [var.shape.num_elements() for var in variables]
 
     # Remove self rank from the list
-    peer_ranks.remove(_get_self_rank())
+    peer_ranks.remove(current_rank())
 
     if mode == 'async':
         print("Request a model asynchronously.")
         request_model = _op_lib.async_request_model(
             variables,
-            self_rank=_get_self_rank(),
+            self_rank=current_rank(),
             ranks=peer_ranks,
             var_type_size=variables[0].dtype.size,
             var_sizes=var_sizes,
@@ -133,7 +136,7 @@ def request_model(peer_ranks, variables, mode, peer_selection_strategy):
         print("Request a model synchronously.")
         request_model = _op_lib.request_model(
             variables,
-            self_rank=_get_self_rank(),
+            self_rank=current_rank(),
             ranks=peer_ranks,
             var_type_size=variables[0].dtype.size,
             var_sizes=var_sizes,
@@ -165,7 +168,7 @@ def _parse_schedule(schedule, batch_size, num_train):
     print("Num train: " + str(num_train))
     print("Batch size: " + str(batch_size))
     to_gs = lambda epoch: int(epoch * num_train /
-                              (batch_size * _get_num_peers()))
+                              (batch_size * current_cluster_size()))
     pairs = [(to_gs(int(t.split(":")[0])), float(t.split(":")[1]))
              for t in tokens]
     steps, fractions = zip(*pairs)
