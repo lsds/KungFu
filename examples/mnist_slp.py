@@ -15,7 +15,6 @@ import os
 import kungfu as kf
 import numpy as np
 import tensorflow as tf
-
 from kungfu.helpers.mnist import load_datasets
 from kungfu.ops import current_cluster_size, current_rank
 
