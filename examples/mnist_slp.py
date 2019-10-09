@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
-# This example shows how a MNIST Single Layer Perception Model training program 
+# This example shows how a MNIST Single Layer Perception Model training program
 # can adopt various distributed synchronization strategies using KungFu.
-# 
+#
 # In principle, KungFu requires users to make three changes:
-# 1. KungFu provides distributed optimizers that can wrap the original optimizer. 
-# The distributed optimizer defines how local gradients and model weights are synchronized. 
+# 1. KungFu provides distributed optimizers that can wrap the original optimizer.
+# The distributed optimizer defines how local gradients and model weights are synchronized.
 # 2. KungFu provides distributed variable initializers that defines how model weights are
 # initialized on distributed devices.
-# 3. (Optional) In a distributed training setting, the training dataset is often partitioned.  
+# 3. (Optional) In a distributed training setting, the training dataset is often partitioned.
 
 import argparse
 import os
 
+import kungfu as kf
 import numpy as np
 import tensorflow as tf
-
-import kungfu as kf
+from kungfu.benchmarks.mnist import slp
 from kungfu.helpers.mnist import load_datasets
 from kungfu.helpers.utils import show_size
-from kungfu.benchmarks.mnist import slp
-
 from kungfu.ops import current_cluster_size, current_rank
 
 
