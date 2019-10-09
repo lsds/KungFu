@@ -11,10 +11,11 @@ import (
 )
 
 type JobConfig struct {
-	Parent   plan.PeerID
-	HostList plan.HostList
-	Prog     string
-	Args     []string
+	Parent    plan.PeerID
+	HostList  plan.HostList
+	PortRange plan.PortRange
+	Prog      string
+	Args      []string
 }
 
 func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
@@ -24,6 +25,7 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 		`CUDA_VISIBLE_DEVICES`: strconv.Itoa(localRank),
 		`PYTHONUNBUFFERED`:     `1`,
 		kb.HostListEnvKey:      jc.HostList.String(),
+		kb.PortRangeEnvKey:     jc.PortRange.String(),
 		kb.ParentIDEnvKey:      jc.Parent.String(),
 		kb.PeerListEnvKey:      pl.String(),
 		kb.InitStepEnvKey:      checkpoint,
@@ -39,7 +41,7 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 }
 
 func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.PeerList, error) {
-	pl, err := jc.HostList.GenPeerList(np)
+	pl, err := jc.HostList.GenPeerList(np, jc.PortRange)
 	if err != nil {
 		return nil, nil, err
 	}

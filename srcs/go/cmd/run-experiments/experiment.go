@@ -84,9 +84,10 @@ func runExperiment(logDir string, hosts plan.HostList, prog string, args []strin
 		return nil, err
 	}
 	jc := sch.JobConfig{
-		HostList: hosts,
-		Prog:     prog,
-		Args:     args,
+		HostList:  hosts,
+		PortRange: plan.DefaultPortRange,
+		Prog:      prog,
+		Args:      args,
 	}
 	ps, _, err := jc.CreateProcs(hosts.Cap(), strategy)
 	if err != nil {

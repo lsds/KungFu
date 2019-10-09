@@ -9,8 +9,11 @@ import (
 type Env struct {
 	Self      PeerID
 	Parent    PeerID
-	HostList  HostList
 	InitPeers PeerList
+
+	// resources
+	HostList  HostList
+	PortRange PortRange
 }
 
 func ParseEnv() (*Env, error) {
@@ -29,6 +32,10 @@ func ParseEnv() (*Env, error) {
 	if err != nil {
 		return nil, err
 	}
+	portRange, err := getPortRangeFromEnv()
+	if err != nil {
+		return nil, err
+	}
 	InitPeers, err := GetInitPeersFromEnv()
 	if err != nil {
 		return nil, err
@@ -37,12 +44,13 @@ func ParseEnv() (*Env, error) {
 		Self:      *self,
 		Parent:    *parent,
 		HostList:  hostList,
+		PortRange: *portRange,
 		InitPeers: InitPeers,
 	}, nil
 }
 
 func singleEnv() *Env {
-	hl := HostList{DefaultHostSpec()}
+	hl := HostList{DefaultHostSpec}
 	self := hl.genPeerList(1, DefaultPortRange)[0]
 	return &Env{
 		Self:      self,
