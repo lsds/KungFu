@@ -24,9 +24,10 @@ type Kungfu struct {
 	sync.Mutex
 
 	// immutable
-	parent   plan.PeerID
-	hostList plan.HostList
-	self     plan.PeerID
+	parent    plan.PeerID
+	hostList  plan.HostList
+	portRange plan.PortRange
+	self      plan.PeerID
 
 	store  *store.VersionedStore
 	router *rch.Router
@@ -56,6 +57,7 @@ func New(config Config) (*Kungfu, error) {
 		currentPeers: env.InitPeers,
 		self:         env.Self,
 		hostList:     env.HostList,
+		portRange:    env.PortRange,
 		checkpoint:   os.Getenv(kb.CheckpointEnvKey),
 		store:        store,
 		router:       router,
@@ -155,7 +157,7 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 
 func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, error) {
 	log.Debugf("resize cluster to %d at %q", newSize, ckpt)
-	peers, err := kf.hostList.GenPeerList(newSize)
+	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
 	if err != nil {
 		return true, err
 	}

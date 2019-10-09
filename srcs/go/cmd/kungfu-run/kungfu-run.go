@@ -24,7 +24,8 @@ import (
 
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
-	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	hostList   = flag.String("H", plan.DefaultHostSpec.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	portRange  = flag.String("port-range", plan.DefaultPortRange.String(), "port range for the peers")
 	selfHost   = flag.String("self", "", "internal IP")
 	timeout    = flag.Duration("timeout", 0, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
@@ -85,16 +86,21 @@ func main() {
 	if len(restArgs) < 1 {
 		utils.ExitErr(errMissingProgramName)
 	}
+	pr, err := plan.ParsePortRange(*portRange)
+	if err != nil {
+		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
+	}
 	hl, err := plan.ParseHostList(*hostList)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
 	parent := plan.PeerID{Host: selfIP, Port: uint16(*port)}
 	jc := sch.JobConfig{
-		Parent:   parent,
-		HostList: hl,
-		Prog:     restArgs[0],
-		Args:     restArgs[1:],
+		Parent:    parent,
+		HostList:  hl,
+		PortRange: *pr,
+		Prog:      restArgs[0],
+		Args:      restArgs[1:],
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	if *timeout > 0 {
@@ -103,7 +109,7 @@ func main() {
 	}
 
 	if *watch {
-		peers, err := hl.GenPeerList(*np)
+		peers, err := hl.GenPeerList(*np, *pr)
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
 		}

@@ -19,7 +19,8 @@ import (
 
 var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
-	hostList   = flag.String("H", plan.DefaultHostSpec().String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	hostList   = flag.String("H", plan.DefaultHostSpec.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	portRange  = flag.String("port-range", plan.DefaultPortRange.String(), "port range for the peers")
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
@@ -42,10 +43,15 @@ func main() {
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
+	pr, err := plan.ParsePortRange(*portRange)
+	if err != nil {
+		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
+	}
 	jc := sch.JobConfig{
-		HostList: hl,
-		Prog:     restArgs[0],
-		Args:     restArgs[1:],
+		HostList:  hl,
+		PortRange: *pr,
+		Prog:      restArgs[0],
+		Args:      restArgs[1:],
 	}
 	ps, _, err := jc.CreateProcs(*np, kb.ParseStrategy(*algo))
 	if err != nil {

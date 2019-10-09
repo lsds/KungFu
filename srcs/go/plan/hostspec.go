@@ -11,8 +11,6 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
-// FIXME: make members private, public is required by JSON encoding for now
-
 var errInvalidHostSpec = errors.New("Invalid HostSpec")
 
 type HostSpec struct {
@@ -21,12 +19,10 @@ type HostSpec struct {
 	PublicAddr string
 }
 
-func DefaultHostSpec() HostSpec {
-	return HostSpec{
-		Hostname:   `127.0.0.1`,
-		Slots:      runtime.NumCPU(),
-		PublicAddr: `127.0.0.1`,
-	}
+var DefaultHostSpec = HostSpec{
+	Hostname:   `127.0.0.1`,
+	Slots:      runtime.NumCPU(),
+	PublicAddr: `127.0.0.1`,
 }
 
 func (h HostSpec) String() string {
@@ -86,10 +82,42 @@ func (hl HostList) Cap() int {
 
 type PortRange struct {
 	Begin uint16
-	// Count int
+	End   uint16
 }
 
-var DefaultPortRange = PortRange{Begin: 10000}
+var DefaultPortRange = PortRange{
+	Begin: 10000,
+	End:   11000,
+}
+
+var errInvalidPortRange = errors.New("invalid port range")
+
+func getPortRangeFromEnv() (*PortRange, error) {
+	val, ok := os.LookupEnv(kb.PortRangeEnvKey)
+	if !ok {
+		return nil, fmt.Errorf("%s not set", kb.PortRangeEnvKey)
+	}
+	return ParsePortRange(val)
+}
+
+func ParsePortRange(val string) (*PortRange, error) {
+	var begin, end uint16
+	if _, err := fmt.Sscanf(val, "%d-%d", &begin, &end); err != nil {
+		return nil, err
+	}
+	if end < begin {
+		return nil, errInvalidPortRange
+	}
+	return &PortRange{Begin: begin, End: end}, nil
+}
+
+func (pr PortRange) Cap() int {
+	return int(pr.End - pr.Begin + 1)
+}
+
+func (pr PortRange) String() string {
+	return fmt.Sprintf("%d-%d", pr.Begin, pr.End)
+}
 
 func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	var pl PeerList
@@ -110,14 +138,22 @@ func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 
 var errNoEnoughCapacity = errors.New("no enough capacity")
 
-func (hl HostList) GenPeerList(np int) (PeerList, error) {
+func (hl HostList) GenPeerList(np int, pr PortRange) (PeerList, error) {
 	if hl.Cap() < np {
 		return nil, errNoEnoughCapacity
 	}
-	return hl.genPeerList(np, DefaultPortRange), nil
+	for _, h := range hl {
+		if pr.Cap() < h.Slots {
+			return nil, errNoEnoughCapacity
+		}
+	}
+	return hl.genPeerList(np, pr), nil
 }
 
-func GetHostListFromEnv() (HostList, error) {
-	val := os.Getenv(kb.HostListEnvKey)
+func getHostListFromEnv() (HostList, error) {
+	val, ok := os.LookupEnv(kb.HostListEnvKey)
+	if !ok {
+		return nil, fmt.Errorf("%s not set", kb.HostListEnvKey)
+	}
 	return ParseHostList(val)
 }

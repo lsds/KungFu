@@ -9,27 +9,34 @@ import (
 type Env struct {
 	Self      PeerID
 	Parent    PeerID
-	HostList  HostList
 	InitPeers PeerList
+
+	// resources
+	HostList  HostList
+	PortRange PortRange
 }
 
 func ParseEnv() (*Env, error) {
 	if _, ok := os.LookupEnv(kb.SelfSpecEnvKey); !ok {
 		return singleEnv(), nil
 	}
-	self, err := GetSelfFromEnv()
+	self, err := getSelfFromEnv()
 	if err != nil {
 		return nil, err
 	}
-	parent, err := GetParentFromEnv()
+	parent, err := getParentFromEnv()
 	if err != nil {
 		return nil, err
 	}
-	hostList, err := GetHostListFromEnv()
+	hostList, err := getHostListFromEnv()
 	if err != nil {
 		return nil, err
 	}
-	InitPeers, err := GetInitPeersFromEnv()
+	portRange, err := getPortRangeFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	InitPeers, err := getInitPeersFromEnv()
 	if err != nil {
 		return nil, err
 	}
@@ -37,12 +44,13 @@ func ParseEnv() (*Env, error) {
 		Self:      *self,
 		Parent:    *parent,
 		HostList:  hostList,
+		PortRange: *portRange,
 		InitPeers: InitPeers,
 	}, nil
 }
 
 func singleEnv() *Env {
-	hl := HostList{DefaultHostSpec()}
+	hl := HostList{DefaultHostSpec}
 	self := hl.genPeerList(1, DefaultPortRange)[0]
 	return &Env{
 		Self:      self,
