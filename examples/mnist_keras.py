@@ -20,31 +20,13 @@ import kungfu as kf
 from kungfu.ops import broadcast, current_cluster_size, current_rank
 
 
-def equal(a, b):
-    for a_i, b_i in zip(a, b):
-        if a_i.all() != b_i.all():
-            return False
-    return True
-
-
 class InitalizationCallback(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
-        weights_before = self.model.get_weights().copy()
-
         weights = self.model.get_weights()
-        print('type weights' + str(type(weights)))
-        
         for i, weight in enumerate(weights):
-            print('type weight' + str(type(weight)))
             weights[i] = broadcast(weight).eval(session=tf.keras.backend.get_session())
-            print('type weights[i]' + str(type(weights[i])))
 
         self.model.set_weights(weights)
-
-        if equal(weights_before, self.model.get_weights()):
-            print('same')
-        else:
-            print('diff')
 
 
 def load_dataset():
