@@ -165,6 +165,12 @@ def train_mnist(sess,
         })
         # log the validation accuracy
         if step % log_period == 0:
+            training_acc_dataset = dict()
+            training_acc_dataset['x'] = xs
+            training_acc_dataset['y'] = y_s
+            result = test_mnist(sess, x, y_, test_op,
+                                training_acc_dataset)
+            print('training accuracy: %f' % result)
             result = test_mnist(sess, x, y_, test_op,
                                 dataset['validation_set'])
             print('validation accuracy: %f' % result)
