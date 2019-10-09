@@ -49,7 +49,7 @@ def load_dataset():
 def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
 
-    # Scale learning rate in sync. training
+    # Scale learning rate according to the level of data parallelism
     optimizer = tf.train.GradientDescentOptimizer(learning_rate * n_shards)
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
