@@ -134,7 +134,7 @@ def main():
     # build the Tensorflow model
     model = build_model(optimizer)
     # load mnist dataset
-    dataset = load_dataset(args.data_dir)
+    dataset = load_dataset()
     # train the Tensorflow model
     train_model(model, dataset, args.n_epochs, args.batch_size)
     # test the performance of the Tensorflow model
