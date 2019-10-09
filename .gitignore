@@ -46,4 +46,3 @@ venv
 *.pyc
 go.sum
 .vscode
-mnist

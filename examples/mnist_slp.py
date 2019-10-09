@@ -189,8 +189,7 @@ def parse_args():
                         help='batch size')
     parser.add_argument('--data-dir',
                         type=str,
-                        default=os.path.join(os.getenv('HOME'),
-                                             'var/data/mnist'),
+                        default='mnist',
                         help='Path to the MNIST dataset directory.')
     return parser.parse_args()
 
