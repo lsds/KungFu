@@ -57,6 +57,8 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 		envs := Envs{
 			kb.ParentIDEnvKey:          jc.Parent.String(),
 			kb.PeerListEnvKey:          pl.String(),
+			kb.HostListEnvKey:          jc.HostList.String(),
+			kb.PortRangeEnvKey:         jc.PortRange.String(),
 			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:          self.String(),
 			kb.AllReduceStrategyEnvKey: strategy.String(), // FIXME: remove it

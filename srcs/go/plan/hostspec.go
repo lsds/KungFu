@@ -150,7 +150,10 @@ func (hl HostList) GenPeerList(np int, pr PortRange) (PeerList, error) {
 	return hl.genPeerList(np, pr), nil
 }
 
-func GetHostListFromEnv() (HostList, error) {
-	val := os.Getenv(kb.HostListEnvKey)
+func getHostListFromEnv() (HostList, error) {
+	val, ok := os.LookupEnv(kb.HostListEnvKey)
+	if !ok {
+		return nil, fmt.Errorf("%s not set", kb.HostListEnvKey)
+	}
 	return ParseHostList(val)
 }

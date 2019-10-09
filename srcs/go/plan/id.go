@@ -50,7 +50,7 @@ func parseID(val string) (*PeerID, error) {
 	}, nil
 }
 
-func GetSelfFromEnv() (*PeerID, error) {
+func getSelfFromEnv() (*PeerID, error) {
 	config, ok := os.LookupEnv(kb.SelfSpecEnvKey)
 	if !ok {
 		return nil, fmt.Errorf("%s not set", kb.SelfSpecEnvKey)
@@ -58,7 +58,7 @@ func GetSelfFromEnv() (*PeerID, error) {
 	return parseID(config)
 }
 
-func GetParentFromEnv() (*PeerID, error) {
+func getParentFromEnv() (*PeerID, error) {
 	val, ok := os.LookupEnv(kb.ParentIDEnvKey)
 	if !ok {
 		return nil, fmt.Errorf("%s not set", kb.ParentIDEnvKey)

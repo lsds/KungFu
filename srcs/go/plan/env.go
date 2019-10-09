@@ -20,15 +20,15 @@ func ParseEnv() (*Env, error) {
 	if _, ok := os.LookupEnv(kb.SelfSpecEnvKey); !ok {
 		return singleEnv(), nil
 	}
-	self, err := GetSelfFromEnv()
+	self, err := getSelfFromEnv()
 	if err != nil {
 		return nil, err
 	}
-	parent, err := GetParentFromEnv()
+	parent, err := getParentFromEnv()
 	if err != nil {
 		return nil, err
 	}
-	hostList, err := GetHostListFromEnv()
+	hostList, err := getHostListFromEnv()
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func ParseEnv() (*Env, error) {
 	if err != nil {
 		return nil, err
 	}
-	InitPeers, err := GetInitPeersFromEnv()
+	InitPeers, err := getInitPeersFromEnv()
 	if err != nil {
 		return nil, err
 	}

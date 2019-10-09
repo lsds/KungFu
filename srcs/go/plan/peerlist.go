@@ -98,7 +98,7 @@ func parsePeerList(val string) (PeerList, error) {
 	return pl, nil
 }
 
-func GetInitPeersFromEnv() (PeerList, error) {
+func getInitPeersFromEnv() (PeerList, error) {
 	val, ok := os.LookupEnv(kb.PeerListEnvKey)
 	if !ok {
 		return nil, fmt.Errorf("%s not set", kb.PeerListEnvKey)
