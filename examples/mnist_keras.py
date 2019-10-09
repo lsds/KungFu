@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
-# This example shows how a MNIST Single Layer Perception Model training program 
+# This example shows how a MNIST Single Layer Perception Model training program
 # can adopt various distributed synchronization strategies using KungFu.
-# 
+#
 # In principle, KungFu requires users to make three changes:
-# 1. KungFu provides distributed optimizers that can wrap the original optimizer. 
-# The distributed optimizer defines how local gradients and model weights are synchronized. 
+# 1. KungFu provides distributed optimizers that can wrap the original optimizer.
+# The distributed optimizer defines how local gradients and model weights are synchronized.
 # 2. KungFu provides distributed variable initializers that defines how model weights are
 # initialized on distributed devices.
-# 3. (Optional) In a distributed training setting, the training dataset is often partitioned. 
+# 3. (Optional) In a distributed training setting, the training dataset is often partitioned.
 
-# inspired by https://www.tensorflow.org/guide/keras/train_and_evaluate 
+# inspired by https://www.tensorflow.org/guide/keras/train_and_evaluate
 
 import argparse
 import os
 
-import tensorflow as tf
-
 import kungfu as kf
+import tensorflow as tf
 from kungfu.ops import broadcast, current_cluster_size, current_rank
 
 
@@ -24,7 +23,8 @@ class InitalizationCallback(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
         # KUNGFU: KungFu initilizer defines how model weights are initilised on distributed devices
         if hasattr(self.model.optimizer.optimizer, 'distributed_initializer'):
-            tf.keras.backend.get_session().run(self.model.optimizer.optimizer.distributed_initializer())
+            tf.keras.backend.get_session().run(
+                self.model.optimizer.optimizer.distributed_initializer())
 
 
 def load_dataset():
@@ -75,8 +75,8 @@ def build_model(optimizer):
     model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
     # compile the model
     model.compile(optimizer=optimizer,
-                    loss='sparse_categorical_crossentropy',
-                    metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
+                  loss='sparse_categorical_crossentropy',
+                  metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
 
     return model
 
@@ -87,14 +87,19 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
     train_data_size = len(dataset['x_train'])
 
     # calculate the offset for the data of the KungFu node
-    shard_size = train_data_size // n_shards    
+    shard_size = train_data_size // n_shards
     offset = batch_size * shard_id
 
     # extract the data for learning of the KungFu node
     x = dataset['x_train'][offset:offset + shard_size]
     y = dataset['y_train'][offset:offset + shard_size]
     # train the model
-    model.fit(x, y, batch_size=batch_size, epochs=n_epochs, callbacks=[InitalizationCallback()], validation_data=(dataset['x_val'], dataset['y_val']))
+    model.fit(x,
+              y,
+              batch_size=batch_size,
+              epochs=n_epochs,
+              callbacks=[InitalizationCallback()],
+              validation_data=(dataset['x_val'], dataset['y_val']))
 
 
 def test_model(model, dataset):

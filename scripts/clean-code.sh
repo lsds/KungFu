@@ -36,6 +36,10 @@ list_py_srcs() {
     find ./srcs -type f | grep .py$
 }
 
+list_example() {
+    find ./examples -type f | grep .py$
+}
+
 for_all() {
     for src in $(list_srcs); do
         echo "$1 $src"
@@ -72,6 +76,13 @@ fmt_all_py() {
     done
 }
 
+fmt_example() {
+    for src in $(list_example); do
+        echo "fmt_py $src"
+        fmt_py $src
+    done
+}
+
 main() {
     case $1 in
     --fmt-cpp)
@@ -87,6 +98,9 @@ main() {
     --fix)
         rebuild
         fix_all
+        ;;
+    --example)
+        fmt_example
         ;;
     '')
         rebuild
