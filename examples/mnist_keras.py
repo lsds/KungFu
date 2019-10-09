@@ -20,6 +20,33 @@ import kungfu as kf
 from kungfu.ops import broadcast, current_cluster_size, current_rank
 
 
+def equal(a, b):
+    for a_i, b_i in zip(a, b):
+        if a_i.all() != b_i.all():
+            return False
+    return True
+
+
+class InitalizationCallback(tf.keras.callbacks.Callback):
+    def on_train_begin(self, logs=None):
+        weights_before = self.model.get_weights().copy()
+
+        weights = self.model.get_weights()
+        print('type weights' + str(type(weights)))
+        
+        for i, weight in enumerate(weights):
+            print('type weight' + str(type(weight)))
+            weights[i] = broadcast(weight).eval(session=tf.keras.backend.get_session())
+            print('type weights[i]' + str(type(weights[i])))
+
+        self.model.set_weights(weights)
+
+        if equal(weights_before, self.model.get_weights()):
+            print('same')
+        else:
+            print('diff')
+
+
 def load_dataset():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     # preprocess the mnist dataset
@@ -62,7 +89,7 @@ def build_model(optimizer):
     # create a model with keras
     model = tf.keras.Sequential()
     # add two hidden layer
-    model.add(tf.keras.layers.Dense(64, input_shape=(784,), activation='relu'))
+    model.add(tf.keras.layers.Dense(64, activation='relu'))
     model.add(tf.keras.layers.Dense(64, activation='relu'))
     # add a dense layer with number of classes of nodes and softmax
     model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
@@ -70,12 +97,6 @@ def build_model(optimizer):
     model.compile(optimizer=optimizer,
                     loss='sparse_categorical_crossentropy',
                     metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
-
-    # TODO the syncronisation of weights seems not to work
-    tf.keras.backend.get_session().run(tf.global_variables_initializer())
-    if hasattr(optimizer, 'distributed_initializer'):
-        for weight in model.get_weights():
-            weight = broadcast(weight)
 
     return model
 
@@ -93,7 +114,7 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
     x = dataset['x_train'][offset:offset + shard_size]
     y = dataset['y_train'][offset:offset + shard_size]
     # train the model
-    model.fit(x, y, batch_size=batch_size, epochs=n_epochs, validation_data=(dataset['x_val'], dataset['y_val']))
+    model.fit(x, y, batch_size=batch_size, epochs=n_epochs, callbacks=[InitalizationCallback()], validation_data=(dataset['x_val'], dataset['y_val']))
 
 
 def test_model(model, dataset):
