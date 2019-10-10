@@ -4,7 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
+
+	"github.com/lsds/KungFu/srcs/go/log"
 )
 
 // Tee redirects r to ws
@@ -52,12 +53,12 @@ func (w *StreamWatcher) Watch(r io.Reader) {
 		line, _, err := reader.ReadLine()
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("pip [%s] end with error: %v", w.name, err)
+				log.Errorf("pip [%s] end with error: %v", w.name, err)
 			}
 			return
 		}
 		if w.verbose {
-			log.Printf("[%s] %s", w.name, line)
+			log.Infof("[%s] %s", w.name, line)
 		}
 		w.history = append(w.history, string(line))
 		if len(w.history) >= w.historyLimit+w.historyMargin {

@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/user"
 	"path"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -133,20 +133,25 @@ func (c *Client) Stream(cmd string) error {
 		return err
 	}
 	defer session.Close()
+	var wg sync.WaitGroup
 	if stdout, err := session.StdoutPipe(); err == nil {
-		go streamPipe("stdout", stdout)
+		wg.Add(1)
+		go func() { streamPipe("stdout", stdout); wg.Done() }()
 	} else {
 		return err
 	}
 	if stderr, err := session.StderrPipe(); err == nil {
-		go streamPipe("stderr", stderr)
+		wg.Add(1)
+		go func() { streamPipe("stderr", stderr); wg.Done() }()
 	} else {
 		return err
 	}
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
-	return session.Wait()
+	err = session.Wait()
+	wg.Wait()
+	return err
 }
 
 type Watcher func(r io.Reader)
@@ -223,18 +228,19 @@ func (c *Client) Close() error {
 	return c.client.Close()
 }
 
-func streamPipe(name string, r io.Reader) {
+func streamPipe(name string, r io.Reader) error {
 	reader := bufio.NewReader(r)
 	for {
 		line, _, err := reader.ReadLine()
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("pip [%s] end with error: %v", name, err)
+				return err
 			}
-			return
+			break
 		}
-		log.Printf("[%s] %s", name, line)
+		fmt.Printf("[%s] %s\n", name, line)
 	}
+	return nil
 }
 
 // RunWith provides a convenient wrapper for running a command once.

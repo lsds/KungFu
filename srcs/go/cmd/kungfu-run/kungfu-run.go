@@ -140,7 +140,7 @@ func simpleRun(ctx context.Context, selfIP string, ps []sch.Proc, jc sch.JobConf
 	log.Infof("will parallel run %d instances of %s with %q", len(myPs), jc.Prog, jc.Args)
 	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, *verboseLog) })
 	log.Infof("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
-	if err != nil && err != context.DeadlineExceeded {
+	if err != nil {
 		utils.ExitErr(err)
 	}
 }
