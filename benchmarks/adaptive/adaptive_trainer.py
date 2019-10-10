@@ -30,6 +30,18 @@ def parse_schedule(config):
     return schedule, t
 
 
+def show_duration(duration):
+    if duration < 1:
+        return '%.2fms' % (duration * 1e3)
+    if duration < 60:
+        return '%.2fs' % duration
+    sec = int(duration)
+    mm, ss = sec / 60, sec % 60
+    if duration < 3600:
+        return '%dm%ds' % (mm, ss)
+    return '%dh%dm%ds' % (mm / 60, mm % 60, ss)
+
+
 cluster_size_schedule, max_step = parse_schedule(args.schedule)
 # print(cluster_size_schedule)
 # print(max_step)
@@ -76,7 +88,8 @@ with tf.Session() as sess:
         t0 = time.time()
         v = sess.run(y)
         d = time.time() - t0
-        print('step %d, result: %d, np=%d, took %.2fs' % (gs, v, np, d))
+        print('step %d, result: %d, np=%d, took %s' %
+              (gs, v, np, show_duration(d)))
 
         next_gs = gs + 1
         new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
@@ -88,7 +101,7 @@ with tf.Session() as sess:
                                 new_size: new_np,
                             })
             d = time.time() - t0
-            print('resize %d -> %d took %.2fs' % (np, new_np, d))
+            print('resize %d -> %d took %s' % (np, new_np, show_duration(d)))
             np = new_np
             if not keep:
                 break
