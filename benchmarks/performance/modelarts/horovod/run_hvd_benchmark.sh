@@ -11,21 +11,12 @@ set -x
 
 cd /home/work/user-job-dir/
 
-# Modify script path to point to benchmark script
-SCRIPT_PATH=KungFu/performance/hvd_tensorflow_synthetic_benchmark.py
-# Modify RSH agent path to point to kube-plm-rsh-agent file
-RSH_AGENT_PATH=KungFu/performance/modelarts/horovod/kube-plm-rsh-agent
-# Modify hostfile indicating where pod characteristics are located
-HOST_FILE_PATH=KungFu/performance/modelarts/horovod/hostfile
-
-# KungFu/performance/modelarts/horovod/kube-plm-rsh-agent
-echo $PWD
-ls $PWD
-ls $PWD/KungFu
-ls $PWD/KungFu/performance
-ls $PWD/KungFu/performance/modelarts
-ls $PWD/KungFu/performance/horovod
-
+# Modify script path to point to benchmark script (please set aboslute path)
+SCRIPT_PATH=$PWD/KungFu/performance/hvd_tensorflow_synthetic_benchmark.py
+# Modify RSH agent path to point to kube-plm-rsh-agent file (please set aboslute path)
+RSH_AGENT_PATH=$PWD/KungFu/performance/modelarts/horovod/kube-plm-rsh-agent
+# Modify hostfile indicating where pod characteristics are located (please set aboslute path)
+HOST_FILE_PATH=$PWD/KungFu/performance/modelarts/horovod/hostfile
 
 chmod +x $RSH_AGENT_PATH
 
@@ -77,7 +68,7 @@ if [ "$DLS_TASK_INDEX" = "0" ]
 then
     batch_size=256
     nps="16"
-    run_experiment $nps python3 $script --batch-size=$batch_size --model=ResNet50 --num-iters=50
+    run_experiment $nps python3 $SCRIPT_PATH --batch-size=$batch_size --model=ResNet50 --num-iters=50
 else
     sleep 5d
 fi
