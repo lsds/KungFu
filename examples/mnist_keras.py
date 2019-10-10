@@ -21,6 +21,7 @@ from kungfu.ops import broadcast, current_cluster_size, current_rank
 
 class InitalizationCallback(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
+        tf.keras.backend.get_session().run(tf.global_variables_initializer())
         # KUNGFU: KungFu initilizer defines how model weights are initilised on distributed devices
         if hasattr(self.model.optimizer.optimizer, 'distributed_initializer'):
             tf.keras.backend.get_session().run(
