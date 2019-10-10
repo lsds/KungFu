@@ -174,17 +174,3 @@ def main(_):
 
 if __name__ == "__main__":
   tf.app.run(main=main)
-
-
-
-# if tf.executing_eagerly():
-#     with tf.device(device):
-#         run(lambda: opt.minimize(loss_function,
-#                                  var_list=model.trainable_variables))
-# else:
-#     init = tf.global_variables_initializer()
-#     with tf.Session(config=config) as session:
-#         session.run(init)
-#         if kf_init:
-#             session.run(kf_init)
-#         run(lambda: session.run(train_opt))
