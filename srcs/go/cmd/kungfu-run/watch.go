@@ -17,8 +17,15 @@ import (
 )
 
 func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan run.Stage, jc sch.JobConfig) {
-	log.Infof("watching config server")
 	ctx, cancel := context.WithCancel(ctx)
+	globalCtx, globalCancel := context.WithCancel(ctx)
+	server, err := rch.NewServer(run.NewHandler(parent, ch, globalCancel))
+	if err != nil {
+		utils.ExitErr(fmt.Errorf("failed to create server: %v", err))
+	}
+	go server.Serve()
+	defer server.Close()
+	log.Infof("watching config server")
 
 	var all sync.WaitGroup
 	var current plan.PeerList
@@ -74,9 +81,9 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 
 	if hostRank, _ := parents.Lookup(parent); len(parents) > 1 {
 		if hostRank > 0 {
-			<-ctx.Done()
-			err := ctx.Err()
-			log.Infof("context is done: %v", err)
+			<-globalCtx.Done()
+			err := globalCtx.Err()
+			log.Infof("global context is done: %v", err)
 			all.Wait()
 		} else {
 			all.Wait()
