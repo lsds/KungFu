@@ -2,6 +2,7 @@ package kungfu
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
@@ -112,12 +113,12 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	}
 	log.Debugf("Kungfu::updateTo(%s)", pl)
 	kf.router.ResetConnections() // FIXME: don't reset all connections
-	sess, exist, err := newSession(kf.config, kf.self, pl, kf.router)
+	sess, exist := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
 		return false
 	}
-	if err != nil {
-		utils.ExitErr(err)
+	if err := sess.barrier(); err != nil {
+		utils.ExitErr(fmt.Errorf("barrier failed after newSession: %v", err))
 	}
 	kf.currentSession = sess
 	kf.updated = true

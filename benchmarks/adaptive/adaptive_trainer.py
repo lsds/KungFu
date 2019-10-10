@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import time
 
 from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -74,11 +75,16 @@ with tf.Session() as sess:
         print('step %d, result: %d' % (gs, v))
 
         next_gs = gs + 1
-        np = get_cluster_size(next_gs, cluster_size_schedule, np)
-        keep = sess.run(resize_op,
-                        feed_dict={
-                            ckpt: str(next_gs),
-                            new_size: np
-                        })
-        if not keep:
-            break
+        new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
+        if new_np != np:
+            t0 = time.time()
+            keep = sess.run(resize_op,
+                            feed_dict={
+                                ckpt: str(next_gs),
+                                new_size: new_np,
+                            })
+            d = time.time() - t0
+            print('resize %d -> %d took %.2fs' % (np, new_np, d))
+            np = new_np
+            if not keep:
+                break
