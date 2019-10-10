@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.JobConfig) {
+func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan run.Stage, jc sch.JobConfig) {
 	log.Infof("watching config server")
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -27,8 +27,8 @@ func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.J
 
 	reconcileCluster := func(s run.Stage) {
 		a, b := current.Diff(s.Cluster)
-		del := a.On(localhost)
-		add := b.On(localhost)
+		del := a.On(parent.Host)
+		add := b.On(parent.Host)
 		log.Infof("arrived at %q, np=%d, will remove %d %s (%d locally), will add %d %s (%d locally)",
 			s.Checkpoint, len(s.Cluster),
 			len(a), utils.Pluralize(len(a), "peer", "peers"), len(del),
@@ -39,7 +39,6 @@ func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.J
 			delete(gs, id)
 		}
 		log.Debugf("%d peers removed", len(del))
-		createBegin := time.Now()
 		for i, id := range add {
 			gs[id] = new(sync.WaitGroup)
 			gs[id].Add(1)
@@ -61,7 +60,7 @@ func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.J
 			}(gs[id], id, s)
 			log.Debugf("peer %d/%d created", i, len(add))
 		}
-		log.Infof("%d peers created, took %s", len(add), time.Since(createBegin))
+		log.Debugf("%d peers created", len(add))
 		current = s.Cluster
 	}
 	reconcileCluster(<-ch)
@@ -72,12 +71,23 @@ func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.J
 			all.Done()
 		}
 	}()
-	if *keep {
-		<-ctx.Done()
-		err := ctx.Err()
-		log.Infof("context is done: %v", err)
+
+	if hostRank, _ := parents.Lookup(parent); len(parents) > 1 {
+		if hostRank > 0 {
+			<-ctx.Done()
+			err := ctx.Err()
+			log.Infof("context is done: %v", err)
+			all.Wait()
+		} else {
+			all.Wait()
+			router := rch.NewRouter(parent, nil)
+			for _, p := range parents[1:] {
+				router.Send(p.WithName("exit"), nil, rch.ConnControl, 0)
+			}
+		}
+	} else {
+		all.Wait()
 	}
-	all.Wait()
 	log.Infof("stop watching")
 }
 

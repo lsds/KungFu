@@ -2,7 +2,9 @@ package kungfurun
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -10,6 +12,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type Stage struct {
@@ -28,24 +31,36 @@ func (s *Stage) Decode(bs []byte) error {
 	return json.NewDecoder(b).Decode(s)
 }
 
+func (s Stage) Eq(t Stage) bool {
+	return s.Checkpoint == t.Checkpoint && s.Cluster.Eq(t.Cluster)
+}
+
 type Handler struct {
 	self plan.PeerID
 
 	mu          sync.Mutex
 	checkpoints map[string]Stage
 	ch          chan Stage
+	cancel      context.CancelFunc
+
+	controlHandlers map[string]rch.MsgHandleFunc
 }
 
 func (h *Handler) Self() plan.PeerID {
 	return h.self
 }
 
-func NewHandler(self plan.PeerID, ch chan Stage) *Handler {
-	return &Handler{
-		self:        self,
-		checkpoints: make(map[string]Stage),
-		ch:          ch,
+func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Handler {
+	h := &Handler{
+		self:            self,
+		checkpoints:     make(map[string]Stage),
+		ch:              ch,
+		cancel:          cancel,
+		controlHandlers: make(map[string]rch.MsgHandleFunc),
 	}
+	h.controlHandlers["update"] = h.handleContrlUpdate
+	h.controlHandlers["exit"] = h.handleContrlExit
+	return h
 }
 
 func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t rch.ConnType) error {
@@ -60,24 +75,39 @@ func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t rch.ConnType) err
 	}
 }
 
-func (h *Handler) handleControl(name string, msg *rch.Message, _conn net.Conn, remote plan.NetAddr) {
+func (h *Handler) handleControl(name string, msg *rch.Message, conn net.Conn, remote plan.NetAddr) {
 	log.Debugf("got control message from %s, name: %s, length: %d", remote, name, msg.Length)
-	if name == "update" {
-		var s Stage
-		if err := s.Decode(msg.Data); err != nil {
-			log.Warnf("invalid update message: %v", err)
+	handle, ok := h.controlHandlers[name]
+	if !ok {
+		log.Warnf("invalid control messaeg: %s", name)
+	}
+	handle(name, msg, conn, remote)
+}
+
+var errInconsistentUpdate = errors.New("inconsistent update detected")
+
+func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.Conn, remote plan.NetAddr) {
+	var s Stage
+	if err := s.Decode(msg.Data); err != nil {
+		log.Warnf("invalid update message: %v", err)
+		return
+	}
+	func() {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		if val, ok := h.checkpoints[s.Checkpoint]; ok {
+			if !val.Eq(s) {
+				utils.ExitErr(errInconsistentUpdate)
+			}
 			return
 		}
-		func() {
-			h.mu.Lock()
-			defer h.mu.Unlock()
-			if _, ok := h.checkpoints[s.Checkpoint]; ok {
-				// FIXME: check content
-				return
-			}
-			h.checkpoints[s.Checkpoint] = s
-			h.ch <- s
-			log.Debugf("update to %q with %d peers", s.Checkpoint, len(s.Cluster))
-		}()
-	}
+		h.checkpoints[s.Checkpoint] = s
+		h.ch <- s
+		log.Debugf("update to %q with %d peers", s.Checkpoint, len(s.Cluster))
+	}()
+}
+
+func (h *Handler) handleContrlExit(_name string, msg *rch.Message, _conn net.Conn, remote plan.NetAddr) {
+	log.Infof("exit control message received.")
+	h.cancel()
 }

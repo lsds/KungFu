@@ -240,10 +240,10 @@ var ErrInvalidConnectionType = errors.New("invalid connection type")
 func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error {
 	switch t {
 	case ConnCollective:
-		_, err := stream(conn, remote, r.acceptOne, r.handleCollective)
+		_, err := Stream(conn, remote, r.acceptOne, r.handleCollective)
 		return err
 	case ConnPeerToPeer:
-		_, err := stream(conn, remote, r.acceptOne, r.handlePeerToPeerConn)
+		_, err := Stream(conn, remote, r.acceptOne, r.handlePeerToPeerConn)
 		return err
 	default:
 		return ErrInvalidConnectionType

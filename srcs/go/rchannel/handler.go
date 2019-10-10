@@ -19,7 +19,7 @@ type Endpoint interface {
 
 type acceptFunc func(conn net.Conn, remote plan.NetAddr) (string, *Message, error)
 
-type msgHandleFunc func(name string, msg *Message, conn net.Conn, remote plan.NetAddr)
+type MsgHandleFunc func(name string, msg *Message, conn net.Conn, remote plan.NetAddr)
 
 // Accept accepts one message from connection
 func Accept(conn net.Conn, _remote plan.NetAddr) (string, *Message, error) {
@@ -34,7 +34,7 @@ func Accept(conn net.Conn, _remote plan.NetAddr) (string, *Message, error) {
 	return string(mh.Name), &msg, nil
 }
 
-func stream(conn net.Conn, remote plan.NetAddr, accept acceptFunc, handle msgHandleFunc) (int, error) {
+func Stream(conn net.Conn, remote plan.NetAddr, accept acceptFunc, handle MsgHandleFunc) (int, error) {
 	for i := 0; ; i++ {
 		name, msg, err := accept(conn, remote)
 		if err != nil {
@@ -47,5 +47,3 @@ func stream(conn net.Conn, remote plan.NetAddr, accept acceptFunc, handle msgHan
 		handle(name, msg, conn, remote)
 	}
 }
-
-var Stream = stream
