@@ -7,7 +7,7 @@ from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import tensorflow as tf
-from kungfu.ops import all_reduce, current_cluster_size
+from kungfu.ops import all_reduce, barrier, current_cluster_size
 from kungfu.ops.adapt import get_init_checkpoint, resize_cluster
 
 p = argparse.ArgumentParser(description='Adaptation Benchmark.')
@@ -58,6 +58,8 @@ resize_op = resize_cluster(ckpt, new_size)
 
 init = tf.global_variables_initializer()
 
+# barrier_op = barrier()
+
 with tf.Session() as sess:
     sess.run(init)
 
@@ -71,8 +73,10 @@ with tf.Session() as sess:
             % (np, init_np))
 
     for gs in range(init_gs, max_step):
+        t0 = time.time()
         v = sess.run(y)
-        print('step %d, result: %d' % (gs, v))
+        d = time.time() - t0
+        print('step %d, result: %d, np=%d, took %.2fs' % (gs, v, np, d))
 
         next_gs = gs + 1
         new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
