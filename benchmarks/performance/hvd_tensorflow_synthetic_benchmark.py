@@ -1,13 +1,21 @@
+#!/usr/bin/env python3
+"""
+https://github.com/uber/horovod/blob/master/examples/tensorflow_synthetic_benchmark.py
+
+Please refer to Horovod page to see how to run this script.
+"""
+
 from __future__ import absolute_import, division, print_function
 
 import argparse
 import os
-import numpy as np
 import timeit
 
+import numpy as np
 import tensorflow as tf
-import horovod.tensorflow as hvd
 from tensorflow.keras import applications
+
+import horovod.tensorflow as hvd
 
 # Benchmark settings
 parser = argparse.ArgumentParser(
@@ -17,7 +25,6 @@ parser.add_argument('--fp16-allreduce',
                     action='store_true',
                     default=False,
                     help='use fp16 compression during allreduce')
-
 parser.add_argument('--model',
                     type=str,
                     default='ResNet50',
@@ -26,7 +33,6 @@ parser.add_argument('--batch-size',
                     type=int,
                     default=32,
                     help='input batch size')
-
 parser.add_argument(
     '--num-warmup-batches',
     type=int,
@@ -40,7 +46,6 @@ parser.add_argument('--num-iters',
                     type=int,
                     default=10,
                     help='number of benchmark iterations')
-
 parser.add_argument('--eager',
                     action='store_true',
                     default=False,

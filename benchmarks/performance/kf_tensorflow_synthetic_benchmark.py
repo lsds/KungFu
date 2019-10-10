@@ -2,15 +2,18 @@
 """
 Modified from:
 https://github.com/uber/horovod/blob/master/examples/tensorflow_synthetic_benchmark.py
+
+
+
 """
 
 from __future__ import absolute_import, division, print_function
 
 import argparse
 import os
-import numpy as np
 import timeit
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import applications
 
@@ -27,7 +30,6 @@ parser.add_argument('--batch-size',
                     type=int,
                     default=32,
                     help='input batch size')
-
 parser.add_argument(
     '--num-warmup-batches',
     type=int,
@@ -41,7 +43,6 @@ parser.add_argument('--num-iters',
                     type=int,
                     default=10,
                     help='number of benchmark iterations')
-
 parser.add_argument('--eager',
                     action='store_true',
                     default=False,
@@ -62,11 +63,9 @@ parser.add_argument('--kungfu-fuse-variables',
 args = parser.parse_args()
 args.cuda = not args.no_cuda
 
-# Horovod: pin GPU to be used to process local rank (one GPU per process)
 config = tf.ConfigProto()
 if args.cuda:
     config.gpu_options.allow_growth = True
-    # config.gpu_options.visible_device_list = str(hvd.local_rank())
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     config.gpu_options.allow_growth = False
