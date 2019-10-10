@@ -12,8 +12,8 @@ const (
 )
 
 const (
-	ConnRetryCount  = 200
-	ConnRetryPeriod = 500 * time.Millisecond
+	ConnRetryCount  = 500
+	ConnRetryPeriod = 200 * time.Millisecond
 )
 
 const (
