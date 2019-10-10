@@ -9,9 +9,25 @@
 # - horovod/hvd_tensorflow_synthetic_benchmark.py
 set -x
 
-cd /home/work/user-job-dir/benchmarks/
+cd /home/work/user-job-dir/
 
-chmod +x $PWD/horovod/kube-plm-rsh-agent
+# Modify script path to point to benchmark script
+SCRIPT_PATH=KungFu/performance/hvd_tensorflow_synthetic_benchmark.py
+# Modify RSH agent path to point to kube-plm-rsh-agent file
+RSH_AGENT_PATH=KungFu/performance/modelarts/horovod/kube-plm-rsh-agent
+# Modify hostfile indicating where pod characteristics are located
+HOST_FILE_PATH=KungFu/performance/modelarts/horovod/hostfile
+
+# KungFu/performance/modelarts/horovod/kube-plm-rsh-agent
+echo $PWD
+ls $PWD
+ls $PWD/KungFu
+ls $PWD/KungFu/performance
+ls $PWD/KungFu/performance/modelarts
+ls $PWD/KungFu/performance/horovod
+
+
+chmod +x $RSH_AGENT_PATH
 
 KUBE_SA_CONFIG=/var/run/secrets/kubernetes.io/serviceaccount
 if [ -d $KUBE_SA_CONFIG ]; then
@@ -29,19 +45,12 @@ kubectl config view
 
 gen_hostfile() {
     pods=$(kubectl get pods -o name | grep job | awk -F '/' '{print $2}')
-    i=0
     for pod in $pods; do
-        if [ "$i" = "0" ]
-        then
-            echo "$pod slots=8"
-        else
-            echo "$pod slots=8"
-        fi
-        i=1
+        echo "$pod slots=8"
     done
 }
 
-gen_hostfile >horovod/hostfile
+gen_hostfile >$HOST_FILE_PATH
 
 MPI_HOME=$HOME/local/openmpi
 
@@ -50,8 +59,8 @@ local np=$1
 shift
 
 mpirun --allow-run-as-root -np ${np} \
-    -mca plm_rsh_agent $PWD/horovod/kube-plm-rsh-agent \
-    --hostfile $PWD/horovod/hostfile \
+    -mca plm_rsh_agent $RSH_AGENT_PATH \
+    --hostfile $HOST_FILE_PATH \
     --bind-to socket \
     -x LD_LIBRARY_PATH \
     -x NCCL_DEBUG=INFO -x NCCL_SOCKET_IFNAME=ib0,bond0,eth0 -x NCCL_SOCKET_FAMILY=AF_INET -x NCCL_IB_DISABLE=0 \
@@ -66,10 +75,7 @@ export TF_CPP_MIN_LOG_LEVEL=1
 
 if [ "$DLS_TASK_INDEX" = "0" ]
 then
-
-    script=$PWD/horovod/hvd_tensorflow_synthetic_benchmark.py
     batch_size=256
-
     nps="16"
     run_experiment $nps python3 $script --batch-size=$batch_size --model=ResNet50 --num-iters=50
 else

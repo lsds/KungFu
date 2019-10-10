@@ -19,7 +19,11 @@ export TF_CPP_MIN_LOG_LEVEL=1
 
 # Run the experiment with 16 KungFu nodes.
 # The model is ResNet-50, batch size is 64, and the experiments runs for 50 iterations.
-run_experiment 16 python3 kf_tensorflow_synthetic_benchmark.py \
+
+# Modify script path to point to your benchmark script
+SCRIPT_PATH=KungFu/performance/kf_tensorflow_synthetic_benchmark.py
+
+run_experiment 16 python3 $SCRIPT_PATH \
 --batch-size 64 \
 --model=ResNet50 \
 --num-iters=50
