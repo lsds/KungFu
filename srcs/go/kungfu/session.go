@@ -8,7 +8,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
@@ -40,7 +39,7 @@ var partitionStrategies = map[kb.Strategy]partitionStrategy{
 	kb.Tree:   createTreeStrategies,
 }
 
-func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool, error) {
+func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
 	f := partitionStrategies[c.Strategy]
 	if f == nil {
 		log.Warnf("%s is not implemeted, fallback to %s", c.Strategy, kb.Star)
@@ -48,7 +47,7 @@ func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router
 	}
 	myRank, ok := pl.Lookup(self)
 	if !ok {
-		return nil, false, nil
+		return nil, false
 	}
 	sess := &session{
 		strategies: f(pl),
@@ -57,10 +56,7 @@ func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router
 		myRank:     myRank,
 		router:     router,
 	}
-	if kc.RunWarmup {
-		sess.Warmup() // TODO: check error
-	}
-	return sess, true, nil
+	return sess, true
 }
 
 func createStarStrategies(peers []plan.PeerID) []strategy {
@@ -131,10 +127,14 @@ func (sess *session) Warmup() int {
 		OP:      kb.SUM,
 		Name:    "kungfu::warmup", // TODO: use tag
 	}
-	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster)))
+	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
 
 func (sess *session) Barrier() int {
+	return code(sess.barrier())
+}
+
+func (sess *session) barrier() error {
 	k := len(sess.cluster)
 	count := k * 1
 	dtype := kb.U8
@@ -144,7 +144,7 @@ func (sess *session) Barrier() int {
 		OP:      kb.SUM,
 		Name:    "kungfu::barrier", // TODO: use tag
 	}
-	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster)))
+	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
 func (sess *session) AllReduce(w Workspace) int {

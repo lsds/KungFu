@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -23,8 +24,8 @@ func newConnectionPool() *ConnectionPool {
 	return &ConnectionPool{
 		conns: make(map[string]Connection),
 
-		connRetryCount:  200,
-		connRetryPeriod: 500 * time.Millisecond,
+		connRetryCount:  kc.ConnRetryCount,
+		connRetryPeriod: kc.ConnRetryPeriod,
 	}
 }
 
@@ -41,6 +42,7 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection
 			conn, err := newConnection(remote, local, t)
 			if err == nil {
 				p.conns[key(remote, t)] = conn
+				return conn, nil
 			}
 		} else {
 			return conn, nil

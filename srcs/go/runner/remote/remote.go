@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/iostream"
+	"github.com/lsds/KungFu/srcs/go/log"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/ssh"
 	"github.com/lsds/KungFu/srcs/go/xterm"
@@ -24,13 +25,14 @@ func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bo
 		wg.Add(1)
 		go func(i int, p sch.Proc) {
 			defer wg.Done()
+			t0 := time.Now()
 			config := ssh.Config{
 				Host: p.PubAddr,
 				User: user,
 			}
 			client, err := ssh.New(config)
 			if err != nil {
-				log.Printf("%s #%s failed to new SSH Client with config: %v: %v", xterm.Red.S("[E]"), p.Name, config, err)
+				log.Errorf("%s #<%s> failed to new SSH Client with config: %v: %v", xterm.Red.S("[E]"), p.Name, config, err)
 				atomic.AddInt32(&fail, 1)
 				outputs[i] = &Outputs{}
 				return
@@ -44,13 +46,13 @@ func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bo
 				}
 			}
 			if err := client.Watch(ctx, p.Script(), outWatcher.Watch, errWatcher.Watch); err != nil {
-				log.Printf("%s #%s exited with error: %v", xterm.Red.S("[E]"), p.Name, err)
+				log.Errorf("%s #<%s> exited with error: %v, took %s", xterm.Red.S("[E]"), p.Name, err, time.Since(t0))
 				atomic.AddInt32(&fail, 1)
 				outputs[i] = getOutputs()
 				return
 			}
 			outputs[i] = getOutputs()
-			log.Printf("%s #%s finished successfully", xterm.Green.S("[I]"), p.Name)
+			log.Infof("%s #<%s> finished successfully, took %s", xterm.Green.S("[I]"), p.Name, time.Since(t0))
 		}(i, p)
 	}
 	wg.Wait()

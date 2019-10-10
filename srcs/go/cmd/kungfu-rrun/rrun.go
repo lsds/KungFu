@@ -5,12 +5,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"runtime"
 	"strings"
-	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	runner "github.com/lsds/KungFu/srcs/go/runner/remote"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
@@ -22,13 +21,13 @@ var (
 	hostList   = flag.String("H", plan.DefaultHostSpec.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
 	portRange  = flag.String("port-range", plan.DefaultPortRange.String(), "port range for the peers")
 	user       = flag.String("u", "", "user name for ssh")
-	timeout    = flag.Duration("timeout", 10*time.Second, "timeout")
+	timeout    = flag.Duration("timeout", 0, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
+	checkpoint = flag.String("checkpoint", "0", "")
 )
 
 func init() {
-	log.SetPrefix("[kungfu-rrun] ")
 	flag.Parse()
 	utils.LogArgs()
 	utils.LogKungfuEnv()
@@ -48,6 +47,7 @@ func main() {
 		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
 	}
 	jc := sch.JobConfig{
+		Parent:    plan.PeerID{Host: "0.0.0.0"},
 		HostList:  hl,
 		PortRange: *pr,
 		Prog:      restArgs[0],
@@ -57,16 +57,17 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, *timeout)
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	if *timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, *timeout)
+		defer cancel()
+	}
 	d, err := utils.Measure(func() error {
 		_, err := runner.RemoteRunAll(ctx, *user, ps, *verboseLog)
 		return err
 	})
-	log.Printf("all %d peers finished, took %s", len(ps), d)
-	if err != nil && err != context.DeadlineExceeded {
+	log.Infof("all %d peers finished, took %s", len(ps), d)
+	if err != nil {
 		utils.ExitErr(err)
 	}
 }

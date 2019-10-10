@@ -2,6 +2,7 @@ package kungfu
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
@@ -25,6 +26,7 @@ type Kungfu struct {
 
 	// immutable
 	parent    plan.PeerID
+	parents   plan.PeerList
 	hostList  plan.HostList
 	portRange plan.PortRange
 	self      plan.PeerID
@@ -41,6 +43,14 @@ type Kungfu struct {
 	updated        bool
 }
 
+func getParentIDs(hl plan.HostList, parent plan.PeerID) plan.PeerList {
+	var ps plan.PeerList
+	for _, h := range hl {
+		ps = append(ps, plan.PeerID{Host: h.Hostname, Port: parent.Port})
+	}
+	return ps
+}
+
 func New(config Config) (*Kungfu, error) {
 	env, err := plan.ParseEnv()
 	if err != nil {
@@ -54,6 +64,7 @@ func New(config Config) (*Kungfu, error) {
 	}
 	return &Kungfu{
 		parent:       env.Parent,
+		parents:      getParentIDs(env.HostList, env.Parent),
 		currentPeers: env.InitPeers,
 		self:         env.Self,
 		hostList:     env.HostList,
@@ -112,12 +123,12 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	}
 	log.Debugf("Kungfu::updateTo(%s)", pl)
 	kf.router.ResetConnections() // FIXME: don't reset all connections
-	sess, exist, err := newSession(kf.config, kf.self, pl, kf.router)
+	sess, exist := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
 		return false
 	}
-	if err != nil {
-		utils.ExitErr(err)
+	if err := sess.barrier(); err != nil {
+		utils.ExitErr(fmt.Errorf("barrier failed after newSession: %v", err))
 	}
 	kf.currentSession = sess
 	kf.updated = true
@@ -129,6 +140,20 @@ func (kf *Kungfu) Save(version, name string, buf *kb.Vector) int {
 	return code(kf.store.Create(version, name, blob))
 }
 
+func par(ps plan.PeerList, f func(plan.PeerID) error) error {
+	errs := make([]error, len(ps))
+	var wg sync.WaitGroup
+	for i, p := range ps {
+		wg.Add(1)
+		go func(i int, p plan.PeerID) {
+			errs[i] = f(p)
+			wg.Done()
+		}(i, p)
+	}
+	wg.Wait()
+	return mergeErrors(errs, "par")
+}
+
 func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 	if peers.Eq(kf.currentPeers) {
 		log.Debugf("ingore unchanged proposal")
@@ -136,12 +161,10 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 	}
 	{
 		stage := run.Stage{Checkpoint: ckpt, Cluster: peers}
-		// FIXME: use par
-		for _, h := range kf.hostList {
-			id := plan.PeerID{Host: h.Hostname, Port: kf.parent.Port}
-			if err := kf.router.Send(id.WithName("update"), stage.Encode(), rch.ConnControl, 0); err != nil {
-				utils.ExitErr(err)
-			}
+		if err := par(kf.parents, func(parent plan.PeerID) error {
+			return kf.router.Send(parent.WithName("update"), stage.Encode(), rch.ConnControl, 0)
+		}); err != nil {
+			utils.ExitErr(err)
 		}
 	}
 	func() {

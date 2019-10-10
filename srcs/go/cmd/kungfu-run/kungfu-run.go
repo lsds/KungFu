@@ -16,7 +16,6 @@ import (
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -35,7 +34,6 @@ var (
 	port        = flag.Int("port", 38080, "port for rchannel")
 	watch       = flag.Bool("w", false, "watch config")
 	watchPeriod = flag.Duration("watch-period", 500*time.Millisecond, "")
-	keep        = flag.Bool("k", false, "don't stop watch")
 	checkpoint  = flag.String("checkpoint", "0", "")
 
 	logfile = flag.String("logfile", "", "path to log file")
@@ -95,6 +93,16 @@ func main() {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
 	parent := plan.PeerID{Host: selfIP, Port: uint16(*port)}
+	parents := func() plan.PeerList {
+		var ps plan.PeerList
+		for _, h := range hl {
+			ps = append(ps, plan.PeerID{Host: h.Hostname, Port: uint16(*port)})
+		}
+		return ps
+	}()
+	if _, ok := parents.Lookup(parent); !ok {
+		utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
+	}
 	jc := sch.JobConfig{
 		Parent:    parent,
 		HostList:  hl,
@@ -115,13 +123,7 @@ func main() {
 		}
 		ch := make(chan run.Stage, 1)
 		ch <- run.Stage{Cluster: peers, Checkpoint: *checkpoint}
-		server, err := rch.NewServer(run.NewHandler(parent, ch))
-		if err != nil {
-			utils.ExitErr(fmt.Errorf("failed to create server: %v", err))
-		}
-		go server.Serve()
-		defer server.Close()
-		watchRun(ctx, selfIP, ch, jc)
+		watchRun(ctx, parent, parents, ch, jc)
 	} else {
 		procs, _, err := jc.CreateProcs(*np, kb.ParseStrategy(*algo))
 		if err != nil {
@@ -140,7 +142,7 @@ func simpleRun(ctx context.Context, selfIP string, ps []sch.Proc, jc sch.JobConf
 	log.Infof("will parallel run %d instances of %s with %q", len(myPs), jc.Prog, jc.Args)
 	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, *verboseLog) })
 	log.Infof("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
-	if err != nil && err != context.DeadlineExceeded {
+	if err != nil {
 		utils.ExitErr(err)
 	}
 }

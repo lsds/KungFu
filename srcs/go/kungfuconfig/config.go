@@ -1,7 +1,6 @@
 package kungfuconfig
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -13,8 +12,11 @@ const (
 )
 
 const (
-	LogConfigVarsEnvKey    = `KUNGFU_CONFIG_LOG_CONFIG_VARS`
-	RunWarmupEnvKey        = `KUNGFU_CONFIG_RUN_WARMUP`
+	ConnRetryCount  = 500
+	ConnRetryPeriod = 200 * time.Millisecond
+)
+
+const (
 	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
 	ShowDebugLogEnvKey     = `KUNGFU_CONFIG_SHOW_DEBUG_LOG`
@@ -23,8 +25,6 @@ const (
 )
 
 var ConfigEnvKeys = []string{
-	LogConfigVarsEnvKey,
-	RunWarmupEnvKey,
 	EnableMonitoringEnvKey,
 	MonitoringPeriodEnvKey,
 	ShowDebugLogEnvKey,
@@ -33,8 +33,6 @@ var ConfigEnvKeys = []string{
 }
 
 var (
-	RunWarmup        = false
-	LogConfigVars    = false
 	EnableMonitoring = false
 	ShowDebugLog     = false
 	EnableAdaptive   = false
@@ -42,9 +40,6 @@ var (
 )
 
 func init() {
-	if val := os.Getenv(RunWarmupEnvKey); len(val) > 0 {
-		RunWarmup = isTrue(val)
-	}
 	if val := os.Getenv(EnableMonitoringEnvKey); len(val) > 0 {
 		EnableMonitoring = isTrue(val)
 	}
@@ -56,12 +51,6 @@ func init() {
 	}
 	if val := os.Getenv(EnableAdaptiveEnvKey); len(val) > 0 {
 		EnableAdaptive = isTrue(val)
-	}
-	if val := os.Getenv(LogConfigVarsEnvKey); len(val) > 0 {
-		LogConfigVars = isTrue(val)
-	}
-	if LogConfigVars {
-		logConfigVars()
 	}
 }
 
@@ -75,13 +64,4 @@ func parseDuration(val string) time.Duration {
 		utils.ExitErr(err)
 	}
 	return d
-}
-
-func logConfigVars() {
-	log("%s: %v", "RunWarmup", RunWarmup)
-}
-
-func log(format string, args ...interface{}) {
-	msg := fmt.Sprintf(format, args...)
-	fmt.Printf("[kungfu] %s\n", msg)
 }
