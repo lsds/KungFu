@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
@@ -20,6 +22,7 @@ func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.J
 
 	var all sync.WaitGroup
 	var current plan.PeerList
+	var running int32
 	gs := make(map[plan.PeerID]*sync.WaitGroup)
 
 	reconcileCluster := func(s run.Stage) {
@@ -36,6 +39,7 @@ func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.J
 			delete(gs, id)
 		}
 		log.Debugf("%d peers removed", len(del))
+		createBegin := time.Now()
 		for i, id := range add {
 			gs[id] = new(sync.WaitGroup)
 			gs[id].Add(1)
@@ -48,13 +52,17 @@ func watchRun(ctx context.Context, localhost string, ch chan run.Stage, jc sch.J
 					kb.CheckpointEnvKey: s.Checkpoint,
 				}
 				proc := jc.NewProc(name, envs, id, localRank, s.Checkpoint, s.Cluster)
+				atomic.AddInt32(&running, 1)
 				runProc(ctx, cancel, proc, s.Checkpoint)
+				atomic.AddInt32(&running, -1)
+				n := atomic.LoadInt32(&running)
+				log.Infof("%d peer is still running", n)
 				g.Done()
 				all.Done()
 			}(gs[id], id, s)
-			log.Debugf("peers %d/%d created", i, len(add))
+			log.Debugf("peer %d/%d created", i, len(add))
 		}
-		log.Debugf("%d peers created", len(add))
+		log.Infof("%d peers created, took %s", len(add), time.Since(createBegin))
 		current = s.Cluster
 	}
 	reconcileCluster(<-ch)
