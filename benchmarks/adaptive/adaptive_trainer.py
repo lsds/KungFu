@@ -2,12 +2,12 @@
 
 import argparse
 
-from tensorflow.python.util import deprecation
-deprecation._PRINT_DEPRECATION_WARNINGS = False
-
 import tensorflow as tf
 from kungfu.ops import all_reduce, current_cluster_size
 from kungfu.ops.adapt import get_init_checkpoint, resize_cluster
+from tensorflow.python.util import deprecation
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 p = argparse.ArgumentParser(description='TF ML Benchmarks.')
 p.add_argument('--schedule',

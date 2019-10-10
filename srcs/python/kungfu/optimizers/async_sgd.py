@@ -30,7 +30,20 @@ def get_random_peer(cluster_size, self_rank):
 
 
 class PeerModelAveragingOptimizer(KungFuOptimizer):
-    """An optimizer that negotiates using the AllReduce operator."""
+    """An optimizer that implements asynchrounous training.
+    
+    Every iteration of training, this optimizer 
+    (1) Randomly selects a peer in the current cluster.
+    (2) Pulls the selected peer's model
+    (3) Performs model averaging with the local model. 
+    (4) Applies local gradients
+    (5) Saves the model to a local store which allows other peers to pull from.
+
+    This optimizer realises the principle proposed in the following paper:
+    Asynchronous Decentralized Parallel Stochastic Gradient Descent, ICML 2018
+    https://arxiv.org/abs/1710.06952
+
+    """
     def __init__(self,
                  optimizer,
                  fuse_variables=True,

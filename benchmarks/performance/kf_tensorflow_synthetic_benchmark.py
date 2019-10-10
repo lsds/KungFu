@@ -1,22 +1,26 @@
+#!/usr/bin/env python3
+"""
+Modified from:
+https://github.com/uber/horovod/blob/master/examples/tensorflow_synthetic_benchmark.py
+
+
+
+"""
+
 from __future__ import absolute_import, division, print_function
 
 import argparse
 import os
-import numpy as np
 import timeit
 
+import numpy as np
 import tensorflow as tf
-import horovod.tensorflow as hvd
 from tensorflow.keras import applications
 
 # Benchmark settings
 parser = argparse.ArgumentParser(
     description='TensorFlow Synthetic Benchmark',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--fp16-allreduce',
-                    action='store_true',
-                    default=False,
-                    help='use fp16 compression during allreduce')
 
 parser.add_argument('--model',
                     type=str,
@@ -26,7 +30,6 @@ parser.add_argument('--batch-size',
                     type=int,
                     default=32,
                     help='input batch size')
-
 parser.add_argument(
     '--num-warmup-batches',
     type=int,
@@ -40,7 +43,6 @@ parser.add_argument('--num-iters',
                     type=int,
                     default=10,
                     help='number of benchmark iterations')
-
 parser.add_argument('--eager',
                     action='store_true',
                     default=False,
@@ -49,17 +51,17 @@ parser.add_argument('--no-cuda',
                     action='store_true',
                     default=False,
                     help='disables CUDA training')
+parser.add_argument('--kungfu',
+                    type=str,
+                    default='sync-sgd',
+                    help='kungfu optimizer')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
 
-hvd.init()
-
-# Horovod: pin GPU to be used to process local rank (one GPU per process)
 config = tf.ConfigProto()
 if args.cuda:
     config.gpu_options.allow_growth = True
-    config.gpu_options.visible_device_list = str(hvd.local_rank())
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     config.gpu_options.allow_growth = False
@@ -73,14 +75,14 @@ model = getattr(applications, args.model)(weights=None)
 
 opt = tf.train.GradientDescentOptimizer(0.01)
 
-# Horovod: (optional) compression algorithm.
-compression = hvd.Compression.fp16 if args.fp16_allreduce else hvd.Compression.none
-
-# Horovod: wrap optimizer with DistributedOptimizer.
-opt = hvd.DistributedOptimizer(opt, compression=compression)
-
-init = tf.global_variables_initializer()
-bcast_op = hvd.broadcast_global_variables(0)
+if args.kungfu == 'sync-sgd':
+    from kungfu.optimizers import SyncSGDOptimizer
+    opt = SyncSGDOptimizer(opt)
+elif args.kungfu == 'model-ave':
+    from kungfu.optimizers import PeerModelAveragingOptimizer
+    opt = PeerModelAveragingOptimizer(opt)
+else:
+    pass
 
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
 target = tf.random_uniform([args.batch_size, 1],
@@ -90,20 +92,17 @@ target = tf.random_uniform([args.batch_size, 1],
 
 
 def loss_function():
-    probs = model(data, training=True)
-    return tf.losses.sparse_softmax_cross_entropy(target, probs)
+    logits = model(data, training=True)
+    return tf.losses.sparse_softmax_cross_entropy(target, logits)
 
 
 def log(s, nl=True):
-    if hvd.rank() != 0:
-        return
     print(s, end='\n' if nl else '')
 
 
 log('Model: %s' % args.model)
 log('Batch size: %d' % args.batch_size)
-device = 'GPU' if args.cuda else 'CPU'
-log('Number of %ss: %d' % (device, hvd.size()))
+device = '/gpu:0' if args.cuda else 'CPU'
 
 
 def run(benchmark_step):
@@ -124,20 +123,23 @@ def run(benchmark_step):
     img_sec_mean = np.mean(img_secs)
     img_sec_conf = 1.96 * np.std(img_secs)
     log('Img/sec per %s: %.1f +-%.1f' % (device, img_sec_mean, img_sec_conf))
-    log('Total img/sec on %d %s(s): %.1f +-%.1f' %
-        (hvd.size(), device, hvd.size() * img_sec_mean,
-         hvd.size() * img_sec_conf))
 
+
+loss = loss_function()
+train_opt = opt.minimize(loss)
+if hasattr(opt, 'distributed_initializer'):
+    kf_init = opt.distributed_initializer()
+else:
+    kf_init = None
 
 if tf.executing_eagerly():
     with tf.device(device):
         run(lambda: opt.minimize(loss_function,
                                  var_list=model.trainable_variables))
 else:
+    init = tf.global_variables_initializer()
     with tf.Session(config=config) as session:
-        init.run()
-        bcast_op.run()
-
-        loss = loss_function()
-        train_opt = opt.minimize(loss)
+        session.run(init)
+        if kf_init:
+            session.run(kf_init)
         run(lambda: session.run(train_opt))
