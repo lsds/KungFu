@@ -12,6 +12,11 @@ const (
 )
 
 const (
+	ConnRetryCount  = 200
+	ConnRetryPeriod = 500 * time.Millisecond
+)
+
+const (
 	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
 	ShowDebugLogEnvKey     = `KUNGFU_CONFIG_SHOW_DEBUG_LOG`
