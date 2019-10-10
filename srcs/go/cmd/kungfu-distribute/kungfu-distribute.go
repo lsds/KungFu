@@ -5,6 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"path"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -29,7 +32,16 @@ func init() {
 	utils.LogNCCLEnv()
 }
 
+func progName() string {
+	if len(os.Args) > 0 {
+		return path.Base(os.Args[0])
+	}
+	return ""
+}
+
 func main() {
+	t0 := time.Now()
+	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
 	hl, err := plan.ParseHostList(*hostList)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))

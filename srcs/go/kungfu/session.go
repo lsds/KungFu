@@ -127,7 +127,7 @@ func (sess *session) Warmup() int {
 		OP:      kb.SUM,
 		Name:    "kungfu::warmup", // TODO: use tag
 	}
-	return code(sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster)))
+	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
 }
 
 func (sess *session) Barrier() int {
@@ -144,7 +144,7 @@ func (sess *session) barrier() error {
 		OP:      kb.SUM,
 		Name:    "kungfu::barrier", // TODO: use tag
 	}
-	return sess.runStrategies(w, plan.EvenPartition, createCliqueStrategies(sess.cluster))
+	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
 func (sess *session) AllReduce(w Workspace) int {
