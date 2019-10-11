@@ -5,6 +5,7 @@ import (
 	"net"
 	"sync"
 
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -25,7 +26,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 		return nil, err
 	}
 	conn, err := func() (net.Conn, error) {
-		if remote.ColocatedWith(local) {
+		if kc.UseUnixSock && remote.ColocatedWith(local) {
 			addr := net.UnixAddr{remote.SockFile(), "unix"}
 			return net.DialUnix(addr.Net, nil, &addr)
 		}

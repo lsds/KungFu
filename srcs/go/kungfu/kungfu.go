@@ -110,6 +110,10 @@ func (kf *Kungfu) CurrentSession() *session {
 	return kf.currentSession
 }
 
+func (kf *Kungfu) GetCheckpoint() string {
+	return kf.checkpoint
+}
+
 func (kf *Kungfu) Update() bool {
 	kf.Lock()
 	defer kf.Unlock()
@@ -121,7 +125,7 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 		log.Debugf("ignore update")
 		return true
 	}
-	log.Debugf("Kungfu::updateTo(%s)", pl)
+	log.Debugf("Kungfu::updateTo(%s), %d peers", pl, len(pl))
 	kf.router.ResetConnections() // FIXME: don't reset all connections
 	sess, exist := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
