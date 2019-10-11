@@ -26,14 +26,13 @@ def _get_other_ranks():
     return [r for r in ranks if r != self_rank]
 
 
-def peer_info(version):
+def peer_info():
     """
-    Inputs:
-        version : A scalar tensor of int32,
-        will use current version if version < 0.
     Returns:
         a pair of scalar tensors of int32: (rank, cluster_size).
     """
+    import tensorflow as tf
+    version = tf.constant(-1, dtype=tf.int32)
     return _op_lib.kungfu_get_peer_info(version)
 
 
