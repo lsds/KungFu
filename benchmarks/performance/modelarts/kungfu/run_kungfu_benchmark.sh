@@ -21,7 +21,7 @@ export TF_CPP_MIN_LOG_LEVEL=1
 # The model is ResNet-50, batch size is 64, and the experiments runs for 50 iterations.
 
 # Modify script path to point to your benchmark script
-SCRIPT_PATH=$PWD/KungFu/performance/kf_tensorflow_synthetic_benchmark.py
+SCRIPT_PATH=$PWD/KungFu/performance/kungfu_benchmark.py
 
 run_experiment 16 python3 $SCRIPT_PATH \
 --batch-size 64 \
