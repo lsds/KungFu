@@ -1,6 +1,7 @@
 package kungfubase
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"unsafe"
@@ -49,14 +50,27 @@ func (b *Vector) copyFrom(c *Vector) error {
 	return nil
 }
 
-func (b *Vector) AsF32() []float32 {
-	if b.Type != F32 {
-		utils.ExitErr(fmt.Errorf("Vector type is %d", b.Type))
-	}
+func (b *Vector) sliceHeader() unsafe.Pointer {
 	sh := &reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&b.Data[0])),
 		Len:  b.Count,
 		Cap:  b.Count,
 	}
-	return *(*[]float32)(unsafe.Pointer(sh))
+	return unsafe.Pointer(sh)
+}
+
+var errInvalidDataType = errors.New("invalid data type")
+
+func (b *Vector) AsF32() []float32 {
+	if b.Type != F32 {
+		utils.ExitErr(errInvalidDataType)
+	}
+	return *(*[]float32)(b.sliceHeader())
+}
+
+func (b *Vector) AsI32() []int32 {
+	if b.Type != I32 {
+		utils.ExitErr(errInvalidDataType)
+	}
+	return *(*[]int32)(b.sliceHeader())
 }

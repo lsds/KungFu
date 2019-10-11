@@ -88,6 +88,7 @@ func (kf *Kungfu) Start() int {
 		}
 		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self, monitorAddr)
 	}
+	kf.Update()
 	return 0
 }
 
@@ -110,6 +111,10 @@ func (kf *Kungfu) CurrentSession() *session {
 	return kf.currentSession
 }
 
+func (kf *Kungfu) GetCheckpoint() string {
+	return kf.checkpoint
+}
+
 func (kf *Kungfu) Update() bool {
 	kf.Lock()
 	defer kf.Unlock()
@@ -121,8 +126,8 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 		log.Debugf("ignore update")
 		return true
 	}
-	log.Debugf("Kungfu::updateTo(%s)", pl)
-	kf.router.ResetConnections() // FIXME: don't reset all connections
+	log.Debugf("Kungfu::updateTo(%s), %d peers", pl, len(pl))
+	kf.router.ResetConnections(pl)
 	sess, exist := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
 		return false

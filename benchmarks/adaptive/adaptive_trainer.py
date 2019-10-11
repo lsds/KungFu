@@ -3,6 +3,8 @@
 import argparse
 import time
 
+t0 = time.time()  # before import tensorflow
+
 import tensorflow as tf
 from kungfu.ops import all_reduce, barrier, current_cluster_size
 from kungfu.ops.adapt import get_init_checkpoint, resize_cluster
@@ -78,30 +80,32 @@ with tf.Session() as sess:
     init_gs = restore(get_init_checkpoint())
     np = current_cluster_size()
     init_np = get_cluster_size(init_gs, cluster_size_schedule, np)
-    print('restored to %d, np=%d, init_np=%d' % (init_gs, np, init_np))
     if np != init_np:
         print(
             '[W] init cluster size (np=%d) is not consistent with schedule (np=%d)'
             % (np, init_np))
 
+    print('restored from %d, np=%d, init_np=%d, start took %s' %
+          (init_gs, np, init_np, show_duration(time.time() - t0)))
+
     for gs in range(init_gs, max_step):
         t0 = time.time()
         v = sess.run(y)
-        d = time.time() - t0
         print('step %d, result: %d, np=%d, took %s' %
-              (gs, v, np, show_duration(d)))
+              (gs, v, np, show_duration(time.time() - t0)))
 
         next_gs = gs + 1
-        new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
-        if new_np != np:
-            t0 = time.time()
-            keep = sess.run(resize_op,
-                            feed_dict={
-                                ckpt: str(next_gs),
-                                new_size: new_np,
-                            })
-            d = time.time() - t0
-            print('resize %d -> %d took %s' % (np, new_np, show_duration(d)))
-            np = new_np
-            if not keep:
-                break
+        if next_gs < max_step:
+            new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
+            if new_np != np:
+                t0 = time.time()
+                keep = sess.run(resize_op,
+                                feed_dict={
+                                    ckpt: str(next_gs),
+                                    new_size: new_np,
+                                })
+                print('resize %d -> %d took %s' %
+                      (np, new_np, show_duration(time.time() - t0)))
+                np = new_np
+                if not keep:
+                    break

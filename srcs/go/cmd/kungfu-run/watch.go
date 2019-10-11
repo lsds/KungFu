@@ -61,7 +61,7 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 				atomic.AddInt32(&running, 1)
 				runProc(ctx, cancel, proc, s.Checkpoint)
 				n := atomic.AddInt32(&running, -1)
-				log.Infof("%d peer is still running on this host", n)
+				log.Debugf("%d peer is still running on this host", n)
 				g.Done()
 				all.Done()
 			}(gs[id], id, s)

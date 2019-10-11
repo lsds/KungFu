@@ -54,8 +54,8 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 	return newChannel(a.Name, conn), nil
 }
 
-func (r *Router) ResetConnections() {
-	r.connPool.reset()
+func (r *Router) ResetConnections(keeps plan.PeerList) {
+	r.connPool.reset(keeps)
 }
 
 // Request sends request name to given Addr

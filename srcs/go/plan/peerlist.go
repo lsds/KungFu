@@ -40,7 +40,7 @@ func (pl PeerList) LocalRank(ps PeerID) (int, bool) {
 	return -1, false
 }
 
-func (pl PeerList) set() map[PeerID]struct{} {
+func (pl PeerList) Set() map[PeerID]struct{} {
 	s := make(map[PeerID]struct{})
 	for _, p := range pl {
 		s[p] = struct{}{}
@@ -49,7 +49,7 @@ func (pl PeerList) set() map[PeerID]struct{} {
 }
 
 func (pl PeerList) sub(ql PeerList) PeerList {
-	s := ql.set()
+	s := ql.Set()
 	var a PeerList
 	for _, p := range pl {
 		if _, ok := s[p]; !ok {
