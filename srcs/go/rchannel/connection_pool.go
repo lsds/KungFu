@@ -2,7 +2,6 @@ package rchannel
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -13,9 +12,14 @@ import (
 
 var errCantEstablishConnection = errors.New("can't establish connection")
 
+type connKey struct {
+	a plan.NetAddr
+	t ConnType
+}
+
 type ConnectionPool struct {
 	sync.Mutex
-	conns map[string]Connection
+	conns map[connKey]Connection
 
 	connRetryCount  int
 	connRetryPeriod time.Duration
@@ -23,7 +27,7 @@ type ConnectionPool struct {
 
 func newConnectionPool() *ConnectionPool {
 	return &ConnectionPool{
-		conns: make(map[string]Connection),
+		conns: make(map[connKey]Connection),
 
 		connRetryCount:  kc.ConnRetryCount,
 		connRetryPeriod: kc.ConnRetryPeriod,
@@ -33,9 +37,6 @@ func newConnectionPool() *ConnectionPool {
 func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	p.Lock()
 	defer p.Unlock()
-	key := func(a plan.NetAddr, t ConnType) string {
-		return fmt.Sprintf("%s#%d", a, t)
-	}
 	var lastErr error
 	var mu sync.Mutex
 	{
@@ -53,10 +54,10 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection
 		tk := time.NewTicker(p.connRetryPeriod)
 		defer tk.Stop()
 		for i := 0; i <= p.connRetryCount; i++ {
-			if conn, ok := p.conns[key(remote, t)]; !ok {
+			if conn, ok := p.conns[connKey{remote, t}]; !ok {
 				conn, err := newConnection(remote, local, t)
 				if err == nil {
-					p.conns[key(remote, t)] = conn
+					p.conns[connKey{remote, t}] = conn
 					return conn, nil
 				}
 				mu.Lock()
@@ -71,10 +72,13 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection
 	return nil, errCantEstablishConnection
 }
 
-func (p *ConnectionPool) reset() {
+func (p *ConnectionPool) reset(keeps plan.PeerList) {
+	m := keeps.Set()
 	p.Lock()
 	defer p.Unlock()
 	for k := range p.conns {
-		delete(p.conns, k) // FIXME: gracefully shutdown conn
+		if _, ok := m[plan.PeerID(k.a)]; !ok {
+			delete(p.conns, k) // FIXME: gracefully shutdown conn
+		}
 	}
 }

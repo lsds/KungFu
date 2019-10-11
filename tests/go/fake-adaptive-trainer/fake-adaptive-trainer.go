@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -42,15 +43,20 @@ func fakeTrain(kungfu *kf.Kungfu) {
 	}
 
 	for ; step < *maxStep; step++ {
-		w := kf.Workspace{
-			SendBuf: x,
-			RecvBuf: y,
-			OP:      kb.SUM,
-			Name:    "",
+		{
+			t0 := time.Now()
+			w := kf.Workspace{
+				SendBuf: x,
+				RecvBuf: y,
+				OP:      kb.SUM,
+				Name:    "",
+			}
+			sess := kungfu.CurrentSession()
+			np := sess.ClusterSize()
+			rank := sess.Rank()
+			sess.AllReduce(w)
+			fmt.Printf("step: %d, result: %d, rank=%d, np=%d, took %s\n", step, y.AsI32()[0], rank, np, time.Since(t0))
 		}
-		sess := kungfu.CurrentSession()
-		sess.AllReduce(w)
-		fmt.Printf("step: %d, result: %d\n", step, y.AsI32()[0])
 
 		if nextStep := step + 1; nextStep < *maxStep && !resize(kungfu, nextStep) {
 			log.Infof("should stop")
@@ -75,9 +81,13 @@ func resize(kungfu *kf.Kungfu, nextStep int) bool {
 	sess := kungfu.CurrentSession()
 	np := sess.ClusterSize()
 	newSize := np + 1
+	t0 := time.Now()
 	keep, err := kungfu.ResizeCluster(strconv.Itoa(nextStep), newSize)
 	if err != nil {
 		utils.ExitErr(err)
+	}
+	if np != newSize {
+		log.Infof("resize %d -> %d took %s", np, newSize, time.Since(t0))
 	}
 	return keep
 }

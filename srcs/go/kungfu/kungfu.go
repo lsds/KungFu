@@ -126,7 +126,7 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 		return true
 	}
 	log.Debugf("Kungfu::updateTo(%s), %d peers", pl, len(pl))
-	kf.router.ResetConnections() // FIXME: don't reset all connections
+	kf.router.ResetConnections(pl)
 	sess, exist := newSession(kf.config, kf.self, pl, kf.router)
 	if !exist {
 		return false
