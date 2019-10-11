@@ -3,6 +3,8 @@
 import argparse
 import time
 
+t0 = time.time()  # before import tensorflow
+
 import tensorflow as tf
 from kungfu.ops import all_reduce, barrier, current_cluster_size
 from kungfu.ops.adapt import get_init_checkpoint, resize_cluster
@@ -84,12 +86,13 @@ with tf.Session() as sess:
             '[W] init cluster size (np=%d) is not consistent with schedule (np=%d)'
             % (np, init_np))
 
+    print('start took %s' % (show_duration(time.time() - t0)))
+
     for gs in range(init_gs, max_step):
         t0 = time.time()
         v = sess.run(y)
-        d = time.time() - t0
         print('step %d, result: %d, np=%d, took %s' %
-              (gs, v, np, show_duration(d)))
+              (gs, v, np, show_duration(time.time() - t0)))
 
         next_gs = gs + 1
         new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
@@ -100,8 +103,8 @@ with tf.Session() as sess:
                                 ckpt: str(next_gs),
                                 new_size: new_np,
                             })
-            d = time.time() - t0
-            print('resize %d -> %d took %s' % (np, new_np, show_duration(d)))
+            print('resize %d -> %d took %s' %
+                  (np, new_np, show_duration(time.time() - t0)))
             np = new_np
             if not keep:
                 break
