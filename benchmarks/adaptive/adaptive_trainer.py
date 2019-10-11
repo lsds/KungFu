@@ -95,16 +95,17 @@ with tf.Session() as sess:
               (gs, v, np, show_duration(time.time() - t0)))
 
         next_gs = gs + 1
-        new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
-        if new_np != np:
-            t0 = time.time()
-            keep = sess.run(resize_op,
-                            feed_dict={
-                                ckpt: str(next_gs),
-                                new_size: new_np,
-                            })
-            print('resize %d -> %d took %s' %
-                  (np, new_np, show_duration(time.time() - t0)))
-            np = new_np
-            if not keep:
-                break
+        if next_gs < max_step:
+            new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
+            if new_np != np:
+                t0 = time.time()
+                keep = sess.run(resize_op,
+                                feed_dict={
+                                    ckpt: str(next_gs),
+                                    new_size: new_np,
+                                })
+                print('resize %d -> %d took %s' %
+                      (np, new_np, show_duration(time.time() - t0)))
+                np = new_np
+                if not keep:
+                    break
