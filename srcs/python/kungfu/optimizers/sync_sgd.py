@@ -14,7 +14,9 @@ class SyncSGDOptimizer(KungFuOptimizer):
                  use_locking=False):
         super(SyncSGDOptimizer, self).__init__(optimizer, name, use_locking)
         self._average = average_gradients
-        _rank, self._num_workers = peer_info()
+        _rank, np = peer_info()
+        # FIXME: use type of gradient
+        self._num_workers = tf.cast(np, tf.float32)
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
@@ -40,7 +42,9 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
                  use_locking=False):
         super(SyncSGDWithGradVarianceOptimizer,
               self).__init__(optimizer, name, use_locking)
-        _rank, self._num_workers = peer_info()
+        _rank, np = peer_info()
+        # FIXME: use type of gradient
+        self._num_workers = tf.cast(np, tf.float32)
         self._interval = monitor_interval
         self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
 
