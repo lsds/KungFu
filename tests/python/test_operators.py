@@ -8,7 +8,7 @@ def test_barrier():
 
 
 def test_peer_info():
-    info = peer_info(tf.constant(-1, dtype=tf.int32))
+    info = peer_info()
     with tf.Session() as sess:
         rank, np = sess.run(info)
         print('rank=%d, np=%d' % (rank, np))

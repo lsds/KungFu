@@ -1,6 +1,6 @@
 import tensorflow as tf
-from kungfu.ops import (all_reduce, broadcast, current_cluster_size,
-                        global_variance, group_all_reduce)
+from kungfu.ops import (all_reduce, broadcast, global_variance,
+                        group_all_reduce, peer_info)
 
 from .core import KungFuOptimizer
 
@@ -14,7 +14,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
                  use_locking=False):
         super(SyncSGDOptimizer, self).__init__(optimizer, name, use_locking)
         self._average = average_gradients
-        self._num_workers = current_cluster_size()  # FIXME: use a variable
+        _rank, self._num_workers = peer_info()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
@@ -40,7 +40,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
                  use_locking=False):
         super(SyncSGDWithGradVarianceOptimizer,
               self).__init__(optimizer, name, use_locking)
-        self._num_workers = current_cluster_size()  # FIXME: use a variable
+        _rank, self._num_workers = peer_info()
         self._interval = monitor_interval
         self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
 
