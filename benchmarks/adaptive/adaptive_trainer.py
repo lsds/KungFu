@@ -80,13 +80,13 @@ with tf.Session() as sess:
     init_gs = restore(get_init_checkpoint())
     np = current_cluster_size()
     init_np = get_cluster_size(init_gs, cluster_size_schedule, np)
-    print('restored to %d, np=%d, init_np=%d' % (init_gs, np, init_np))
     if np != init_np:
         print(
             '[W] init cluster size (np=%d) is not consistent with schedule (np=%d)'
             % (np, init_np))
 
-    print('start took %s' % (show_duration(time.time() - t0)))
+    print('restored from %d, np=%d, init_np=%d, start took %s' %
+          (init_gs, np, init_np, show_duration(time.time() - t0)))
 
     for gs in range(init_gs, max_step):
         t0 = time.time()
