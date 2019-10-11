@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	maxStep = flag.Int("max-step", 10, "")
+	maxStep  = flag.Int("max-step", 10, "")
+	runTrain = flag.Bool("train", true, "")
 )
 
 func main() {
@@ -36,6 +37,7 @@ func fakeTrain(kungfu *kf.Kungfu) {
 	x := kb.NewVector(1, kb.I32)
 	y := kb.NewVector(1, kb.I32)
 	x.AsI32()[0] = 1
+	y.AsI32()[0] = 0
 
 	var step int
 	if err := restore(kungfu, &step); err != nil {
@@ -43,7 +45,7 @@ func fakeTrain(kungfu *kf.Kungfu) {
 	}
 
 	for ; step < *maxStep; step++ {
-		{
+		train := func() {
 			t0 := time.Now()
 			w := kf.Workspace{
 				SendBuf: x,
@@ -56,6 +58,9 @@ func fakeTrain(kungfu *kf.Kungfu) {
 			rank := sess.Rank()
 			sess.AllReduce(w)
 			fmt.Printf("step: %d, result: %d, rank=%d, np=%d, took %s\n", step, y.AsI32()[0], rank, np, time.Since(t0))
+		}
+		if *runTrain {
+			train()
 		}
 
 		if nextStep := step + 1; nextStep < *maxStep && !resize(kungfu, nextStep) {

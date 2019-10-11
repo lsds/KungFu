@@ -88,6 +88,7 @@ func (kf *Kungfu) Start() int {
 		}
 		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self, monitorAddr)
 	}
+	kf.Update()
 	return 0
 }
 
