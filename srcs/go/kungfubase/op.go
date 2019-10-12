@@ -2,6 +2,7 @@ package kungfubase
 
 import "unsafe"
 
+// #cgo CXXFLAGS: -std=c++11
 // #include "kungfu/op.h"
 import "C"
 
