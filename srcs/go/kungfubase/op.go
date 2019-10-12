@@ -3,8 +3,8 @@ package kungfubase
 import "unsafe"
 
 // #include "kungfu/op.h"
+// #cgo CXXFLAGS: -std=c++11
 import "C"
-
 type OP C.KungFu_Op
 
 const (
