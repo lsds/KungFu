@@ -14,19 +14,19 @@ import (
 var errInvalidHostSpec = errors.New("Invalid HostSpec")
 
 type HostSpec struct {
-	Hostname   uint32
+	IPv4       uint32
 	Slots      int
 	PublicAddr string
 }
 
 var DefaultHostSpec = HostSpec{
-	Hostname:   MustParseIPv4(`127.0.0.1`),
+	IPv4:       MustParseIPv4(`127.0.0.1`),
 	Slots:      runtime.NumCPU(),
 	PublicAddr: `127.0.0.1`,
 }
 
 func (h HostSpec) String() string {
-	return fmt.Sprintf("%s:%d:%s", FormatIPv4(h.Hostname), h.Slots, h.PublicAddr)
+	return fmt.Sprintf("%s:%d:%s", FormatIPv4(h.IPv4), h.Slots, h.PublicAddr)
 }
 
 func parseHostSpec(spec string) (*HostSpec, error) {
@@ -40,19 +40,19 @@ func parseHostSpec(spec string) (*HostSpec, error) {
 	}
 	switch len(parts) {
 	case 1:
-		return &HostSpec{Hostname: ipv4, Slots: 1, PublicAddr: parts[0]}, nil
+		return &HostSpec{IPv4: ipv4, Slots: 1, PublicAddr: parts[0]}, nil
 	case 2:
 		slots, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return nil, errInvalidHostSpec
 		}
-		return &HostSpec{Hostname: ipv4, Slots: slots, PublicAddr: parts[0]}, nil
+		return &HostSpec{IPv4: ipv4, Slots: slots, PublicAddr: parts[0]}, nil
 	case 3:
 		slots, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return nil, errInvalidHostSpec
 		}
-		return &HostSpec{Hostname: ipv4, Slots: slots, PublicAddr: parts[2]}, nil
+		return &HostSpec{IPv4: ipv4, Slots: slots, PublicAddr: parts[2]}, nil
 	}
 	return nil, errInvalidHostSpec
 }
@@ -131,7 +131,7 @@ func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	for _, host := range hl {
 		for j := 0; j < host.Slots; j++ {
 			id := PeerID{
-				IPv4: host.Hostname,
+				IPv4: host.IPv4,
 				Port: pr.Begin + uint16(j),
 			}
 			pl = append(pl, id)

@@ -47,7 +47,7 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 	}
 	pubAddr := make(map[uint32]string)
 	for _, h := range jc.HostList {
-		pubAddr[h.Hostname] = h.PublicAddr
+		pubAddr[h.IPv4] = h.PublicAddr
 	}
 	configEnvs := getConfigEnvs()
 	var ps []Proc

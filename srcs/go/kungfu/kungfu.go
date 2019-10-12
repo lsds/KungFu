@@ -46,7 +46,7 @@ type Kungfu struct {
 func getParentIDs(hl plan.HostList, parent plan.PeerID) plan.PeerList {
 	var ps plan.PeerList
 	for _, h := range hl {
-		ps = append(ps, plan.PeerID{IPv4: h.Hostname, Port: parent.Port})
+		ps = append(ps, plan.PeerID{IPv4: h.IPv4, Port: parent.Port})
 	}
 	return ps
 }
