@@ -22,6 +22,16 @@ def main(_):
     if FLAGS.job_name == "ps":
         server.join()
     elif FLAGS.job_name == "worker":
+        # Set the GPU
+        config = tf.ConfigProto()
+        if FLAGS.cuda:
+            config.gpu_options.allow_growth = True
+            os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS.gpu_id
+        else:
+            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+            config.gpu_options.allow_growth = False
+            config.gpu_options.visible_device_list = ''
+
         # Assigns ops to the local worker by default.
         with tf.device(
                 tf.train.replica_device_setter(
@@ -96,5 +106,14 @@ if __name__ == "__main__":
                         type=int,
                         default=10,
                         help='number of benchmark iterations')
+    # Flags for GPU
+    parser.add_argument('--gpu-id',
+                        type=int,
+                        default=0,
+                        help='The GPU ID (Set CUDA_VISIBLE_DEVICE)')
+    parser.add_argument('--no-cuda',
+                    action='store_true',
+                    default=False,
+                    help='disables CUDA training')
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
