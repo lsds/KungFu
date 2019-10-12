@@ -124,7 +124,7 @@ if __name__ == "__main__":
                         help='input batch size')
     parser.add_argument('--num-iters',
                         type=int,
-                        default=1000,
+                        default=3000,
                         help='number of benchmark iterations')
     # Flags for GPU
     parser.add_argument('--no-cuda',
