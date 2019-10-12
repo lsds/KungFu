@@ -1,14 +1,21 @@
 import argparse
 import sys
 import os
+import timeit
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import applications
 
 FLAGS = None
 
+def log(s, nl=True):
+    print(s, end='\n' if nl else '')
 
 def main(_):
+    log('Model: %s' % FLAGS.model)
+    log('Batch size: %d' % FLAGS.batch_size)
+
     ps_hosts = FLAGS.ps_hosts.split(",")
     worker_hosts = FLAGS.worker_hosts.split(",")
 
@@ -34,14 +41,12 @@ def main(_):
             config.gpu_options.visible_device_list = ''
 
         # Assigns ops to the local worker by default.
-        # device_str = '/job:worker/task:%d/gpu:0' % FLAGS.task_index if use_cuda else '/job:worker/task:%d' % FLAGS.task_index
-        # print(device_str)
+        device_name = '/job:worker/task:%d' % FLAGS.task_index
         with tf.device(
                 tf.train.replica_device_setter(
-                    worker_device='/job:worker/task:%d' % FLAGS.task_index,
+                    worker_device=device_name,
                     cluster=cluster)):
-            # Start
-            # Set up standard model.
+            # Build model
             model = getattr(applications, FLAGS.model)(weights=None)
 
             data = tf.random_uniform([FLAGS.batch_size, 224, 224, 3])
@@ -54,17 +59,21 @@ def main(_):
             opt = tf.train.GradientDescentOptimizer(0.01)
             global_step = tf.contrib.framework.get_or_create_global_step()
             train_op = opt.minimize(loss, global_step=global_step)
-            # End
 
         # The StopAtStepHook handles stopping after running given steps.
         hooks = [tf.train.StopAtStepHook(last_step=FLAGS.num_iters)]
 
+        # Benchmark
+        log('Running benchmark...')
+        img_secs = []
+
         # The MonitoredTrainingSession takes care of session initialization,
         # restoring from a checkpoint, saving to a checkpoint, and closing when done
         # or an error occurs.
+        x = 0
         with tf.train.MonitoredTrainingSession(
                 master=server.target,
-                is_chief=(FLAGS.task_index == 0),
+                # is_chief=(FLAGS.task_index == 0),
                 hooks=hooks,
                 config=config) as mon_sess:
             while not mon_sess.should_stop():
@@ -72,9 +81,16 @@ def main(_):
                 # See `tf.train.SyncReplicasOptimizer` for additional details on how to
                 # perform *synchronous* training.
                 # mon_sess.run handles AbortedError in case of preempted PS.
-                print("Run once")
-                mon_sess.run(train_op)
+                time = timeit.timeit(lambda: mon_sess.run(train_op), number=1)
+                img_sec = FLAGS.batch_size / time
+                log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device_name))
+                img_secs.append(img_sec)
+                x = x + 1
 
+        # Results
+        img_sec_mean = np.mean(img_secs)
+        img_sec_conf = 1.96 * np.std(img_secs)
+        log('Img/sec per %s: %.1f +-%.1f' % (device_name, img_sec_mean, img_sec_conf))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -104,7 +120,7 @@ if __name__ == "__main__":
                         help='model to benchmark')
     parser.add_argument('--batch-size',
                         type=int,
-                        default=32,
+                        default=64,
                         help='input batch size')
     parser.add_argument('--num-iters',
                         type=int,
