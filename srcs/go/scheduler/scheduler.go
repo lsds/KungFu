@@ -35,7 +35,7 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 		Prog: jc.Prog,
 		Args: jc.Args,
 		Envs: merge(merge(configEnvs, envs), extraEnvs),
-		Host: peer.IPv4,
+		IPv4: peer.IPv4,
 		// PubAddr: pubAddr[self.Host],
 	}
 }
@@ -70,7 +70,7 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 			Prog:    jc.Prog,
 			Args:    jc.Args,
 			Envs:    merge(configEnvs, envs),
-			Host:    self.IPv4,
+			IPv4:    self.IPv4,
 			PubAddr: pubAddr[self.IPv4],
 		})
 	}
@@ -99,7 +99,7 @@ func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strat
 			Prog:    prog,
 			Args:    args,
 			Envs:    merge(configEnvs, envs),
-			Host:    self.IPv4,
+			IPv4:    self.IPv4,
 			PubAddr: plan.FormatIPv4(self.IPv4),
 		})
 	}
@@ -109,7 +109,7 @@ func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strat
 func ForHost(myHost uint32, ps []Proc) []Proc {
 	var myPs []Proc
 	for _, p := range ps {
-		if p.Host == myHost {
+		if p.IPv4 == myHost {
 			myPs = append(myPs, p)
 		}
 	}
