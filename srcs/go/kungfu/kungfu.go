@@ -159,9 +159,44 @@ func par(ps plan.PeerList, f func(plan.PeerID) error) error {
 	return mergeErrors(errs, "par")
 }
 
+func (kf *Kungfu) consensus(bs []byte) bool {
+	n := len(bs)
+	sess := kf.CurrentSession()
+	{
+		x := kb.NewVector(1, kb.I32)
+		y := kb.NewVector(1, kb.I32)
+		z := kb.NewVector(1, kb.I32)
+		x.AsI32()[0] = int32(n)
+		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:len:min"}
+		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max"}
+		sess.AllReduce(w1)
+		sess.AllReduce(w2)
+		if !bytesEq(x.Data, y.Data) || !bytesEq(x.Data, z.Data) {
+			return false
+		}
+	}
+	{
+		x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
+		y := kb.NewVector(n, kb.U8)
+		z := kb.NewVector(n, kb.U8)
+		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min"}
+		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max"}
+		sess.AllReduce(w1)
+		sess.AllReduce(w2)
+		if !bytesEq(x.Data, y.Data) || !bytesEq(x.Data, z.Data) {
+			return false
+		}
+	}
+	return true
+}
+
 func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 	if peers.Eq(kf.currentPeers) {
 		log.Debugf("ingore unchanged proposal")
+		return true
+	}
+	if digest := peers.Bytes(); !kf.consensus(digest) {
+		log.Errorf("diverge proposal detected!")
 		return true
 	}
 	{
@@ -193,4 +228,16 @@ func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, error) {
 		return false, nil
 	}
 	return kf.Update(), nil
+}
+
+func bytesEq(x, y []byte) bool {
+	if len(x) != len(y) {
+		return false
+	}
+	for i, a := range x {
+		if a != y[i] {
+			return false
+		}
+	}
+	return true
 }
