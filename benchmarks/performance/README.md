@@ -1,4 +1,6 @@
-# Parameter servers
+# Distributed Training Benchmark
+
+## Parameter Servers
 
 ```bash
 # Configure two local parameter servers
