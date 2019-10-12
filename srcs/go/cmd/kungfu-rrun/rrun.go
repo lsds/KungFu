@@ -47,7 +47,6 @@ func main() {
 		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
 	}
 	jc := sch.JobConfig{
-		Parent:    plan.PeerID{Host: "0.0.0.0"},
 		HostList:  hl,
 		PortRange: *pr,
 		Prog:      restArgs[0],

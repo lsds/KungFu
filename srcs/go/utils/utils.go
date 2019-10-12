@@ -113,9 +113,13 @@ func ListNvidiaGPUNames() []string {
 	return names
 }
 
-func Pluralize(n int, singular, plural string) string {
+func pluralize(n int, singular, plural string) string {
 	if n > 1 {
 		return plural
 	}
 	return singular
+}
+
+func Pluralize(n int, singular, plural string) string {
+	return fmt.Sprintf("%d %s", n, pluralize(n, singular, plural))
 }

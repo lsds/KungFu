@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/lsds/KungFu/srcs/go/iostream"
+	"github.com/lsds/KungFu/srcs/go/log"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/xterm"
 )
@@ -47,16 +47,19 @@ func (r *Runner) SetLogPrefix(prefix string) {
 }
 
 func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
+	var wg sync.WaitGroup
 	if stdout, err := cmd.StdoutPipe(); err == nil {
 		if r.verboseLog {
-			go r.streamPipe("stdout", stdout)
+			wg.Add(1)
+			go func() { r.streamPipe("stdout", stdout); wg.Done() }()
 		}
 	} else {
 		return err
 	}
 	if stderr, err := cmd.StderrPipe(); err == nil {
 		if r.verboseLog {
-			go r.streamPipe("stderr", stderr)
+			wg.Add(1)
+			go func() { r.streamPipe("stderr", stderr); wg.Done() }()
 		}
 	} else {
 		return err
@@ -65,10 +68,15 @@ func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 		return err
 	}
 	done := make(chan error)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		err := cmd.Wait()
+		wg.Wait()
+		done <- err
+	}()
 	select {
 	case <-ctx.Done():
 		cmd.Process.Kill()
+		<-done
 		return ctx.Err()
 	case err := <-done:
 		return err
@@ -96,13 +104,14 @@ func (r Runner) streamPipe(name string, in io.Reader) error {
 	}
 	f, err := os.Create(filename)
 	if err != nil {
-		log.Printf("failed to create log file: %v", err)
+		log.Errorf("failed to create log file: %v", err)
 		return iostream.Tee(in, w)
 	}
 	return iostream.Tee(in, w, f)
 }
 
 func LocalRunAll(ctx context.Context, ps []sch.Proc, verboseLog bool) error {
+	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	var fail int32
 	for i, proc := range ps {
@@ -115,10 +124,11 @@ func LocalRunAll(ctx context.Context, ps []sch.Proc, verboseLog bool) error {
 				logFilePrefix: strings.Replace(proc.Name, "/", "-", -1),
 			}
 			if err := r.Run(ctx, proc.Cmd()); err != nil {
-				log.Printf("%s #%s exited with error: %v", xterm.Red.S("[E]"), proc.Name, err)
+				log.Errorf("%s #%s exited with error: %v", xterm.Red.S("[E]"), proc.Name, err)
 				atomic.AddInt32(&fail, 1)
+				cancel()
 			} else {
-				log.Printf("%s #%s finished successfully", xterm.Green.S("[I]"), proc.Name)
+				log.Infof("%s #%s finished successfully", xterm.Green.S("[I]"), proc.Name)
 			}
 			wg.Done()
 		}(i, proc)

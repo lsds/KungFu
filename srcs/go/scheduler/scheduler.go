@@ -35,7 +35,7 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 		Prog: jc.Prog,
 		Args: jc.Args,
 		Envs: merge(merge(configEnvs, envs), extraEnvs),
-		Host: peer.Host,
+		IPv4: peer.IPv4,
 		// PubAddr: pubAddr[self.Host],
 	}
 }
@@ -45,15 +45,15 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 	if err != nil {
 		return nil, nil, err
 	}
-	pubAddr := make(map[string]string)
+	pubAddr := make(map[uint32]string)
 	for _, h := range jc.HostList {
-		pubAddr[h.Hostname] = h.PublicAddr
+		pubAddr[h.IPv4] = h.PublicAddr
 	}
 	configEnvs := getConfigEnvs()
 	var ps []Proc
 	for i, self := range pl {
 		localRank, _ := pl.LocalRank(self)
-		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
+		name := fmt.Sprintf("%s.%d", plan.FormatIPv4(self.IPv4), self.Port)
 		envs := Envs{
 			kb.ParentIDEnvKey:          jc.Parent.String(),
 			kb.PeerListEnvKey:          pl.String(),
@@ -70,8 +70,8 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 			Prog:    jc.Prog,
 			Args:    jc.Args,
 			Envs:    merge(configEnvs, envs),
-			Host:    self.Host,
-			PubAddr: pubAddr[self.Host],
+			IPv4:    self.IPv4,
+			PubAddr: pubAddr[self.IPv4],
 		})
 	}
 	return ps, pl, nil
@@ -82,7 +82,7 @@ func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strat
 	var ps []Proc
 	for i, self := range pl {
 		localRank, _ := pl.LocalRank(self)
-		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
+		name := fmt.Sprintf("%s.%d", plan.FormatIPv4(self.IPv4), self.Port)
 		envs := Envs{
 			kb.PeerListEnvKey:          pl.String(),
 			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
@@ -99,17 +99,17 @@ func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strat
 			Prog:    prog,
 			Args:    args,
 			Envs:    merge(configEnvs, envs),
-			Host:    self.Host,
-			PubAddr: self.Host,
+			IPv4:    self.IPv4,
+			PubAddr: plan.FormatIPv4(self.IPv4),
 		})
 	}
 	return ps, nil
 }
 
-func ForHost(myHost string, ps []Proc) []Proc {
+func ForHost(myHost uint32, ps []Proc) []Proc {
 	var myPs []Proc
 	for _, p := range ps {
-		if p.Host == myHost {
+		if p.IPv4 == myHost {
 			myPs = append(myPs, p)
 		}
 	}

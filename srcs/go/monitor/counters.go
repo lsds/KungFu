@@ -106,7 +106,7 @@ func newRateAccumulatorGroup(prefix string) *rateAccumulatorGroup {
 }
 
 func (g *rateAccumulatorGroup) getOrCreate(a plan.NetAddr) *rateAccumulator {
-	labels := fmt.Sprintf(`{peer="%s:%d"}`, a.Host, a.Port)
+	labels := fmt.Sprintf(`{peer="%s"}`, a)
 	g.Lock()
 	defer g.Unlock()
 	if ra, ok := g.rateAccumulators[labels]; !ok {

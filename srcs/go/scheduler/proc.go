@@ -27,7 +27,7 @@ type Proc struct {
 	Prog    string
 	Args    []string
 	Envs    Envs
-	Host    string
+	IPv4    uint32
 	PubAddr string
 }
 

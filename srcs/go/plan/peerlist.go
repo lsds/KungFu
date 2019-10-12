@@ -1,6 +1,8 @@
 package plan
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"strings"
@@ -16,6 +18,14 @@ func (pl PeerList) String() string {
 		parts = append(parts, p.String())
 	}
 	return strings.Join(parts, ",")
+}
+
+func (pl PeerList) Bytes() []byte {
+	b := &bytes.Buffer{}
+	for _, p := range pl {
+		binary.Write(b, binary.LittleEndian, &p)
+	}
+	return b.Bytes()
 }
 
 func (pl PeerList) Lookup(ps PeerID) (int, bool) {
@@ -75,10 +85,10 @@ func (pl PeerList) Eq(ql PeerList) bool {
 	return true
 }
 
-func (pl PeerList) On(host string) PeerList {
+func (pl PeerList) On(host uint32) PeerList {
 	var ql PeerList
 	for _, p := range pl {
-		if p.Host == host {
+		if p.IPv4 == host {
 			ql = append(ql, p)
 		}
 	}

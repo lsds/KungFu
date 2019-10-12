@@ -45,7 +45,7 @@ func parseID(val string) (*PeerID, error) {
 		return nil, errInvalidPort
 	}
 	return &PeerID{
-		Host: FormatIPv4(ipv4),
+		IPv4: ipv4,
 		Port: uint16(port),
 	}, nil
 }

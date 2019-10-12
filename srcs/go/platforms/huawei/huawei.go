@@ -19,7 +19,7 @@ const (
 )
 
 type ContainerInfo struct {
-	SelfIPv4 string
+	SelfIPv4 uint32
 	PeerList plan.PeerList
 }
 
@@ -45,7 +45,7 @@ func ParseEnv() (*ContainerInfo, error) {
 		idx = 0
 	}
 	return &ContainerInfo{
-		SelfIPv4: pl[idx].Host,
+		SelfIPv4: pl[idx].IPv4,
 		PeerList: pl,
 	}, nil
 }
@@ -65,7 +65,7 @@ func requireInt(key string) (int, error) {
 func parsePeerList(n int) (plan.PeerList, error) {
 	if n == 1 {
 		peer := plan.PeerID{
-			Host: "127.0.0.1",
+			IPv4: plan.MustParseIPv4("127.0.0.1"),
 			Port: uint16(38888),
 		}
 		return []plan.PeerID{peer}, nil
@@ -84,7 +84,7 @@ func parsePeerList(n int) (plan.PeerList, error) {
 		}
 		log.Infof("%s resolved as %s:%d", val, ipv4, port)
 		peer := plan.PeerID{
-			Host: ipv4,
+			IPv4: ipv4,
 			Port: uint16(port),
 		}
 		log.Infof("peer: %d: %#v", i, peer)
@@ -93,21 +93,25 @@ func parsePeerList(n int) (plan.PeerList, error) {
 	return peers, nil
 }
 
-func resolvePeer(hostPort string) (string, int, error) {
+func resolvePeer(hostPort string) (uint32, int, error) {
 	h, p, err := net.SplitHostPort(hostPort)
 	if err != nil {
-		return "", 0, err
+		return 0, 0, err
 	}
 	addrs, err := net.LookupHost(h)
 	if err != nil {
-		return "", 0, err
+		return 0, 0, err
 	}
 	if len(addrs) != 1 {
-		return "", 0, errors.New("exactly 1 addr is expected")
+		return 0, 0, errors.New("exactly 1 addr is expected")
 	}
 	port, err := strconv.Atoi(p)
 	if len(addrs) != 1 {
-		return "", 0, err
+		return 0, 0, err
 	}
-	return addrs[0], port, nil
+	ipv4, err := plan.ParseIPv4(addrs[0])
+	if err != nil {
+		return 0, 0, err
+	}
+	return ipv4, port, nil
 }

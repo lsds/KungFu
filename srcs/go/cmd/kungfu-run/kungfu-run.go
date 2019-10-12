@@ -70,16 +70,11 @@ func main() {
 	}
 	t0 := time.Now()
 	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
-	selfIP := func() string {
-		switch {
-		case len(*selfHost) > 0:
-			return *selfHost
-		case len(*nicName) > 0:
-			return inferIP(*nicName)
-		}
-		return "127.0.0.1"
-	}()
-	log.Infof("Using selfHost=%s", selfIP)
+	selfIP, err := getSelfIPv4(*selfHost, *nicName)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	log.Infof("Using selfHost=%s", plan.FormatIPv4(selfIP))
 	restArgs := flag.Args()
 	if len(restArgs) < 1 {
 		utils.ExitErr(errMissingProgramName)
@@ -92,11 +87,11 @@ func main() {
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	parent := plan.PeerID{Host: selfIP, Port: uint16(*port)}
+	parent := plan.PeerID{IPv4: selfIP, Port: uint16(*port)}
 	parents := func() plan.PeerList {
 		var ps plan.PeerList
 		for _, h := range hl {
-			ps = append(ps, plan.PeerID{Host: h.Hostname, Port: uint16(*port)})
+			ps = append(ps, plan.PeerID{IPv4: h.IPv4, Port: uint16(*port)})
 		}
 		return ps
 	}()
@@ -133,7 +128,7 @@ func main() {
 	}
 }
 
-func simpleRun(ctx context.Context, selfIP string, ps []sch.Proc, jc sch.JobConfig) {
+func simpleRun(ctx context.Context, selfIP uint32, ps []sch.Proc, jc sch.JobConfig) {
 	myPs := sch.ForHost(selfIP, ps)
 	if len(myPs) <= 0 {
 		log.Infof("No task to run on this node")
@@ -147,10 +142,22 @@ func simpleRun(ctx context.Context, selfIP string, ps []sch.Proc, jc sch.JobConf
 	}
 }
 
-func inferIP(nicName string) string {
+func getSelfIPv4(hostname string, nic string) (uint32, error) {
+	if len(hostname) > 0 {
+		return plan.ParseIPv4(hostname)
+	}
+	if len(nic) > 0 {
+		return inferIPv4(nic)
+	}
+	return plan.MustParseIPv4(`127.0.0.1`), nil
+}
+
+var errNoIPv4Found = errors.New("no ipv4 found")
+
+func inferIPv4(nicName string) (uint32, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return "127.0.0.1"
+		return 0, err
 	}
 	for _, i := range ifaces {
 		if i.Name != nicName {
@@ -168,10 +175,10 @@ func inferIP(nicName string) string {
 			case *net.IPAddr:
 				ip = v.IP
 			}
-			if ip.To4() != nil {
-				return ip.String()
+			if ip := ip.To4(); ip != nil {
+				return plan.PackIPv4(ip), nil
 			}
 		}
 	}
-	return "127.0.0.1"
+	return 0, errNoIPv4Found
 }

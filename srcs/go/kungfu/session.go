@@ -357,5 +357,5 @@ func mergeErrors(errs []error, hint string) error {
 	if failed == 0 {
 		return nil
 	}
-	return fmt.Errorf("%s failed with %d %s: %s", hint, failed, utils.Pluralize(failed, "error", "errors"), msg)
+	return fmt.Errorf("%s failed with %s: %s", hint, utils.Pluralize(failed, "error", "errors"), msg)
 }

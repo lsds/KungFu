@@ -53,7 +53,7 @@ func parseResult(line string, r *Result) {
 func humanizeHostSpecs(hosts []plan.HostSpec) string {
 	var ss []string
 	for _, h := range hosts {
-		ss = append(ss, fmt.Sprintf("<ip=%s, slots=%d, pub_ip=%s>", h.Hostname, h.Slots, h.PublicAddr))
+		ss = append(ss, fmt.Sprintf("<ip=%s, slots=%d, pub_ip=%s>", plan.FormatIPv4(h.IPv4), h.Slots, h.PublicAddr))
 	}
 	return strings.Join(ss, ", ")
 }

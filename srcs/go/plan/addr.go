@@ -9,16 +9,16 @@ import (
 
 // NetAddr is the network address of a Peer
 type NetAddr struct {
-	Host string
+	IPv4 uint32
 	Port uint16
 }
 
 func (a NetAddr) ColocatedWith(b NetAddr) bool {
-	return a.Host == b.Host
+	return a.IPv4 == b.IPv4
 }
 
 func (a NetAddr) String() string {
-	return net.JoinHostPort(a.Host, strconv.Itoa(int(a.Port)))
+	return net.JoinHostPort(FormatIPv4(a.IPv4), strconv.Itoa(int(a.Port)))
 }
 
 func (a NetAddr) SockFile() string {
@@ -27,7 +27,7 @@ func (a NetAddr) SockFile() string {
 
 func (a NetAddr) WithName(name string) Addr {
 	return Addr{
-		Host: a.Host,
+		IPv4: a.IPv4,
 		Port: a.Port,
 		Name: name,
 	}
@@ -35,18 +35,18 @@ func (a NetAddr) WithName(name string) Addr {
 
 // Addr is the logical address of a named channel
 type Addr struct {
-	Host string
+	IPv4 uint32
 	Port uint16
 	Name string
 }
 
 func (a Addr) String() string {
-	return a.Name + "@" + net.JoinHostPort(a.Host, strconv.Itoa(int(a.Port)))
+	return a.Name + "@" + NetAddr{a.IPv4, a.Port}.String()
 }
 
 func (a Addr) NetAddr() NetAddr {
 	return NetAddr{
-		Host: a.Host,
+		IPv4: a.IPv4,
 		Port: a.Port,
 	}
 }
@@ -70,11 +70,15 @@ func ParseIPv4(host string) (uint32, error) {
 	if ip == nil {
 		return 0, errInvalidIPv4
 	}
+	return PackIPv4(ip), nil
+}
+
+func PackIPv4(ip net.IP) uint32 {
 	a := uint32(ip[0]) << 24
 	b := uint32(ip[1]) << 16
 	c := uint32(ip[2]) << 8
 	d := uint32(ip[3])
-	return a | b | c | d, nil
+	return a | b | c | d
 }
 
 func MustParseIPv4(host string) uint32 {

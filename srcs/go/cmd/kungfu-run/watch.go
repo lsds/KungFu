@@ -34,25 +34,25 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 
 	reconcileCluster := func(s run.Stage) {
 		a, b := current.Diff(s.Cluster)
-		del := a.On(parent.Host)
-		add := b.On(parent.Host)
-		log.Infof("arrived at %q, np=%d, will remove %d %s (%d locally), will add %d %s (%d locally)",
+		del := a.On(parent.IPv4)
+		add := b.On(parent.IPv4)
+		log.Infof("arrived at %q, np=%d, will remove %s (%d locally), will add %s (%d locally)",
 			s.Checkpoint, len(s.Cluster),
-			len(a), utils.Pluralize(len(a), "peer", "peers"), len(del),
-			len(b), utils.Pluralize(len(b), "peer", "peers"), len(add))
+			utils.Pluralize(len(a), "peer", "peers"), len(del),
+			utils.Pluralize(len(b), "peer", "peers"), len(add))
 		log.Debugf("waiting %d peers to stop", len(del))
 		for _, id := range del {
 			gs[id].Wait()
 			delete(gs, id)
 		}
-		log.Debugf("%d peers removed", len(del))
+		log.Debugf("%s removed", utils.Pluralize(len(del), "peer", "peers"))
 		for i, id := range add {
 			gs[id] = new(sync.WaitGroup)
 			gs[id].Add(1)
 			all.Add(1)
 			go func(g *sync.WaitGroup, id plan.PeerID, s run.Stage) {
 				localRank, _ := s.Cluster.LocalRank(id)
-				name := fmt.Sprintf("%s.%d", id.Host, id.Port)
+				name := fmt.Sprintf("%s.%d", plan.FormatIPv4(id.IPv4), id.Port)
 				envs := sch.Envs{
 					kb.InitSessEnvKey:   s.Checkpoint,
 					kb.CheckpointEnvKey: s.Checkpoint,
@@ -61,13 +61,13 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 				atomic.AddInt32(&running, 1)
 				runProc(ctx, cancel, proc, s.Checkpoint)
 				n := atomic.AddInt32(&running, -1)
-				log.Debugf("%d peer is still running on this host", n)
+				log.Debugf("%s is still running on this host", utils.Pluralize(int(n), "peer", "peers"))
 				g.Done()
 				all.Done()
 			}(gs[id], id, s)
 			log.Debugf("peer %d/%d created", i, len(add))
 		}
-		log.Debugf("%d peers created", len(add))
+		log.Debugf("%s created", utils.Pluralize(len(add), "peer", "peers"))
 		current = s.Cluster
 	}
 	reconcileCluster(<-ch)
