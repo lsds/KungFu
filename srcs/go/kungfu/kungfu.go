@@ -195,17 +195,9 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 		log.Debugf("ingore unchanged proposal")
 		return true
 	}
-	{
-		digest := peers.Bytes()
-		bs := make([]byte, len(digest))
-		copy(bs, digest)
-		// don't use []byte returned from bytes.Buffer,
-		// panic: runtime error: cgo argument has Go pointer to Go pointer
-		// FIXME: figure out why
-		if !kf.consensus(bs) {
-			log.Errorf("diverge proposal detected!")
-			return true
-		}
+	if digest := peers.Bytes(); !kf.consensus(digest) {
+		log.Errorf("diverge proposal detected!")
+		return true
 	}
 	{
 		stage := run.Stage{Checkpoint: ckpt, Cluster: peers}
