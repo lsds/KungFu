@@ -3,16 +3,16 @@
 # Run this script on every node in the cluster.
 set -e
 
-run_experiment(){
-local np=$1
-shift
+run_experiment() {
+    local np=$1
+    shift
 
-# Assuming the IP address for these 2 nodes are: 169.254.128.207, 169.254.128.185
-# Each node has 8 GPUs and the NIC name is ib0
-kungfu-prun \
--np ${np} -H 169.254.128.207:8,169.254.128.185:8 -nic ib0 \
--timeout 10000s \
-$@
+    # Assuming the IP address for these 2 nodes are: 169.254.128.207, 169.254.128.185
+    # Each node has 8 GPUs and the NIC name is ib0
+    kungfu-prun \
+        -np ${np} -H 169.254.128.207:8,169.254.128.185:8 -nic ib0 \
+        -timeout 10000s \
+        $@
 }
 
 export TF_CPP_MIN_LOG_LEVEL=1
@@ -24,6 +24,6 @@ export TF_CPP_MIN_LOG_LEVEL=1
 SCRIPT_PATH=$PWD/KungFu/performance/kungfu_benchmark.py
 
 run_experiment 16 python3 $SCRIPT_PATH \
---batch-size 64 \
---model=ResNet50 \
---num-iters=50
+    --batch-size 64 \
+    --model=ResNet50 \
+    --num-iters=50

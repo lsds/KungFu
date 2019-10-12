@@ -9,8 +9,10 @@ from tensorflow.keras import applications
 
 FLAGS = None
 
+
 def log(s, nl=True):
     print(s, end='\n' if nl else '')
+
 
 def main(_):
     log('Model: %s' % FLAGS.model)
@@ -43,9 +45,8 @@ def main(_):
         # Assigns ops to the local worker by default.
         device_name = '/job:worker/task:%d' % FLAGS.task_index
         with tf.device(
-                tf.train.replica_device_setter(
-                    worker_device=device_name,
-                    cluster=cluster)):
+                tf.train.replica_device_setter(worker_device=device_name,
+                                               cluster=cluster)):
             # Build model
             model = getattr(applications, FLAGS.model)(weights=None)
 
@@ -83,14 +84,17 @@ def main(_):
                 # mon_sess.run handles AbortedError in case of preempted PS.
                 time = timeit.timeit(lambda: mon_sess.run(train_op), number=1)
                 img_sec = FLAGS.batch_size / time
-                log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device_name))
+                log('Iter #%d: %.1f img/sec per %s' %
+                    (x, img_sec, device_name))
                 img_secs.append(img_sec)
                 x = x + 1
 
         # Results
         img_sec_mean = np.mean(img_secs)
         img_sec_conf = 1.96 * np.std(img_secs)
-        log('Img/sec per %s: %.1f +-%.1f' % (device_name, img_sec_mean, img_sec_conf))
+        log('Img/sec per %s: %.1f +-%.1f' %
+            (device_name, img_sec_mean, img_sec_conf))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -128,8 +132,8 @@ if __name__ == "__main__":
                         help='number of benchmark iterations')
     # Flags for GPU
     parser.add_argument('--no-cuda',
-                    action='store_true',
-                    default=False,
-                    help='disables CUDA training')
+                        action='store_true',
+                        default=False,
+                        help='disables CUDA training')
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
