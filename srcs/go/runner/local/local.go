@@ -47,16 +47,19 @@ func (r *Runner) SetLogPrefix(prefix string) {
 }
 
 func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
+	var wg sync.WaitGroup
 	if stdout, err := cmd.StdoutPipe(); err == nil {
 		if r.verboseLog {
-			go r.streamPipe("stdout", stdout)
+			wg.Add(1)
+			go func() { r.streamPipe("stdout", stdout); wg.Done() }()
 		}
 	} else {
 		return err
 	}
 	if stderr, err := cmd.StderrPipe(); err == nil {
 		if r.verboseLog {
-			go r.streamPipe("stderr", stderr)
+			wg.Add(1)
+			go func() { r.streamPipe("stderr", stderr); wg.Done() }()
 		}
 	} else {
 		return err
@@ -65,10 +68,15 @@ func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 		return err
 	}
 	done := make(chan error)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		err := cmd.Wait()
+		wg.Wait()
+		done <- err
+	}()
 	select {
 	case <-ctx.Done():
 		cmd.Process.Kill()
+		<-done
 		return ctx.Err()
 	case err := <-done:
 		return err
