@@ -176,7 +176,10 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 		}
 	}
 	{
-		x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
+		x := kb.NewVector(n, kb.U8)
+		copy(x.Data, bs)
+		// x := &kb.Vector{Data: bs, Count: n, Type: kb.U8} // FIXME: panic: runtime error: cgo argument has Go pointer to Go pointer
+
 		y := kb.NewVector(n, kb.U8)
 		z := kb.NewVector(n, kb.U8)
 		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min"}

@@ -16,6 +16,7 @@ RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz \
 RUN pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple numpy==1.16 tensorflow==1.12
 
 WORKDIR /src/kungfu
+ENV GOBIN ${HOME}/go/bin
 ENV PATH ${PATH}:/usr/local/go/bin:${HOME}/go/bin
 ENV TF_CPP_MIN_LOG_LEVEL 2
 

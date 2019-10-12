@@ -18,7 +18,7 @@ const (
 // Transform performs y[i] += x[i] for vectors y and x
 func Transform(y, x *Vector, op OP) {
 	// Assuming Count and Type are consistent
-	C.std_transform_2(ptr(x.Data), ptr(y.Data), ptr(y.Data), C.int(y.Count), C.KungFu_Datatype(y.Type), C.KungFu_Op(op))
+	Transform2(y, x, y, op)
 }
 
 // Transform2 performs z[i] = x[i] + y[i] for vectors z and x, y.

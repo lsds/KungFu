@@ -74,7 +74,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Infof("Using selfHost=%s", selfIP)
+	log.Infof("Using selfHost=%s", plan.FormatIPv4(selfIP))
 	restArgs := flag.Args()
 	if len(restArgs) < 1 {
 		utils.ExitErr(errMissingProgramName)
