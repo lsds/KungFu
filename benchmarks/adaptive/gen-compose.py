@@ -54,7 +54,6 @@ def gen_compose(np, n_nodes, node_cap, tag, user_command):
         "-np",
         str(np),
         "-w",
-        "-k",
     ] + user_command
     compose = {
         "version": "3",

@@ -13,13 +13,13 @@ RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz \
     && tar -C /usr/local -xf go1.11.linux-amd64.tar.gz \
     && rm go1.11.linux-amd64.tar.gz
 
-RUN pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple tensorflow==1.12
+RUN pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple numpy==1.16 tensorflow==1.12
 
 WORKDIR /src/kungfu
-ENV PATH ${PATH}:/usr/local/go/bin:/src/kungfu/bin
+ENV PATH ${PATH}:/usr/local/go/bin:${HOME}/go/bin
 ENV TF_CPP_MIN_LOG_LEVEL 2
 
 ADD . .
 
-RUN ./configure --build-tools --build-tensorflow-ops && make
 RUN pip3 install --no-index -U -v .
+RUN go install -v ./srcs/go/cmd/kungfu-run
