@@ -21,10 +21,6 @@ func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
 }
 
 func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
-	ipv4, err := plan.ParseIPv4(local.Host)
-	if err != nil {
-		return nil, err
-	}
 	conn, err := func() (net.Conn, error) {
 		if kc.UseUnixSock && remote.ColocatedWith(local) {
 			addr := net.UnixAddr{remote.SockFile(), "unix"}
@@ -37,7 +33,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	}
 	h := connectionHeader{
 		Type:    uint16(t),
-		SrcIPv4: ipv4,
+		SrcIPv4: local.Host,
 		SrcPort: local.Port,
 	}
 	if err := h.WriteTo(conn); err != nil {

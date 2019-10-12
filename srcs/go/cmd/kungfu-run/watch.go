@@ -52,7 +52,7 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 			all.Add(1)
 			go func(g *sync.WaitGroup, id plan.PeerID, s run.Stage) {
 				localRank, _ := s.Cluster.LocalRank(id)
-				name := fmt.Sprintf("%s.%d", id.Host, id.Port)
+				name := fmt.Sprintf("%s.%d", plan.FormatIPv4(id.Host), id.Port)
 				envs := sch.Envs{
 					kb.InitSessEnvKey:   s.Checkpoint,
 					kb.CheckpointEnvKey: s.Checkpoint,

@@ -75,7 +75,7 @@ func (pl PeerList) Eq(ql PeerList) bool {
 	return true
 }
 
-func (pl PeerList) On(host string) PeerList {
+func (pl PeerList) On(host uint32) PeerList {
 	var ql PeerList
 	for _, p := range pl {
 		if p.Host == host {

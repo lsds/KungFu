@@ -4,7 +4,7 @@ import "sort"
 
 func GenDefaultBcastGraph(peers []PeerID) *Graph {
 	g := NewGraph(len(peers))
-	hostMasters := make(map[string]int)
+	hostMasters := make(map[uint32]int)
 	for rank, p := range peers {
 		if master, ok := hostMasters[p.Host]; !ok {
 			hostMasters[p.Host] = rank

@@ -144,7 +144,7 @@ func (s *server) handle(conn net.Conn) error {
 		return err
 	}
 	remote := plan.NetAddr{
-		Host: plan.FormatIPv4(ch.SrcIPv4),
+		Host: ch.SrcIPv4,
 		Port: ch.SrcPort,
 	}
 	t := ConnType(ch.Type)

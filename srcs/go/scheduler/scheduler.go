@@ -45,7 +45,7 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 	if err != nil {
 		return nil, nil, err
 	}
-	pubAddr := make(map[string]string)
+	pubAddr := make(map[uint32]string)
 	for _, h := range jc.HostList {
 		pubAddr[h.Hostname] = h.PublicAddr
 	}
@@ -53,7 +53,7 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 	var ps []Proc
 	for i, self := range pl {
 		localRank, _ := pl.LocalRank(self)
-		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
+		name := fmt.Sprintf("%s.%d", plan.FormatIPv4(self.Host), self.Port)
 		envs := Envs{
 			kb.ParentIDEnvKey:          jc.Parent.String(),
 			kb.PeerListEnvKey:          pl.String(),
@@ -82,7 +82,7 @@ func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strat
 	var ps []Proc
 	for i, self := range pl {
 		localRank, _ := pl.LocalRank(self)
-		name := fmt.Sprintf("%s.%d", self.Host, self.Port)
+		name := fmt.Sprintf("%s.%d", plan.FormatIPv4(self.Host), self.Port)
 		envs := Envs{
 			kb.PeerListEnvKey:          pl.String(),
 			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
@@ -100,13 +100,13 @@ func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strat
 			Args:    args,
 			Envs:    merge(configEnvs, envs),
 			Host:    self.Host,
-			PubAddr: self.Host,
+			PubAddr: plan.FormatIPv4(self.Host),
 		})
 	}
 	return ps, nil
 }
 
-func ForHost(myHost string, ps []Proc) []Proc {
+func ForHost(myHost uint32, ps []Proc) []Proc {
 	var myPs []Proc
 	for _, p := range ps {
 		if p.Host == myHost {

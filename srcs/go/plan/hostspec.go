@@ -14,38 +14,45 @@ import (
 var errInvalidHostSpec = errors.New("Invalid HostSpec")
 
 type HostSpec struct {
-	Hostname   string
+	Hostname   uint32
 	Slots      int
 	PublicAddr string
 }
 
 var DefaultHostSpec = HostSpec{
-	Hostname:   `127.0.0.1`,
+	Hostname:   MustParseIPv4(`127.0.0.1`),
 	Slots:      runtime.NumCPU(),
 	PublicAddr: `127.0.0.1`,
 }
 
 func (h HostSpec) String() string {
-	return fmt.Sprintf("%s:%d:%s", h.Hostname, h.Slots, h.PublicAddr)
+	return fmt.Sprintf("%s:%d:%s", FormatIPv4(h.Hostname), h.Slots, h.PublicAddr)
 }
 
 func parseHostSpec(spec string) (*HostSpec, error) {
 	parts := strings.Split(spec, ":")
+	if len(parts) < 1 {
+		return nil, errInvalidHostSpec
+	}
+	ipv4, err := ParseIPv4(parts[0])
+	if err != nil {
+		return nil, err
+	}
 	switch len(parts) {
 	case 1:
-		return &HostSpec{Hostname: parts[0], Slots: 1, PublicAddr: parts[0]}, nil
+		return &HostSpec{Hostname: ipv4, Slots: 1, PublicAddr: parts[0]}, nil
 	case 2:
 		slots, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return nil, errInvalidHostSpec
 		}
-		return &HostSpec{Hostname: parts[0], Slots: slots, PublicAddr: parts[0]}, nil
+		return &HostSpec{Hostname: ipv4, Slots: slots, PublicAddr: parts[0]}, nil
 	case 3:
 		slots, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return nil, errInvalidHostSpec
 		}
-		return &HostSpec{Hostname: parts[0], Slots: slots, PublicAddr: parts[2]}, nil
+		return &HostSpec{Hostname: ipv4, Slots: slots, PublicAddr: parts[2]}, nil
 	}
 	return nil, errInvalidHostSpec
 }
