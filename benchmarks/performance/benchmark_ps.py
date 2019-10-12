@@ -10,13 +10,9 @@ from tensorflow.keras import applications
 FLAGS = None
 
 
-def log(s, nl=True):
-    print(s, end='\n' if nl else '')
-
-
 def main(_):
-    log('Model: %s' % FLAGS.model)
-    log('Batch size: %d' % FLAGS.batch_size)
+    print('Model: %s' % FLAGS.model)
+    print('Batch size: %d' % FLAGS.batch_size)
 
     ps_hosts = FLAGS.ps_hosts.split(",")
     worker_hosts = FLAGS.worker_hosts.split(",")
@@ -65,12 +61,12 @@ def main(_):
         hooks = [tf.train.StopAtStepHook(last_step=FLAGS.num_iters)]
 
         # Benchmark
-        log('Running benchmark...')
-        img_secs = []
+        print('Running benchmark...')
 
         # The MonitoredTrainingSession takes care of session initialization,
         # restoring from a checkpoint, saving to a checkpoint, and closing when done
         # or an error occurs.
+        img_secs = []
         x = 0
         with tf.train.MonitoredTrainingSession(
                 master=server.target,
@@ -84,16 +80,16 @@ def main(_):
                 # mon_sess.run handles AbortedError in case of preempted PS.
                 time = timeit.timeit(lambda: mon_sess.run(train_op), number=1)
                 img_sec = FLAGS.batch_size / time
-                log('Iter #%d: %.1f img/sec per %s' %
-                    (x, img_sec, device_name))
+                print('Iter #%d: %.1f img/sec per %s' %
+                      (x, img_sec, device_name))
                 img_secs.append(img_sec)
                 x = x + 1
 
         # Results
         img_sec_mean = np.mean(img_secs)
         img_sec_conf = 1.96 * np.std(img_secs)
-        log('Img/sec per %s: %.1f +-%.1f' %
-            (device_name, img_sec_mean, img_sec_conf))
+        print('Img/sec per %s: %.1f +-%.1f' %
+              (device_name, img_sec_mean, img_sec_conf))
 
 
 if __name__ == "__main__":
