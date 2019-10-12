@@ -1,20 +1,15 @@
 #!/usr/bin/env bash
 # This script runs the Horovod benchmark for ResNet-50 on the modelarts platform.
-# 
 # This script assumes run on 2 DGX-1 machine which has 8 GPUs. In total, we have 16 GPUs. Check the gen_hostfile() function.
-# We assume that the user has copy a folder named benchmarks. This folder needs to be placed in the Huawei OBS service.
-# The path to the benchmarks folder is: /home/work/user-job-dir/benchmarks/
-# The benchmarks folder has the followin files:
-# - horovod/kube-plm-rsh-agent
-# - horovod/hvd_tensorflow_synthetic_benchmark.py
+# We assume that the user has copy the performance folder into the OBS service.
 set -x
 
 cd /home/work/user-job-dir/
 
 # Modify script path to point to benchmark script (please set aboslute path)
-SCRIPT_PATH=$PWD/KungFu/performance/hvd_tensorflow_synthetic_benchmark.py
+SCRIPT_PATH=$PWD/KungFu/performance/horovod_benchmark.py
 # Modify RSH agent path to point to kube-plm-rsh-agent file (please set aboslute path)
-RSH_AGENT_PATH=$PWD/KungFu/performance/modelarts/horovod/kube-plm-rsh-agent
+RSH_AGENT_PATH=$PWD/KungFu/performance/modelarts/horovod/kube_plm_rsh_agent
 # Modify hostfile indicating where pod characteristics are located (please set aboslute path)
 HOST_FILE_PATH=$PWD/KungFu/performance/modelarts/horovod/hostfile
 
@@ -45,27 +40,26 @@ gen_hostfile >$HOST_FILE_PATH
 
 MPI_HOME=$HOME/local/openmpi
 
-run_experiment(){
-local np=$1
-shift
+run_experiment() {
+    local np=$1
+    shift
 
-mpirun --allow-run-as-root -np ${np} \
-    -mca plm_rsh_agent $RSH_AGENT_PATH \
-    --hostfile $HOST_FILE_PATH \
-    --bind-to socket \
-    -x LD_LIBRARY_PATH \
-    -x NCCL_DEBUG=INFO -x NCCL_SOCKET_IFNAME=ib0,bond0,eth0 -x NCCL_SOCKET_FAMILY=AF_INET -x NCCL_IB_DISABLE=0 \
-    -x HOROVOD_MPI_THREADS_DISABLE=1 \
-    -mca pml ob1 -mca btl ^openib \
-    -mca plm_rsh_no_tree_spawn true \
-    -mca btl_tcp_if_include 192.168.0.0/16 \
-$@
+    mpirun --allow-run-as-root -np ${np} \
+        -mca plm_rsh_agent $RSH_AGENT_PATH \
+        --hostfile $HOST_FILE_PATH \
+        --bind-to socket \
+        -x LD_LIBRARY_PATH \
+        -x NCCL_DEBUG=INFO -x NCCL_SOCKET_IFNAME=ib0,bond0,eth0 -x NCCL_SOCKET_FAMILY=AF_INET -x NCCL_IB_DISABLE=0 \
+        -x HOROVOD_MPI_THREADS_DISABLE=1 \
+        -mca pml ob1 -mca btl ^openib \
+        -mca plm_rsh_no_tree_spawn true \
+        -mca btl_tcp_if_include 192.168.0.0/16 \
+        $@
 }
 
 export TF_CPP_MIN_LOG_LEVEL=1
 
-if [ "$DLS_TASK_INDEX" = "0" ]
-then
+if [ "$DLS_TASK_INDEX" = "0" ]; then
     batch_size=256
     nps="16"
     run_experiment $nps python3 $SCRIPT_PATH --batch-size=$batch_size --model=ResNet50 --num-iters=50
