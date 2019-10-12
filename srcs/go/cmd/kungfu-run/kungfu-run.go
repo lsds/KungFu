@@ -87,11 +87,11 @@ func main() {
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	parent := plan.PeerID{Host: selfIP, Port: uint16(*port)}
+	parent := plan.PeerID{IPv4: selfIP, Port: uint16(*port)}
 	parents := func() plan.PeerList {
 		var ps plan.PeerList
 		for _, h := range hl {
-			ps = append(ps, plan.PeerID{Host: h.Hostname, Port: uint16(*port)})
+			ps = append(ps, plan.PeerID{IPv4: h.Hostname, Port: uint16(*port)})
 		}
 		return ps
 	}()

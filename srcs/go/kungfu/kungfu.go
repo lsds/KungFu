@@ -46,7 +46,7 @@ type Kungfu struct {
 func getParentIDs(hl plan.HostList, parent plan.PeerID) plan.PeerList {
 	var ps plan.PeerList
 	for _, h := range hl {
-		ps = append(ps, plan.PeerID{Host: h.Hostname, Port: parent.Port})
+		ps = append(ps, plan.PeerID{IPv4: h.Hostname, Port: parent.Port})
 	}
 	return ps
 }
@@ -83,7 +83,7 @@ func (kf *Kungfu) Start() int {
 		monitoringPort := kf.self.Port + 10000
 		monitor.StartServer(int(monitoringPort))
 		monitorAddr := plan.NetAddr{
-			Host: kf.self.Host, // FIXME: use pubAddr
+			IPv4: kf.self.IPv4, // FIXME: use pubAddr
 			Port: monitoringPort,
 		}
 		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self, monitorAddr)

@@ -68,7 +68,7 @@ func genTestAddrs() []plan.NetAddr {
 	var addrs []plan.NetAddr
 	for i := 0; i < 10; i++ {
 		addrs = append(addrs, plan.NetAddr{
-			Host: plan.MustParseIPv4(`127.0.0.1`),
+			IPv4: plan.MustParseIPv4(`127.0.0.1`),
 			Port: uint16(9999 + i),
 		})
 	}

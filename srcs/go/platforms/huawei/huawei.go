@@ -45,7 +45,7 @@ func ParseEnv() (*ContainerInfo, error) {
 		idx = 0
 	}
 	return &ContainerInfo{
-		SelfIPv4: pl[idx].Host,
+		SelfIPv4: pl[idx].IPv4,
 		PeerList: pl,
 	}, nil
 }
@@ -65,7 +65,7 @@ func requireInt(key string) (int, error) {
 func parsePeerList(n int) (plan.PeerList, error) {
 	if n == 1 {
 		peer := plan.PeerID{
-			Host: plan.MustParseIPv4("127.0.0.1"),
+			IPv4: plan.MustParseIPv4("127.0.0.1"),
 			Port: uint16(38888),
 		}
 		return []plan.PeerID{peer}, nil
@@ -84,7 +84,7 @@ func parsePeerList(n int) (plan.PeerList, error) {
 		}
 		log.Infof("%s resolved as %s:%d", val, ipv4, port)
 		peer := plan.PeerID{
-			Host: ipv4,
+			IPv4: ipv4,
 			Port: uint16(port),
 		}
 		log.Infof("peer: %d: %#v", i, peer)

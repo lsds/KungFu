@@ -143,10 +143,7 @@ func (s *server) handle(conn net.Conn) error {
 	if err := ch.ReadFrom(conn); err != nil {
 		return err
 	}
-	remote := plan.NetAddr{
-		Host: ch.SrcIPv4,
-		Port: ch.SrcPort,
-	}
+	remote := plan.NetAddr{IPv4: ch.SrcIPv4, Port: ch.SrcPort}
 	t := ConnType(ch.Type)
 	log.Debugf("got new connection of type %s from: %s", t, remote)
 	switch t {

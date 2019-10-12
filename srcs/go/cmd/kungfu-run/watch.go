@@ -34,8 +34,8 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 
 	reconcileCluster := func(s run.Stage) {
 		a, b := current.Diff(s.Cluster)
-		del := a.On(parent.Host)
-		add := b.On(parent.Host)
+		del := a.On(parent.IPv4)
+		add := b.On(parent.IPv4)
 		log.Infof("arrived at %q, np=%d, will remove %s (%d locally), will add %s (%d locally)",
 			s.Checkpoint, len(s.Cluster),
 			utils.Pluralize(len(a), "peer", "peers"), len(del),
@@ -52,7 +52,7 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 			all.Add(1)
 			go func(g *sync.WaitGroup, id plan.PeerID, s run.Stage) {
 				localRank, _ := s.Cluster.LocalRank(id)
-				name := fmt.Sprintf("%s.%d", plan.FormatIPv4(id.Host), id.Port)
+				name := fmt.Sprintf("%s.%d", plan.FormatIPv4(id.IPv4), id.Port)
 				envs := sch.Envs{
 					kb.InitSessEnvKey:   s.Checkpoint,
 					kb.CheckpointEnvKey: s.Checkpoint,

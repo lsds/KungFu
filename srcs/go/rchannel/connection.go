@@ -33,7 +33,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	}
 	h := connectionHeader{
 		Type:    uint16(t),
-		SrcIPv4: local.Host,
+		SrcIPv4: local.IPv4,
 		SrcPort: local.Port,
 	}
 	if err := h.WriteTo(conn); err != nil {

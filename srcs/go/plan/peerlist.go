@@ -78,7 +78,7 @@ func (pl PeerList) Eq(ql PeerList) bool {
 func (pl PeerList) On(host uint32) PeerList {
 	var ql PeerList
 	for _, p := range pl {
-		if p.Host == host {
+		if p.IPv4 == host {
 			ql = append(ql, p)
 		}
 	}

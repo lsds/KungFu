@@ -131,7 +131,7 @@ func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	for _, host := range hl {
 		for j := 0; j < host.Slots; j++ {
 			id := PeerID{
-				Host: host.Hostname,
+				IPv4: host.Hostname,
 				Port: pr.Begin + uint16(j),
 			}
 			pl = append(pl, id)
