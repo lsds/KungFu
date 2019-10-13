@@ -11,7 +11,7 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
-var errInvalidHostSpec = errors.New("Invalid HostSpec")
+var ErrInvalidHostSpec = errors.New("Invalid HostSpec")
 
 type HostSpec struct {
 	IPv4       uint32
@@ -32,7 +32,7 @@ func (h HostSpec) String() string {
 func parseHostSpec(spec string) (*HostSpec, error) {
 	parts := strings.Split(spec, ":")
 	if len(parts) < 1 {
-		return nil, errInvalidHostSpec
+		return nil, ErrInvalidHostSpec
 	}
 	ipv4, err := ParseIPv4(parts[0])
 	if err != nil {
@@ -44,17 +44,17 @@ func parseHostSpec(spec string) (*HostSpec, error) {
 	case 2:
 		slots, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return nil, errInvalidHostSpec
+			return nil, ErrInvalidHostSpec
 		}
 		return &HostSpec{IPv4: ipv4, Slots: slots, PublicAddr: parts[0]}, nil
 	case 3:
 		slots, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return nil, errInvalidHostSpec
+			return nil, ErrInvalidHostSpec
 		}
 		return &HostSpec{IPv4: ipv4, Slots: slots, PublicAddr: parts[2]}, nil
 	}
-	return nil, errInvalidHostSpec
+	return nil, ErrInvalidHostSpec
 }
 
 type HostList []HostSpec

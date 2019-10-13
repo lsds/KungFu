@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"net"
 	"os"
 	"path"
 	"runtime"
@@ -70,7 +69,7 @@ func main() {
 	}
 	t0 := time.Now()
 	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
-	selfIP, err := getSelfIPv4(*selfHost, *nicName)
+	selfIP, err := run.InferSelfIPv4(*selfHost, *nicName)
 	if err != nil {
 		utils.ExitErr(err)
 	}
@@ -83,7 +82,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
 	}
-	hl, err := plan.ParseHostList(*hostList)
+	hl, err := run.ResolveHostList(*hostList, *nicName)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
@@ -140,45 +139,4 @@ func simpleRun(ctx context.Context, selfIP uint32, ps []sch.Proc, jc sch.JobConf
 	if err != nil {
 		utils.ExitErr(err)
 	}
-}
-
-func getSelfIPv4(hostname string, nic string) (uint32, error) {
-	if len(hostname) > 0 {
-		return plan.ParseIPv4(hostname)
-	}
-	if len(nic) > 0 {
-		return inferIPv4(nic)
-	}
-	return plan.MustParseIPv4(`127.0.0.1`), nil
-}
-
-var errNoIPv4Found = errors.New("no ipv4 found")
-
-func inferIPv4(nicName string) (uint32, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return 0, err
-	}
-	for _, i := range ifaces {
-		if i.Name != nicName {
-			continue
-		}
-		addrs, err := i.Addrs()
-		if err != nil {
-			continue
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip := ip.To4(); ip != nil {
-				return plan.PackIPv4(ip), nil
-			}
-		}
-	}
-	return 0, errNoIPv4Found
 }
