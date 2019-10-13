@@ -134,6 +134,13 @@ func lookupIPv4(host string) []net.IP {
 			ipv4s = append(ipv4s, ip)
 		}
 	}
+	log.Debugf("got %d ipv4 for %s :: %s", len(ipv4s), host, strings.Join(func() []string {
+		var ips []string
+		for _, ipv4 := range ipv4s {
+			ips = append(ips, ipv4.String())
+		}
+		return ips
+	}(), ","))
 	return ipv4s
 }
 
@@ -157,7 +164,7 @@ func resolveIPv4(domainOrIPv4 string, ipv4net *net.IPNet) (uint32, error) {
 		}
 		return 0, errFailedToResoveIPv4
 	}
-	log.Errorf("%s resolved to %s", domainOrIPv4, plan.FormatIPv4(ipv4s[0]))
+	log.Infof("%s resolved to %s", domainOrIPv4, plan.FormatIPv4(ipv4s[0]))
 	return ipv4s[0], nil
 }
 
