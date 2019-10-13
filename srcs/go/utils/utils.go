@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -65,7 +64,7 @@ func LogAllEnvs() {
 }
 
 func ExitErr(err error) {
-	log.Printf("exit on error: %v", err)
+	fmt.Printf("exit on error: %v\n", err)
 	os.Exit(1)
 }
 

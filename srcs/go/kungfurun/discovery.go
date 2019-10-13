@@ -151,7 +151,9 @@ func resolveIPv4(domainOrIPv4 string, ipv4net *net.IPNet) (uint32, error) {
 	}
 	if n := len(ipv4s); n != 1 {
 		if n > 1 {
-			log.Errorf("multiple ipv4 for %s detected", domainOrIPv4)
+			log.Errorf("multiple ipv4 for %s detected in %s", domainOrIPv4, *ipv4net)
+		} else {
+			log.Errorf("no ipv4 for %s detected in %s", domainOrIPv4, *ipv4net)
 		}
 		return 0, errFailedToResoveIPv4
 	}
