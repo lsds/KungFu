@@ -9,6 +9,7 @@ import (
 	"path"
 	"time"
 
+	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	runner "github.com/lsds/KungFu/srcs/go/runner/remote"
@@ -42,11 +43,11 @@ func progName() string {
 func main() {
 	t0 := time.Now()
 	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
-	hl, err := plan.ParseHostList(*hostList)
+	hl, err := run.ParseHostList(*hostList)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	log.Infof("Using %d hosts, total slots: %d", len(hl), hl.Cap())
+	// log.Infof("Using %d hosts, total slots: %d", len(hl), hl.Cap())
 	ctx, cancel := context.WithCancel(context.Background())
 	if *timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, *timeout)
@@ -59,7 +60,7 @@ func main() {
 	distribute(ctx, hl, args[0], args[1:])
 }
 
-func distribute(ctx context.Context, hl plan.HostList, prog string, args []string) error {
+func distribute(ctx context.Context, hl []run.HostSpec, prog string, args []string) error {
 	var ps []sch.Proc
 	for _, h := range hl {
 		proc := sch.Proc{

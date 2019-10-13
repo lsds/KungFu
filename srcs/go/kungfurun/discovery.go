@@ -81,13 +81,13 @@ func getIPv4Net(nic string) (*net.IPNet, error) {
 	return nil, errNicNotFound
 }
 
-type hostSpec struct {
+type HostSpec struct {
 	Hostname   string
 	Slots      int
 	PublicAddr string
 }
 
-func parseHostSpec(config string) (*hostSpec, error) {
+func parseHostSpec(config string) (*HostSpec, error) {
 	var hostname, pubAddr string
 	var slots int
 	parts := strings.Split(config, ":")
@@ -108,11 +108,11 @@ func parseHostSpec(config string) (*hostSpec, error) {
 	if len(parts) > 3 {
 		return nil, plan.ErrInvalidHostSpec
 	}
-	return &hostSpec{Hostname: hostname, Slots: slots, PublicAddr: pubAddr}, nil
+	return &HostSpec{Hostname: hostname, Slots: slots, PublicAddr: pubAddr}, nil
 }
 
-func parseHostList(config string) ([]hostSpec, error) {
-	var hl []hostSpec
+func parseHostList(config string) ([]HostSpec, error) {
+	var hl []HostSpec
 	for _, h := range strings.Split(config, ",") {
 		spec, err := parseHostSpec(h)
 		if err != nil {
@@ -159,7 +159,7 @@ func resolveIPv4(domainOrIPv4 string, ipv4net *net.IPNet) (uint32, error) {
 	return ipv4s[0], nil
 }
 
-func resolveHostList(hl []hostSpec, nic string) (plan.HostList, error) {
+func resolveHostList(hl []HostSpec, nic string) (plan.HostList, error) {
 	ipv4net, err := getIPv4Net(nic)
 	if err != nil {
 		return nil, err
@@ -173,6 +173,10 @@ func resolveHostList(hl []hostSpec, nic string) (plan.HostList, error) {
 		hostlist = append(hostlist, plan.HostSpec{IPv4: ipv4, Slots: h.Slots, PublicAddr: h.PublicAddr})
 	}
 	return hostlist, nil
+}
+
+func ParseHostList(config string) ([]HostSpec, error) {
+	return parseHostList(config)
 }
 
 func ResolveHostList(config string, nic string) (plan.HostList, error) {
