@@ -77,35 +77,6 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 	return ps, pl, nil
 }
 
-func CreateProcs(prog string, args []string, pl plan.PeerList, strategy kb.Strategy, disableNCCL bool) ([]Proc, error) {
-	configEnvs := getConfigEnvs()
-	var ps []Proc
-	for i, self := range pl {
-		localRank, _ := pl.LocalRank(self)
-		name := fmt.Sprintf("%s.%d", plan.FormatIPv4(self.IPv4), self.Port)
-		envs := Envs{
-			kb.PeerListEnvKey:          pl.String(),
-			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
-			kb.SelfSpecEnvKey:          self.String(),
-			kb.AllReduceStrategyEnvKey: strategy.String(),
-			`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
-			`PYTHONUNBUFFERED`:         `1`,
-		}
-		if disableNCCL {
-			envs[`KUNGFU_DISABLE_NCCL`] = `1`
-		}
-		ps = append(ps, Proc{
-			Name:    name,
-			Prog:    prog,
-			Args:    args,
-			Envs:    merge(configEnvs, envs),
-			IPv4:    self.IPv4,
-			PubAddr: plan.FormatIPv4(self.IPv4),
-		})
-	}
-	return ps, nil
-}
-
 func ForHost(myHost uint32, ps []Proc) []Proc {
 	var myPs []Proc
 	for _, p := range ps {

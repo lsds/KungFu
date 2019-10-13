@@ -85,7 +85,6 @@ IF(KUNGFU_BUILD_TOOLS)
     ENDFUNCTION()
 
     ADD_KUNGFU_GO_BINARY(kungfu-run)
-    ADD_KUNGFU_GO_BINARY(kungfu-huawei-launcher)
 ENDIF()
 
 IF(KUNGFU_BUILD_TESTS)

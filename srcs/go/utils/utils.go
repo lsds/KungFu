@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -42,14 +41,16 @@ func LogNICInfo() error {
 	if err != nil {
 		return err
 	}
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
+	for i, nic := range ifaces {
+		addrs, err := nic.Addrs()
 		if err != nil {
 			return err
 		}
+		var as []string
 		for _, a := range addrs {
-			fmt.Printf("[nic] %s :: %s\n", i.Name, a)
+			as = append(as, a.String())
 		}
+		fmt.Printf("[nic] [%d] %s :: %s\n", i, nic.Name, strings.Join(as, ", "))
 	}
 	return nil
 }
@@ -63,7 +64,7 @@ func LogAllEnvs() {
 }
 
 func ExitErr(err error) {
-	log.Printf("exit on error: %v", err)
+	fmt.Printf("exit on error: %v\n", err)
 	os.Exit(1)
 }
 
