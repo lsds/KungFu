@@ -58,11 +58,6 @@ for ((i = 0; i < WORKER_SLOT; i++)); do
     worker_task_index=$((WORKER_TASK_INDEX_OFFSET + i))
     echo $worker_task_index
 
-    # FIXME: If we launch a lot of GPUs (8 GPUs) at the same time, we sometime get the following error:
-    # tensorflow.python.framework.errors_impl.InvalidArgumentError: /job:worker/replica:0/task:0/device:GPU:0 unknown device.
-    # Sleep for 5 seconds is a dirty fix.
-    sleep 5
-
     CUDA_VISIBLE_DEVICES="$i" python3 $WORK_DIR/benchmark_ps.py --ps_hosts=$PS_HOSTS --worker_hosts=$WORKER_HOSTS --job_name=worker --task_index=$worker_task_index &
 done
 

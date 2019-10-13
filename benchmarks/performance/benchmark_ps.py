@@ -28,16 +28,6 @@ def main(_):
     if FLAGS.job_name == "ps":
         server.join()
     elif FLAGS.job_name == "worker":
-        # Set the GPU
-        config = tf.ConfigProto()
-        use_cuda = not FLAGS.no_cuda
-        if use_cuda:
-            config.gpu_options.allow_growth = True
-        else:
-            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-            config.gpu_options.allow_growth = False
-            config.gpu_options.visible_device_list = ''
-
         # Assigns ops to the local worker by default.
         device_name = '/job:worker/task:%d' % FLAGS.task_index
         with tf.device(
@@ -71,8 +61,7 @@ def main(_):
         with tf.train.MonitoredTrainingSession(
                 master=server.target,
                 # is_chief=(FLAGS.task_index == 0),
-                hooks=hooks,
-                config=config) as mon_sess:
+                hooks=hooks) as mon_sess:
             while not mon_sess.should_stop():
                 # Run a training step asynchronously.
                 # See `tf.train.SyncReplicasOptimizer` for additional details on how to
@@ -126,10 +115,5 @@ if __name__ == "__main__":
                         type=int,
                         default=3000,
                         help='number of benchmark iterations')
-    # Flags for GPU
-    parser.add_argument('--no-cuda',
-                        action='store_true',
-                        default=False,
-                        help='disables CUDA training')
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
