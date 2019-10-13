@@ -72,6 +72,9 @@ func getIPv4Net(nic string) (*net.IPNet, error) {
 			}
 			for _, addr := range addrs {
 				if v, ok := addr.(*net.IPNet); ok {
+					ip := v.String()
+					v.IP = v.IP.Mask(v.Mask)
+					log.Infof("using subnet %s masked from %s", v, ip)
 					return v, nil
 				}
 			}
@@ -134,6 +137,13 @@ func lookupIPv4(host string) []net.IP {
 			ipv4s = append(ipv4s, ip)
 		}
 	}
+	log.Debugf("got %d ipv4 for %s :: %s", len(ipv4s), host, strings.Join(func() []string {
+		var ips []string
+		for _, ipv4 := range ipv4s {
+			ips = append(ips, ipv4.String())
+		}
+		return ips
+	}(), ","))
 	return ipv4s
 }
 
@@ -157,7 +167,7 @@ func resolveIPv4(domainOrIPv4 string, ipv4net *net.IPNet) (uint32, error) {
 		}
 		return 0, errFailedToResoveIPv4
 	}
-	log.Errorf("%s resolved to %s", domainOrIPv4, plan.FormatIPv4(ipv4s[0]))
+	log.Infof("%s resolved to %s", domainOrIPv4, plan.FormatIPv4(ipv4s[0]))
 	return ipv4s[0], nil
 }
 
