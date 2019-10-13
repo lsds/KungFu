@@ -72,10 +72,10 @@ func getIPv4Net(nic string) (*net.IPNet, error) {
 			}
 			for _, addr := range addrs {
 				if v, ok := addr.(*net.IPNet); ok {
-					subnet := v
-					subnet.IP = subnet.IP.Mask(subnet.Mask)
-					log.Infof("using subnet %s masked from %s", subnet, v)
-					return subnet, nil
+					ip := v.String()
+					v.IP = v.IP.Mask(v.Mask)
+					log.Infof("using subnet %s masked from %s", v, ip)
+					return v, nil
 				}
 			}
 			return nil, errNicHasNoIPv4Network
