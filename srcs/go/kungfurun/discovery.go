@@ -72,6 +72,7 @@ func getIPv4Net(nic string) (*net.IPNet, error) {
 			}
 			for _, addr := range addrs {
 				if v, ok := addr.(*net.IPNet); ok {
+					v.IP = v.IP.Mask(v.Mask)
 					return v, nil
 				}
 			}
