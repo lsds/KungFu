@@ -24,6 +24,6 @@ export TF_CPP_MIN_LOG_LEVEL=1
 SCRIPT_PATH=$PWD/KungFu/performance/benchmark_kungfu.py
 
 run_experiment 16 python3 $SCRIPT_PATH \
-    --batch-size 64 \
+    --batch-size=64 \
     --model=ResNet50 \
     --num-iters=50

@@ -37,6 +37,6 @@ run_experiment() {
 SCRIPT_PATH=/home/work/user-job-dir/src/benchmark_kungfu.py
 
 run_experiment $NUM_WORKERS python3 $SCRIPT_PATH \
-    --batch-size 64 \
+    --batch-size=64 \
     --model=ResNet50 \
     --num-iters=50
