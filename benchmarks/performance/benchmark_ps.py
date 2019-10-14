@@ -73,7 +73,7 @@ def main(_):
         x = 0
         with tf.train.MonitoredTrainingSession(
                 master=server.target,
-                # is_chief=(FLAGS.task_index == 0),
+                is_chief=(FLAGS.task_index == 0),
                 config=config,
                 hooks=hooks) as mon_sess:
 
