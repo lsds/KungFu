@@ -7,7 +7,7 @@ set -x
 cd /home/work/user-job-dir/
 
 # Modify script path to point to benchmark script (please set aboslute path)
-SCRIPT_PATH=$PWD/KungFu/performance/horovod_benchmark.py
+SCRIPT_PATH=$PWD/KungFu/performance/benchmark_horovod.py
 # Modify RSH agent path to point to kube-plm-rsh-agent file (please set aboslute path)
 RSH_AGENT_PATH=$PWD/KungFu/performance/modelarts/horovod/kube_plm_rsh_agent
 # Modify hostfile indicating where pod characteristics are located (please set aboslute path)

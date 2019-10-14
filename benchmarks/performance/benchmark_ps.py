@@ -10,13 +10,9 @@ from tensorflow.keras import applications
 FLAGS = None
 
 
-def log(s, nl=True):
-    print(s, end='\n' if nl else '')
-
-
 def main(_):
-    log('Model: %s' % FLAGS.model)
-    log('Batch size: %d' % FLAGS.batch_size)
+    print('Model: %s' % FLAGS.model)
+    print('Batch size: %d' % FLAGS.batch_size)
 
     ps_hosts = FLAGS.ps_hosts.split(",")
     worker_hosts = FLAGS.worker_hosts.split(",")
@@ -37,6 +33,8 @@ def main(_):
         use_cuda = not FLAGS.no_cuda
         if use_cuda:
             config.gpu_options.allow_growth = True
+            config.gpu_options.visible_device_list = os.environ[
+                "CUDA_VISIBLE_DEVICES"]
         else:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
             config.gpu_options.allow_growth = False
@@ -44,6 +42,7 @@ def main(_):
 
         # Assigns ops to the local worker by default.
         device_name = '/job:worker/task:%d' % FLAGS.task_index
+        print(device_name)
         with tf.device(
                 tf.train.replica_device_setter(worker_device=device_name,
                                                cluster=cluster)):
@@ -65,18 +64,19 @@ def main(_):
         hooks = [tf.train.StopAtStepHook(last_step=FLAGS.num_iters)]
 
         # Benchmark
-        log('Running benchmark...')
-        img_secs = []
+        print('Running benchmark...')
 
         # The MonitoredTrainingSession takes care of session initialization,
         # restoring from a checkpoint, saving to a checkpoint, and closing when done
         # or an error occurs.
+        img_secs = []
         x = 0
         with tf.train.MonitoredTrainingSession(
                 master=server.target,
-                # is_chief=(FLAGS.task_index == 0),
-                hooks=hooks,
-                config=config) as mon_sess:
+                is_chief=(FLAGS.task_index == 0),
+                config=config,
+                hooks=hooks) as mon_sess:
+
             while not mon_sess.should_stop():
                 # Run a training step asynchronously.
                 # See `tf.train.SyncReplicasOptimizer` for additional details on how to
@@ -84,16 +84,16 @@ def main(_):
                 # mon_sess.run handles AbortedError in case of preempted PS.
                 time = timeit.timeit(lambda: mon_sess.run(train_op), number=1)
                 img_sec = FLAGS.batch_size / time
-                log('Iter #%d: %.1f img/sec per %s' %
-                    (x, img_sec, device_name))
+                print('Iter #%d: %.1f img/sec per %s' %
+                      (x, img_sec, device_name))
                 img_secs.append(img_sec)
                 x = x + 1
 
         # Results
         img_sec_mean = np.mean(img_secs)
         img_sec_conf = 1.96 * np.std(img_secs)
-        log('Img/sec per %s: %.1f +-%.1f' %
-            (device_name, img_sec_mean, img_sec_conf))
+        print('Img/sec per %s: %.1f +-%.1f' %
+              (device_name, img_sec_mean, img_sec_conf))
 
 
 if __name__ == "__main__":
@@ -128,7 +128,7 @@ if __name__ == "__main__":
                         help='input batch size')
     parser.add_argument('--num-iters',
                         type=int,
-                        default=1000,
+                        default=3000,
                         help='number of benchmark iterations')
     # Flags for GPU
     parser.add_argument('--no-cuda',
