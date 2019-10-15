@@ -10,20 +10,7 @@ and batch sizes.
 
 In the synchronous training benchmark, we compare KungFu with Horovod.
 
-### Horovod
-
-There are three steps to install Horovod.
-
-- Install OpenMPI with the [script](https://raw.githubusercontent.com/tensorlayer/openpose-plus/master/scripts/install-mpi.sh)
-- Install Horovod with `pip3 install horovod==0.16.1`
-
-Use the following command to run the Horovod benchmark.
-
-```bash
-mpirun -np 4 python3 benchmark_horovod.py --model=ResNet50 --batch-size=64
-```
-
-### KungFu sync
+### KungFu
 
 Use the following command to run the KungFu benchmark.
 
@@ -31,9 +18,26 @@ Use the following command to run the KungFu benchmark.
 kungfu-run -np 4 python3 benchmark_kungfu.py --kungfu=sync-sgd --model=ResNet50 --batch-size=64
 ```
 
+### Horovod
+
+Horovod requires OpenMPI ([install script](https://raw.githubusercontent.com/tensorlayer/openpose-plus/master/scripts/install-mpi.sh)).
+We use Horovod 0.16.1 (`pip3 install horovod==0.16.1`). Use the following command to run the Horovod benchmark.
+
+```bash
+mpirun -np 4 -mca pml ob1 -mca btl ^openib python3 benchmark_horovod.py --model=ResNet50 --batch-size=64
+```
+
 ## Asynchronous Training
 
 Asynchronous training is useful for addressing network bottlenecks, stragglers and unpredictable availability of resource (e.g., AWS spot instances). In the asynchronous benchmark, we compare KungFu with Parameter Servers.
+
+### KungFu
+
+Use the following command to run the KungFu benchmark.
+
+```bash
+kungfu-run -np 4 python3 benchmark_kungfu.py --kungfu=async-sgd --model=ResNet50 --batch-size=64
+```
 
 ### Parameter Servers
 
@@ -54,12 +58,4 @@ CUDA_VISIBLE_DEVICES="0" python3 benchmark_ps.py --ps_hosts=$PS_HOSTS --worker_h
 CUDA_VISIBLE_DEVICES="1" python3 benchmark_ps.py --ps_hosts=$PS_HOSTS --worker_hosts=$WORKER_HOSTS --job_name=worker --task_index=1 --model=ResNet50 --batch-size=64 &
 CUDA_VISIBLE_DEVICES="2" python3 benchmark_ps.py --ps_hosts=$PS_HOSTS --worker_hosts=$WORKER_HOSTS --job_name=worker --task_index=2 --model=ResNet50 --batch-size=64 &
 CUDA_VISIBLE_DEVICES="3" python3 benchmark_ps.py --ps_hosts=$PS_HOSTS --worker_hosts=$WORKER_HOSTS --job_name=worker --task_index=3 --model=ResNet50 --batch-size=64 &
-```
-
-### KungFu async
-
-Use the following command to run the KungFu benchmark.
-
-```bash
-kungfu-run -np 4 python3 benchmark_kungfu.py --kungfu=async-sgd --model=ResNet50 --batch-size=64
 ```
