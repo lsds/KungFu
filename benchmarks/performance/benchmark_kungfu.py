@@ -78,7 +78,7 @@ opt = tf.train.GradientDescentOptimizer(0.01)
 if args.kungfu == 'sync-sgd':
     from kungfu.optimizers import SyncSGDOptimizer
     opt = SyncSGDOptimizer(opt)
-elif args.kungfu == 'model-ave':
+elif args.kungfu == 'async-sgd':
     from kungfu.optimizers import PeerModelAveragingOptimizer
     opt = PeerModelAveragingOptimizer(opt)
 else:
