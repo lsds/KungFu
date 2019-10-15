@@ -24,7 +24,11 @@ Horovod requires OpenMPI ([install script](https://raw.githubusercontent.com/ten
 We use Horovod 0.16.1 (`pip3 install horovod==0.16.1`). Use the following command to run the Horovod benchmark.
 
 ```bash
-mpirun -np 4 -mca pml ob1 -mca btl ^openib python3 benchmark_horovod.py --model=ResNet50 --batch-size=64
+mpirun -np 4 \
+    -H localhost:4 \
+    -bind-to none -map-by slot \
+    -mca pml ob1 -mca btl ^openib \
+    python3 benchmark_horovod.py --model=ResNet50 --batch-size=64
 ```
 
 ## Asynchronous Training
