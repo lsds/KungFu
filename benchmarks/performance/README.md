@@ -2,11 +2,11 @@
 
 Distributed training benchmark of KungFu, Horovod and Parameter Servers.
 
-We assume the benchmark runs on a server with 4 GPUs. The Tensorflow version we used is 1.13.1.
-The benchmark model is imported from tf.keras.applications. You can freely choose different models
+We assume the benchmark runs on a server with 4 GPUs. The Tensorflow version is 1.13.1.
+The benchmark imports models from [tf.keras.applications](https://www.tensorflow.org/api_docs/python/tf/keras/applications). You can freely choose different models
 and batch sizes.
 
-## Synchronous training
+## Synchronous Training
 
 In the synchronous training benchmark, we compare KungFu with Horovod.
 
@@ -31,7 +31,9 @@ Use the following command to run the KungFu benchmark.
 kungfu-run -np 4 python3 benchmark_kungfu.py --kungfu=sync-sgd --model=ResNet50 --batch-size=64
 ```
 
-## Asynchronous training
+## Asynchronous Training
+
+Asynchronous training is useful for addressing network bottlenecks, stragglers and unpredictable availability of resource (e.g., AWS spot instances). In the asynchronous benchmark, we compare KungFu with Parameter Servers.
 
 ### Parameter Servers
 
