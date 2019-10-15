@@ -1,5 +1,6 @@
 # Distributed Training Benchmark
-Used Tensorflow version is 1.13.1
+This Readme descripes how to run the different benchmarks. We run the benchmarks on a machine with one CPU and four GPUs.
+The Tensorflow version we used is 1.13.1.
 
 ## Parameter Servers
 Use the following shell script to run the parameter server benchmark.
@@ -24,8 +25,8 @@ CUDA_VISIBLE_DEVICES="3" python benchmark_ps.py --ps_hosts=$PS_HOSTS --worker_ho
 ### Install
 There are three steps to install Horovod.
 1. install OpenMPI with the [script](https://raw.githubusercontent.com/tensorlayer/openpose-plus/master/scripts/install-mpi.sh)
-2. install g++ version 4.8 with `bash sudo apt install g++-4.8`
-3. install Horovod with `bash pip3 install horovod`
+2. install g++ version 4.8 with `sudo apt install g++-4.8`
+3. install Horovod with `pip3 install horovod`
 
 Use the following command to run the Horovod benchmark.
 ```bash
