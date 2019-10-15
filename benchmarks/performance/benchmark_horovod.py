@@ -21,10 +21,6 @@ import horovod.tensorflow as hvd
 parser = argparse.ArgumentParser(
     description='TensorFlow Synthetic Benchmark',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--fp16-allreduce',
-                    action='store_true',
-                    default=False,
-                    help='use fp16 compression during allreduce')
 parser.add_argument('--model',
                     type=str,
                     default='ResNet50',
@@ -78,11 +74,8 @@ model = getattr(applications, args.model)(weights=None)
 
 opt = tf.train.GradientDescentOptimizer(0.01)
 
-# Horovod: (optional) compression algorithm.
-compression = hvd.Compression.fp16 if args.fp16_allreduce else hvd.Compression.none
-
 # Horovod: wrap optimizer with DistributedOptimizer.
-opt = hvd.DistributedOptimizer(opt, compression=compression)
+opt = hvd.DistributedOptimizer(opt, device_dense='/cpu:0')
 
 init = tf.global_variables_initializer()
 bcast_op = hvd.broadcast_global_variables(0)
