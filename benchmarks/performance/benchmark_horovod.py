@@ -82,7 +82,7 @@ opt = tf.train.GradientDescentOptimizer(0.01)
 compression = hvd.Compression.fp16 if args.fp16_allreduce else hvd.Compression.none
 
 # Horovod: wrap optimizer with DistributedOptimizer.
-opt = hvd.DistributedOptimizer(opt, compression=compression)
+opt = hvd.DistributedOptimizer(opt, device_dense='/cpu:0')
 
 init = tf.global_variables_initializer()
 bcast_op = hvd.broadcast_global_variables(0)
