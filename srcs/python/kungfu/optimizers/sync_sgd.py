@@ -1,6 +1,6 @@
 import tensorflow as tf
-from kungfu.ops import (all_reduce, broadcast, global_gradient_noise_scale,
-                        global_variance, group_all_reduce, peer_info)
+from kungfu.ops import (all_reduce, broadcast, global_noise_scale,
+                        group_all_reduce, peer_info)
 
 from .core import KungFuOptimizer, fuse
 
@@ -165,13 +165,14 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
         self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
 
         self._interval = monitor_interval
-        self._device_batch_size = device_batch_size
+        self._device_batch_size = tf.cast(device_batch_size, dtype=tf.float32)
+        self._global_batch_size = self._device_batch_size * self._num_workers
         self._noise_op = None
 
     def _monitor(self, grads, reduced_grads):
-        self._noise_op = global_gradient_noise_scale(self._device_batch_size,
-                                                     fuse(grads),
-                                                     fuse(reduced_grads))
+        self._noise_op = global_noise_scale(self._device_batch_size,
+                                            self._global_batch_size,
+                                            fuse(grads), fuse(reduced_grads))
 
         print_op = tf.print('Gradient Noise Scale:', self._noise_op)
 
