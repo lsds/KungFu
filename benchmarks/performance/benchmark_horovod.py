@@ -75,6 +75,7 @@ model = getattr(applications, args.model)(weights=None)
 opt = tf.train.GradientDescentOptimizer(0.01)
 
 # Horovod: wrap optimizer with DistributedOptimizer.
+# To make a fair comparison with KungFu, we configure Horovod to use CPUs to run MPI and gradient averaging.
 opt = hvd.DistributedOptimizer(opt, device_dense='/cpu:0')
 
 init = tf.global_variables_initializer()

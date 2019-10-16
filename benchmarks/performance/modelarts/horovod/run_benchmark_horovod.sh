@@ -4,14 +4,17 @@
 # We assume that the user has copy the performance folder into the OBS service.
 set -x
 
-cd /home/work/user-job-dir/
+WORKER_GPU_SLOT=8
+BATCH_SIZE=64
+MODEL="ResNet50"
+NUM_ITERS=100
 
 # Modify script path to point to benchmark script (please set aboslute path)
-SCRIPT_PATH=$PWD/KungFu/performance/benchmark_horovod.py
+SCRIPT_PATH=/home/work/user-job-dir/src/benchmark_horovod.py
 # Modify RSH agent path to point to kube-plm-rsh-agent file (please set aboslute path)
-RSH_AGENT_PATH=$PWD/KungFu/performance/modelarts/horovod/kube_plm_rsh_agent
+RSH_AGENT_PATH=/home/work/user-job-dir/src/kube_plm_rsh_agent
 # Modify hostfile indicating where pod characteristics are located (please set aboslute path)
-HOST_FILE_PATH=$PWD/KungFu/performance/modelarts/horovod/hostfile
+HOST_FILE_PATH=/home/work/user-job-dir/src/hostfile
 
 chmod +x $RSH_AGENT_PATH
 
@@ -32,7 +35,7 @@ kubectl config view
 gen_hostfile() {
     pods=$(kubectl get pods -o name | grep job | awk -F '/' '{print $2}')
     for pod in $pods; do
-        echo "$pod slots=8"
+        echo "$pod slots=$WORKER_GPU_SLOT"
     done
 }
 
@@ -40,7 +43,7 @@ gen_hostfile >$HOST_FILE_PATH
 
 MPI_HOME=$HOME/local/openmpi
 
-run_experiment() {
+run_distributed_experiment() {
     local np=$1
     shift
 
@@ -57,12 +60,31 @@ run_experiment() {
         $@
 }
 
+run_local_experiment() {
+    local np=$1
+    shift
+
+    mpirun --allow-run-as-root -np ${np} \
+        -mca plm_rsh_agent $RSH_AGENT_PATH \
+        --bind-to socket \
+        -x LD_LIBRARY_PATH \
+        -x NCCL_DEBUG=INFO -x NCCL_SOCKET_IFNAME=ib0,bond0,eth0 -x NCCL_SOCKET_FAMILY=AF_INET -x NCCL_IB_DISABLE=0 \
+        -x HOROVOD_MPI_THREADS_DISABLE=1 \
+        -mca pml ob1 -mca btl ^openib \
+        -mca plm_rsh_no_tree_spawn true \
+        -mca btl_tcp_if_include 192.168.0.0/16 \
+        $@
+}
+
 export TF_CPP_MIN_LOG_LEVEL=1
 
-if [ "$DLS_TASK_INDEX" = "0" ]; then
-    batch_size=256
-    nps="16"
-    run_experiment $nps python3 $SCRIPT_PATH --batch-size=$batch_size --model=ResNet50 --num-iters=50
+if [ "$DLS_TASK_NUMBER" == "1" ]; then
+    run_local_experiment $WORKER_GPU_SLOT python3 $SCRIPT_PATH --batch-size=$BATCH_SIZE --model=$MODEL --num-iters=$NUM_ITERS
 else
-    sleep 5d
+    if [ "$DLS_TASK_INDEX" = "0" ]; then
+        NUM_WORKERS=$((DLS_TASK_INDEX * WORKER_GPU_SLOT))
+        run_distributed_experiment $NUM_WORKERS python3 $SCRIPT_PATH --batch-size=$BATCH_SIZE --model=$MODEL --num-iters=$NUM_ITERS
+    else
+        sleep 5d
+    fi
 fi
