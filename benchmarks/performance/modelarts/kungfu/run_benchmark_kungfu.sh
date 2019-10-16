@@ -17,7 +17,7 @@ run_experiment() {
     shift
 
     # Use the IB NIC ib0. This IB NIC is running in the ib2ip mode.
-    kungfu-prun \
+    /KungFu/bin/kungfu-run \
         -np ${np} -H $WORKER_HOSTS -nic ib0 \
         $@
 }

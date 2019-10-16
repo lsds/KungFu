@@ -28,7 +28,7 @@ run_experiment() {
     shift
 
     # Each node has 8 GPUs and the NIC name is ib0
-    KUNGFU_CONFIG_SHOW_DEBUG_LOG=true /KungFu/bin/kungfu-run \
+    /KungFu/bin/kungfu-run \
         -np ${np} -H $HOSTS -nic bond0 \
         -timeout 10000s \
         $@
