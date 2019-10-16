@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
-Modified from:
+Implemented based on:
 https://github.com/uber/horovod/blob/master/examples/tensorflow_synthetic_benchmark.py
-
-
-
 """
 
 from __future__ import absolute_import, division, print_function
