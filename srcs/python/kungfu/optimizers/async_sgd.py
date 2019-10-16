@@ -2,25 +2,7 @@ import tensorflow as tf
 from kungfu.ops import (barrier, broadcast, current_cluster_size, current_rank,
                         request_variable_with_template, save_variable)
 
-from .core import KungFuOptimizer
-
-
-def fuse(ts):
-    return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
-
-
-def defuse(y, shapes):
-    ts = []
-    off = 0
-    for s in shapes:
-        size = s.num_elements()
-        x = tf.slice(y, [off], [size])
-        x = tf.reshape(x, s)
-        ts.append(x)
-        off += size
-    if off != y.shape.num_elements():
-        raise RuntimeError('invalid shapes')
-    return ts
+from .core import KungFuOptimizer, fuse, defuse
 
 
 def get_random_peer(cluster_size, self_rank):
@@ -31,11 +13,11 @@ def get_random_peer(cluster_size, self_rank):
 
 class PeerModelAveragingOptimizer(KungFuOptimizer):
     """An optimizer that implements asynchrounous training.
-    
-    Every iteration of training, this optimizer 
+
+    Every iteration of training, this optimizer
     (1) Randomly selects a peer in the current cluster.
     (2) Pulls the selected peer's model
-    (3) Performs model averaging with the local model. 
+    (3) Performs model averaging with the local model.
     (4) Applies local gradients
     (5) Saves the model to a local store which allows other peers to pull from.
 
