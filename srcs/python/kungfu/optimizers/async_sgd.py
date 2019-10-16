@@ -2,7 +2,7 @@ import tensorflow as tf
 from kungfu.ops import (barrier, broadcast, current_cluster_size, current_rank,
                         request_variable_with_template, save_variable)
 
-from .core import KungFuOptimizer, fuse, defuse
+from .core import KungFuOptimizer, defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):

@@ -1,7 +1,6 @@
 import tensorflow as tf
-from kungfu.ops import (all_reduce, broadcast, global_variance,
-                        global_gradient_noise_scale, group_all_reduce,
-                        peer_info)
+from kungfu.ops import (all_reduce, broadcast, global_gradient_noise_scale,
+                        global_variance, group_all_reduce, peer_info)
 
 from .core import KungFuOptimizer, fuse
 
