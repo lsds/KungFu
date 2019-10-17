@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""
-Modified from:
-https://github.com/uber/horovod/blob/master/examples/tensorflow_synthetic_benchmark.py
-
-
-
-"""
 
 from __future__ import absolute_import, division, print_function
 
@@ -51,10 +44,14 @@ parser.add_argument('--no-cuda',
                     action='store_true',
                     default=False,
                     help='disables CUDA training')
-parser.add_argument('--kungfu',
+parser.add_argument('--metric',
                     type=str,
-                    default='sync-sgd',
-                    help='kungfu optimizer')
+                    default=None,
+                    help='The monitoring metric')
+parser.add_argument('--interval',
+                    type=int,
+                    default=10,
+                    help='The monitoring interval')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -75,14 +72,17 @@ model = getattr(applications, args.model)(weights=None)
 
 opt = tf.train.GradientDescentOptimizer(0.01)
 
-if args.kungfu == 'sync-sgd':
+if args.metric == 'variance':
+    from kungfu.optimizers import SyncSGDWithGradVarianceOptimizer
+    opt = SyncSGDWithGradVarianceOptimizer(opt, monitor_interval=args.interval)
+elif args.metric == 'noise-scale':
+    from kungfu.optimizers import SyncSGDWithGradNoiseScaleOptimizer
+    opt = SyncSGDWithGradNoiseScaleOptimizer(opt,
+                                             device_batch_size=args.batch_size,
+                                             monitor_interval=args.interval)
+else:
     from kungfu.optimizers import SyncSGDOptimizer
     opt = SyncSGDOptimizer(opt)
-elif args.kungfu == 'async-sgd':
-    from kungfu.optimizers import PeerModelAveragingOptimizer
-    opt = PeerModelAveragingOptimizer(opt)
-else:
-    pass
 
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
 target = tf.random_uniform([args.batch_size, 1],

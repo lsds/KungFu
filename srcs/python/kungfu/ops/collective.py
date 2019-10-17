@@ -17,10 +17,6 @@ def all_reduce_gpu(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
 
 
-def global_variance(t):
-    return _op_lib.global_variance(t)
-
-
 def start_gpu_group(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 

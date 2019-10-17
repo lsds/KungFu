@@ -1,9 +1,10 @@
 from .adapt import get_init_checkpoint, resize_cluster
 from .collective import (all_reduce, all_reduce_gpu, barrier, broadcast,
-                         cpu_group_all_reduce, global_variance,
-                         gpu_group_all_reduce, group_all_reduce)
+                         cpu_group_all_reduce, gpu_group_all_reduce,
+                         group_all_reduce)
 from .loader import _has_gpu, _init_lib, _op_lib
 from .local import save_variable, save_variables
+from .monitor import global_noise_scale
 from .p2p import request_variable, request_variable_with_template
 
 
@@ -335,56 +336,3 @@ def cpu_group_all_reduce_variance_monitor(grads, batch_small):
                                                   _concat(negotiated_grads))
     with tf.control_dependencies([noise_op]):
         return [tf.identity(g) for g in negotiated_grads]
-
-
-# deprecated
-def get_global_gradient_noise_operator(batch_small,
-                                       concat_grad,
-                                       concat_negotiated_grad,
-                                       alpha=0.6):
-    import tensorflow as tf
-    import json, os
-    cluster_spec = json.loads(os.getenv('KUNGFU_CLUSTER_SPEC'))
-    num_workers = len(cluster_spec['Peers'])
-    if num_workers == 0:
-        raise "Cluster spec KUNGFU_CLUSTER_SPEC is invalid"
-    batch_big = batch_small * num_workers
-
-    # Take average over workers
-    G_big = tf.div(concat_negotiated_grad, num_workers)
-    G_small = concat_grad
-
-    G_sq_small = tf.square(tf.norm(G_small))
-    G_sq_big = tf.square(tf.norm(G_big))
-
-    G_biased = 1 / (batch_big - batch_small) * (batch_big * G_sq_big -
-                                                batch_small * G_sq_small)
-    S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
-
-    global_noise_op = _op_lib.gradient_noise(G_biased, S_biased, alpha=alpha)
-
-    return global_noise_op
-
-
-def global_gradient_noise_scale(batch_small,
-                                concat_grad,
-                                concat_negotiated_grad,
-                                alpha=0.6):
-    import tensorflow as tf
-    _, np = peer_info(tf.constant(-1, dtype=tf.int32))
-    cluster_size = tf.cast(np, dtype=tf.float32)
-    batch_small = tf.cast(batch_small, dtype=tf.float32)
-
-    batch_big = batch_small * cluster_size
-    # Take average over workers
-    G_big = tf.div(concat_negotiated_grad, cluster_size)
-    G_small = concat_grad
-
-    G_sq_small = tf.square(tf.norm(G_small))
-    G_sq_big = tf.square(tf.norm(G_big))
-
-    G_biased = 1 / (batch_big - batch_small) * (batch_big * G_sq_big -
-                                                batch_small * G_sq_small)
-    S_biased = 1 / (1 / batch_small - 1 / batch_big) * (G_sq_small - G_sq_big)
-
-    return _op_lib.gradient_noise(G_biased, S_biased, alpha=alpha)
