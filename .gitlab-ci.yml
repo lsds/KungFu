@@ -41,7 +41,7 @@ python3 test:
   - pip3 install -vvv -U .
   - ./scripts/tests/run-op-tests.sh
   - ./scripts/tests/run-train-tests.sh
-  - ./benchmarks/adaptive/bench-adaptation.sh # FIXME: make it a test
+  - ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
 
 go format test:
   stage: lint
