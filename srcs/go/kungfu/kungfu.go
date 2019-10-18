@@ -140,9 +140,9 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	return true
 }
 
-func (kf *Kungfu) Save(version, name string, buf *kb.Vector) int {
+func (kf *Kungfu) Save(version, name string, buf *kb.Vector) error {
 	blob := &store.Blob{Data: buf.Data}
-	return code(kf.store.Create(version, name, blob))
+	return kf.store.Create(version, name, blob)
 }
 
 func par(ps plan.PeerList, f func(plan.PeerID) error) error {
