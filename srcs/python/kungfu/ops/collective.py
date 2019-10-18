@@ -48,4 +48,4 @@ def group_all_reduce(ts, use_nccl=False):
     _rank, np = peer_info()
     import tensorflow as tf
     return tf.cond(np > 1, lambda: _group_all_reduce(ts, use_nccl),
-                   lambda: tf.identity(ts))
+                   lambda: [tf.identity(t) for t in ts])
