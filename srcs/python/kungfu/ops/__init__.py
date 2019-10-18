@@ -287,7 +287,7 @@ def partial_exchange_with_gpu_allreduce(ts,
     for i, partition in enumerate(groups):
         negotiated_partition = tf.cond(
             tf.equal(tf.mod(gs - 1, num_partitions), i),
-            lambda partition=partition: gpu_group_all_reduce(partition),
+            lambda partition=partition: group_nccl_all_reduce(partition),
             lambda partition=partition: partition)
         if len(partition) == 1:
             negotiated_partition = [negotiated_partition]
