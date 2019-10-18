@@ -1,4 +1,5 @@
 from .loader import _op_lib
+from .topology import peer_info
 
 
 def barrier():
@@ -35,10 +36,16 @@ def gpu_group_all_reduce(ts):
         return [all_reduce_gpu(t) for t in ts]
 
 
-def group_all_reduce(ts, nccl=False):
-    # FIXME: auto determine device
-    if nccl:
+def _group_all_reduce(ts, use_nccl=False):
+    if use_nccl:
         print('Try to use GPU NCCL to perform all-reduce')
         return gpu_group_all_reduce(ts)
     print('Try to use KungFu MPI to perform all-reduce')
     return cpu_group_all_reduce(ts)
+
+
+def group_all_reduce(ts, use_nccl):
+    _rank, np = peer_info()
+    import tensorflow as tf
+    return tf.cond(np > 1, lambda: _group_all_reduce(ts, use_nccl),
+                   lambda: tf.identity(ts))
