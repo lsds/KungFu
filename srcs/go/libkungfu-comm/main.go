@@ -54,51 +54,29 @@ func GoKungfuRank() int {
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
+	goName := C.GoString(name) // copy *C.char into go string before entering closure
 	b := toVector(buf, count, dtype)
-	if done == nil {
-		// Synchronous case
-		return code("Request", sess.Request(rank, goName, b))
-	}
-	go func() {
-		code("Request", sess.Request(rank, goName, b)) // FIXME: pass error code to done
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
+	op := func() error { return sess.Request(rank, goName, b) }
+	return callOP("Request", op, done)
 }
 
 //export GoKungfuRequestVersion
 func GoKungfuRequestVersion(rank int, version, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 	goVersion := C.GoString(version)
-	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
+	goName := C.GoString(name)
 	b := toVector(buf, count, dtype)
-	if done == nil {
-		return code("Pull", sess.Pull(rank, goVersion, goName, b))
-	}
-	go func() {
-		code("Pull", sess.Pull(rank, goVersion, goName, b))
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
+	op := func() error { return sess.Pull(rank, goVersion, goName, b) }
+	return callOP("Pull", op, done)
 }
 
 //export GoKungfuSave
 func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
+	goName := C.GoString(name)
 	b := toVector(buf, count, dtype)
-	if done == nil {
-		return code("Save", sess.Save(goName, b))
-	}
-	go func() {
-		code("Save", sess.Save(goName, b))
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
+	op := func() error { return sess.Save(goName, b) }
+	return callOP("Save", op, done)
 }
 
 //export GoKungfuSaveVersion
@@ -106,15 +84,8 @@ func GoKungfuSaveVersion(version, name *C.char, buf unsafe.Pointer, count int, d
 	goVersion := C.GoString(version)
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
 	b := toVector(buf, count, dtype)
-	if done == nil {
-		return code("Save", kungfu.Save(goVersion, goName, b))
-	}
-	go func() {
-		code("Save", kungfu.Save(goVersion, goName, b))
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
+	op := func() error { return kungfu.Save(goVersion, goName, b) }
+	return callOP("SaveVersion", op, done)
 }
 
 //export GoKungfuGetPeerLatencies
@@ -164,11 +135,22 @@ func boolToChar(v bool) C.char {
 	return C.char(0)
 }
 
+func callOP(name string, op func() error, done *C.callback_t) int {
+	if done == nil {
+		return code(name, op())
+	}
+	go func() {
+		code(name, op()) // FIXME: pass error code to done
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}
+
 func code(name string, err error) int {
 	if err == nil {
 		return 0
 	}
 	log.Errorf("kungfu operation %s failed: %v", name, err)
-	// TODO: https://www.open-mpi.org/doc/v3.1/man3/MPI.3.php#sect4
 	return 1 // the caller should exit(1)
 }

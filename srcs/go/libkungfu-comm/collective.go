@@ -18,7 +18,7 @@ import "C"
 func GoKungfuBarrier(done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 	var w kf.Workspace
-	return callCollectiveAPI("Barrier", sess.Barrier, w, done)
+	return callCollectiveOP("Barrier", sess.Barrier, w, done)
 }
 
 //export GoKungfuAllReduce
@@ -30,7 +30,7 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 		Name:    C.GoString(name),
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveAPI("AllReduce", sess.AllReduce, w, done)
+	return callCollectiveOP("AllReduce", sess.AllReduce, w, done)
 }
 
 //export GoKungfuReduce
@@ -42,7 +42,7 @@ func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_D
 		Name:    C.GoString(name),
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveAPI("Reduce", sess.Reduce, w, done)
+	return callCollectiveOP("Reduce", sess.Reduce, w, done)
 }
 
 //export GoKungfuBroadcast
@@ -50,11 +50,10 @@ func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	w := kf.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
-		// OP:      0, // FIXME: assert that OP is not used
-		Name: C.GoString(name),
+		Name:    C.GoString(name),
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveAPI("Broadcast", sess.Broadcast, w, done)
+	return callCollectiveOP("Broadcast", sess.Broadcast, w, done)
 }
 
 //export GoKungfuGather
@@ -64,21 +63,12 @@ func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Da
 	w := kf.Workspace{
 		SendBuf: toVector(sendBuf, sendCount, sendDtype),
 		RecvBuf: toVector(recvBuf, recvCount, recvDtype),
-		// OP:      0, // FIXME: assert that OP is not used
-		Name: C.GoString(name),
+		Name:    C.GoString(name),
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveAPI("Gather", sess.Gather, w, done)
+	return callCollectiveOP("Gather", sess.Gather, w, done)
 }
 
-func callCollectiveAPI(name string, op func(kf.Workspace) error, w kf.Workspace, done *C.callback_t) int {
-	if done == nil {
-		return code(name, op(w))
-	}
-	go func() {
-		code(name, op(w)) // FIXME: pass error code to done
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
+func callCollectiveOP(name string, op func(kf.Workspace) error, w kf.Workspace, done *C.callback_t) int {
+	return callOP(name, func() error { return op(w) }, done)
 }
