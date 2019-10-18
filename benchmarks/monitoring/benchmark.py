@@ -46,11 +46,11 @@ parser.add_argument('--no-cuda',
                     help='disables CUDA training')
 parser.add_argument('--metric',
                     type=str,
-                    default=None,
+                    default='ideal',
                     help='The monitoring metric')
 parser.add_argument('--interval',
                     type=int,
-                    default=10,
+                    default=1,
                     help='The monitoring interval')
 
 args = parser.parse_args()
@@ -80,9 +80,11 @@ elif args.metric == 'noise-scale':
     opt = SyncSGDWithGradNoiseScaleOptimizer(opt,
                                              device_batch_size=args.batch_size,
                                              monitor_interval=args.interval)
-else:
+elif args.metric == 'ideal':
     from kungfu.optimizers import SyncSGDOptimizer
     opt = SyncSGDOptimizer(opt)
+else:
+    raise Exception('Unknown monitoring metric: %s' % args.metric)
 
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
 target = tf.random_uniform([args.batch_size, 1],
