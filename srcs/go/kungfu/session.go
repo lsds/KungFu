@@ -117,7 +117,7 @@ func (sess *session) Rank() int {
 	return sess.myRank
 }
 
-func (sess *session) Barrier(Workspace) error {
+func (sess *session) Barrier() error {
 	return sess.barrier()
 }
 

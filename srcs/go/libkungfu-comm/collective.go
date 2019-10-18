@@ -17,8 +17,7 @@ import "C"
 //export GoKungfuBarrier
 func GoKungfuBarrier(done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
-	var w kf.Workspace
-	return callCollectiveOP("Barrier", sess.Barrier, w, done)
+	return callOP("Barrier", sess.Barrier, done)
 }
 
 //export GoKungfuAllReduce
