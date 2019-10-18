@@ -25,11 +25,11 @@ def group_all_reduce(ts):
                    lambda: [tf.identity(t) for t in ts])
 
 
-def _gpu_all_reduce(t):
+def _nccl_all_reduce(t):
     return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
 
 
-def _start_gpu_group(*args, **kwargs):
+def _start_nccl_scheduler(*args, **kwargs):
     return _op_lib.start_gpu_group(*args, **kwargs)
 
 
@@ -38,6 +38,6 @@ def group_nccl_all_reduce(ts):
     names = list(sorted(names))  # FIXME: use topsort
     import tensorflow as tf
     with tf.control_dependencies([
-            _start_gpu_group(names),
+            _start_nccl_scheduler(names),
     ]):
-        return [_gpu_all_reduce(t) for t in ts]
+        return [_nccl_all_reduce(t) for t in ts]
