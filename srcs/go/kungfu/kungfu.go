@@ -132,8 +132,8 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	if !exist {
 		return false
 	}
-	if err := sess.Barrier(); err != nil {
-		utils.ExitErr(fmt.Errorf("Barrier failed after newSession: %v", err))
+	if err := sess.barrier(); err != nil {
+		utils.ExitErr(fmt.Errorf("barrier failed after newSession: %v", err))
 	}
 	kf.currentSession = sess
 	kf.updated = true

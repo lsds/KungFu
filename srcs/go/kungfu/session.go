@@ -117,7 +117,11 @@ func (sess *session) Rank() int {
 	return sess.myRank
 }
 
-func (sess *session) Barrier() error {
+func (sess *session) Barrier(Workspace) error {
+	return sess.barrier()
+}
+
+func (sess *session) barrier() error {
 	k := len(sess.cluster)
 	count := k * 1
 	dtype := kb.U8

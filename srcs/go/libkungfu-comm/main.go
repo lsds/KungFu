@@ -51,20 +51,6 @@ func GoKungfuRank() int {
 	return sess.Rank()
 }
 
-//export GoKungfuBarrier
-func GoKungfuBarrier(done *C.callback_t) int {
-	sess := kungfu.CurrentSession()
-	if done == nil {
-		return code("Barrier", sess.Barrier())
-	}
-	go func() {
-		code("Barrier", sess.Barrier()) // FIXME: pass error code to done
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
-}
-
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
@@ -125,88 +111,6 @@ func GoKungfuSaveVersion(version, name *C.char, buf unsafe.Pointer, count int, d
 	}
 	go func() {
 		code("Save", kungfu.Save(goVersion, goName, b))
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
-}
-
-//export GoKungfuAllReduce
-func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
-	w := kf.Workspace{
-		SendBuf: toVector(sendBuf, count, dtype),
-		RecvBuf: toVector(recvBuf, count, dtype),
-		OP:      kb.OP(op),
-		Name:    C.GoString(name),
-	}
-	sess := kungfu.CurrentSession()
-	if done == nil {
-		return code("AllReduce", sess.AllReduce(w))
-	}
-	go func() {
-		code("AllReduce", sess.AllReduce(w))
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
-}
-
-//export GoKungfuReduce
-func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
-	w := kf.Workspace{
-		SendBuf: toVector(sendBuf, count, dtype),
-		RecvBuf: toVector(recvBuf, count, dtype),
-		OP:      kb.OP(op),
-		Name:    C.GoString(name),
-	}
-	sess := kungfu.CurrentSession()
-	if done == nil {
-		return code("Reduce", sess.Reduce(w))
-	}
-	go func() {
-		code("Reduce", sess.Reduce(w))
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
-}
-
-//export GoKungfuBroadcast
-func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, name *C.char, done *C.callback_t) int {
-	w := kf.Workspace{
-		SendBuf: toVector(sendBuf, count, dtype),
-		RecvBuf: toVector(recvBuf, count, dtype),
-		// OP:      0, // FIXME: assert that OP is not used
-		Name: C.GoString(name),
-	}
-	sess := kungfu.CurrentSession()
-	if done == nil {
-		return code("Broadcast", sess.Broadcast(w))
-	}
-	go func() {
-		code("Broadcast", sess.Broadcast(w))
-		C.invoke_callback(done)
-		C.delete_callback(done)
-	}()
-	return 0
-}
-
-//export GoKungfuGather
-func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype,
-	recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype,
-	name *C.char, done *C.callback_t) int {
-	w := kf.Workspace{
-		SendBuf: toVector(sendBuf, sendCount, sendDtype),
-		RecvBuf: toVector(recvBuf, recvCount, recvDtype),
-		// OP:      0, // FIXME: assert that OP is not used
-		Name: C.GoString(name),
-	}
-	sess := kungfu.CurrentSession()
-	if done == nil {
-		return code("Gather", sess.Gather(w))
-	}
-	go func() {
-		code("Gather", sess.Gather(w))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
