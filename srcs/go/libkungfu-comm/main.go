@@ -82,7 +82,7 @@ func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Da
 //export GoKungfuSaveVersion
 func GoKungfuSaveVersion(version, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	goVersion := C.GoString(version)
-	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
+	goName := C.GoString(name)
 	b := toVector(buf, count, dtype)
 	op := func() error { return kungfu.Save(goVersion, goName, b) }
 	return callOP("SaveVersion", op, done)
@@ -137,17 +137,17 @@ func boolToChar(v bool) C.char {
 
 func callOP(name string, op func() error, done *C.callback_t) int {
 	if done == nil {
-		return code(name, op())
+		return errorCode(name, op())
 	}
 	go func() {
-		code(name, op()) // FIXME: pass error code to done
+		errorCode(name, op()) // FIXME: pass error code to done
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
 	return 0
 }
 
-func code(name string, err error) int {
+func errorCode(name string, err error) int {
 	if err == nil {
 		return 0
 	}
