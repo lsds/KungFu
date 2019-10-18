@@ -2,7 +2,7 @@ import tensorflow as tf
 from kungfu.ops import (broadcast, global_noise_scale, group_all_reduce,
                         group_nccl_all_reduce, peer_info)
 
-from .core import KungFuOptimizer, fuse, defuse
+from .core import KungFuOptimizer, defuse, fuse
 
 
 class SyncSGDOptimizer(KungFuOptimizer):
