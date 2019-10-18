@@ -55,10 +55,10 @@ func GoKungfuRank() int {
 func GoKungfuBarrier(done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
 	if done == nil {
-		return sess.Barrier()
+		return code("Barrier", sess.Barrier())
 	}
 	go func() {
-		sess.Barrier()
+		code("Barrier", sess.Barrier()) // FIXME: pass error code to done
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -72,10 +72,10 @@ func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtyp
 	b := toVector(buf, count, dtype)
 	if done == nil {
 		// Synchronous case
-		return sess.Request(rank, goName, b)
+		return code("Request", sess.Request(rank, goName, b))
 	}
 	go func() {
-		sess.Request(rank, goName, b)
+		code("Request", sess.Request(rank, goName, b)) // FIXME: pass error code to done
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -89,10 +89,10 @@ func GoKungfuRequestVersion(rank int, version, name *C.char, buf unsafe.Pointer,
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
 	b := toVector(buf, count, dtype)
 	if done == nil {
-		return sess.Pull(rank, goVersion, goName, b)
+		return code("Pull", sess.Pull(rank, goVersion, goName, b))
 	}
 	go func() {
-		sess.Pull(rank, goVersion, goName, b)
+		code("Pull", sess.Pull(rank, goVersion, goName, b))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -105,10 +105,10 @@ func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Da
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
 	b := toVector(buf, count, dtype)
 	if done == nil {
-		return sess.Save(goName, b)
+		return code("Save", sess.Save(goName, b))
 	}
 	go func() {
-		sess.Save(goName, b)
+		code("Save", sess.Save(goName, b))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -121,10 +121,10 @@ func GoKungfuSaveVersion(version, name *C.char, buf unsafe.Pointer, count int, d
 	goName := C.GoString(name) // copy *C.char into go string before entering goroutine
 	b := toVector(buf, count, dtype)
 	if done == nil {
-		return kungfu.Save(goVersion, goName, b)
+		return code("Save", kungfu.Save(goVersion, goName, b))
 	}
 	go func() {
-		kungfu.Save(goVersion, goName, b)
+		code("Save", kungfu.Save(goVersion, goName, b))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -141,10 +141,10 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	}
 	sess := kungfu.CurrentSession()
 	if done == nil {
-		return sess.AllReduce(w)
+		return code("AllReduce", sess.AllReduce(w))
 	}
 	go func() {
-		sess.AllReduce(w)
+		code("AllReduce", sess.AllReduce(w))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -161,10 +161,10 @@ func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_D
 	}
 	sess := kungfu.CurrentSession()
 	if done == nil {
-		return sess.Reduce(w)
+		return code("Reduce", sess.Reduce(w))
 	}
 	go func() {
-		sess.Reduce(w)
+		code("Reduce", sess.Reduce(w))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -181,10 +181,10 @@ func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	}
 	sess := kungfu.CurrentSession()
 	if done == nil {
-		return sess.Broadcast(w)
+		return code("Broadcast", sess.Broadcast(w))
 	}
 	go func() {
-		sess.Broadcast(w)
+		code("Broadcast", sess.Broadcast(w))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -203,10 +203,10 @@ func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Da
 	}
 	sess := kungfu.CurrentSession()
 	if done == nil {
-		return sess.Gather(w)
+		return code("Gather", sess.Gather(w))
 	}
 	go func() {
-		sess.Gather(w)
+		code("Gather", sess.Gather(w))
 		C.invoke_callback(done)
 		C.delete_callback(done)
 	}()
@@ -258,4 +258,13 @@ func boolToChar(v bool) C.char {
 		return C.char(1)
 	}
 	return C.char(0)
+}
+
+func code(name string, err error) int {
+	if err == nil {
+		return 0
+	}
+	log.Errorf("kungfu operation %s failed: %v", name, err)
+	// TODO: https://www.open-mpi.org/doc/v3.1/man3/MPI.3.php#sect4
+	return 1 // the caller should exit(1)
 }

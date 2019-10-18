@@ -132,17 +132,17 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	if !exist {
 		return false
 	}
-	if err := sess.barrier(); err != nil {
-		utils.ExitErr(fmt.Errorf("barrier failed after newSession: %v", err))
+	if err := sess.Barrier(); err != nil {
+		utils.ExitErr(fmt.Errorf("Barrier failed after newSession: %v", err))
 	}
 	kf.currentSession = sess
 	kf.updated = true
 	return true
 }
 
-func (kf *Kungfu) Save(version, name string, buf *kb.Vector) int {
+func (kf *Kungfu) Save(version, name string, buf *kb.Vector) error {
 	blob := &store.Blob{Data: buf.Data}
-	return code(kf.store.Create(version, name, blob))
+	return kf.store.Create(version, name, blob)
 }
 
 func par(ps plan.PeerList, f func(plan.PeerID) error) error {

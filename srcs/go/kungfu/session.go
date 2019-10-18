@@ -117,24 +117,7 @@ func (sess *session) Rank() int {
 	return sess.myRank
 }
 
-func (sess *session) Warmup() int {
-	k := len(sess.cluster)
-	count := k * 4
-	dtype := kb.I32
-	w := Workspace{
-		SendBuf: kb.NewVector(count, dtype),
-		RecvBuf: kb.NewVector(count, dtype),
-		OP:      kb.SUM,
-		Name:    "kungfu::warmup", // TODO: use tag
-	}
-	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
-}
-
-func (sess *session) Barrier() int {
-	return code(sess.barrier())
-}
-
-func (sess *session) barrier() error {
+func (sess *session) Barrier() error {
 	k := len(sess.cluster)
 	count := k * 1
 	dtype := kb.U8
@@ -147,41 +130,41 @@ func (sess *session) barrier() error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
-func (sess *session) AllReduce(w Workspace) int {
-	return code(sess.runStrategies(w, plan.EvenPartition, sess.strategies))
+func (sess *session) AllReduce(w Workspace) error {
+	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
-func (sess *session) Reduce(w Workspace) int {
+func (sess *session) Reduce(w Workspace) error {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
-	return code(sess.runGraphs(w, strategy.reduceGraph))
+	return sess.runGraphs(w, strategy.reduceGraph)
 }
 
-func (sess *session) Broadcast(w Workspace) int {
+func (sess *session) Broadcast(w Workspace) error {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
-	return code(sess.runGraphs(w, strategy.bcastGraph))
+	return sess.runGraphs(w, strategy.bcastGraph)
 }
 
-func (sess *session) Gather(w Workspace) int {
+func (sess *session) Gather(w Workspace) error {
 	// TODO: validate input
-	return code(sess.runGather(w))
+	return sess.runGather(w)
 }
 
-func (sess *session) Request(rank int, name string, model *kb.Vector) int {
+func (sess *session) Request(rank int, name string, model *kb.Vector) error {
 	if rank < 0 || len(sess.cluster) <= rank {
-		return code(errInvalidRank)
+		return errInvalidRank
 	}
 	peer := sess.cluster[rank]
-	return code(sess.router.Request(peer.WithName(name), model))
+	return sess.router.Request(peer.WithName(name), model)
 }
 
-func (sess *session) Pull(rank int, version, name string, model *kb.Vector) int {
+func (sess *session) Pull(rank int, version, name string, model *kb.Vector) error {
 	peer := sess.cluster[rank]
-	return code(sess.router.Pull(version, peer.WithName(name), model))
+	return sess.router.Pull(version, peer.WithName(name), model)
 }
 
 // FIXME: move it to kungfu
-func (sess *session) Save(name string, buf *kb.Vector) int {
-	return code(sess.router.Save(name, buf))
+func (sess *session) Save(name string, buf *kb.Vector) error {
+	return sess.router.Save(name, buf)
 }
 
 func asMessage(b *kb.Vector) rch.Message {
@@ -332,15 +315,6 @@ func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []st
 var (
 	errInvalidRank = errors.New("invalid rank")
 )
-
-func code(err error) int {
-	if err == nil {
-		return 0
-	}
-	log.Errorf("kungfu operation failed: %v", err)
-	// TODO: https://www.open-mpi.org/doc/v3.1/man3/MPI.3.php#sect4
-	return 1
-}
 
 func mergeErrors(errs []error, hint string) error {
 	var msg string
