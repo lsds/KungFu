@@ -1,6 +1,5 @@
 from .adapt import get_init_checkpoint, resize_cluster
-from .collective import (all_reduce, all_reduce_gpu, barrier, broadcast,
-                         cpu_group_all_reduce, gpu_group_all_reduce,
+from .collective import (all_reduce, barrier, broadcast, group_nccl_all_reduce,
                          group_all_reduce)
 from .loader import _has_gpu, _init_lib, _op_lib
 from .local import save_variable, save_variables

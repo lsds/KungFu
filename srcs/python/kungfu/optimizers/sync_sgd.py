@@ -1,8 +1,8 @@
 import tensorflow as tf
 from kungfu.ops import (broadcast, global_noise_scale, group_all_reduce,
-                        peer_info)
+                        group_nccl_all_reduce, peer_info)
 
-from .core import KungFuOptimizer, fuse
+from .core import KungFuOptimizer, fuse, defuse
 
 
 class SyncSGDOptimizer(KungFuOptimizer):
@@ -19,22 +19,45 @@ class SyncSGDOptimizer(KungFuOptimizer):
         Optional name prefix for the operations created when applying
         gradients. Defaults to "Distributed" followed by the provided
         optimizer type.
+      nccl:
+        Optional flag for using NCCL to perform all-reduce.
+      nccl_fusion:
+        Optional flag to fuse all gradients before launch NCCL all-reduce.
+        This is useful to amortise the cost of NCCL calls.
       use_locking:
         Whether to use locking when updating variables.
         See Optimizer.__init__ for more info.
 
     """
-    def __init__(self, optimizer, name=None, use_locking=False):
+    def __init__(self,
+                 optimizer,
+                 nccl=False,
+                 nccl_fusion=True,
+                 name=None,
+                 use_locking=False):
         super(SyncSGDOptimizer, self).__init__(optimizer,
                                                name,
                                                use_locking=use_locking)
         _rank, np = peer_info()
         # FIXME: use type of gradient
         self._num_workers = tf.cast(np, tf.float32)
+        self._nccl = nccl
+        self._nccl_fusion = nccl_fusion
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
-        summed_gradients = group_all_reduce(gradients)
+
+        if self._nccl:
+            if self._nccl_fusion:
+                fused_grad = fuse(gradients)
+                summed_fused_gradients = group_nccl_all_reduce([fused_grad])
+                summed_gradients = defuse(summed_fused_gradients,
+                                          [g.shape for g in gradients])
+            else:
+                summed_gradients = group_nccl_all_reduce(gradients)
+        else:
+            summed_gradients = group_all_reduce(gradients)
+
         reduced_grads = [g / self._num_workers for g in summed_gradients]
         reduced_grads_and_vars = zip(reduced_grads, variables)
         return self._optimizer.apply_gradients(reduced_grads_and_vars,

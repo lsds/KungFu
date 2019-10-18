@@ -78,8 +78,13 @@ if args.kungfu == 'sync-sgd':
 elif args.kungfu == 'async-sgd':
     from kungfu.optimizers import PeerModelAveragingOptimizer
     opt = PeerModelAveragingOptimizer(opt)
+elif args.kungfu == 'sync-sgd-nccl':
+    from kungfu.optimizers import SyncSGDOptimizer
+    opt = SyncSGDOptimizer(opt, nccl=True)
+elif args.kungfu == 'ideal':
+    opt = opt
 else:
-    pass
+    raise Exception('Unknown kungfu option')
 
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
 target = tf.random_uniform([args.batch_size, 1],
