@@ -6,35 +6,12 @@ from .loader import _has_gpu, _init_lib, _op_lib
 from .local import save_variable, save_variables
 from .monitor import global_noise_scale
 from .p2p import request_variable, request_variable_with_template
+from .topology import (_get_other_ranks, current_cluster_size, current_rank,
+                       peer_info)
 
 
 def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
-
-
-# metadata APIs
-def current_rank():
-    return _init_lib.kungfu_rank()
-
-
-def current_cluster_size():
-    return _init_lib.kungfu_cluster_size()
-
-
-def _get_other_ranks():
-    self_rank = current_rank()
-    ranks = list(range(current_cluster_size()))
-    return [r for r in ranks if r != self_rank]
-
-
-def peer_info():
-    """
-    Returns:
-        a pair of scalar tensors of int32: (rank, cluster_size).
-    """
-    import tensorflow as tf
-    version = tf.constant(-1, dtype=tf.int32)
-    return _op_lib.kungfu_get_peer_info(version)
 
 
 # TODO: group ops by category
