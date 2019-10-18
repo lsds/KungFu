@@ -36,7 +36,7 @@ def gpu_group_all_reduce(ts):
         return [all_reduce_gpu(t) for t in ts]
 
 
-def _group_all_reduce(ts, use_nccl=False):
+def _group_all_reduce(ts, use_nccl):
     if use_nccl:
         print('Try to use GPU NCCL to perform all-reduce')
         return gpu_group_all_reduce(ts)
@@ -44,7 +44,7 @@ def _group_all_reduce(ts, use_nccl=False):
     return cpu_group_all_reduce(ts)
 
 
-def group_all_reduce(ts, use_nccl):
+def group_all_reduce(ts, use_nccl=False):
     _rank, np = peer_info()
     import tensorflow as tf
     return tf.cond(np > 1, lambda: _group_all_reduce(ts, use_nccl),
