@@ -12,6 +12,7 @@ import (
 )
 
 type JobConfig struct {
+	Strategy  kb.Strategy
 	Parent    plan.PeerID
 	HostList  plan.HostList
 	PortRange plan.PortRange
@@ -19,23 +20,20 @@ type JobConfig struct {
 	Args      []string
 }
 
-func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
-	configEnvs := getConfigEnvs()
+func (jc JobConfig) NewProc(name string, peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
 	envs := Envs{
-		kb.SelfSpecEnvKey:      peer.String(),
-		`CUDA_VISIBLE_DEVICES`: strconv.Itoa(localRank),
-		kb.HostListEnvKey:      jc.HostList.String(),
-		kb.PortRangeEnvKey:     jc.PortRange.String(),
-		kb.ParentIDEnvKey:      jc.Parent.String(),
-		kb.PeerListEnvKey:      pl.String(),
-		kb.InitStepEnvKey:      checkpoint,
+		kb.SelfSpecEnvKey:          peer.String(),
+		`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
+		kb.HostListEnvKey:          jc.HostList.String(),
+		kb.PortRangeEnvKey:         jc.PortRange.String(),
+		kb.ParentIDEnvKey:          jc.Parent.String(),
+		kb.PeerListEnvKey:          pl.String(),
+		kb.CheckpointEnvKey:        checkpoint,
+		kb.AllReduceStrategyEnvKey: jc.Strategy.String(),
 	}
-
-	allEnvs := merge(merge(configEnvs, envs), extraEnvs)
-
+	allEnvs := merge(getConfigEnvs(), envs)
 	allEnvs.addIfMissing(`DYLD_LIBRARY_PATH`, run.DefaultLdLibraryPath)
 	allEnvs.addIfMissing(`PYTHONUNBUFFERED`, `1`)
-
 	var pubAddr string
 	for _, h := range jc.HostList {
 		if h.IPv4 == peer.IPv4 {
@@ -53,30 +51,16 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 	}
 }
 
-func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.PeerList, error) {
+func (jc JobConfig) CreateProcs(np int) ([]Proc, plan.PeerList, error) {
 	pl, err := jc.HostList.GenPeerList(np, jc.PortRange)
 	if err != nil {
 		return nil, nil, err
 	}
-	pubAddr := make(map[uint32]string)
-	for _, h := range jc.HostList {
-		pubAddr[h.IPv4] = h.PublicAddr
-	}
-	configEnvs := getConfigEnvs()
 	var ps []Proc
-	for i, self := range pl {
+	for _, self := range pl {
 		localRank, _ := pl.LocalRank(self)
 		name := fmt.Sprintf("%s.%d", plan.FormatIPv4(self.IPv4), self.Port)
-		envs := Envs{
-			kb.ParentIDEnvKey:          jc.Parent.String(),
-			kb.PeerListEnvKey:          pl.String(),
-			kb.HostListEnvKey:          jc.HostList.String(),
-			kb.PortRangeEnvKey:         jc.PortRange.String(),
-			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
-			kb.SelfSpecEnvKey:          self.String(),
-			kb.AllReduceStrategyEnvKey: strategy.String(), // FIXME: remove it
-		}
-		proc := jc.NewProc(name, merge(configEnvs, envs), self, localRank, "", nil)
+		proc := jc.NewProc(name, self, localRank, "", pl)
 		ps = append(ps, proc)
 	}
 	return ps, pl, nil

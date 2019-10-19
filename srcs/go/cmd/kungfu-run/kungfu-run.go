@@ -98,6 +98,7 @@ func main() {
 		utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
 	}
 	jc := sch.JobConfig{
+		Strategy:  kb.ParseStrategy(*algo),
 		Parent:    parent,
 		HostList:  hl,
 		PortRange: *pr,
@@ -119,7 +120,7 @@ func main() {
 		ch <- run.Stage{Cluster: peers, Checkpoint: *checkpoint}
 		watchRun(ctx, parent, parents, ch, jc)
 	} else {
-		procs, _, err := jc.CreateProcs(*np, kb.ParseStrategy(*algo))
+		procs, _, err := jc.CreateProcs(*np)
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
 		}

@@ -47,12 +47,13 @@ func main() {
 		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
 	}
 	jc := sch.JobConfig{
+		Strategy:  kb.ParseStrategy(*algo),
 		HostList:  hl,
 		PortRange: *pr,
 		Prog:      restArgs[0],
 		Args:      restArgs[1:],
 	}
-	ps, _, err := jc.CreateProcs(*np, kb.ParseStrategy(*algo))
+	ps, _, err := jc.CreateProcs(*np)
 	if err != nil {
 		utils.ExitErr(err)
 	}
