@@ -35,7 +35,10 @@ def _nccl_all_reduce(t):
 
 
 def _start_nccl_scheduler(*args, **kwargs):
-    return _op_lib.start_nccl_scheduler(*args, **kwargs)
+    if hasattr(_op_lib, 'start_nccl_scheduler'):
+        return _op_lib.start_nccl_scheduler(*args, **kwargs)
+    else:
+        raise Exception("KungFu is not installed with NCCL.")
 
 
 def _group_nccl_all_reduce(ts):
