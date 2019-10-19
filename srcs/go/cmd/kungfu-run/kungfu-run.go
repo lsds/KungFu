@@ -28,7 +28,7 @@ var (
 	timeout    = flag.Duration("timeout", 0, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
-	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
+	strategy   = flag.String("strategy", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 
 	port        = flag.Int("port", 38080, "port for rchannel")
 	watch       = flag.Bool("w", false, "watch config")
@@ -98,7 +98,7 @@ func main() {
 		utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
 	}
 	jc := sch.JobConfig{
-		Strategy:  kb.ParseStrategy(*algo),
+		Strategy:  kb.ParseStrategy(*strategy),
 		Parent:    parent,
 		HostList:  hl,
 		PortRange: *pr,

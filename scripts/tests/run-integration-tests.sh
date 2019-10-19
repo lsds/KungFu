@@ -14,17 +14,17 @@ reinstall() {
 run_fake_cluster() {
     local np=$1
     shift
-    local ALGO=$1
+    local STRATEGY=$1
     shift
 
     local H=127.0.0.1:$np
     local QUIET=-v=false
 
-    echo "running test with algorithm $ALGO"
+    echo "running test with graph strategy $STRATEGY"
     KUNGFU_TEST_CLUSTER_SIZE=$np \
         ./bin/kungfu-run \
         -np=$np \
-        -algo="${ALGO}" \
+        -strategy="${STRATEGY}" \
         -H $H \
         -timeout=5s \
         ${QUIET} \
@@ -32,11 +32,11 @@ run_fake_cluster() {
 }
 
 test_all() {
-    all_algos="STAR RING CLIQUE TREE"
+    all_strategies="STAR RING CLIQUE TREE"
     for np in $(seq 4); do
-        for algo in $all_algos; do
-            run_fake_cluster $np $algo ./bin/fake-agent
-            run_fake_cluster $np $algo ./bin/test-p2p-apis
+        for STRATEGY in $all_strategies; do
+            run_fake_cluster $np $STRATEGY ./bin/fake-agent
+            run_fake_cluster $np $STRATEGY ./bin/test-p2p-apis
         done
     done
 }
