@@ -49,6 +49,7 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         self._save_model_op = save_model_op  # save for _get_initializer_op
         return other_peer_vars, save_model_op
 
+    # Asynchronous decentralised parallel SGD
     def _async_sgd(self, grads_and_vars, **kwargs):
         target = get_random_peer(self._num_workers, self._rank)
         variables = [v for _g, v in grads_and_vars]
@@ -66,24 +67,24 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
                 with tf.control_dependencies([save_model_op]):
                     return tf.group(apply_op)
 
-    def _sync_sgd(self, grads_and_vars, **kwargs):
+    # Synchronous model averaging SGD (SMA)
+    def _sync_mg(self, grads_and_vars, **kwargs):
         _, variables = list(zip(*grads_and_vars))
+        sum_vars = group_all_reduce(variables)
+        avg_vars = [g / self._num_workers for g in sum_vars]
+        assign_ops = [
+            tf.assign(v, avg_v)
+            for v, avg_v in zip(variables, avg_vars)
+        ]
 
-        apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
-        with tf.control_dependencies([apply_op]):
-            sum_vars = group_all_reduce(variables)
-            avg_vars = [g / self._num_workers for g in sum_vars]
-            assign_ops = [
-                tf.assign(v, avg_v)
-                for v, avg_v in zip(variables, avg_vars)
-            ]
-            return tf.group(assign_ops)
+        with tf.control_dependencies(assign_ops):
+            return self._optimizer.apply_gradients(grads_and_vars, **kwargs)
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         cond_op = tf.equal(tf.mod(self._step, self._interval), 0)
         with tf.control_dependencies([tf.assign_add(self._step, 1)]):
             return tf.cond(cond_op,
-                           lambda: self._sync_sgd(grads_and_vars, **kwargs),
+                           lambda: self._sync_mg(grads_and_vars, **kwargs),
                            lambda: self._async_sgd(grads_and_vars, **kwargs))
 
     def distributed_initializer(self):
