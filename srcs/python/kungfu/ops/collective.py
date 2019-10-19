@@ -35,7 +35,7 @@ def _nccl_all_reduce(t):
 
 
 def _start_nccl_scheduler(*args, **kwargs):
-    return _op_lib.start_gpu_group(*args, **kwargs)
+    return _op_lib.start_nccl_scheduler(*args, **kwargs)
 
 
 def _group_nccl_all_reduce(ts):
