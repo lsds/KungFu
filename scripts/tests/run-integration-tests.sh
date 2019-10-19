@@ -7,10 +7,6 @@ SCRIPT_NAME=$(dirname $0)
 cd ../..
 . ./scripts/utils/measure.sh
 
-reinstall() {
-    ./scripts/go-install.sh
-}
-
 run_fake_cluster() {
     local np=$1
     shift
@@ -21,8 +17,7 @@ run_fake_cluster() {
     local QUIET=-v=false
 
     echo "running test with graph strategy $STRATEGY"
-    KUNGFU_TEST_CLUSTER_SIZE=$np \
-        ./bin/kungfu-run \
+    ./bin/kungfu-run \
         -np=$np \
         -strategy="${STRATEGY}" \
         -H $H \
@@ -41,5 +36,4 @@ test_all() {
     done
 }
 
-measure reinstall
 measure test_all
