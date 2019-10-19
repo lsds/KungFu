@@ -23,7 +23,7 @@ var (
 	user       = flag.String("u", "", "user name for ssh")
 	timeout    = flag.Duration("timeout", 0, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
-	algo       = flag.String("algo", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
+	strategy   = flag.String("strategy", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 	checkpoint = flag.String("checkpoint", "0", "")
 )
 
@@ -47,12 +47,13 @@ func main() {
 		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
 	}
 	jc := sch.JobConfig{
+		Strategy:  kb.ParseStrategy(*strategy),
 		HostList:  hl,
 		PortRange: *pr,
 		Prog:      restArgs[0],
 		Args:      restArgs[1:],
 	}
-	ps, _, err := jc.CreateProcs(*np, kb.ParseStrategy(*algo))
+	ps, _, err := jc.CreateProcs(*np)
 	if err != nil {
 		utils.ExitErr(err)
 	}

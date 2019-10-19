@@ -23,7 +23,7 @@ integration test:
   image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   script:
-  - ./configure --build-tests
+  - ./configure --build-tests --build-tools
   - make
   - ./scripts/tests/run-integration-tests.sh
 

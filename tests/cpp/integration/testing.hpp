@@ -40,13 +40,6 @@ std::string safe_getenv(const char *name)
     return "";
 }
 
-int getTestClusterSize()
-{
-    return std::stoi(safe_getenv("KUNGFU_TEST_CLUSTER_SIZE"));
-}
-
-int getSelfRank() { return std::stoi(safe_getenv("KUNGFU_TEST_SELF_RANK")); }
-
 namespace testing
 {
 using clock_t    = std::chrono::high_resolution_clock;

@@ -6,7 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -53,11 +52,7 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 			go func(g *sync.WaitGroup, id plan.PeerID, s run.Stage) {
 				localRank, _ := s.Cluster.LocalRank(id)
 				name := fmt.Sprintf("%s.%d", plan.FormatIPv4(id.IPv4), id.Port)
-				envs := sch.Envs{
-					kb.InitSessEnvKey:   s.Checkpoint,
-					kb.CheckpointEnvKey: s.Checkpoint,
-				}
-				proc := jc.NewProc(name, envs, id, localRank, s.Checkpoint, s.Cluster)
+				proc := jc.NewProc(name, id, localRank, s.Checkpoint, s.Cluster)
 				atomic.AddInt32(&running, 1)
 				runProc(ctx, cancel, proc, s.Checkpoint)
 				n := atomic.AddInt32(&running, -1)

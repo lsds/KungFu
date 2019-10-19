@@ -91,7 +91,7 @@ func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args [
 	var records []Record
 	var lock sync.Mutex
 	var lastID int
-	run := func(algo kb.Strategy, partition []int) {
+	run := func(strategy kb.Strategy, partition []int) {
 		if len(hosts) < len(partition) {
 			return // total resource not sufficient
 		}
@@ -101,22 +101,22 @@ func runAllExperiments(logDir string, hosts []plan.HostSpec, prog string, args [
 			defer wg.Done()
 			hs := requireN(len(partition))
 			defer func() { returnAll(hs) }()
-			log.Printf("begin experiment {%s %v} on {%s}", algo, partition, humanizeHostSpecs(hs))
+			log.Printf("begin experiment {%s %v} on {%s}", strategy, partition, humanizeHostSpecs(hs))
 			t0 := time.Now()
 			myLogDir := path.Join(logDir, fmt.Sprintf("%d", id))
-			res, err := runExperiment(myLogDir, hs, prog, args, algo, partition, timeout)
+			res, err := runExperiment(myLogDir, hs, prog, args, strategy, partition, timeout)
 			if err != nil {
-				log.Printf("failed experiment {%s %v} with: %v", algo, partition, err)
+				log.Printf("failed experiment {%s %v} with: %v", strategy, partition, err)
 				return
 			}
 			r := Record{
 				ID:        id,
 				Took:      time.Since(t0),
-				Strategy:  algo,
+				Strategy:  strategy,
 				Partition: partition,
 				Result:    *res,
 			}
-			log.Printf("end experiment {%s %v} on {%s} with: %s", algo, partition, humanizeHostSpecs(hs), r)
+			log.Printf("end experiment {%s %v} on {%s} with: %s", strategy, partition, humanizeHostSpecs(hs), r)
 			lock.Lock()
 			records = append(records, r)
 			log.Printf("experiment #%d finished, %d experiments finished so far", id, len(records))

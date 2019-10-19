@@ -70,6 +70,11 @@ void train_in_proc_all_reduce(int np, const std::vector<int> &grad_sizes)
                         np);
 }
 
+int getTestClusterSize()
+{
+    return std::stoi(safe_getenv("KUNGFU_TEST_CLUSTER_SIZE"));
+}
+
 int main(int argc, char *argv[])
 {
     TRACE_SCOPE(__func__);

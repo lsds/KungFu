@@ -10,8 +10,6 @@
 
 #include <kungfu/mst.hpp>
 
-bool is_root = getSelfRank() == 0;
-
 void test_AllReduce(kungfu_world &world, int np)
 {
     TRACE_SCOPE(__func__);
@@ -83,8 +81,10 @@ void bench_AllReduce(kungfu_world &world, int n, int m)
 
 void test_Gather(kungfu_world &world, int m)
 {
-    const int np   = world.ClusterSize();
-    const int rank = getSelfRank();
+    const int np       = world.ClusterSize();
+    const int rank     = world.Rank();
+    const bool is_root = rank == 0;
+
     std::vector<int32_t> x(m);
     std::fill(x.begin(), x.end(), rank);
     if (is_root) {
@@ -117,8 +117,8 @@ template <typename T1, typename T2> class fake_transform
 
 void test_AllGatherTransform(kungfu_world &world)
 {
-    const int rank = getSelfRank();
-    const int np   = getTestClusterSize();
+    const int rank = world.Rank();
+    const int np   = world.ClusterSize();
 
     const int m = 10;
     const int n = 3;
@@ -144,8 +144,8 @@ void test_AllGatherTransform(kungfu_world &world)
 
 void test_MST(kungfu_world &world)
 {
-    const int rank = getSelfRank();
-    const int np   = getTestClusterSize();
+    const int rank = world.Rank();
+    const int np   = world.ClusterSize();
 
     using Weight = float;
     using Vertex = int32_t;
@@ -176,9 +176,8 @@ int main(int argc, char *argv[])
 {
     TRACE_SCOPE(__func__);
     kungfu_world _kungfu_world;
-
     {
-        const int np = getTestClusterSize();
+        const int np = _kungfu_world.ClusterSize();
         test_AllReduce(_kungfu_world, np);
     }
     {

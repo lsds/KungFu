@@ -18,7 +18,6 @@ reinstall() {
 }
 
 run_fake_kungfu_trainer() {
-    # local ALGO=
     local np=$1
     local H=127.0.0.1:$np
     env \
@@ -26,7 +25,6 @@ run_fake_kungfu_trainer() {
         KUNGFU_TEST_CLUSTER_SIZE=$np \
         ${KUNGFU_RUN} \
         -np=$np \
-        -algo="${ALGO}" \
         -H $H \
         -timeout=120s \
         ./bin/fake-kungfu-trainer
