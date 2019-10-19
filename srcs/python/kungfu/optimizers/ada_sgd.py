@@ -50,7 +50,7 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         return other_peer_vars, save_model_op
 
     # Asynchronous decentralised parallel SGD
-    def _async_sgd(self, grads_and_vars, **kwargs):
+    def _async_ma_sgd(self, grads_and_vars, **kwargs):
         target = get_random_peer(self._num_workers, self._rank)
         variables = [v for _g, v in grads_and_vars]
         other_peer_vars, save_model_op = self._build_request_and_save_ops(
@@ -68,7 +68,7 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
                     return tf.group(apply_op)
 
     # Synchronous model averaging SGD (SMA)
-    def _sync_mg(self, grads_and_vars, **kwargs):
+    def _sync_ma_sgd(self, grads_and_vars, **kwargs):
         _, variables = list(zip(*grads_and_vars))
         sum_vars = group_all_reduce(variables)
         avg_vars = [g / self._num_workers for g in sum_vars]
@@ -84,8 +84,8 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         cond_op = tf.equal(tf.mod(self._step, self._interval), 0)
         with tf.control_dependencies([tf.assign_add(self._step, 1)]):
             return tf.cond(cond_op,
-                           lambda: self._sync_mg(grads_and_vars, **kwargs),
-                           lambda: self._async_sgd(grads_and_vars, **kwargs))
+                           lambda: self._sync_ma_sgd(grads_and_vars, **kwargs),
+                           lambda: self._async_ma_sgd(grads_and_vars, **kwargs))
 
     def distributed_initializer(self):
         bcast_ops = []
