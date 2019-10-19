@@ -7,24 +7,18 @@ class kungfu_go_collective
 {
     kungfu_world _kungfu_world;
 
-    const int _rank;
-    const int _cluster_size;
-
   public:
     kungfu_go_collective(int argc, char *argv[]) : kungfu_go_collective() {}
 
-    kungfu_go_collective()
-        : _rank(getSelfRank()), _cluster_size(getTestClusterSize())
-    {
-    }
+    kungfu_go_collective() {}
 
     ~kungfu_go_collective() {}
 
-    bool is_root() const { return _rank == 0; }
+    bool is_root() const { return _kungfu_world.Rank() == 0; }
 
-    int rank() const { return _rank; }
+    int rank() const { return _kungfu_world.Rank(); }
 
-    int cluster_size() const { return _cluster_size; }
+    int cluster_size() const { return _kungfu_world.ClusterSize(); }
 
     template <typename T>
     void all_reduce(const T *send_buf, T *recv_buf, size_t count,
