@@ -51,7 +51,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
             if self._nccl_fusion:
                 fused_grad = fuse(gradients)
                 summed_fused_gradients = group_nccl_all_reduce([fused_grad])
-                summed_gradients = defuse(summed_fused_gradients,
+                summed_gradients = defuse(summed_fused_gradients[0],
                                           [g.shape for g in gradients])
             else:
                 summed_gradients = group_nccl_all_reduce(gradients)
