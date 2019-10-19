@@ -1,7 +1,6 @@
 from .adapt import get_init_checkpoint, resize_cluster
-from .collective import (all_reduce, all_reduce_gpu, barrier, broadcast,
-                         cpu_group_all_reduce, gpu_group_all_reduce,
-                         group_all_reduce)
+from .collective import (all_reduce, barrier, broadcast, group_all_reduce,
+                         group_nccl_all_reduce)
 from .loader import _has_gpu, _init_lib, _op_lib
 from .local import save_variable, save_variables
 from .monitor import global_noise_scale
@@ -288,7 +287,7 @@ def partial_exchange_with_gpu_allreduce(ts,
     for i, partition in enumerate(groups):
         negotiated_partition = tf.cond(
             tf.equal(tf.mod(gs - 1, num_partitions), i),
-            lambda partition=partition: gpu_group_all_reduce(partition),
+            lambda partition=partition: group_nccl_all_reduce(partition),
             lambda partition=partition: partition)
         if len(partition) == 1:
             negotiated_partition = [negotiated_partition]

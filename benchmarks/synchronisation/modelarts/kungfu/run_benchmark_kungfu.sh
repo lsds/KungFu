@@ -8,6 +8,7 @@ BATCH_SIZE=64
 NUM_WORKERS=16
 MODEL="ResNet50"
 NUM_ITERS=100
+KUNGFU="sync-sgd"
 
 # Assume each host has 8 GPUs.
 WORKER_HOSTS="169.254.128.207:8,169.254.128.185:8"
@@ -27,4 +28,5 @@ export TF_CPP_MIN_LOG_LEVEL=1
 run_experiment $NUM_WORKERS python3 $SCRIPT_PATH \
     --batch-size=$BATCH_SIZE \
     --model=$MODEL \
-    --num-iters=$NUM_ITERS
+    --num-iters=$NUM_ITERS \
+    --kungfu=$KUNGFU

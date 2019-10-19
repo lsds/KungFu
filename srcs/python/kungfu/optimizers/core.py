@@ -46,7 +46,8 @@ class KungFuOptimizer(tf.train.Optimizer):
 
         # An optimizer could minimize variables other than tf.trainable_variables
         # It is safer to get the correct list of variables that need synchornisation here
-        self._model_variables = [v for g, v in grads_and_vars]
+        if self._model_variables is None:
+            self._model_variables = [v for g, v in grads_and_vars]
 
         return grads_and_vars
 

@@ -9,9 +9,9 @@
 namespace tensorflow
 {
 
-REGISTER_OP("StartGpuGroup").Input("input: string");
+REGISTER_OP("StartNcclScheduler").Input("input: string");
 
-class StartGpuGroup : public OpKernel
+class StartNcclScheduler : public OpKernel
 {
     using OpKernel::OpKernel;
 
@@ -28,8 +28,8 @@ class StartGpuGroup : public OpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("StartGpuGroup").Device(DEVICE_CPU),
-                        StartGpuGroup);
+REGISTER_KERNEL_BUILDER(Name("StartNcclScheduler").Device(DEVICE_CPU),
+                        StartNcclScheduler);
 
 REGISTER_OP("AllReduceGpu")
     .Attr("T: {int32, int64, float16, float32, float64}")
