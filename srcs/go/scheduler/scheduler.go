@@ -7,6 +7,7 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -23,20 +24,32 @@ func (jc JobConfig) NewProc(name string, extraEnvs Envs, peer plan.PeerID, local
 	envs := Envs{
 		kb.SelfSpecEnvKey:      peer.String(),
 		`CUDA_VISIBLE_DEVICES`: strconv.Itoa(localRank),
-		`PYTHONUNBUFFERED`:     `1`,
 		kb.HostListEnvKey:      jc.HostList.String(),
 		kb.PortRangeEnvKey:     jc.PortRange.String(),
 		kb.ParentIDEnvKey:      jc.Parent.String(),
 		kb.PeerListEnvKey:      pl.String(),
 		kb.InitStepEnvKey:      checkpoint,
 	}
+
+	allEnvs := merge(merge(configEnvs, envs), extraEnvs)
+
+	allEnvs.addIfMissing(`DYLD_LIBRARY_PATH`, run.DefaultLdLibraryPath)
+	allEnvs.addIfMissing(`PYTHONUNBUFFERED`, `1`)
+
+	var pubAddr string
+	for _, h := range jc.HostList {
+		if h.IPv4 == peer.IPv4 {
+			pubAddr = h.PublicAddr
+		}
+	}
+
 	return Proc{
-		Name: name,
-		Prog: jc.Prog,
-		Args: jc.Args,
-		Envs: merge(merge(configEnvs, envs), extraEnvs),
-		IPv4: peer.IPv4,
-		// PubAddr: pubAddr[self.Host],
+		Name:    name,
+		Prog:    jc.Prog,
+		Args:    jc.Args,
+		Envs:    allEnvs,
+		IPv4:    peer.IPv4,
+		PubAddr: pubAddr,
 	}
 }
 
@@ -62,17 +75,9 @@ func (jc JobConfig) CreateProcs(np int, strategy kb.Strategy) ([]Proc, plan.Peer
 			`KUNGFU_TEST_SELF_RANK`:    strconv.Itoa(i), // FIXME: remove it
 			kb.SelfSpecEnvKey:          self.String(),
 			kb.AllReduceStrategyEnvKey: strategy.String(), // FIXME: remove it
-			`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
-			`PYTHONUNBUFFERED`:         `1`,
 		}
-		ps = append(ps, Proc{
-			Name:    name,
-			Prog:    jc.Prog,
-			Args:    jc.Args,
-			Envs:    merge(configEnvs, envs),
-			IPv4:    self.IPv4,
-			PubAddr: pubAddr[self.IPv4],
-		})
+		proc := jc.NewProc(name, merge(configEnvs, envs), self, localRank, "", nil)
+		ps = append(ps, proc)
 	}
 	return ps, pl, nil
 }

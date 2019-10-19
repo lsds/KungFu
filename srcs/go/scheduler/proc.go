@@ -10,6 +10,12 @@ import (
 
 type Envs map[string]string
 
+func (e Envs) addIfMissing(k, v string) {
+	if _, ok := e[k]; !ok {
+		e[k] = v
+	}
+}
+
 func merge(e, f Envs) Envs {
 	g := make(Envs)
 	for k, v := range e {
