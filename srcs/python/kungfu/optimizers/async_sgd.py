@@ -73,7 +73,7 @@ class PeerModelAveragingOptimizer(KungFuOptimizer):
 
     def distributed_initializer(self):
         bcast_ops = []
-        for v in self.model_variables():
+        for v in self.variables():
             bcast_ops.append(tf.assign(v, broadcast(v)))
 
         with tf.control_dependencies(bcast_ops):

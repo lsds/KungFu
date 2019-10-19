@@ -48,3 +48,4 @@ run_operator_tests() {
 
 measure run_operator_tests ${ROOT}/tests/python/test_operators.py
 measure run_operator_tests ${ROOT}/tests/python/test_save_variables.py
+measure run_operator_tests ${ROOT}/tests/python/test_optimizers.py
