@@ -95,7 +95,7 @@ elif args.kungfu == 'sync-sgd-nccl':
     opt = SyncSGDOptimizer(opt, nccl=True, nccl_fusion=True)
 elif args.kungfu == 'ada-sgd':
     from kungfu.optimizers import AdaptiveSGDOptimizer
-    opt = AdaptiveSGDOptimizer(opt, 2)
+    opt = AdaptiveSGDOptimizer(opt, 10)
 elif args.kungfu == 'ideal':
     opt = opt
 else:

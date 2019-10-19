@@ -1,7 +1,9 @@
 import tensorflow as tf
-from kungfu.ops import (broadcast, group_all_reduce, peer_info)
+from kungfu.ops import (barrier, broadcast, group_all_reduce, current_cluster_size, current_rank,
+                        request_variable_with_template, save_variable)
 
 from .core import KungFuOptimizer, defuse, fuse
+from .async_sgd import get_random_peer
 
 
 class AdaptiveSGDOptimizer(KungFuOptimizer):
@@ -23,11 +25,13 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         super(AdaptiveSGDOptimizer, self).__init__(optimizer,
                                                    name,
                                                    use_locking=use_locking)
-        _rank, np = peer_info()
-        # FIXME: use type of gradient
-        self._num_workers = tf.cast(np, tf.float32)
+        self._num_workers = current_cluster_size()
+        self._rank = current_rank()
         self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
         self._interval = interval
+
+        # Async SGD setting
+        self._fuse_variables = True
 
     def _build_request_and_save_ops(self, target, variables):
         if self._fuse_variables:
@@ -46,8 +50,7 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         return other_peer_vars, save_model_op
 
     def _async_sgd(self, grads_and_vars, **kwargs):
-        np, rank = current_cluster_size(), current_rank()
-        target = get_random_peer(np, rank)
+        target = get_random_peer(self._num_workers, self._rank)
         variables = [v for _g, v in grads_and_vars]
         other_peer_vars, save_model_op = self._build_request_and_save_ops(
             target, variables)
@@ -58,25 +61,35 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         ]
 
         apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
-
+        print_op = tf.print('Using async sgd')
         with tf.control_dependencies(assign_ops):
             with tf.control_dependencies([apply_op]):
-                with tf.control_dependencies([save_model_op]):
+                with tf.control_dependencies([save_model_op, print_op]):
                     return tf.group(apply_op)
 
     def _sync_sgd(self, grads_and_vars, **kwargs):
-        gradients, variables = list(zip(*grads_and_vars))
-        summed_gradients = group_all_reduce(gradients)
-        reduced_grads = [g / self._num_workers for g in summed_gradients]
-        grads_and_vars = zip(reduced_grads, variables)
+        _, variables = list(zip(*grads_and_vars))
+        sum_vars = group_all_reduce(variables)
+        avg_vars = [g / self._num_workers for g in sum_vars]
+        assign_ops = [
+            tf.assign(v, avg_v)
+            for v, avg_v in zip(variables, avg_vars)
+        ]
+
         apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
-        return apply_op
+
+        print_op = tf.print('Using sync sgd')
+        with tf.control_dependencies(assign_ops):
+            with tf.control_dependencies([apply_op, print_op]):
+                return tf.group(apply_op)
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         # Adaptation logic
-        adapt_op = tf.no_op()
+        # adapt_op = tf.no_op()
+
         cond_op = tf.equal(tf.mod(self._step, self._interval), 0)
-        with tf.control_dependencies([adapt_op]):
+
+        with tf.control_dependencies([tf.assign_add(self._step, 1)]):
             return tf.cond(cond_op,
                            lambda: self._sync_sgd(grads_and_vars, **kwargs),
                            lambda: self._async_sgd(grads_and_vars, **kwargs))
