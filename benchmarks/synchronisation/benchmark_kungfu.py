@@ -48,10 +48,15 @@ parser.add_argument('--no-cuda',
                     action='store_true',
                     default=False,
                     help='disables CUDA training')
-parser.add_argument('--kungfu',
+parser.add_argument(
+    '--kungfu',
+    type=str,
+    default='sync-sgd',
+    help='KungFu strategy: sync-sgd, async-sgd, sync-sgd-nccl, ideal')
+parser.add_argument('--optimizer',
                     type=str,
-                    default='sync-sgd',
-                    help='kungfu optimizer')
+                    default='sgd',
+                    help='Optimizer: sgd, adam')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -70,7 +75,14 @@ if args.eager:
 # Set up standard model.
 model = getattr(applications, args.model)(weights=None)
 
-opt = tf.train.GradientDescentOptimizer(0.01)
+opt = None
+learning_rate = 0.01
+if args.optimizer == 'sgd':
+    opt = tf.train.GradientDescentOptimizer(learning_rate)
+elif args.optimizer == 'adam':
+    opt = tf.train.AdamOptimizer(learning_rate)
+else:
+    raise Exception('Unknown optimizer option')
 
 if args.kungfu == 'sync-sgd':
     from kungfu.optimizers import SyncSGDOptimizer
