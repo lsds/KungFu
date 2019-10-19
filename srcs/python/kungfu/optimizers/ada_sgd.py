@@ -1,9 +1,10 @@
 import tensorflow as tf
-from kungfu.ops import (barrier, broadcast, group_all_reduce, current_cluster_size, current_rank,
-                        request_variable_with_template, save_variable)
+from kungfu.ops import (barrier, broadcast, current_cluster_size, current_rank,
+                        group_all_reduce, request_variable_with_template,
+                        save_variable)
 
-from .core import KungFuOptimizer, defuse, fuse
 from .async_sgd import get_random_peer
+from .core import KungFuOptimizer, defuse, fuse
 
 
 class AdaptiveSGDOptimizer(KungFuOptimizer):
@@ -36,7 +37,7 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         other_peer_var_fused = request_variable_with_template(
             target, var_fused)
         other_peer_vars = defuse(other_peer_var_fused,
-                                    [v.shape for v in variables])
+                                 [v.shape for v in variables])
         self._save_model_op = save_model_op  # save for _get_initializer_op
         return other_peer_vars, save_model_op
 
@@ -64,8 +65,7 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         sum_vars = group_all_reduce(variables)
         avg_vars = [g / self._num_workers for g in sum_vars]
         assign_ops = [
-            tf.assign(v, avg_v)
-            for v, avg_v in zip(variables, avg_vars)
+            tf.assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
         ]
 
         with tf.control_dependencies(assign_ops):
@@ -74,9 +74,9 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
     def apply_gradients(self, grads_and_vars, **kwargs):
         cond_op = tf.equal(tf.mod(self._step, self._interval), 0)
         with tf.control_dependencies([tf.assign_add(self._step, 1)]):
-            return tf.cond(cond_op,
-                           lambda: self._sync_ma_sgd(grads_and_vars, **kwargs),
-                           lambda: self._async_ma_sgd(grads_and_vars, **kwargs))
+            return tf.cond(
+                cond_op, lambda: self._sync_ma_sgd(grads_and_vars, **kwargs),
+                lambda: self._async_ma_sgd(grads_and_vars, **kwargs))
 
     def distributed_initializer(self):
         bcast_ops = []
