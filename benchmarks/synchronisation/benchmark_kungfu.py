@@ -80,7 +80,7 @@ elif args.kungfu == 'async-sgd':
     opt = PeerModelAveragingOptimizer(opt)
 elif args.kungfu == 'sync-sgd-nccl':
     from kungfu.optimizers import SyncSGDOptimizer
-    opt = SyncSGDOptimizer(opt, nccl=True, nccl_fusion=False)
+    opt = SyncSGDOptimizer(opt, nccl=True, nccl_fusion=True)
 elif args.kungfu == 'ideal':
     opt = opt
 else:
