@@ -26,6 +26,15 @@ integration test:
   - ./configure --build-tests --build-tools
   - make
   - ./scripts/tests/run-integration-tests.sh
+  - |
+    schedule='5:1,5:2,5:4,5:8,5:4,5:2,5:1'
+    ./bin/kungfu-run \
+        -np 1 \
+        -w \
+        python3 \
+        tests/python/test_optimizers.py \
+        --test elastic-sgd \
+        --schedule $schedule
 
 python3 test:
   stage: test
