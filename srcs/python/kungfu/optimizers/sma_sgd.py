@@ -24,9 +24,8 @@ class SyncModelAveragingSGDOptimizer(KungFuOptimizer):
 
     """
     def __init__(self, optimizer, name=None, use_locking=False):
-        super(SyncModelAveragingSGDOptimizer, self).__init__(optimizer,
-                                                   name,
-                                                   use_locking=use_locking)
+        super(SyncModelAveragingSGDOptimizer,
+              self).__init__(optimizer, name, use_locking=use_locking)
         self._num_workers = current_cluster_size()
         self._rank = current_rank()
 
