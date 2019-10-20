@@ -51,7 +51,7 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection
 			return conn, nil
 		}
 
-		log.Warnf("Retry connect to [%s] for [%d] times. Retry after %s. Error: %v. ", remote, i + 1, p.connRetryPeriod, err)
+		log.Warnf("Retry connect to [%s] for [%d] times. Retry after %s. Error: %v. ", remote, i+1, p.connRetryPeriod, err)
 		time.Sleep(p.connRetryPeriod)
 	}
 
