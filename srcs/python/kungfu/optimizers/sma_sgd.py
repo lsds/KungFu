@@ -6,10 +6,14 @@ from .core import KungFuOptimizer
 
 
 class SyncModelAveragingSGDOptimizer(KungFuOptimizer):
-    """SyncModelAveragingSGDOptimizer implements a simple version of Synchronous Model Averaging (SMA).
+    """SyncModelAveragingSGDOptimizer implements an improved version of Elastic Averaging SGD (EA-SGD) [1].
 
-    [1] CROSSBOW: Scaling Deep Learning with Small Batch Sizes on Multi-GPU Servers, VLDB 2019
-    http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf
+    The performance of EA-SGD is improved and shown useufl for complex ImageNet models in [2].
+
+    [1] Deep learning with Elastic Averaging SGD, NIPS 2015
+    https://arxiv.org/abs/1412.6651
+    [2] CrossBow: Scaling Deep Learning with Small Batch Sizes on Multi-GPU Servers, VLDB 2019
+    https://arxiv.org/abs/1901.02244
 
     Args:
       optimizer:
@@ -30,16 +34,17 @@ class SyncModelAveragingSGDOptimizer(KungFuOptimizer):
         self._rank = current_rank()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
-        # Compute and apply an averaged model
+        # It is important to apply model averaging every iteration [2]
         _, variables = list(zip(*grads_and_vars))
         sum_vars = group_all_reduce(variables)
         avg_vars = [g / self._num_workers for g in sum_vars]
+
+        # TODO: Apply momentum to the averaged model [2]
         assign_ops = [
             tf.assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
         ]
 
-        # We overlap model averaging and local SGD.
-        # This overlapping is proposed in [1]
+        # We can overlap model averaging and local SGD [2].
         with tf.control_dependencies(assign_ops):
             return self._optimizer.apply_gradients(grads_and_vars, **kwargs)
 
