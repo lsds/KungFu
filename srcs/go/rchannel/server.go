@@ -11,6 +11,7 @@ import (
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 // Server receives messages from remove endpoints
@@ -86,14 +87,23 @@ func newTCPServer(endpoint Endpoint) (*server, error) {
 	}, nil
 }
 
+func fileExists(filename string) bool {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 // newUnixServer creates a new Server listening Unix socket
 func newUnixServer(endpoint Endpoint) (*server, error) {
 	sockFile := endpoint.Self().SockFile()
-	cleanSockFile := true
-	if cleanSockFile {
-		os.Remove(sockFile)
+	if fileExists(sockFile) {
+		log.Warnf("%s already exists, trying to remove", sockFile)
+		if err := os.Remove(sockFile); err != nil {
+			utils.ExitErr(err)
+		}
 	}
-	listener, err := net.ListenUnix("unix", &net.UnixAddr{sockFile, "unix"})
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockFile, Net: "unix"})
 	if err != nil {
 		return nil, err
 	}
