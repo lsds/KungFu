@@ -8,43 +8,37 @@ from kungfu.optimizers.core import KungFuOptimizer, defuse, fuse
 
 
 class ElasticSGDOptimizer(KungFuOptimizer):
-    def __init__(self,
-                 optimizer,
-                 nccl=False,
-                 nccl_fusion=True,
-                 name=None,
-                 use_locking=False):
+    def __init__(self, optimizer, name=None, use_locking=False):
         super(ElasticSGDOptimizer, self).__init__(optimizer,
                                                   name,
                                                   use_locking=use_locking)
         _rank, np = peer_info()
         # FIXME: use type of gradient
         self._num_workers = tf.cast(np, tf.float32)
-        self._nccl = nccl
-        self._nccl_fusion = nccl_fusion
+        self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
+
+    def _broadcast_variables(self, variables, step):
+        ops = [tf.assign(v, broadcast(v)) for v in variables]
+        print_op = tf.print('Broadcast variables at the step:', step)
+        with tf.control_dependencies([print_op]):
+            return tf.group(ops)
+
+    def compute_gradients(self, *args, **kwargs):
+        broadcast_cond_op = tf.cond(
+            tf.equal(self._step, 0),
+            lambda: self._broadcast_variables(self.variables(), self._step),
+            lambda: tf.no_op())
+        with tf.control_dependencies([broadcast_cond_op]):
+            with tf.control_dependencies([tf.assign_add(self._step, 1)]):
+                return self._optimizer.compute_gradients(*args, **kwargs)
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
-
-        if self._nccl:
-            if self._nccl_fusion:
-                fused_grad = fuse(gradients)
-                summed_fused_gradients = group_nccl_all_reduce([fused_grad])
-                summed_gradients = defuse(summed_fused_gradients[0],
-                                          [g.shape for g in gradients])
-            else:
-                summed_gradients = group_nccl_all_reduce(gradients)
-        else:
-            summed_gradients = group_all_reduce(gradients)
-
+        summed_gradients = group_all_reduce(gradients)
         reduced_grads = [g / self._num_workers for g in summed_gradients]
         reduced_grads_and_vars = zip(reduced_grads, variables)
         return self._optimizer.apply_gradients(reduced_grads_and_vars,
                                                **kwargs)
-
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.variables()]
-        return tf.group(ops)
 
 
 def parse_schedule(config):
