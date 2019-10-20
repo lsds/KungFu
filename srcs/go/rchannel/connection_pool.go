@@ -37,38 +37,24 @@ func newConnectionPool() *ConnectionPool {
 func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 	p.Lock()
 	defer p.Unlock()
-	var lastErr error
-	var mu sync.Mutex
-	{
-		tk := time.NewTicker(2 * time.Second)
-		defer tk.Stop()
-		go func() {
-			for range tk.C {
-				mu.Lock()
-				log.Warnf("still trying to connect to %s, last error: %v", remote, lastErr)
-				mu.Unlock()
-			}
-		}()
+	key := connKey{remote, t}
+	if conn, ok := p.conns[key]; ok {
+		return conn, nil
 	}
-	{
-		tk := time.NewTicker(p.connRetryPeriod)
-		defer tk.Stop()
-		for i := 0; i <= p.connRetryCount; i++ {
-			if conn, ok := p.conns[connKey{remote, t}]; !ok {
-				conn, err := newConnection(remote, local, t)
-				if err == nil {
-					p.conns[connKey{remote, t}] = conn
-					return conn, nil
-				}
-				mu.Lock()
-				lastErr = err
-				mu.Unlock()
-			} else {
-				return conn, nil
-			}
-			<-tk.C
+
+	log.Debugf("New connection to %s", remote)
+	for i := 0; i <= p.connRetryCount; i++ {
+		// TODO: call newConnection with timeout.
+		conn, err := newConnection(remote, local, t)
+		if err == nil {
+			p.conns[key] = conn
+			return conn, nil
 		}
+
+		log.Warnf("Retry connect to [%s] for [%d] times. Retry after %s. Error: %v. ", remote, i+1, p.connRetryPeriod, err)
+		time.Sleep(p.connRetryPeriod)
 	}
+
 	return nil, errCantEstablishConnection
 }
 

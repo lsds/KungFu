@@ -49,12 +49,12 @@ func fmtDuration(d time.Duration) string {
 func (l *Logger) output(prefix, format string, v ...interface{}) {
 	l.Lock()
 	defer l.Unlock()
-	// d := time.Since(l.t0)
+	d := time.Since(l.t0)
 	l.buf = l.buf[:0]
 	l.buf = append(l.buf, prefix...)
-	// l.buf = append(l.buf, ' ', '[')
-	// l.buf = append(l.buf, fmtDuration(d)...)
-	// l.buf = append(l.buf, ']', ' ')
+	l.buf = append(l.buf, ' ', '[')
+	l.buf = append(l.buf, fmtDuration(d)...)
+	l.buf = append(l.buf, ']', ' ')
 	s := fmt.Sprintf(format, v...)
 	l.buf = append(l.buf, s...)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
