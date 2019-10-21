@@ -25,7 +25,7 @@ KUNGFU_RUN=${ROOT}/bin/kungfu-run
 ensure_kungfu_run() {
     if [ ! -f ${KUNGFU_RUN} ]; then
         reset_go_mod
-        GOBIN=$PWD/bin go install -v $KUNGFU_RUN
+        GOBIN=$PWD/bin go install -v ./srcs/go/cmd/kungfu-run
     fi
 }
 
