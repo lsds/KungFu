@@ -54,7 +54,7 @@ func main() {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
-	if err := runner.LocalRunAll(ctx, procs, f.VerboseLog); err != nil && err != context.DeadlineExceeded {
+	if err := runner.LocalRunAll(ctx, procs, f.VerboseLog); err != nil {
 		utils.ExitErr(err)
 	}
 }
