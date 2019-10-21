@@ -77,6 +77,11 @@ class ElasticScheduler(object):
             with tf.control_dependencies([tf.assign_add(stage, 1)]):
                 return tf.identity(adapt_op)
 
+    def __call__(self, train_op):
+        with tf.control_dependencies([train_op]):
+            elastic_op = self.create_op()
+            return (train_op, elastic_op)
+
     def run(self, sess, stage):
         next_stage = stage + 1
         if next_stage < self.max_stage:

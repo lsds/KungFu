@@ -58,7 +58,6 @@ def test_elastic_sgd(args):
     from elastic_scheduler import ElasticScheduler
 
     elastic = ElasticScheduler(args.schedule)
-    elastic_op = elastic.create_op()
 
     one = tf.Variable(tf.ones([], tf.int32))
     np = all_reduce(one)
@@ -71,6 +70,8 @@ def test_elastic_sgd(args):
         return optimizer.minimize(y)
 
     train_op = build_train_op()
+    train_op, elastic_op = elastic(train_op)
+
     init = tf.global_variables_initializer()
 
     with tf.Session() as sess:
@@ -78,11 +79,9 @@ def test_elastic_sgd(args):
         for stage in range(elastic.init_stage, elastic.max_stage):
             v = sess.run(np)
             print('step: %d, result: %d' % (stage, v))
-            sess.run(train_op)
-            if not sess.run(elastic_op):
+            _, keep = sess.run([train_op, elastic_op])
+            if not keep:
                 break
-            # if not elastic.run(sess, stage):
-            #     break
 
 
 all_tests = {
