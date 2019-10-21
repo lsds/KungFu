@@ -31,7 +31,7 @@ ensure_kungfu_run() {
 
 ensure_kungfu_run
 
-run_optimizer_tests() {
+run_operator_tests() {
     local SCRIPT=$1
     local max_np=4
     for np in $(seq $max_np); do

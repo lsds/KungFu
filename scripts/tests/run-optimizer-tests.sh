@@ -31,7 +31,7 @@ ensure_kungfu_run() {
 
 ensure_kungfu_run
 
-run_operator_tests() {
+run_optimizer_tests() {
     local SCRIPT=$1
     local max_np=4
     for np in $(seq $max_np); do
@@ -56,5 +56,5 @@ run_adaptation_tests() {
         --schedule $schedule
 }
 
-measure run_operator_tests ${ROOT}/tests/python/test_optimizers.py
+measure run_optimizer_tests ${ROOT}/tests/python/test_optimizers.py
 measure run_adaptation_tests
