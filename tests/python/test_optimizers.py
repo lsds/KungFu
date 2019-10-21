@@ -1,8 +1,7 @@
 import argparse
 
 import tensorflow as tf
-from kungfu.ops import (broadcast, global_noise_scale, group_all_reduce,
-                        group_nccl_all_reduce, peer_info)
+from kungfu.ops import all_reduce, broadcast, group_all_reduce, peer_info, current_cluster_size
 
 from kungfu.optimizers.core import KungFuOptimizer, defuse, fuse
 
@@ -57,20 +56,32 @@ def test_sync_sgd(args):
 
 def test_elastic_sgd(args):
     from elastic_scheduler import ElasticScheduler
-    elastic = ElasticScheduler(args.schedule)
 
-    x = tf.Variable(tf.ones([], tf.float32))
-    y = x * x
-    optimizer = tf.train.GradientDescentOptimizer(0.1)
-    # optimizer = ElasticSGDOptimizer(optimizer)
-    train_op = optimizer.minimize(y)
+    elastic = ElasticScheduler(args.schedule)
+    elastic_op = elastic.create_op()
+
+    one = tf.Variable(tf.ones([], tf.int32))
+    np = all_reduce(one)
+
+    def build_train_op():
+        x = tf.Variable(tf.ones([], tf.float32))
+        y = x * x
+        optimizer = tf.train.GradientDescentOptimizer(0.1)
+        # optimizer = ElasticSGDOptimizer(optimizer)
+        return optimizer.minimize(y)
+
+    train_op = build_train_op()
+    init = tf.global_variables_initializer()
 
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        for step in range(elastic.init_step, elastic.max_step):
-            print('step=%d' % (step))
+        sess.run(init)
+        for stage in range(elastic.init_stage, elastic.max_stage):
+            v = sess.run(np)
+            print('step: %d, result: %d' % (stage, v))
             sess.run(train_op)
-            if not elastic.run(sess, step):
+            # if not sess.run(elastic_op):
+            #     break
+            if not elastic.run(sess, stage):
                 break
 
 
