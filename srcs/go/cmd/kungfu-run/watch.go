@@ -51,8 +51,7 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 			all.Add(1)
 			go func(g *sync.WaitGroup, id plan.PeerID, s run.Stage) {
 				localRank, _ := s.Cluster.LocalRank(id)
-				name := fmt.Sprintf("%s.%d", plan.FormatIPv4(id.IPv4), id.Port)
-				proc := jc.NewProc(name, id, localRank, s.Checkpoint, s.Cluster)
+				proc := jc.NewProc(id, localRank, s.Checkpoint, s.Cluster)
 				atomic.AddInt32(&running, 1)
 				runProc(ctx, cancel, proc, s.Checkpoint)
 				n := atomic.AddInt32(&running, -1)
