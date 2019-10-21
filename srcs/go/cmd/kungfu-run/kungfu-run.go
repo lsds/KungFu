@@ -24,27 +24,29 @@ var (
 	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
 	hostList   = flag.String("H", plan.DefaultHostSpec.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
 	portRange  = flag.String("port-range", plan.DefaultPortRange.String(), "port range for the peers")
-	selfHost   = flag.String("self", "", "internal IP")
+	self       = flag.String("self", "", "internal IPv4")
 	timeout    = flag.Duration("timeout", 0, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
 	strategy   = flag.String("strategy", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 
-	port        = flag.Int("port", 38080, "port for rchannel")
-	watch       = flag.Bool("w", false, "watch config")
-	watchPeriod = flag.Duration("watch-period", 500*time.Millisecond, "")
-	checkpoint  = flag.String("checkpoint", "0", "")
+	port       = flag.Int("port", 38080, "port for rchannel")
+	watch      = flag.Bool("w", false, "watch config")
+	checkpoint = flag.String("checkpoint", "0", "")
 
 	logfile = flag.String("logfile", "", "path to log file")
+	quiet   = flag.Bool("q", false, "don't log debug info")
 )
 
 func init() {
 	flag.Parse()
-	utils.LogArgs()
-	utils.LogKungfuEnv()
-	utils.LogNICInfo()
-	utils.LogCudaEnv()
-	utils.LogNCCLEnv()
+	if !*quiet {
+		utils.LogArgs()
+		utils.LogKungfuEnv()
+		utils.LogNICInfo()
+		utils.LogCudaEnv()
+		utils.LogNCCLEnv()
+	}
 }
 
 var (
@@ -69,11 +71,11 @@ func main() {
 	}
 	t0 := time.Now()
 	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
-	selfIP, err := run.InferSelfIPv4(*selfHost, *nicName)
+	selfIPv4, err := run.InferSelfIPv4(*self, *nicName)
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Infof("Using selfHost=%s", plan.FormatIPv4(selfIP))
+	log.Infof("Using self=%s", plan.FormatIPv4(selfIPv4))
 	restArgs := flag.Args()
 	if len(restArgs) < 1 {
 		utils.ExitErr(errMissingProgramName)
@@ -86,7 +88,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	parent := plan.PeerID{IPv4: selfIP, Port: uint16(*port)}
+	parent := plan.PeerID{IPv4: selfIPv4, Port: uint16(*port)}
 	parents := func() plan.PeerList {
 		var ps plan.PeerList
 		for _, h := range hl {
@@ -124,12 +126,12 @@ func main() {
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
 		}
-		simpleRun(ctx, selfIP, procs, jc)
+		simpleRun(ctx, selfIPv4, procs, jc)
 	}
 }
 
-func simpleRun(ctx context.Context, selfIP uint32, ps []sch.Proc, jc sch.JobConfig) {
-	myPs := sch.ForHost(selfIP, ps)
+func simpleRun(ctx context.Context, selfIPv4 uint32, ps []sch.Proc, jc sch.JobConfig) {
+	myPs := sch.ForHost(selfIPv4, ps)
 	if len(myPs) <= 0 {
 		log.Infof("No task to run on this node")
 		return
