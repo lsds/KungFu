@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"path"
 	"time"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -21,9 +18,9 @@ import (
 var f run.FlagSet
 
 func init() {
-	f.Register()
-	flag.Parse()
-
+	if err := f.Parse(); err != nil {
+		utils.ExitErr(err)
+	}
 	if !f.Quiet {
 		utils.LogArgs()
 		utils.LogKungfuEnv()
@@ -32,10 +29,6 @@ func init() {
 		utils.LogNCCLEnv()
 	}
 }
-
-var (
-	errMissingProgramName = errors.New("missing program name")
-)
 
 func progName() string {
 	if len(os.Args) > 0 {
@@ -60,14 +53,6 @@ func main() {
 		utils.ExitErr(err)
 	}
 	log.Infof("Using self=%s", plan.FormatIPv4(selfIPv4))
-	restArgs := flag.Args()
-	if len(restArgs) < 1 {
-		utils.ExitErr(errMissingProgramName)
-	}
-	pr, err := plan.ParsePortRange(f.PortRange)
-	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
-	}
 	hl, err := run.ResolveHostList(f.HostList, f.NIC)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
@@ -84,12 +69,12 @@ func main() {
 		utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
 	}
 	jc := sch.JobConfig{
-		Strategy:  kb.ParseStrategy(f.Strategy),
+		Strategy:  f.Strategy,
 		Parent:    parent,
 		HostList:  hl,
-		PortRange: *pr,
-		Prog:      restArgs[0],
-		Args:      restArgs[1:],
+		PortRange: f.PortRange,
+		Prog:      f.Prog,
+		Args:      f.Args,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	if f.Timeout > 0 {
@@ -98,7 +83,7 @@ func main() {
 	}
 
 	if f.Watch {
-		peers, err := hl.GenPeerList(f.ClusterSize, *pr)
+		peers, err := hl.GenPeerList(f.ClusterSize, f.PortRange)
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
 		}
