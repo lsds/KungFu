@@ -79,10 +79,10 @@ def test_elastic_sgd(args):
             v = sess.run(np)
             print('step: %d, result: %d' % (stage, v))
             sess.run(train_op)
-            # if not sess.run(elastic_op):
-            #     break
-            if not elastic.run(sess, stage):
+            if not sess.run(elastic_op):
                 break
+            # if not elastic.run(sess, stage):
+            #     break
 
 
 all_tests = {

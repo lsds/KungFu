@@ -74,7 +74,8 @@ class ElasticScheduler(object):
             lambda: True)
 
         with tf.control_dependencies([adapt_op]):
-            return tf.assign_add(stage, 1)
+            with tf.control_dependencies([tf.assign_add(stage, 1)]):
+                return tf.identity(adapt_op)
 
     def run(self, sess, stage):
         next_stage = stage + 1
