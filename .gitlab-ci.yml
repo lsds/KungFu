@@ -42,16 +42,7 @@ python3 test:
   - ./scripts/tests/run-op-tests.sh
   - ./scripts/tests/run-train-tests.sh
   - ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
-  - |
-    schedule='5:1,5:2,5:4,5:8,5:4,5:2,5:1'
-    ./bin/kungfu-run \
-        -H '127.0.0.1:8' \
-        -np 1 \
-        -w \
-        python3 \
-        tests/python/test_optimizers.py \
-        --test elastic-sgd \
-        --schedule $schedule
+  - ./scripts/tests/run-optimizer-tests.sh
 
 go format test:
   stage: lint

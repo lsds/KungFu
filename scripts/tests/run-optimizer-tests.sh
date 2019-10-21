@@ -31,7 +31,7 @@ ensure_kungfu_run() {
 
 ensure_kungfu_run
 
-run_optimizer_tests() {
+run_operator_tests() {
     local SCRIPT=$1
     local max_np=4
     for np in $(seq $max_np); do
@@ -44,5 +44,17 @@ run_optimizer_tests() {
     done
 }
 
-measure run_operator_tests ${ROOT}/tests/python/test_operators.py
-measure run_operator_tests ${ROOT}/tests/python/test_save_variables.py
+run_adaptation_tests() {
+    schedule='5:1,5:2,5:4,5:8,5:4,5:2,5:1'
+    $KUNGFU_RUN \
+        -H '127.0.0.1:8' \
+        -np 1 \
+        -w \
+        ${PYTHON} \
+        tests/python/test_optimizers.py \
+        --test elastic-sgd \
+        --schedule $schedule
+}
+
+measure run_operator_tests ${ROOT}/tests/python/test_optimizers.py
+measure run_adaptation_tests
