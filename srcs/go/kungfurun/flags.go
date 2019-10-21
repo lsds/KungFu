@@ -15,6 +15,7 @@ import (
 type FlagSet struct {
 	ClusterSize int
 	HostList    string
+	User        string
 
 	portRange string
 	PortRange plan.PortRange
@@ -41,6 +42,7 @@ type FlagSet struct {
 func (f *FlagSet) Register() {
 	flag.IntVar(&f.ClusterSize, "np", runtime.NumCPU(), "number of peers")
 	flag.StringVar(&f.HostList, "H", plan.DefaultHostSpec.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	flag.StringVar(&f.User, "u", "", "user name for ssh")
 
 	flag.StringVar(&f.portRange, "port-range", plan.DefaultPortRange.String(), "port range for the peers")
 
