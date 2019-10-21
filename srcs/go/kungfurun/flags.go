@@ -10,7 +10,21 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
+
+func Init(f *FlagSet) {
+	if err := f.Parse(); err != nil {
+		utils.ExitErr(err)
+	}
+	if !f.Quiet {
+		utils.LogArgs()
+		utils.LogKungfuEnv()
+		utils.LogNICInfo()
+		utils.LogCudaEnv()
+		utils.LogNCCLEnv()
+	}
+}
 
 type FlagSet struct {
 	ClusterSize int

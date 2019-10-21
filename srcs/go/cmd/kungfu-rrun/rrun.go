@@ -14,15 +14,7 @@ import (
 
 var f run.FlagSet
 
-func init() {
-	if err := f.Parse(); err != nil {
-		utils.ExitErr(err)
-	}
-	if !f.Quiet {
-		utils.LogArgs()
-		utils.LogKungfuEnv()
-	}
-}
+func init() { run.Init(&f) }
 
 func main() {
 	hl, err := plan.ParseHostList(f.HostList)

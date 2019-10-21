@@ -16,18 +16,7 @@ import (
 
 var f run.FlagSet
 
-func init() {
-	if err := f.Parse(); err != nil {
-		utils.ExitErr(err)
-	}
-	if !f.Quiet {
-		utils.LogArgs()
-		utils.LogKungfuEnv()
-		utils.LogNICInfo()
-		utils.LogCudaEnv()
-		utils.LogNCCLEnv()
-	}
-}
+func init() { run.Init(&f) }
 
 func main() {
 	if len(f.Logfile) > 0 {
