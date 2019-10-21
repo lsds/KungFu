@@ -175,6 +175,9 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 			return false
 		}
 	}
+	if n == 0 {
+		return true
+	}
 	{
 		x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 		y := kb.NewVector(n, kb.U8)
