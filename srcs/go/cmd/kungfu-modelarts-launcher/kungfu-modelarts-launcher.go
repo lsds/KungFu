@@ -30,6 +30,7 @@ func main() {
 		utils.ExitErr(err)
 	}
 	jc := sch.JobConfig{
+		HostList:  plan.HostList{{}}, // FIXME: make sure it's not used
 		Strategy:  f.Strategy,
 		PortRange: f.PortRange,
 		Prog:      f.Prog,
