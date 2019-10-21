@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"time"
 
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
@@ -30,13 +29,6 @@ func init() {
 	}
 }
 
-func progName() string {
-	if len(os.Args) > 0 {
-		return path.Base(os.Args[0])
-	}
-	return ""
-}
-
 func main() {
 	if len(f.Logfile) > 0 {
 		lf, err := os.Create(f.Logfile)
@@ -47,7 +39,7 @@ func main() {
 		log.SetOutput(lf)
 	}
 	t0 := time.Now()
-	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
+	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(utils.ProgName())
 	selfIPv4, err := run.InferSelfIPv4(f.Self, f.NIC)
 	if err != nil {
 		utils.ExitErr(err)
