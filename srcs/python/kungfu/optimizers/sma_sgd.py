@@ -6,14 +6,16 @@ from .core import KungFuOptimizer
 
 
 class SyncModelAveragingSGDOptimizer(KungFuOptimizer):
-    """SyncModelAveragingSGDOptimizer implements an improved version of Elastic Averaging SGD (EA-SGD) [1].
+    """SyncModelAveragingSGDOptimizer implements synchrounous model averaging [1][2].
 
-    The performance of EA-SGD is improved and shown useufl for complex ImageNet models in [2].
+    EA-SGD [1] proposed to use model averaging to train deep learning models and prove its convergence.
+    CrossBow [2] further improves [1] results and show model averaging can benefit small-batch training
+    and achieves fast convergence compared to synchronous SGD.
 
     [1] Deep learning with Elastic Averaging SGD, NIPS 2015
     https://arxiv.org/abs/1412.6651
     [2] CrossBow: Scaling Deep Learning with Small Batch Sizes on Multi-GPU Servers, VLDB 2019
-    https://arxiv.org/abs/1901.02244
+    http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf
 
     Args:
       optimizer:
