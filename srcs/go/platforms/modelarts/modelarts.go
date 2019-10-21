@@ -81,12 +81,11 @@ func parsePeerList(n int) (plan.PeerList, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Infof("%s resolved as %s:%d", val, ipv4, port)
 		peer := plan.PeerID{
 			IPv4: ipv4,
 			Port: uint16(port),
 		}
-		log.Infof("peer: %d: %#v", i, peer)
+		log.Infof("peer %d %s resolved as %s", i, val, peer)
 		peers = append(peers, peer)
 	}
 	return peers, nil
