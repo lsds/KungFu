@@ -41,25 +41,6 @@ class ElasticSGDOptimizer(KungFuOptimizer):
                                                **kwargs)
 
 
-def parse_schedule(config):
-    schedule = []
-    t = 0
-    for p in config.split(','):
-        kv = p.split(':')
-        n, val = (int(kv[0]), int(kv[1]))
-        schedule.append((t, t + n, val))
-        t += n
-    return schedule, t
-
-
-def get_cluster_size(i, sch, old):
-    for s, e, n in sch:
-        if s <= i and i < e:
-            return n
-    print('[W] not scheduled for %d' % (i))
-    return old
-
-
 def test_sync_sgd(args):
     from kungfu.optimizers import SyncSGDOptimizer
     x = tf.Variable(tf.ones([], tf.float32))
@@ -75,52 +56,22 @@ def test_sync_sgd(args):
 
 
 def test_elastic_sgd(args):
-    # from kungfu.optimizers import ElasticSGDOptimizer
-    from kungfu.ops.adapt import get_init_checkpoint, resize_cluster
-    from kungfu.ops import current_cluster_size
-
-    ckpt = tf.placeholder(tf.string)
-    new_size = tf.placeholder(tf.int32)
-    resize_op = resize_cluster(ckpt, new_size)
-
-    schedule, max_step = parse_schedule(args.schedule)
-    print(schedule)
-
-    def restore(checkpoint):
-        return int(checkpoint)
-
-    init_step = restore(get_init_checkpoint())
-    np = current_cluster_size()
-    init_np = get_cluster_size(init_step, schedule, np)
-    if np != init_np:
-        print(
-            '[W] init cluster size (np=%d) is not consistent with schedule (np=%d)'
-            % (np, init_np))
+    from elastic_scheduler import ElasticScheduler
+    elastic = ElasticScheduler(args.schedule)
 
     x = tf.Variable(tf.ones([], tf.float32))
     y = x * x
     optimizer = tf.train.GradientDescentOptimizer(0.1)
-    optimizer = ElasticSGDOptimizer(optimizer)
+    # optimizer = ElasticSGDOptimizer(optimizer)
     train_op = optimizer.minimize(y)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for step in range(init_step, max_step):
+        for step in range(elastic.init_step, elastic.max_step):
             print('step=%d' % (step))
             sess.run(train_op)
-
-            next_step = step + 1
-            if next_step < max_step:
-                new_np = get_cluster_size(next_step, schedule, np)
-                if new_np != np:
-                    keep = sess.run(resize_op,
-                                    feed_dict={
-                                        ckpt: str(next_step),
-                                        new_size: new_np,
-                                    })
-                    np = new_np
-                    if not keep:
-                        break
+            if not elastic.run(sess, step):
+                break
 
 
 all_tests = {
