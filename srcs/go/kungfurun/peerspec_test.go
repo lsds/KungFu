@@ -53,4 +53,15 @@ func Test_PeerSpecList(t *testing.T) {
 	if !l.Eq(r) {
 		t.Errorf("failed to parse %q", config)
 	}
+
+}
+
+func Test_ParseEmptyPeerSpecList(t *testing.T) {
+	l, err := ParsePeerSpecList("")
+	if err != nil {
+		t.Errorf("unexpect error: %v", err)
+	}
+	if n := len(l); n != 0 {
+		t.Errorf("expect %d, got %d", 0, n)
+	}
 }

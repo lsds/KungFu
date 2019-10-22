@@ -63,8 +63,11 @@ func (l PeerSpecList) String() string {
 var errInvalidPeerSpecList = errors.New("invalid peer spec list")
 
 func ParsePeerSpecList(config string) (PeerSpecList, error) {
-	parts := strings.Split(config, ",")
 	var l PeerSpecList
+	if len(config) == 0 {
+		return l, nil
+	}
+	parts := strings.Split(config, ",")
 	m1 := make(map[string]struct{})
 	m2 := make(map[string]struct{})
 	for _, part := range parts {
