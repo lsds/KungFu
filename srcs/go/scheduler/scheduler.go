@@ -50,9 +50,19 @@ func (jc JobConfig) NewProc(peer plan.PeerID, localRank int, checkpoint string, 
 	}
 }
 
-func (jc JobConfig) CreateProcs(pl plan.PeerList) []Proc {
+func (jc JobConfig) CreateAllProcs(pl plan.PeerList) []Proc {
 	var ps []Proc
 	for _, self := range pl {
+		localRank, _ := pl.LocalRank(self)
+		proc := jc.NewProc(self, localRank, "", pl)
+		ps = append(ps, proc)
+	}
+	return ps
+}
+
+func (jc JobConfig) CreateProcs(pl plan.PeerList, host uint32) []Proc {
+	var ps []Proc
+	for _, self := range pl.On(host) {
 		localRank, _ := pl.LocalRank(self)
 		proc := jc.NewProc(self, localRank, "", pl)
 		ps = append(ps, proc)

@@ -32,7 +32,7 @@ func main() {
 		Prog:      f.Prog,
 		Args:      f.Args,
 	}
-	procs := jc.CreateProcs(peers)
+	procs := jc.CreateAllProcs(peers)
 	ctx, cancel := context.WithCancel(context.Background())
 	if f.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
