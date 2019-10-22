@@ -9,7 +9,6 @@ import (
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	runner "github.com/lsds/KungFu/srcs/go/runner/local"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -69,18 +68,8 @@ func main() {
 	if f.Watch {
 		ch := make(chan run.Stage, 1)
 		ch <- run.Stage{Cluster: peers, Checkpoint: f.Checkpoint}
-		watchRun(ctx, parent, parents, ch, jc)
+		run.WatchRun(ctx, parent, parents, ch, jc)
 	} else {
-		simpleRun(ctx, selfIPv4, peers, jc)
-	}
-}
-
-func simpleRun(ctx context.Context, selfIPv4 uint32, pl plan.PeerList, jc sch.JobConfig) {
-	procs := jc.CreateProcs(pl.On(selfIPv4))
-	log.Infof("will parallel run %d instances of %s with %q", len(procs), jc.Prog, jc.Args)
-	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, procs, f.VerboseLog) })
-	log.Infof("all %d/%d local peers finished, took %s", len(procs), len(pl), d)
-	if err != nil {
-		utils.ExitErr(err)
+		run.SimpleRun(ctx, selfIPv4, peers, jc, f.VerboseLog)
 	}
 }

@@ -7,7 +7,6 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -32,7 +31,7 @@ func (jc JobConfig) NewProc(peer plan.PeerID, localRank int, checkpoint string, 
 		kb.AllReduceStrategyEnvKey: jc.Strategy.String(),
 	}
 	allEnvs := merge(getConfigEnvs(), envs)
-	allEnvs.addIfMissing(`DYLD_LIBRARY_PATH`, run.DefaultLdLibraryPath)
+	allEnvs.addIfMissing(`DYLD_LIBRARY_PATH`, DefaultLdLibraryPath)
 	allEnvs.addIfMissing(`PYTHONUNBUFFERED`, `1`)
 	var pubAddr string
 	for _, h := range jc.HostList {
