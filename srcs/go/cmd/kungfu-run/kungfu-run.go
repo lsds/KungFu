@@ -49,6 +49,10 @@ func main() {
 	if _, ok := parents.Lookup(parent); !ok {
 		utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
 	}
+	peers, err := hl.GenPeerList(f.ClusterSize, f.PortRange)
+	if err != nil {
+		utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
+	}
 	jc := sch.JobConfig{
 		Strategy:  f.Strategy,
 		Parent:    parent,
@@ -62,33 +66,20 @@ func main() {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
-
 	if f.Watch {
-		peers, err := hl.GenPeerList(f.ClusterSize, f.PortRange)
-		if err != nil {
-			utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
-		}
 		ch := make(chan run.Stage, 1)
 		ch <- run.Stage{Cluster: peers, Checkpoint: f.Checkpoint}
 		watchRun(ctx, parent, parents, ch, jc)
 	} else {
-		procs, _, err := jc.CreateProcs(f.ClusterSize)
-		if err != nil {
-			utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
-		}
-		simpleRun(ctx, selfIPv4, procs, jc)
+		simpleRun(ctx, selfIPv4, peers, jc)
 	}
 }
 
-func simpleRun(ctx context.Context, selfIPv4 uint32, ps []sch.Proc, jc sch.JobConfig) {
-	myPs := sch.ForHost(selfIPv4, ps)
-	if len(myPs) <= 0 {
-		log.Infof("No task to run on this node")
-		return
-	}
-	log.Infof("will parallel run %d instances of %s with %q", len(myPs), jc.Prog, jc.Args)
-	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, f.VerboseLog) })
-	log.Infof("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
+func simpleRun(ctx context.Context, selfIPv4 uint32, pl plan.PeerList, jc sch.JobConfig) {
+	procs := jc.CreateProcs(pl.On(selfIPv4))
+	log.Infof("will parallel run %d instances of %s with %q", len(procs), jc.Prog, jc.Args)
+	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, procs, f.VerboseLog) })
+	log.Infof("all %d/%d local peers finished, took %s", len(procs), len(pl), d)
 	if err != nil {
 		utils.ExitErr(err)
 	}
