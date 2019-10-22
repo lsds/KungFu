@@ -4,8 +4,8 @@
 HOST_GPU_SLOT=0
 NUM_WORKERS=$DLS_TASK_NUMBER
 
-echo $DLS_TASK_INDEX
-echo $DLS_TASK_NUMBER
+# echo $DLS_TASK_INDEX
+# echo $DLS_TASK_NUMBER
 
 HOSTS=""
 for ((i = 0; i < DLS_TASK_NUMBER; i++)); do

@@ -238,8 +238,12 @@ func waitHTTPServer(cli *http.Client, addr string, period time.Duration) {
 
 func resolvePeerListViaHTTP(localhostIPv4 uint32, port uint16, psl PeerSpecList) (plan.PeerList, error) {
 	hosts := make(map[string]uint32)
+	ports := make(map[string]uint16)
 	for _, p := range psl {
 		hosts[p.Host] = 0
+		if _, ok := ports[p.Host]; !ok {
+			ports[p.Host] = p.Port
+		}
 	}
 	var wg sync.WaitGroup
 	wg.Add(len(hosts))
@@ -258,7 +262,7 @@ func resolvePeerListViaHTTP(localhostIPv4 uint32, port uint16, psl PeerSpecList)
 	var mu sync.Mutex
 	wg.Add(len(hosts))
 	for host := range hosts {
-		go func(host string) {
+		go func(host string, port uint16) {
 			defer wg.Done()
 			addr := fmt.Sprintf("%s:%d", host, port)
 			waitHTTPServer(cli, addr, 250*time.Millisecond)
@@ -282,7 +286,7 @@ func resolvePeerListViaHTTP(localhostIPv4 uint32, port uint16, psl PeerSpecList)
 			mu.Lock()
 			hosts[host] = ipv4
 			mu.Unlock()
-		}(host)
+		}(host, ports[host])
 	}
 	wg.Wait()
 	var pl plan.PeerList
