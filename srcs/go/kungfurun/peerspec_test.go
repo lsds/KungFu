@@ -65,3 +65,15 @@ func Test_ParseEmptyPeerSpecList(t *testing.T) {
 		t.Errorf("expect %d, got %d", 0, n)
 	}
 }
+
+var validConfig = []string{
+	`localhost:10000,localhost:10001,localhost:10008`,
+}
+
+func Test_ParsePeerSpecList(t *testing.T) {
+	for _, tt := range validConfig {
+		if _, err := ParsePeerSpecList(tt); err != nil {
+			t.Errorf("failed to parse: %q", tt)
+		}
+	}
+}

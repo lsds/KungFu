@@ -82,7 +82,9 @@ func ParsePeerSpecList(config string) (PeerSpecList, error) {
 		}
 		m1[k1] = struct{}{}
 		if _, ok := m2[k2]; ok {
-			return nil, errInvalidPeerSpecList
+			if p.Slot > 0 {
+				return nil, errInvalidPeerSpecList
+			}
 		}
 		m2[k2] = struct{}{}
 		l = append(l, *p)

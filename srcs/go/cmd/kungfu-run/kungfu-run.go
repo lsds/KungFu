@@ -57,6 +57,7 @@ func main() {
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to resolve peers: %v", err))
 		}
+		log.Infof("-P resolved as %s", peers)
 	}
 	jc := sch.JobConfig{
 		Strategy:  f.Strategy,
