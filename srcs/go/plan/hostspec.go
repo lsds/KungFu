@@ -128,6 +128,9 @@ func (pr PortRange) String() string {
 
 func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	var pl PeerList
+	if np == 0 {
+		return pl
+	}
 	for _, host := range hl {
 		for j := 0; j < host.Slots; j++ {
 			id := PeerID{

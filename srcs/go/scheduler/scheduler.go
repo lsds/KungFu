@@ -20,7 +20,7 @@ type JobConfig struct {
 	Args      []string
 }
 
-func (jc JobConfig) NewProc(name string, peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
+func (jc JobConfig) NewProc(peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
 	envs := Envs{
 		kb.SelfSpecEnvKey:          peer.String(),
 		`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
@@ -42,7 +42,7 @@ func (jc JobConfig) NewProc(name string, peer plan.PeerID, localRank int, checkp
 	}
 
 	return Proc{
-		Name:    name,
+		Name:    fmt.Sprintf("%s.%d", plan.FormatIPv4(peer.IPv4), peer.Port),
 		Prog:    jc.Prog,
 		Args:    jc.Args,
 		Envs:    allEnvs,
@@ -59,8 +59,7 @@ func (jc JobConfig) CreateProcs(np int) ([]Proc, plan.PeerList, error) {
 	var ps []Proc
 	for _, self := range pl {
 		localRank, _ := pl.LocalRank(self)
-		name := fmt.Sprintf("%s.%d", plan.FormatIPv4(self.IPv4), self.Port)
-		proc := jc.NewProc(name, self, localRank, "", pl)
+		proc := jc.NewProc(self, localRank, "", pl)
 		ps = append(ps, proc)
 	}
 	return ps, pl, nil
