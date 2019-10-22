@@ -75,9 +75,11 @@ type server struct {
 }
 
 func newTCPServer(endpoint Endpoint) (*server, error) {
-	addr := endpoint.Self().String()
-	log.Debugf("listening: %s", addr)
-	listener, err := net.Listen("tcp", addr)
+	// addr := endpoint.Self().String()
+	listenAddr := endpoint.Self()
+	listenAddr.IPv4 = 0
+	log.Debugf("listening: %s", listenAddr)
+	listener, err := net.Listen("tcp", listenAddr.String())
 	if err != nil {
 		return nil, err
 	}
