@@ -21,6 +21,10 @@ func main() {
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
+	peers, err := hl.GenPeerList(f.ClusterSize, f.PortRange)
+	if err != nil {
+		utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
+	}
 	jc := sch.JobConfig{
 		Strategy:  f.Strategy,
 		HostList:  hl,
@@ -28,20 +32,17 @@ func main() {
 		Prog:      f.Prog,
 		Args:      f.Args,
 	}
-	ps, _, err := jc.CreateProcs(f.ClusterSize)
-	if err != nil {
-		utils.ExitErr(err)
-	}
+	procs := jc.CreateProcs(peers)
 	ctx, cancel := context.WithCancel(context.Background())
 	if f.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
 	d, err := utils.Measure(func() error {
-		_, err := runner.RemoteRunAll(ctx, f.User, ps, f.VerboseLog)
+		_, err := runner.RemoteRunAll(ctx, f.User, procs, f.VerboseLog)
 		return err
 	})
-	log.Infof("all %d peers finished, took %s", len(ps), d)
+	log.Infof("all %d peers finished, took %s", len(procs), d)
 	if err != nil {
 		utils.ExitErr(err)
 	}

@@ -51,28 +51,14 @@ func (jc JobConfig) NewProc(peer plan.PeerID, localRank int, checkpoint string, 
 	}
 }
 
-func (jc JobConfig) CreateProcs(np int) ([]Proc, plan.PeerList, error) {
-	pl, err := jc.HostList.GenPeerList(np, jc.PortRange)
-	if err != nil {
-		return nil, nil, err
-	}
+func (jc JobConfig) CreateProcs(pl plan.PeerList) []Proc {
 	var ps []Proc
 	for _, self := range pl {
 		localRank, _ := pl.LocalRank(self)
 		proc := jc.NewProc(self, localRank, "", pl)
 		ps = append(ps, proc)
 	}
-	return ps, pl, nil
-}
-
-func ForHost(myHost uint32, ps []Proc) []Proc {
-	var myPs []Proc
-	for _, p := range ps {
-		if p.IPv4 == myHost {
-			myPs = append(myPs, p)
-		}
-	}
-	return myPs
+	return ps
 }
 
 func getConfigEnvs() Envs {
