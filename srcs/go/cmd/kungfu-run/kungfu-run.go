@@ -28,29 +28,35 @@ func main() {
 	}
 	t0 := time.Now()
 	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(utils.ProgName())
-	selfIPv4, err := run.InferSelfIPv4(f.Self, f.NIC)
+	localhostIPv4, err := run.InferSelfIPv4(f.Self, f.NIC)
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Infof("Using self=%s", plan.FormatIPv4(selfIPv4))
-	hl, err := run.ResolveHostList(f.HostList, f.NIC)
-	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
-	}
-	parent := plan.PeerID{IPv4: selfIPv4, Port: uint16(f.Port)}
-	parents := func() plan.PeerList {
-		var ps plan.PeerList
-		for _, h := range hl {
-			ps = append(ps, plan.PeerID{IPv4: h.IPv4, Port: uint16(f.Port)})
+	log.Infof("Using self=%s", plan.FormatIPv4(localhostIPv4))
+	parent := plan.PeerID{IPv4: localhostIPv4, Port: uint16(f.Port)}
+	var parents plan.PeerList
+	var hl plan.HostList
+	var peers plan.PeerList
+	if len(f.HostList) > 0 {
+		hl, err = run.ResolveHostList(f.HostList, f.NIC)
+		if err != nil {
+			utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 		}
-		return ps
-	}()
-	if _, ok := parents.Lookup(parent); !ok {
-		utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
-	}
-	peers, err := hl.GenPeerList(f.ClusterSize, f.PortRange)
-	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
+		for _, h := range hl {
+			parents = append(parents, plan.PeerID{IPv4: h.IPv4, Port: uint16(f.Port)})
+		}
+		if _, ok := parents.Lookup(parent); !ok {
+			utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
+		}
+		peers, err = hl.GenPeerList(f.ClusterSize, f.PortRange)
+		if err != nil {
+			utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
+		}
+	} else {
+		peers, err = run.ResolvePeerList(localhostIPv4, uint16(f.Port), f.PeerList)
+		if err != nil {
+			utils.ExitErr(fmt.Errorf("failed to resolve peers: %v", err))
+		}
 	}
 	jc := sch.JobConfig{
 		Strategy:  f.Strategy,
@@ -70,6 +76,6 @@ func main() {
 		ch <- run.Stage{Cluster: peers, Checkpoint: f.Checkpoint}
 		run.WatchRun(ctx, parent, parents, ch, jc)
 	} else {
-		run.SimpleRun(ctx, selfIPv4, peers, jc, f.VerboseLog)
+		run.SimpleRun(ctx, localhostIPv4, peers, jc, f.VerboseLog)
 	}
 }

@@ -3,8 +3,15 @@ package kungfurun
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -207,6 +214,103 @@ func ResolveHostList(config string, nic string) (plan.HostList, error) {
 		return resolveHostList(hl, nic)
 	}
 	return plan.ParseHostList(config)
+}
+
+func waitHTTPServer(cli *http.Client, addr string, period time.Duration) {
+	u := url.URL{Host: addr, Path: "/"}
+	ok := func(resp *http.Response, err error) bool {
+		if err != nil {
+			log.Debugf("waitHTTPServer(%s): %v", addr, err)
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			log.Debugf("waitHTTPServer(%s): %s", addr, resp.Status)
+			return false
+		}
+		return true
+	}
+	for {
+		resp, err := cli.Get(u.String())
+		if ok(resp, err) {
+			return
+		}
+		time.Sleep(period)
+	}
+}
+
+func resolvePeerListViaHTTP(localhostIPv4 uint32, port uint16, psl PeerSpecList) (plan.PeerList, error) {
+	var wg sync.WaitGroup
+	wg.Add(len(psl))
+	srv := http.Server{
+		Addr: fmt.Sprintf(":%d", port),
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.URL.Path == "/resolve" {
+				fmt.Fprintf(w, "%s", plan.FormatIPv4(localhostIPv4))
+				wg.Done()
+			}
+		}),
+	}
+	go srv.ListenAndServe()
+	defer srv.Close()
+	cli := &http.Client{}
+	pl := make(plan.PeerList, len(psl))
+	var failed int32
+	for i, p := range psl {
+		go func(i int, p PeerSpec) {
+			addr := fmt.Sprintf("%s:%d", p.Host, p.Port)
+			waitHTTPServer(cli, addr, 250*time.Millisecond)
+			u := url.URL{Host: addr, Path: "/resolve"}
+			resp, err := cli.Get(u.String())
+			if err != nil {
+				atomic.AddInt32(&failed, 1)
+				return
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				atomic.AddInt32(&failed, 1)
+				return
+			}
+			bs, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				atomic.AddInt32(&failed, 1)
+				return
+			}
+			ipv4, err := strconv.Atoi(string(bs))
+			if err != nil {
+				atomic.AddInt32(&failed, 1)
+				return
+			}
+			pl[i] = plan.PeerID{IPv4: uint32(ipv4), Port: p.Port}
+		}(i, p)
+	}
+	if failed > 0 {
+		return nil, fmt.Errorf("failed to resolve %d addresses", failed)
+	}
+	wg.Wait()
+	return pl, nil
+}
+
+func resolvePeerList(localhostIPv4 uint32, port uint16, psl PeerSpecList) (plan.PeerList, error) {
+	// FIXME: resolve Via r-channel
+	return resolvePeerListViaHTTP(localhostIPv4, port, psl)
+}
+
+func ResolvePeerList(localhostIPv4 uint32, port uint16, config string) (plan.PeerList, error) {
+	psl, err := ParsePeerSpecList(config)
+	if err != nil {
+		return nil, err
+	}
+	var needResolve bool
+	for _, p := range psl {
+		if !isIPv4(p.Host) {
+			needResolve = true
+			break
+		}
+	}
+	if needResolve {
+		return resolvePeerList(localhostIPv4, port, psl)
+	}
+	return nil, nil
 }
 
 func isIPv4(s string) bool {
