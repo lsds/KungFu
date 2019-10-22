@@ -2,16 +2,10 @@ package main
 
 import (
 	"context"
-	"errors"
-	"flag"
 	"fmt"
 	"os"
-	"path"
-	"runtime"
-	"strings"
 	"time"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -20,47 +14,13 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-var (
-	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
-	hostList   = flag.String("H", plan.DefaultHostSpec.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
-	portRange  = flag.String("port-range", plan.DefaultPortRange.String(), "port range for the peers")
-	selfHost   = flag.String("self", "", "internal IP")
-	timeout    = flag.Duration("timeout", 0, "timeout")
-	verboseLog = flag.Bool("v", true, "show task log")
-	nicName    = flag.String("nic", "", "network interface name, for infer self IP")
-	strategy   = flag.String("strategy", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
+var f run.FlagSet
 
-	port        = flag.Int("port", 38080, "port for rchannel")
-	watch       = flag.Bool("w", false, "watch config")
-	watchPeriod = flag.Duration("watch-period", 500*time.Millisecond, "")
-	checkpoint  = flag.String("checkpoint", "0", "")
-
-	logfile = flag.String("logfile", "", "path to log file")
-)
-
-func init() {
-	flag.Parse()
-	utils.LogArgs()
-	utils.LogKungfuEnv()
-	utils.LogNICInfo()
-	utils.LogCudaEnv()
-	utils.LogNCCLEnv()
-}
-
-var (
-	errMissingProgramName = errors.New("missing program name")
-)
-
-func progName() string {
-	if len(os.Args) > 0 {
-		return path.Base(os.Args[0])
-	}
-	return ""
-}
+func init() { run.Init(&f) }
 
 func main() {
-	if len(*logfile) > 0 {
-		lf, err := os.Create(*logfile)
+	if len(f.Logfile) > 0 {
+		lf, err := os.Create(f.Logfile)
 		if err != nil {
 			utils.ExitErr(err)
 		}
@@ -68,29 +28,21 @@ func main() {
 		log.SetOutput(lf)
 	}
 	t0 := time.Now()
-	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
-	selfIP, err := run.InferSelfIPv4(*selfHost, *nicName)
+	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(utils.ProgName())
+	selfIPv4, err := run.InferSelfIPv4(f.Self, f.NIC)
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Infof("Using selfHost=%s", plan.FormatIPv4(selfIP))
-	restArgs := flag.Args()
-	if len(restArgs) < 1 {
-		utils.ExitErr(errMissingProgramName)
-	}
-	pr, err := plan.ParsePortRange(*portRange)
-	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
-	}
-	hl, err := run.ResolveHostList(*hostList, *nicName)
+	log.Infof("Using self=%s", plan.FormatIPv4(selfIPv4))
+	hl, err := run.ResolveHostList(f.HostList, f.NIC)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	parent := plan.PeerID{IPv4: selfIP, Port: uint16(*port)}
+	parent := plan.PeerID{IPv4: selfIPv4, Port: uint16(f.Port)}
 	parents := func() plan.PeerList {
 		var ps plan.PeerList
 		for _, h := range hl {
-			ps = append(ps, plan.PeerID{IPv4: h.IPv4, Port: uint16(*port)})
+			ps = append(ps, plan.PeerID{IPv4: h.IPv4, Port: uint16(f.Port)})
 		}
 		return ps
 	}()
@@ -98,44 +50,44 @@ func main() {
 		utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
 	}
 	jc := sch.JobConfig{
-		Strategy:  kb.ParseStrategy(*strategy),
+		Strategy:  f.Strategy,
 		Parent:    parent,
 		HostList:  hl,
-		PortRange: *pr,
-		Prog:      restArgs[0],
-		Args:      restArgs[1:],
+		PortRange: f.PortRange,
+		Prog:      f.Prog,
+		Args:      f.Args,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	if *timeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, *timeout)
+	if f.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
 
-	if *watch {
-		peers, err := hl.GenPeerList(*np, *pr)
+	if f.Watch {
+		peers, err := hl.GenPeerList(f.ClusterSize, f.PortRange)
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
 		}
 		ch := make(chan run.Stage, 1)
-		ch <- run.Stage{Cluster: peers, Checkpoint: *checkpoint}
+		ch <- run.Stage{Cluster: peers, Checkpoint: f.Checkpoint}
 		watchRun(ctx, parent, parents, ch, jc)
 	} else {
-		procs, _, err := jc.CreateProcs(*np)
+		procs, _, err := jc.CreateProcs(f.ClusterSize)
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create tasks: %v", err))
 		}
-		simpleRun(ctx, selfIP, procs, jc)
+		simpleRun(ctx, selfIPv4, procs, jc)
 	}
 }
 
-func simpleRun(ctx context.Context, selfIP uint32, ps []sch.Proc, jc sch.JobConfig) {
-	myPs := sch.ForHost(selfIP, ps)
+func simpleRun(ctx context.Context, selfIPv4 uint32, ps []sch.Proc, jc sch.JobConfig) {
+	myPs := sch.ForHost(selfIPv4, ps)
 	if len(myPs) <= 0 {
 		log.Infof("No task to run on this node")
 		return
 	}
 	log.Infof("will parallel run %d instances of %s with %q", len(myPs), jc.Prog, jc.Args)
-	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, *verboseLog) })
+	d, err := utils.Measure(func() error { return runner.LocalRunAll(ctx, myPs, f.VerboseLog) })
 	log.Infof("all %d/%d local peers finished, took %s", len(myPs), len(ps), d)
 	if err != nil {
 		utils.ExitErr(err)

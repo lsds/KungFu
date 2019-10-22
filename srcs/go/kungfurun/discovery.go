@@ -10,9 +10,9 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-func InferSelfIPv4(hostname string, nic string) (uint32, error) {
-	if len(hostname) > 0 {
-		return plan.ParseIPv4(hostname)
+func InferSelfIPv4(ipv4 string, nic string) (uint32, error) {
+	if len(ipv4) > 0 {
+		return plan.ParseIPv4(ipv4)
 	}
 	if len(nic) > 0 {
 		return inferIPv4(nic)

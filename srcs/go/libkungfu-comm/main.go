@@ -106,7 +106,9 @@ func GoKungfuGetStrategyFromEnv() C.KungFu_AllReduceStrategy {
 	return C.KungFu_AllReduceStrategy(kb.ParseStrategy(name))
 }
 
-func main() {}
+func main() {
+	fmt.Printf("%s is a library\n", utils.ProgName())
+}
 
 func toVector(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Vector {
 	if ptr == nil {
