@@ -168,7 +168,8 @@ func (s *server) handle(conn net.Conn) error {
 	case ConnPeerToPeer:
 		return s.handlePeerToPeer(remote, conn)
 	default:
-		return errInvalidConnectionHeader
+		log.Debugf("%v", errInvalidConnectionHeader) // FIXME: filter out health check pings
+		return nil
 	}
 }
 

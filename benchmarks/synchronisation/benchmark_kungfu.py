@@ -84,19 +84,24 @@ elif args.optimizer == 'adam':
 else:
     raise Exception('Unknown optimizer option')
 
-if args.kungfu == 'sync-sgd':
-    from kungfu.optimizers import SyncSGDOptimizer
-    opt = SyncSGDOptimizer(opt)
-elif args.kungfu == 'async-sgd':
-    from kungfu.optimizers import PeerModelAveragingOptimizer
-    opt = PeerModelAveragingOptimizer(opt)
-elif args.kungfu == 'sync-sgd-nccl':
-    from kungfu.optimizers import SyncSGDOptimizer
-    opt = SyncSGDOptimizer(opt, nccl=True, nccl_fusion=True)
-elif args.kungfu == 'ideal':
-    opt = opt
-else:
-    raise Exception('Unknown kungfu option')
+barrier_op = None
+
+if args.kungfu:
+    from kungfu.ops import barrier
+    barrier_op = barrier()
+    if args.kungfu == 'sync-sgd':
+        from kungfu.optimizers import SyncSGDOptimizer
+        opt = SyncSGDOptimizer(opt)
+    elif args.kungfu == 'async-sgd':
+        from kungfu.optimizers import PeerModelAveragingOptimizer
+        opt = PeerModelAveragingOptimizer(opt)
+    elif args.kungfu == 'sync-sgd-nccl':
+        from kungfu.optimizers import SyncSGDOptimizer
+        opt = SyncSGDOptimizer(opt, nccl=True, nccl_fusion=True)
+    elif args.kungfu == 'ideal':
+        opt = opt
+    else:
+        raise Exception('Unknown kungfu option')
 
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
 target = tf.random_uniform([args.batch_size, 1],
@@ -157,3 +162,5 @@ else:
         if kf_init:
             session.run(kf_init)
         run(lambda: session.run(train_opt))
+        if barrier_op is not None:
+            session.run(barrier_op)

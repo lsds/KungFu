@@ -6,7 +6,6 @@ import (
 
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
-	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/platforms/modelarts"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
@@ -25,7 +24,6 @@ func main() {
 		utils.ExitErr(err)
 	}
 	jc := sch.JobConfig{
-		HostList:  plan.HostList{{}}, // FIXME: make sure it's not used
 		Strategy:  f.Strategy,
 		PortRange: f.PortRange,
 		Prog:      f.Prog,
