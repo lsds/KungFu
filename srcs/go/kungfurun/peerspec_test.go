@@ -9,10 +9,10 @@ var tests = []struct {
 	{
 		P: PeerSpec{
 			Host: `x.y.z`,
-			Port: 8080,
+			Port: 8081,
 			Slot: 4,
 		},
-		S: []string{"x.y.z:8080:4"},
+		S: []string{"x.y.z:8081:4"},
 	},
 	{
 		P: PeerSpec{

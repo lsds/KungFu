@@ -65,11 +65,23 @@ var errInvalidPeerSpecList = errors.New("invalid peer spec list")
 func ParsePeerSpecList(config string) (PeerSpecList, error) {
 	parts := strings.Split(config, ",")
 	var l PeerSpecList
+	m1 := make(map[string]struct{})
+	m2 := make(map[string]struct{})
 	for _, part := range parts {
 		p, err := ParsePeerSpec(part)
 		if err != nil {
 			return nil, errInvalidPeerSpecList
 		}
+		k1 := fmt.Sprintf("%s:%d", p.Host, p.Port)
+		k2 := fmt.Sprintf("%s:%d", p.Host, p.Slot)
+		if _, ok := m1[k1]; ok {
+			return nil, errInvalidPeerSpecList
+		}
+		m1[k1] = struct{}{}
+		if _, ok := m2[k2]; ok {
+			return nil, errInvalidPeerSpecList
+		}
+		m2[k2] = struct{}{}
 		l = append(l, *p)
 	}
 	return l, nil
