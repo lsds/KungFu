@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -21,7 +20,7 @@ type HostSpec struct {
 
 var DefaultHostSpec = HostSpec{
 	IPv4:       MustParseIPv4(`127.0.0.1`),
-	Slots:      runtime.NumCPU(),
+	Slots:      1,
 	PublicAddr: `127.0.0.1`,
 }
 
