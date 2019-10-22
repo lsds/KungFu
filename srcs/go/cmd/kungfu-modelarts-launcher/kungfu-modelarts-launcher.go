@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
@@ -17,10 +16,6 @@ import (
 var f run.FlagSet
 
 func init() { run.Init(&f) }
-
-func name(id plan.PeerID) string {
-	return fmt.Sprintf("%s.%d", plan.FormatIPv4(id.IPv4), id.Port)
-}
 
 func main() {
 	t0 := time.Now()
@@ -37,7 +32,7 @@ func main() {
 		Args:      f.Args,
 	}
 	procs := []sch.Proc{
-		jc.NewProc(name(env.Self), env.Self, 0, "", env.PeerList),
+		jc.NewProc(env.Self, 0, "", env.PeerList),
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	if f.Timeout > 0 {

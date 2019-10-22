@@ -42,6 +42,7 @@ python3 test:
   - ./scripts/tests/run-op-tests.sh
   - ./scripts/tests/run-train-tests.sh
   - ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
+  - ./scripts/tests/run-optimizer-tests.sh
 
 go format test:
   stage: lint
