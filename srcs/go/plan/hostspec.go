@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -16,12 +17,6 @@ type HostSpec struct {
 	IPv4       uint32
 	Slots      int
 	PublicAddr string
-}
-
-var DefaultHostSpec = HostSpec{
-	IPv4:       MustParseIPv4(`127.0.0.1`),
-	Slots:      1,
-	PublicAddr: `127.0.0.1`,
 }
 
 func (h HostSpec) String() string {
@@ -57,6 +52,14 @@ func parseHostSpec(spec string) (*HostSpec, error) {
 }
 
 type HostList []HostSpec
+
+var DefaultHostList = HostList{
+	{
+		IPv4:       MustParseIPv4(`127.0.0.1`),
+		Slots:      runtime.NumCPU(),
+		PublicAddr: `127.0.0.1`,
+	},
+}
 
 func (hl HostList) String() string {
 	var ss []string

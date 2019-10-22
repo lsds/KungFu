@@ -56,7 +56,7 @@ type FlagSet struct {
 
 func (f *FlagSet) Register() {
 	flag.IntVar(&f.ClusterSize, "np", 1, "number of peers")
-	flag.StringVar(&f.HostList, "H", plan.DefaultHostSpec.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	flag.StringVar(&f.HostList, "H", plan.DefaultHostList.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
 	flag.StringVar(&f.PeerList, "P", "", "comma separated list of <host>:<port>[:slot]")
 
 	flag.StringVar(&f.User, "u", "", "user name for ssh")
