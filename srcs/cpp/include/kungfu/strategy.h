@@ -4,16 +4,16 @@
 extern "C" {
 #endif
 
-enum KungFu_AllReduceStrategy {
-    KungFu_TreeAllReduce,
-    KungFu_BinaryTreeAllReduce,
-    KungFu_RingAllReduce,
-    KungFu_StarAllReduce,
-    KungFu_CliqueAllReduce,
+enum KungFu_Strategy {
+    KungFu_Tree,
+    KungFu_BinaryTree,
+    KungFu_Ring,
+    KungFu_Star,
+    KungFu_Clique,
     KungFu_BinaryTreeStar,
 };
 
-typedef enum KungFu_AllReduceStrategy KungFu_AllReduceStrategy;
+typedef enum KungFu_Strategy KungFu_Strategy;
 
 #ifdef __cplusplus
 }

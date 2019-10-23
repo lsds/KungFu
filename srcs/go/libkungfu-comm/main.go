@@ -23,7 +23,7 @@ import "C"
 var kungfu *kf.Kungfu
 
 //export GoKungfuInit
-func GoKungfuInit(strategy C.KungFu_AllReduceStrategy) int {
+func GoKungfuInit(strategy C.KungFu_Strategy) int {
 	var err error
 	config := kf.Config{Strategy: kb.Strategy(strategy)}
 	kungfu, err = kf.New(config)
@@ -101,9 +101,9 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 }
 
 //export GoKungfuGetStrategyFromEnv
-func GoKungfuGetStrategyFromEnv() C.KungFu_AllReduceStrategy {
+func GoKungfuGetStrategyFromEnv() C.KungFu_Strategy {
 	name := os.Getenv(kb.AllReduceStrategyEnvKey)
-	return C.KungFu_AllReduceStrategy(kb.ParseStrategy(name))
+	return C.KungFu_Strategy(kb.ParseStrategy(name))
 }
 
 func main() {

@@ -3,14 +3,14 @@ package kungfubase
 // #include "kungfu/strategy.h"
 import "C"
 
-type Strategy C.KungFu_AllReduceStrategy
+type Strategy C.KungFu_Strategy
 
 const (
-	Star           Strategy = C.KungFu_StarAllReduce
-	Ring           Strategy = C.KungFu_RingAllReduce
-	Clique         Strategy = C.KungFu_CliqueAllReduce
-	Tree           Strategy = C.KungFu_TreeAllReduce
-	BinaryTree     Strategy = C.KungFu_BinaryTreeAllReduce
+	Star           Strategy = C.KungFu_Star
+	Ring           Strategy = C.KungFu_Ring
+	Clique         Strategy = C.KungFu_Clique
+	Tree           Strategy = C.KungFu_Tree
+	BinaryTree     Strategy = C.KungFu_BinaryTree
 	BinaryTreeStar Strategy = C.KungFu_BinaryTreeStar
 )
 
