@@ -19,12 +19,6 @@ type HostSpec struct {
 	PublicAddr string
 }
 
-var DefaultHostSpec = HostSpec{
-	IPv4:       MustParseIPv4(`127.0.0.1`),
-	Slots:      runtime.NumCPU(),
-	PublicAddr: `127.0.0.1`,
-}
-
 func (h HostSpec) String() string {
 	return fmt.Sprintf("%s:%d:%s", FormatIPv4(h.IPv4), h.Slots, h.PublicAddr)
 }
@@ -59,6 +53,14 @@ func parseHostSpec(spec string) (*HostSpec, error) {
 
 type HostList []HostSpec
 
+var DefaultHostList = HostList{
+	{
+		IPv4:       MustParseIPv4(`127.0.0.1`),
+		Slots:      runtime.NumCPU(),
+		PublicAddr: `127.0.0.1`,
+	},
+}
+
 func (hl HostList) String() string {
 	var ss []string
 	for _, h := range hl {
@@ -68,15 +70,18 @@ func (hl HostList) String() string {
 }
 
 func ParseHostList(hostlist string) (HostList, error) {
-	var hostSpecs HostList
+	var hl HostList
+	if len(hostlist) == 0 {
+		return hl, nil
+	}
 	for _, h := range strings.Split(hostlist, ",") {
 		spec, err := parseHostSpec(h)
 		if err != nil {
 			return nil, err
 		}
-		hostSpecs = append(hostSpecs, *spec)
+		hl = append(hl, *spec)
 	}
-	return hostSpecs, nil
+	return hl, nil
 }
 
 func (hl HostList) Cap() int {

@@ -29,3 +29,13 @@ func Test_genPeerList(t *testing.T) {
 		t.Errorf("expect %d, got %d", 0, n)
 	}
 }
+
+func Test_HostSpecList(t *testing.T) {
+	hl, err := ParseHostList("")
+	if err != nil {
+		t.Errorf("unexpect error: %v", err)
+	}
+	if n := len(hl); n != 0 {
+		t.Errorf("expect %d, got %d", 0, n)
+	}
+}
