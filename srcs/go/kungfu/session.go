@@ -30,12 +30,11 @@ type session struct {
 	router     *rch.Router
 }
 
-func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
+func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
 	myRank, ok := pl.Lookup(self)
 	if !ok {
 		return nil, false
 	}
-	strategy := c.Strategy
 	if strategy == kb.Auto {
 		strategy = autoSelect(pl)
 	}

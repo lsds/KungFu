@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -20,12 +19,7 @@ var (
 
 func main() {
 	flag.Parse()
-	strategy, err := kb.ParseStrategy(os.Getenv(kb.AllReduceStrategyEnvKey))
-	if err != nil {
-		utils.ExitErr(err)
-	}
-	config := kf.Config{Strategy: *strategy}
-	kungfu, err := kf.New(config)
+	kungfu, err := kf.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
