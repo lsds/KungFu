@@ -10,13 +10,11 @@ unit test:
   image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
 
   script:
+  - go test -v ./srcs/go/...
   - | # C++ test
     ./configure --build-tests
     make
     make test
-
-  - | # Go test
-    ./scripts/tests/run-go-tests.sh
 
 integration test:
   stage: test
@@ -26,6 +24,7 @@ integration test:
   - ./configure --build-tests --build-tools
   - make
   - ./scripts/tests/run-integration-tests.sh
+  - ./scripts/tests/run-go-tests.sh
 
 python3 test:
   stage: test
