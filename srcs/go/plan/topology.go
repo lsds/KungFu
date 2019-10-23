@@ -12,7 +12,7 @@ func getLocalMasters(peers PeerList) ([]int, map[uint32]int) {
 	return masters, hostMaster
 }
 
-func GenDefaultBcastGraph(peers PeerList) *Graph {
+func GenTree(peers PeerList) *Graph {
 	g := NewGraph(len(peers))
 	masters, hostMaster := getLocalMasters(peers)
 	for rank, p := range peers {

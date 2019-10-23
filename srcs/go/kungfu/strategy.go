@@ -31,7 +31,7 @@ func createStarStrategies(peers plan.PeerList) []strategy {
 }
 
 func createTreeStrategies(peers plan.PeerList) []strategy {
-	bcastGraph := plan.GenDefaultBcastGraph(peers)
+	bcastGraph := plan.GenTree(peers)
 	return simpleSingleGraphStrategy(bcastGraph)
 }
 
