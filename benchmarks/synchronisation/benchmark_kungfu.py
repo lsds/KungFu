@@ -52,7 +52,9 @@ parser.add_argument(
     '--kungfu',
     type=str,
     default='sync-sgd',
-    help='KungFu strategy: sync-sgd, async-sgd, sync-sgd-nccl, ideal, ada-sgd, sma-sgd')
+    help=
+    'KungFu strategy: sync-sgd, async-sgd, sync-sgd-nccl, ideal, ada-sgd, sma-sgd'
+)
 parser.add_argument('--optimizer',
                     type=str,
                     default='sgd',
@@ -83,7 +85,6 @@ elif args.optimizer == 'adam':
     opt = tf.train.AdamOptimizer(learning_rate)
 else:
     raise Exception('Unknown optimizer option')
-
 
 barrier_op = None
 
