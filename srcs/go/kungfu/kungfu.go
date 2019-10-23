@@ -17,10 +17,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-type Config struct {
-	Strategy kb.Strategy
-}
-
 type Kungfu struct {
 	sync.Mutex
 
@@ -30,11 +26,11 @@ type Kungfu struct {
 	hostList  plan.HostList
 	portRange plan.PortRange
 	self      plan.PeerID
+	strategy  kb.Strategy
 
 	store  *store.VersionedStore
 	router *rch.Router
 	server rch.Server
-	config Config
 
 	// dynamic
 	currentSession *session
@@ -51,7 +47,7 @@ func getParentIDs(hl plan.HostList, parent plan.PeerID) plan.PeerList {
 	return ps
 }
 
-func New(config Config) (*Kungfu, error) {
+func New() (*Kungfu, error) {
 	env, err := plan.ParseEnv()
 	if err != nil {
 		return nil, err
@@ -69,11 +65,11 @@ func New(config Config) (*Kungfu, error) {
 		self:         env.Self,
 		hostList:     env.HostList,
 		portRange:    env.PortRange,
+		strategy:     env.Strategy,
 		checkpoint:   os.Getenv(kb.CheckpointEnvKey),
 		store:        store,
 		router:       router,
 		server:       server,
-		config:       config,
 	}, nil
 }
 
@@ -128,7 +124,7 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	}
 	log.Debugf("Kungfu::updateTo(%s), %d peers", pl, len(pl))
 	kf.router.ResetConnections(pl)
-	sess, exist := newSession(kf.config, kf.self, pl, kf.router)
+	sess, exist := newSession(kf.strategy, kf.self, pl, kf.router)
 	if !exist {
 		return false
 	}

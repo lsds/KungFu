@@ -10,6 +10,7 @@ type Env struct {
 	Self      PeerID
 	Parent    PeerID
 	InitPeers PeerList
+	Strategy  kb.Strategy
 
 	// resources
 	HostList  HostList
@@ -36,7 +37,11 @@ func ParseEnv() (*Env, error) {
 	if err != nil {
 		return nil, err
 	}
-	InitPeers, err := getInitPeersFromEnv()
+	initPeers, err := getInitPeersFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	strategy, err := kb.ParseStrategy(os.Getenv(kb.AllReduceStrategyEnvKey))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +50,8 @@ func ParseEnv() (*Env, error) {
 		Parent:    *parent,
 		HostList:  hostList,
 		PortRange: *portRange,
-		InitPeers: InitPeers,
+		InitPeers: initPeers,
+		Strategy:  *strategy,
 	}, nil
 }
 
@@ -54,5 +60,6 @@ func singleEnv() *Env {
 	return &Env{
 		Self:      self,
 		InitPeers: PeerList{self},
+		Strategy:  kb.DefaultStrategy,
 	}
 }

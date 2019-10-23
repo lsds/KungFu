@@ -24,8 +24,7 @@ var (
 
 func main() {
 	flag.Parse()
-	var config kf.Config
-	kungfu, err := kf.New(config)
+	kungfu, err := kf.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}

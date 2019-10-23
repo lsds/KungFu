@@ -30,83 +30,22 @@ type session struct {
 	router     *rch.Router
 }
 
-type partitionStrategy func([]plan.PeerID) []strategy
-
-var partitionStrategies = map[kb.Strategy]partitionStrategy{
-	kb.Star:   createStarStrategies,
-	kb.Clique: createCliqueStrategies,
-	kb.Ring:   createRingStrategies,
-	kb.Tree:   createTreeStrategies,
-}
-
-func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
-	f := partitionStrategies[c.Strategy]
-	if f == nil {
-		log.Warnf("%s is not implemeted, fallback to %s", c.Strategy, kb.Star)
-		f = createStarStrategies
-	}
+func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
 	myRank, ok := pl.Lookup(self)
 	if !ok {
 		return nil, false
 	}
+	if strategy == kb.Auto {
+		strategy = autoSelect(pl)
+	}
 	sess := &session{
-		strategies: f(pl),
+		strategies: partitionStrategies[strategy](pl),
 		self:       self,
 		cluster:    pl,
 		myRank:     myRank,
 		router:     router,
 	}
 	return sess, true
-}
-
-func createStarStrategies(peers []plan.PeerID) []strategy {
-	k := len(peers)
-	bcastGraph := plan.GenStarBcastGraph(k, defaultRoot)
-	reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
-	return []strategy{
-		{
-			reduceGraph: reduceGraph,
-			bcastGraph:  bcastGraph,
-		},
-	}
-}
-
-func createTreeStrategies(peers []plan.PeerID) []strategy {
-	bcastGraph := plan.GenDefaultBcastGraph(peers)
-	reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
-	return []strategy{
-		{
-			reduceGraph: reduceGraph,
-			bcastGraph:  bcastGraph,
-		},
-	}
-}
-
-func createCliqueStrategies(peers []plan.PeerID) []strategy {
-	k := len(peers)
-	var ss []strategy
-	for r := 0; r < k; r++ {
-		bcastGraph := plan.GenStarBcastGraph(k, r)
-		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
-		ss = append(ss, strategy{
-			reduceGraph: reduceGraph,
-			bcastGraph:  bcastGraph,
-		})
-	}
-	return ss
-}
-
-func createRingStrategies(peers []plan.PeerID) []strategy {
-	k := len(peers)
-	var ss []strategy
-	for r := 0; r < k; r++ {
-		reduceGraph, bcastGraph := plan.GenCircularGraphPair(k, r)
-		ss = append(ss, strategy{
-			reduceGraph: reduceGraph,
-			bcastGraph:  bcastGraph,
-		})
-	}
-	return ss
 }
 
 func (sess *session) ClusterSize() int {

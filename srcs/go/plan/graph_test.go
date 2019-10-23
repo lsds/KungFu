@@ -9,7 +9,7 @@ func Test_graph(t *testing.T) {
 	k := n * 4
 	peers := hosts.genPeerList(k, DefaultPortRange)
 
-	bcastGraph := GenDefaultBcastGraph(peers)
+	bcastGraph := GenTree(peers)
 	reduceGraph := GenDefaultReduceGraph(bcastGraph)
 
 	reduceGraph.Debug()
