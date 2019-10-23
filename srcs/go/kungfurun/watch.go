@@ -1,4 +1,4 @@
-package main
+package kungfurun
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
@@ -15,10 +14,10 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan run.Stage, jc sch.JobConfig) {
+func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, jc sch.JobConfig) {
 	ctx, cancel := context.WithCancel(ctx)
 	globalCtx, globalCancel := context.WithCancel(ctx)
-	server, err := rch.NewServer(run.NewHandler(parent, ch, globalCancel))
+	server, err := rch.NewServer(NewHandler(parent, ch, globalCancel))
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to create server: %v", err))
 	}
@@ -31,7 +30,7 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 	var running int32
 	gs := make(map[plan.PeerID]*sync.WaitGroup)
 
-	reconcileCluster := func(s run.Stage) {
+	reconcileCluster := func(s Stage) {
 		a, b := current.Diff(s.Cluster)
 		del := a.On(parent.IPv4)
 		add := b.On(parent.IPv4)
@@ -49,10 +48,9 @@ func watchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 			gs[id] = new(sync.WaitGroup)
 			gs[id].Add(1)
 			all.Add(1)
-			go func(g *sync.WaitGroup, id plan.PeerID, s run.Stage) {
+			go func(g *sync.WaitGroup, id plan.PeerID, s Stage) {
 				localRank, _ := s.Cluster.LocalRank(id)
-				name := fmt.Sprintf("%s.%d", plan.FormatIPv4(id.IPv4), id.Port)
-				proc := jc.NewProc(name, id, localRank, s.Checkpoint, s.Cluster)
+				proc := jc.NewProc(id, localRank, s.Checkpoint, s.Cluster)
 				atomic.AddInt32(&running, 1)
 				runProc(ctx, cancel, proc, s.Checkpoint)
 				n := atomic.AddInt32(&running, -1)

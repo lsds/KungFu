@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -123,4 +124,11 @@ func pluralize(n int, singular, plural string) string {
 
 func Pluralize(n int, singular, plural string) string {
 	return fmt.Sprintf("%d %s", n, pluralize(n, singular, plural))
+}
+
+func ProgName() string {
+	if len(os.Args) > 0 {
+		return path.Base(os.Args[0])
+	}
+	return ""
 }

@@ -2,13 +2,9 @@ package main
 
 import (
 	"context"
-	"errors"
-	"flag"
 	"fmt"
-	"runtime"
-	"strings"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	runner "github.com/lsds/KungFu/srcs/go/runner/remote"
@@ -16,57 +12,37 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-var (
-	np         = flag.Int("np", runtime.NumCPU(), "number of peers")
-	hostList   = flag.String("H", plan.DefaultHostSpec.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
-	portRange  = flag.String("port-range", plan.DefaultPortRange.String(), "port range for the peers")
-	user       = flag.String("u", "", "user name for ssh")
-	timeout    = flag.Duration("timeout", 0, "timeout")
-	verboseLog = flag.Bool("v", true, "show task log")
-	strategy   = flag.String("strategy", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
-	checkpoint = flag.String("checkpoint", "0", "")
-)
+var f run.FlagSet
 
-func init() {
-	flag.Parse()
-	utils.LogArgs()
-	utils.LogKungfuEnv()
-}
+func init() { run.Init(&f) }
 
 func main() {
-	restArgs := flag.Args()
-	if len(restArgs) < 1 {
-		utils.ExitErr(errors.New("missing program name"))
-	}
-	hl, err := plan.ParseHostList(*hostList)
+	hl, err := plan.ParseHostList(f.HostList)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	pr, err := plan.ParsePortRange(*portRange)
+	peers, err := hl.GenPeerList(f.ClusterSize, f.PortRange)
 	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to parse -port-range: %v", err))
+		utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
 	}
 	jc := sch.JobConfig{
-		Strategy:  kb.ParseStrategy(*strategy),
+		Strategy:  f.Strategy,
 		HostList:  hl,
-		PortRange: *pr,
-		Prog:      restArgs[0],
-		Args:      restArgs[1:],
+		PortRange: f.PortRange,
+		Prog:      f.Prog,
+		Args:      f.Args,
 	}
-	ps, _, err := jc.CreateProcs(*np)
-	if err != nil {
-		utils.ExitErr(err)
-	}
+	procs := jc.CreateAllProcs(peers)
 	ctx, cancel := context.WithCancel(context.Background())
-	if *timeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, *timeout)
+	if f.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
 	d, err := utils.Measure(func() error {
-		_, err := runner.RemoteRunAll(ctx, *user, ps, *verboseLog)
+		_, err := runner.RemoteRunAll(ctx, f.User, procs, f.VerboseLog)
 		return err
 	})
-	log.Infof("all %d peers finished, took %s", len(ps), d)
+	log.Infof("all %d peers finished, took %s", len(procs), d)
 	if err != nil {
 		utils.ExitErr(err)
 	}

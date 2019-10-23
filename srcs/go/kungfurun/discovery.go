@@ -3,16 +3,21 @@ package kungfurun
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-func InferSelfIPv4(hostname string, nic string) (uint32, error) {
-	if len(hostname) > 0 {
-		return plan.ParseIPv4(hostname)
+func InferSelfIPv4(ipv4 string, nic string) (uint32, error) {
+	if len(ipv4) > 0 {
+		return plan.ParseIPv4(ipv4)
 	}
 	if len(nic) > 0 {
 		return inferIPv4(nic)
@@ -207,6 +212,118 @@ func ResolveHostList(config string, nic string) (plan.HostList, error) {
 		return resolveHostList(hl, nic)
 	}
 	return plan.ParseHostList(config)
+}
+
+func waitHTTPServer(cli *http.Client, addr string, period time.Duration) {
+	u := url.URL{Scheme: "http", Host: addr, Path: "/"}
+	ok := func(resp *http.Response, err error) bool {
+		if err != nil {
+			log.Debugf("waitHTTPServer(%s): %v", addr, err)
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			log.Debugf("waitHTTPServer(%s): %s", addr, resp.Status)
+			return false
+		}
+		return true
+	}
+	for {
+		resp, err := cli.Get(u.String())
+		if ok(resp, err) {
+			return
+		}
+		time.Sleep(period)
+	}
+}
+
+func resolvePeerListViaHTTP(localhostIPv4 uint32, port uint16, psl PeerSpecList) (plan.PeerList, error) {
+	hosts := make(map[string]uint32)
+	ports := make(map[string]uint16)
+	for _, p := range psl {
+		hosts[p.Host] = 0
+		if _, ok := ports[p.Host]; !ok {
+			ports[p.Host] = p.Port
+		}
+	}
+	var wg sync.WaitGroup
+	wg.Add(len(hosts))
+	srv := http.Server{
+		Addr: fmt.Sprintf(":%d", port),
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.URL.Path == "/resolve" {
+				fmt.Fprintf(w, "%s", plan.FormatIPv4(localhostIPv4))
+				wg.Done()
+			}
+		}),
+	}
+	go srv.ListenAndServe()
+	defer srv.Close()
+	cli := &http.Client{}
+	var mu sync.Mutex
+	wg.Add(len(hosts))
+	for host := range hosts {
+		go func(host string, port uint16) {
+			defer wg.Done()
+			addr := fmt.Sprintf("%s:%d", host, port)
+			waitHTTPServer(cli, addr, 250*time.Millisecond)
+			u := url.URL{Scheme: "http", Host: addr, Path: "/resolve"}
+			resp, err := cli.Get(u.String())
+			if err != nil {
+				return
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				return
+			}
+			bs, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return
+			}
+			ipv4, err := plan.ParseIPv4(string(bs))
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			hosts[host] = ipv4
+			mu.Unlock()
+		}(host, ports[host])
+	}
+	wg.Wait()
+	var pl plan.PeerList
+	for _, p := range psl {
+		ipv4 := hosts[p.Host]
+		if ipv4 == 0 {
+			return nil, fmt.Errorf("failed to resolve: %s", p.Host)
+		}
+		pl = append(pl, plan.PeerID{IPv4: ipv4, Port: p.Port})
+	}
+	return pl, nil
+}
+
+func resolvePeerList(localhostIPv4 uint32, port uint16, psl PeerSpecList) (plan.PeerList, error) {
+	// FIXME: resolve Via r-channel
+	return resolvePeerListViaHTTP(localhostIPv4, port, psl)
+}
+
+func ResolvePeerList(localhostIPv4 uint32, port uint16, config string) (plan.PeerList, error) {
+	psl, err := ParsePeerSpecList(config)
+	if err != nil {
+		return nil, err
+	}
+	var needResolve bool
+	pl := make(plan.PeerList, len(psl))
+	for i, p := range psl {
+		ip, err := plan.ParseIPv4(p.Host)
+		if err != nil {
+			needResolve = true
+			break
+		}
+		pl[i] = plan.PeerID{IPv4: ip, Port: p.Port}
+	}
+	if needResolve {
+		return resolvePeerList(localhostIPv4, port, psl)
+	}
+	return pl, nil
 }
 
 func isIPv4(s string) bool {

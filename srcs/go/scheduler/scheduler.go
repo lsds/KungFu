@@ -7,7 +7,6 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -20,7 +19,7 @@ type JobConfig struct {
 	Args      []string
 }
 
-func (jc JobConfig) NewProc(name string, peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
+func (jc JobConfig) NewProc(peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
 	envs := Envs{
 		kb.SelfSpecEnvKey:          peer.String(),
 		`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
@@ -32,7 +31,7 @@ func (jc JobConfig) NewProc(name string, peer plan.PeerID, localRank int, checkp
 		kb.AllReduceStrategyEnvKey: jc.Strategy.String(),
 	}
 	allEnvs := merge(getConfigEnvs(), envs)
-	allEnvs.addIfMissing(`DYLD_LIBRARY_PATH`, run.DefaultLdLibraryPath)
+	allEnvs.addIfMissing(`DYLD_LIBRARY_PATH`, DefaultLdLibraryPath)
 	allEnvs.addIfMissing(`PYTHONUNBUFFERED`, `1`)
 	var pubAddr string
 	for _, h := range jc.HostList {
@@ -42,7 +41,7 @@ func (jc JobConfig) NewProc(name string, peer plan.PeerID, localRank int, checkp
 	}
 
 	return Proc{
-		Name:    name,
+		Name:    fmt.Sprintf("%s.%d", plan.FormatIPv4(peer.IPv4), peer.Port),
 		Prog:    jc.Prog,
 		Args:    jc.Args,
 		Envs:    allEnvs,
@@ -51,29 +50,24 @@ func (jc JobConfig) NewProc(name string, peer plan.PeerID, localRank int, checkp
 	}
 }
 
-func (jc JobConfig) CreateProcs(np int) ([]Proc, plan.PeerList, error) {
-	pl, err := jc.HostList.GenPeerList(np, jc.PortRange)
-	if err != nil {
-		return nil, nil, err
-	}
+func (jc JobConfig) CreateAllProcs(pl plan.PeerList) []Proc {
 	var ps []Proc
 	for _, self := range pl {
 		localRank, _ := pl.LocalRank(self)
-		name := fmt.Sprintf("%s.%d", plan.FormatIPv4(self.IPv4), self.Port)
-		proc := jc.NewProc(name, self, localRank, "", pl)
+		proc := jc.NewProc(self, localRank, "", pl)
 		ps = append(ps, proc)
 	}
-	return ps, pl, nil
+	return ps
 }
 
-func ForHost(myHost uint32, ps []Proc) []Proc {
-	var myPs []Proc
-	for _, p := range ps {
-		if p.IPv4 == myHost {
-			myPs = append(myPs, p)
-		}
+func (jc JobConfig) CreateProcs(pl plan.PeerList, host uint32) []Proc {
+	var ps []Proc
+	for _, self := range pl.On(host) {
+		localRank, _ := pl.LocalRank(self)
+		proc := jc.NewProc(self, localRank, "", pl)
+		ps = append(ps, proc)
 	}
-	return myPs
+	return ps
 }
 
 func getConfigEnvs() Envs {

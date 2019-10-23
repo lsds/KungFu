@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"unsafe"
 
@@ -23,10 +22,9 @@ import "C"
 var kungfu *kf.Kungfu
 
 //export GoKungfuInit
-func GoKungfuInit(strategy C.KungFu_AllReduceStrategy) int {
+func GoKungfuInit() int {
 	var err error
-	config := kf.Config{Strategy: kb.Strategy(strategy)}
-	kungfu, err = kf.New(config)
+	kungfu, err = kf.New()
 	if err != nil {
 		log.Errorf("failed to create KungFu instance: %v", err)
 		return 1
@@ -100,13 +98,9 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 	return 0
 }
 
-//export GoKungfuGetStrategyFromEnv
-func GoKungfuGetStrategyFromEnv() C.KungFu_AllReduceStrategy {
-	name := os.Getenv(kb.AllReduceStrategyEnvKey)
-	return C.KungFu_AllReduceStrategy(kb.ParseStrategy(name))
+func main() {
+	fmt.Printf("%s is a library\n", utils.ProgName())
 }
-
-func main() {}
 
 func toVector(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Vector {
 	if ptr == nil {

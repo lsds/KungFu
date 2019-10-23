@@ -1,22 +1,25 @@
 package plan
 
-import "sort"
-
-func GenDefaultBcastGraph(peers []PeerID) *Graph {
-	g := NewGraph(len(peers))
-	hostMasters := make(map[uint32]int)
+func getLocalMasters(peers PeerList) ([]int, map[uint32]int) {
+	var masters []int
+	hostMaster := make(map[uint32]int)
 	for rank, p := range peers {
-		if master, ok := hostMasters[p.IPv4]; !ok {
-			hostMasters[p.IPv4] = rank
-		} else {
+		if _, ok := hostMaster[p.IPv4]; !ok {
+			hostMaster[p.IPv4] = rank
+			masters = append(masters, rank)
+		}
+	}
+	return masters, hostMaster
+}
+
+func GenTree(peers PeerList) *Graph {
+	g := NewGraph(len(peers))
+	masters, hostMaster := getLocalMasters(peers)
+	for rank, p := range peers {
+		if master := hostMaster[p.IPv4]; master != rank {
 			g.AddEdge(master, rank)
 		}
 	}
-	var masters []int
-	for _, rank := range hostMasters {
-		masters = append(masters, rank)
-	}
-	sort.Ints(masters)
 	if len(masters) > 1 {
 		for _, rank := range masters[1:] {
 			g.AddEdge(masters[0], rank)
@@ -32,6 +35,40 @@ func GenDefaultReduceGraph(g *Graph) *Graph {
 		g0.AddEdge(i, i)
 	}
 	return g0
+}
+
+func GenBinaryTree(k int) *Graph {
+	g := NewGraph(k)
+	for i := 0; i < k; i++ {
+		if j := i*2 + 1; j < k {
+			g.AddEdge(i, j)
+		}
+		if j := i*2 + 2; j < k {
+			g.AddEdge(i, j)
+		}
+	}
+	return g
+}
+
+func GenBinaryTreeStar(peers PeerList) *Graph {
+	g := NewGraph(len(peers))
+	masters, hostMaster := getLocalMasters(peers)
+	for rank, p := range peers {
+		if master := hostMaster[p.IPv4]; master != rank {
+			g.AddEdge(master, rank)
+		}
+	}
+	if k := len(masters); k > 1 {
+		for i := 0; i < k; i++ {
+			if j := i*2 + 1; j < k {
+				g.AddEdge(masters[i], masters[j])
+			}
+			if j := i*2 + 2; j < k {
+				g.AddEdge(masters[i], masters[j])
+			}
+		}
+	}
+	return g
 }
 
 // GenStarBcastGraph generates a star shape graph with k vertices and centered at vertice r (0 <= r < k)

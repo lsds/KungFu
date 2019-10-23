@@ -1,4 +1,4 @@
-package kungfurun
+package scheduler
 
 import (
 	"os/exec"

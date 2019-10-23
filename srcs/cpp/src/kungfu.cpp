@@ -25,8 +25,7 @@ void order_group_wait(order_group_t *og) { GoOrderGroupWait(og); }
 
 kungfu_world::kungfu_world()
 {
-    const KungFu_AllReduceStrategy strategy = GoKungfuGetStrategyFromEnv();
-    const int err                           = GoKungfuInit(strategy);
+    const int err = GoKungfuInit();
     if (err) {
         fprintf(stderr, "%s failed\n", "GoKungfuInit");
         exit(1);
