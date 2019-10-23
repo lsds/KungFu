@@ -2,6 +2,7 @@ package kungfubase
 
 // #include "kungfu/strategy.h"
 import "C"
+import "errors"
 
 type Strategy C.KungFu_Strategy
 
@@ -26,7 +27,7 @@ var (
 		Auto:           `AUTO`,
 	}
 
-	defaultStrategy = Tree
+	DefaultStrategy = Tree
 )
 
 func StrategyNames() []string {
@@ -41,11 +42,13 @@ func (s Strategy) String() string {
 	return strategyNames[s]
 }
 
-func ParseStrategy(s string) Strategy {
+var errInvalidStrategy = errors.New("invalid strategy")
+
+func ParseStrategy(s string) (*Strategy, error) {
 	for k, v := range strategyNames {
 		if s == v {
-			return k
+			return &k, nil
 		}
 	}
-	return defaultStrategy
+	return nil, errInvalidStrategy
 }

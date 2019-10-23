@@ -102,8 +102,11 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 
 //export GoKungfuGetStrategyFromEnv
 func GoKungfuGetStrategyFromEnv() C.KungFu_Strategy {
-	name := os.Getenv(kb.AllReduceStrategyEnvKey)
-	return C.KungFu_Strategy(kb.ParseStrategy(name))
+	strategy, err := kb.ParseStrategy(os.Getenv(kb.AllReduceStrategyEnvKey))
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	return C.KungFu_Strategy(*strategy)
 }
 
 func main() {
