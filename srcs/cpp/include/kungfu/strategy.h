@@ -10,6 +10,7 @@ enum KungFu_AllReduceStrategy {
     KungFu_RingAllReduce,
     KungFu_StarAllReduce,
     KungFu_CliqueAllReduce,
+    KungFu_BinaryTreeStar,
 };
 
 typedef enum KungFu_AllReduceStrategy KungFu_AllReduceStrategy;

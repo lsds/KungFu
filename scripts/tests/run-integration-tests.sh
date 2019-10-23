@@ -27,7 +27,7 @@ run_fake_cluster() {
 }
 
 test_all() {
-    all_strategies="STAR RING CLIQUE TREE BINARY_TREE"
+    all_strategies="STAR RING CLIQUE TREE BINARY_TREE BINARY_TREE_STAR"
     for np in $(seq 4); do
         for STRATEGY in $all_strategies; do
             run_fake_cluster $np $STRATEGY ./bin/fake-agent

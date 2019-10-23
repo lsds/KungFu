@@ -6,20 +6,22 @@ import "C"
 type Strategy C.KungFu_AllReduceStrategy
 
 const (
-	Star       Strategy = C.KungFu_StarAllReduce
-	Ring       Strategy = C.KungFu_RingAllReduce
-	Clique     Strategy = C.KungFu_CliqueAllReduce
-	Tree       Strategy = C.KungFu_TreeAllReduce
-	BinaryTree Strategy = C.KungFu_BinaryTreeAllReduce
+	Star           Strategy = C.KungFu_StarAllReduce
+	Ring           Strategy = C.KungFu_RingAllReduce
+	Clique         Strategy = C.KungFu_CliqueAllReduce
+	Tree           Strategy = C.KungFu_TreeAllReduce
+	BinaryTree     Strategy = C.KungFu_BinaryTreeAllReduce
+	BinaryTreeStar Strategy = C.KungFu_BinaryTreeStar
 )
 
 var (
 	strategyNames = map[Strategy]string{
-		Star:       `STAR`,
-		Ring:       `RING`,
-		Clique:     `CLIQUE`,
-		Tree:       `TREE`,
-		BinaryTree: `BINARY_TREE`,
+		Star:           `STAR`,
+		Ring:           `RING`,
+		Clique:         `CLIQUE`,
+		Tree:           `TREE`,
+		BinaryTree:     `BINARY_TREE`,
+		BinaryTreeStar: `BINARY_TREE_STAR`,
 	}
 
 	defaultStrategy = Tree

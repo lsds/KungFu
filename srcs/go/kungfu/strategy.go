@@ -8,11 +8,12 @@ import (
 type partitionStrategy func(plan.PeerList) []strategy
 
 var partitionStrategies = map[kb.Strategy]partitionStrategy{
-	kb.Star:       createStarStrategies,
-	kb.Clique:     createCliqueStrategies,
-	kb.Ring:       createRingStrategies,
-	kb.Tree:       createTreeStrategies,
-	kb.BinaryTree: createBinaryTreeStrategies,
+	kb.Star:           createStarStrategies,
+	kb.Clique:         createCliqueStrategies,
+	kb.Ring:           createRingStrategies,
+	kb.Tree:           createTreeStrategies,
+	kb.BinaryTree:     createBinaryTreeStrategies,
+	kb.BinaryTreeStar: createBinaryTreeStarStrategies,
 }
 
 func simpleSingleGraphStrategy(bcastGraph *plan.Graph) []strategy {
@@ -36,6 +37,11 @@ func createTreeStrategies(peers plan.PeerList) []strategy {
 
 func createBinaryTreeStrategies(peers plan.PeerList) []strategy {
 	bcastGraph := plan.GenBinaryTree(len(peers))
+	return simpleSingleGraphStrategy(bcastGraph)
+}
+
+func createBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
+	bcastGraph := plan.GenBinaryTreeStar(peers)
 	return simpleSingleGraphStrategy(bcastGraph)
 }
 
