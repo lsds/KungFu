@@ -67,7 +67,7 @@ func (f *FlagSet) Register() {
 	flag.DurationVar(&f.Timeout, "timeout", 0, "timeout")
 	flag.BoolVar(&f.VerboseLog, "v", true, "show task log")
 	flag.StringVar(&f.NIC, "nic", "", "network interface name, for infer self IP")
-	flag.StringVar(&f.strategy, "strategy", "", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
+	flag.StringVar(&f.strategy, "strategy", kb.DefaultStrategy.String(), fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 
 	flag.IntVar(&f.Port, "port", 38080, "port for rchannel")
 	flag.BoolVar(&f.Watch, "w", false, "watch config")
@@ -87,7 +87,11 @@ func (f *FlagSet) Parse() error {
 		return fmt.Errorf("failed to parse -port-range: %v", err)
 	}
 	f.PortRange = *pr
-	f.Strategy = kb.ParseStrategy(f.strategy)
+	strategy, err := kb.ParseStrategy(f.strategy)
+	if err != nil {
+		return err
+	}
+	f.Strategy = *strategy
 
 	args := flag.Args()
 	if len(args) < 1 {

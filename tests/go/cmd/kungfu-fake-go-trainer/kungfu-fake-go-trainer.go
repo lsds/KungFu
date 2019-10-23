@@ -25,10 +25,7 @@ var (
 func main() {
 	flag.Parse()
 	log.Printf("[%s]", os.Args[0])
-	config := kf.Config{
-		Strategy: kb.ParseStrategy(os.Getenv(kb.AllReduceStrategyEnvKey)),
-	}
-	kungfu, err := kf.New(config)
+	kungfu, err := kf.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}

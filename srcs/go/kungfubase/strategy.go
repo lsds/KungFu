@@ -2,25 +2,32 @@ package kungfubase
 
 // #include "kungfu/strategy.h"
 import "C"
+import "errors"
 
-type Strategy C.KungFu_AllReduceStrategy
+type Strategy C.KungFu_Strategy
 
 const (
-	Star   Strategy = C.KungFu_StarAllReduce
-	Ring   Strategy = C.KungFu_RingAllReduce
-	Clique Strategy = C.KungFu_CliqueAllReduce
-	Tree   Strategy = C.KungFu_TreeAllReduce
+	Star           Strategy = C.KungFu_Star
+	Ring           Strategy = C.KungFu_Ring
+	Clique         Strategy = C.KungFu_Clique
+	Tree           Strategy = C.KungFu_Tree
+	BinaryTree     Strategy = C.KungFu_BinaryTree
+	BinaryTreeStar Strategy = C.KungFu_BinaryTreeStar
+	Auto           Strategy = C.KungFu_AUTO
 )
 
 var (
 	strategyNames = map[Strategy]string{
-		Star:   `STAR`,
-		Ring:   `RING`,
-		Clique: `CLIQUE`,
-		Tree:   `TREE`,
+		Star:           `STAR`,
+		Ring:           `RING`,
+		Clique:         `CLIQUE`,
+		Tree:           `TREE`,
+		BinaryTree:     `BINARY_TREE`,
+		BinaryTreeStar: `BINARY_TREE_STAR`,
+		Auto:           `AUTO`,
 	}
 
-	defaultStrategy = Tree
+	DefaultStrategy = BinaryTreeStar
 )
 
 func StrategyNames() []string {
@@ -31,20 +38,17 @@ func StrategyNames() []string {
 	return names
 }
 
-func (a Strategy) String() string {
-	for k, v := range strategyNames {
-		if a == k {
-			return v
-		}
-	}
-	return strategyNames[defaultStrategy]
+func (s Strategy) String() string {
+	return strategyNames[s]
 }
 
-func ParseStrategy(s string) Strategy {
+var errInvalidStrategy = errors.New("invalid strategy")
+
+func ParseStrategy(s string) (*Strategy, error) {
 	for k, v := range strategyNames {
 		if s == v {
-			return k
+			return &k, nil
 		}
 	}
-	return defaultStrategy
+	return nil, errInvalidStrategy
 }

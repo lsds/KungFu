@@ -60,7 +60,7 @@ run_fake_go_trainer() {
         -np=$np \
         -H $H \
         -timeout=120s \
-        ./bin/fake-go-trainer
+        ./bin/kungfu-fake-go-trainer
 
 }
 

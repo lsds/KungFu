@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"os"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -13,10 +12,7 @@ import (
 
 func main() {
 	flag.Parse()
-	config := kf.Config{
-		Strategy: kb.ParseStrategy(os.Getenv(kb.AllReduceStrategyEnvKey)),
-	}
-	kungfu, err := kf.New(config)
+	kungfu, err := kf.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}

@@ -52,7 +52,9 @@ parser.add_argument(
     '--kungfu',
     type=str,
     default='sync-sgd',
-    help='KungFu strategy: sync-sgd, async-sgd, sync-sgd-nccl, ideal')
+    help=
+    'KungFu strategy: sync-sgd, async-sgd, sync-sgd-nccl, ideal, ada-sgd, sma-sgd'
+)
 parser.add_argument('--optimizer',
                     type=str,
                     default='sgd',
@@ -98,6 +100,12 @@ if args.kungfu:
     elif args.kungfu == 'sync-sgd-nccl':
         from kungfu.optimizers import SyncSGDOptimizer
         opt = SyncSGDOptimizer(opt, nccl=True, nccl_fusion=True)
+    elif args.kungfu == 'ada-sgd':
+        from kungfu.optimizers import AdaptiveSGDOptimizer
+        opt = AdaptiveSGDOptimizer(opt, 10)
+    elif args.kungfu == 'sma-sgd':
+        from kungfu.optimizers import SyncModelAveragingSGDOptimizer
+        opt = SyncModelAveragingSGDOptimizer(opt)
     elif args.kungfu == 'ideal':
         opt = opt
     else:
