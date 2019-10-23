@@ -6,18 +6,20 @@ import "C"
 type Strategy C.KungFu_AllReduceStrategy
 
 const (
-	Star   Strategy = C.KungFu_StarAllReduce
-	Ring   Strategy = C.KungFu_RingAllReduce
-	Clique Strategy = C.KungFu_CliqueAllReduce
-	Tree   Strategy = C.KungFu_TreeAllReduce
+	Star       Strategy = C.KungFu_StarAllReduce
+	Ring       Strategy = C.KungFu_RingAllReduce
+	Clique     Strategy = C.KungFu_CliqueAllReduce
+	Tree       Strategy = C.KungFu_TreeAllReduce
+	BinaryTree Strategy = C.KungFu_BinaryTreeAllReduce
 )
 
 var (
 	strategyNames = map[Strategy]string{
-		Star:   `STAR`,
-		Ring:   `RING`,
-		Clique: `CLIQUE`,
-		Tree:   `TREE`,
+		Star:       `STAR`,
+		Ring:       `RING`,
+		Clique:     `CLIQUE`,
+		Tree:       `TREE`,
+		BinaryTree: `BINARY_TREE`,
 	}
 
 	defaultStrategy = Tree
@@ -31,13 +33,8 @@ func StrategyNames() []string {
 	return names
 }
 
-func (a Strategy) String() string {
-	for k, v := range strategyNames {
-		if a == k {
-			return v
-		}
-	}
-	return strategyNames[defaultStrategy]
+func (s Strategy) String() string {
+	return strategyNames[s]
 }
 
 func ParseStrategy(s string) Strategy {

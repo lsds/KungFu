@@ -6,6 +6,7 @@ extern "C" {
 
 enum KungFu_AllReduceStrategy {
     KungFu_TreeAllReduce,
+    KungFu_BinaryTreeAllReduce,
     KungFu_RingAllReduce,
     KungFu_StarAllReduce,
     KungFu_CliqueAllReduce,

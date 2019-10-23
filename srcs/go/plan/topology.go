@@ -34,6 +34,19 @@ func GenDefaultReduceGraph(g *Graph) *Graph {
 	return g0
 }
 
+func GenBinaryTree(k int) *Graph {
+	g := NewGraph(k)
+	for i := 0; i < k; i++ {
+		if j := i*2 + 1; j < k {
+			g.AddEdge(i, j)
+		}
+		if j := i*2 + 2; j < k {
+			g.AddEdge(i, j)
+		}
+	}
+	return g
+}
+
 // GenStarBcastGraph generates a star shape graph with k vertices and centered at vertice r (0 <= r < k)
 func GenStarBcastGraph(k, r int) *Graph {
 	g := NewGraph(k)
