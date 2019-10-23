@@ -27,7 +27,7 @@ var (
 		Auto:           `AUTO`,
 	}
 
-	DefaultStrategy = Tree
+	DefaultStrategy = BinaryTreeStar
 )
 
 func StrategyNames() []string {
