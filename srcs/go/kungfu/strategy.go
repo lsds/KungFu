@@ -71,3 +71,14 @@ func createRingStrategies(peers plan.PeerList) []strategy {
 	}
 	return ss
 }
+
+func autoSelect(peers plan.PeerList) kb.Strategy {
+	m := make(map[uint32]int)
+	for _, p := range peers {
+		m[p.IPv4]++
+	}
+	if len(m) == 1 {
+		return kb.Star
+	}
+	return kb.BinaryTreeStar
+}

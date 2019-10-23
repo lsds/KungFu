@@ -35,8 +35,12 @@ func newSession(c Config, self plan.PeerID, pl plan.PeerList, router *rch.Router
 	if !ok {
 		return nil, false
 	}
+	strategy := c.Strategy
+	if strategy == kb.Auto {
+		strategy = autoSelect(pl)
+	}
 	sess := &session{
-		strategies: partitionStrategies[c.Strategy](pl),
+		strategies: partitionStrategies[strategy](pl),
 		self:       self,
 		cluster:    pl,
 		myRank:     myRank,

@@ -12,6 +12,7 @@ const (
 	Tree           Strategy = C.KungFu_Tree
 	BinaryTree     Strategy = C.KungFu_BinaryTree
 	BinaryTreeStar Strategy = C.KungFu_BinaryTreeStar
+	Auto           Strategy = C.KungFu_AUTO
 )
 
 var (
@@ -22,6 +23,7 @@ var (
 		Tree:           `TREE`,
 		BinaryTree:     `BINARY_TREE`,
 		BinaryTreeStar: `BINARY_TREE_STAR`,
+		Auto:           `AUTO`,
 	}
 
 	defaultStrategy = Tree
