@@ -112,7 +112,7 @@ The stations are interconnected by a 100Gbps network.
 We benchmark the training throughput of
  ResNet-50, VGG16 and InceptionV3. These models represent different kinds of training workloads.
 
-In the synchronous training case, we compare KungFu with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0.
+In the synchronous training case, we compare KungFu (``SyncSGDOptimizer``) with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0.
 We evaluate the spectrum of batch size (from 256 to 4096) commonly used by S-SGD users.
 This batch size is evenly shared by 16 GPUs.
 As we can see,
@@ -122,7 +122,7 @@ frequency for synchronisation is high.
 
 ![sync](benchmarks/synchronisation/result/sync-scalability.svg)
 
-In the asynchronous training case, we compare KungFu with TensorFlow parameter servers (1.13.1).
+In the asynchronous training case, we compare KungFu (``PeerModelAveragingOptimizer``) with TensorFlow parameter servers (1.13.1).
 We uses the same spectrum of batch size as above.
 KungFu also exhibits better scalablity compared to parameter servers.
 
