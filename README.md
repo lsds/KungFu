@@ -1,21 +1,28 @@
 # KungFu
 
-Adaptive distributed machine learning.
+Adaptive, fast and easy machine learning at scale.
 
 ## Features
 
-TODO
+KungFu enables users to achieve
+fast and adaptive machine learning.
+This is important as machine learning systems are being
+exposed to growing complex models and increasingly complicated deployment environments.
+KungFu has the following unique features:
+
+* Simplicity: KungFu allows you to enable distributed training by modifying only one line of code in your training program.
+* Adaptive synchronisation: KungFu provides various [synchronisation algorithms](srcs/python/kungfu/optimizers/__init__.py), thus help you address the cases where traditional ``Synchronous SGD`` does not scale.
+* Monitoring: KungFu provides useful training metrics such as ``gradient variance`` and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help you understand your training with negligble overheads.
+* Control: KungFu provides control operators such as ``barrier`` and ``resize`` to control your training system online.
 
 ## Usage
 
 To use KungFu, make the following additions to your program. This example uses TensorFlow.
 
-1. Wrap optimizer in ``kungfu.optimizers.SyncSGDOptimizer`` or other KungFu [distributed optimizers](srcs/python/kungfu/optimizers/__init__.py).
+1. Wrap optimizer in ``kungfu.optimizers.SyncSGDOptimizer`` or other [distributed optimizers](srcs/python/kungfu/optimizers/__init__.py).
 
-2. Run ``sess.run(kungfu_optimizer.distributed_initializer())`` after you call ``sess.run(tf.global_variables_initializer())``.
-    The distributed initializer will automatically synchronise the initial variables on all KungFu workers based on the chosen distributed optimizer.
-
-Example (see the [example](examples/mnist_slp.py) for a full training example):
+2. Run ``opt.distributed_initializer()`` after you call ``tf.global_variables_initializer()``.
+    The distributed initializer synchronises initial variables on all workers.
 
 ```python
 import tensorflow as tf
@@ -42,6 +49,8 @@ with tf.Session() as sess:
     for step in range(10):
         sess.run(train_op)
 ```
+
+See the [TensorFlow Classic](examples/mnist_slp.py) and [TensorFlow Keras](examples/mnist_keras.py) for full training examples:
 
 ## Run
 
@@ -120,6 +129,8 @@ We uses the same spectrum of batch size as above.
 KungFu also exhibits better scalablity compared to parameter servers.
 
 ![async](benchmarks/synchronisation/result/async-scalability.svg)
+
+All benchmark scripts are available [here](KungFu/benchmarks/synchronisation/)
 
 ## Contribute
 
