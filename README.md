@@ -18,26 +18,26 @@ To use KungFu, make the following additions to your program. This example uses T
 Example (see the [example](examples/mnist_slp.py) for a full training example):
 
 ```python
-    import tensorflow as tf
-    from kungfu.optimizers import SyncSGDOptimizer
+import tensorflow as tf
+from kungfu.optimizers import SyncSGDOptimizer
 
-    # Build model...
-    loss = ...
-    opt = tf.train.AdagradOptimizer(0.01 * hvd.size())
+# Build model...
+loss = ...
+opt = tf.train.AdagradOptimizer(0.01 * hvd.size())
 
-    # Add KungFu Distributed Optimizer
-    opt = SyncSGDOptimizer(opt)
+# Add KungFu Distributed Optimizer
+opt = SyncSGDOptimizer(opt)
 
-    # Make training operation
-    train_op = opt.minimize(loss)
+# Make training operation
+train_op = opt.minimize(loss)
 
-    with tf.Session() as sess:
-      sess.run(tf.global_variables_initializer())
-      sess.run(kungfu_optimizer.distributed_initializer()) # KungFu
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    sess.run(kungfu_optimizer.distributed_initializer()) # KungFu
 
-      # Train your model in a loop.
-      for step in range(n_steps):
-        ...
+    # Train your model for 10 steps.
+    for step in range(10):
+        sess.run(train_op)
 ```
 
 
