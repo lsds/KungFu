@@ -19,16 +19,17 @@ Example (see the [example](examples/mnist_slp.py) for a full training example):
 
 ```python
 import tensorflow as tf
-import kungfu as kf
 
 # Build model...
 loss = ...
 
 # You may want to scale the learning rate
-opt = tf.train.AdagradOptimizer(0.01 * kf.ops.current_cluster_size())
+from kungfu.ops import current_cluster_size
+opt = tf.train.AdagradOptimizer(0.01 * current_cluster_size())
 
 # Add KungFu Distributed Optimizer
-opt = kf.optimizers.SyncSGDOptimizer(opt)
+from kungfu.optimizers import SyncSGDOptimizer
+opt = SyncSGDOptimizer(opt)
 
 # Make training operation
 train_op = opt.minimize(loss)
