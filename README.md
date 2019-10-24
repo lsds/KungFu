@@ -96,6 +96,10 @@ For Mac users, the following is required after the install:
 export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 ```
 
+### Benchmark
+
+TODO
+
 ## Contribution
 
 [Contributor Guideline](CONTRIBUTING.md).
