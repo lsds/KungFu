@@ -10,11 +10,14 @@ This is important as machine learning systems are being
 exposed to growing complex models and increasingly complicated deployment environments.
 KungFu has the following unique features:
 
-* Simplicity: KungFu allows you to enable distributed training by adding only one line of code to your training program.
+* Simplicity: KungFu allows you to enable distributed training by adding only one line of code.
 * Adaptive synchronisation: KungFu provides many advanced [synchronisation algorithms](srcs/python/kungfu/optimizers/__init__.py) such as
-[AD-PSGD](https://arxiv.org/abs/1710.06952) and [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases where traditional [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) is not effective.
+[AD-PSGD](https://arxiv.org/abs/1710.06952) and [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases where [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) is not effective.
 * Monitoring: KungFu provides useful training metrics such as ``gradient variance`` and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help you understand your training with negligble overheads.
 * Control: KungFu provides online control operators such as ``barrier`` and ``resize`` to seamlessly control your training system.
+* Extensibility: KungFu has a clean low-level API that allows you easily implement new synchronisation, monitoring and control algorithms.
+
+You can check the performance of KungFu in the Benchmark section below.
 
 ## Usage
 
