@@ -96,7 +96,7 @@ export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.d
 
 ## Benchmark
 
-![sync](benchmarks/synchronisation/result/scalability.png)
+![sync](benchmarks/synchronisation/result/scalability.svg)
 
 ## Contribute
 
