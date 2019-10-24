@@ -60,3 +60,11 @@ KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU dir
 
 KUNGFU_USE_NCCL=1 pip3 install .
 ```
+
+## Known issues
+
+For Mac users, the following is required if you run the program without ``kungfu-run``:
+
+```bash
+export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
+```

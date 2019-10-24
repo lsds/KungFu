@@ -91,7 +91,7 @@ git clone https://github.com/lsds/KungFu.git
 pip3 install .
 ```
 
-KungFu provides: *kungfu-run*, similar to [mpirun](https://horovod.readthedocs.io/en/latest/mpirun.html), to launch a TensorFlow program on multiple GPU/CPU devices in a server.
+KungFu provides: ``kungfu-run``, similar to [mpirun](https://horovod.readthedocs.io/en/latest/mpirun.html), to launch a TensorFlow program on multiple GPU/CPU devices in a server.
 Using the following command to build kungfu-run.
 
 ```bash
@@ -100,12 +100,6 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run/
 
 # Check if kungfu-run is built
 ./bin/kungfu-run -help
-```
-
-For Mac users, the following is required after the install:
-
-```bash
-export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 ```
 
 ## Benchmark
