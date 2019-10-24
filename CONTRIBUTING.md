@@ -53,7 +53,6 @@ pip3 wheel -vvv --no-index .
 ## Use NVIDIA NCCL
 
 KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU direct communication.
-However, the use of NCCL enforces KungFu to serialize the execution of all-reduce operations, which can hurt performance.
 
 ```bash
 # uncomment to use your own NCCL
