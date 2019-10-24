@@ -91,7 +91,7 @@ git clone https://github.com/lsds/KungFu.git
 pip3 install .
 ```
 
-KungFu provides: ``kungfu-run``, similar to [mpirun](https://horovod.readthedocs.io/en/latest/mpirun.html), to launch a TensorFlow program on multiple GPU/CPU devices in a server.
+KungFu provides: ``kungfu-run`` to launch a training program on a multi-GPU server.
 Using the following command to build kungfu-run.
 
 ```bash
