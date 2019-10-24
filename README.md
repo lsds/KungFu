@@ -128,7 +128,14 @@ KungFu also exhibits better scalablity compared to parameter servers.
 
 ![async](benchmarks/synchronisation/result/async-scalability.svg)
 
-All benchmark scripts are available [here](KungFu/benchmarks/synchronisation/)
+All benchmark scripts are available [here](KungFu/benchmarks/synchronisation/).
+
+## Convergence
+
+The synchronisation algorithms (``SyncSGDOptimizer``, ``PeerModelAveragingOptimizer`` and ``SyncModelAveragingSGDOptimizer``)
+can reach the same evaluation accuracy as Horovod.
+We tested this using the ResNet-50 and ResNet-101 models in the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
+You can add your own KungFu distributed optimizer into the benchmark by adding one line of code, following the way we enable the others.
 
 ## Contribute
 
