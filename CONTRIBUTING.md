@@ -58,7 +58,7 @@ KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU dir
 # uncomment to use your own NCCL
 # export NCCL_HOME=$HOME/local/nccl
 
-KUNGFU_USE_NCCL=1 pip3 install .
+KUNGFU_ENABLE_NCCL=1 pip3 install .
 ```
 
 ## Known issues
