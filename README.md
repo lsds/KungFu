@@ -2,6 +2,14 @@
 
 Adaptive distributed machine learning.
 
+## Features
+
+TODO
+
+## Usage
+
+TODO
+
 ## Install
 
 KungFu requires [Python 3](https://www.python.org/downloads/), [CMake 3](https://cmake.org/install/), [Golang 1.11+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
@@ -52,27 +60,4 @@ Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the followi
 
 ## Contribution
 
-### Format code
-
-```bash
-./scripts/clean-code.sh --fmt-py
-```
-
-### Build for release
-
-```bash
-# build a .whl package for release
-pip3 wheel -vvv --no-index .
-```
-
-### Use NVIDIA NCCL
-
-KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU direct communication.
-However, the use of NCCL enforces KungFu to serialize the execution of all-reduce operations, which can hurt performance.
-
-```bash
-# uncomment to use your own NCCL
-# export NCCL_HOME=$HOME/local/nccl
-
-KUNGFU_USE_NCCL=1 pip3 install .
-```
+[Contributor Guideline](CONTRIBUTING.md).
