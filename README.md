@@ -8,7 +8,38 @@ TODO
 
 ## Usage
 
-TODO
+To use KungFu, make the following additions to your program. This example uses TensorFlow.
+
+1. Wrap optimizer in ``kungfu.optimizers.SyncSGDOptimizer`` or other KungFu [distributed optimizers](srcs/python/kungfu/optimizers/__init__.py).
+
+2. Run ``sess.run(kungfu_optimizer.distributed_initializer())`` after you call ``sess.run(tf.global_variables_initializer())``.
+    The distributed initializer will automatically synchronise the initial variables on all KungFu workers based on the chosen distributed optimizer.
+
+Example (see the [example](examples/mnist_slp.py) for a full training example):
+
+.. code-block:: python
+
+    import tensorflow as tf
+    from kungfu.optimizers import SyncSGDOptimizer
+
+    # Build model...
+    loss = ...
+    opt = tf.train.AdagradOptimizer(0.01 * hvd.size())
+
+    # Add KungFu Distributed Optimizer
+    opt = SyncSGDOptimizer(opt)
+
+    # Make training operation
+    train_op = opt.minimize(loss)
+
+    with tf.Session() as sess:
+      sess.run(tf.global_variables_initializer())
+      sess.run(kungfu_optimizer.distributed_initializer()) # KungFu
+
+      # Train your model in a loop.
+      for step in range(n_steps):
+        ...
+
 
 ## Install
 
