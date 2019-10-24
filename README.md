@@ -10,10 +10,11 @@ This is important as machine learning systems are being
 exposed to growing complex models and increasingly complicated deployment environments.
 KungFu has the following unique features:
 
-* Simplicity: KungFu allows you to enable distributed training by modifying only one line of code in your training program.
-* Adaptive synchronisation: KungFu provides various [synchronisation algorithms](srcs/python/kungfu/optimizers/__init__.py), thus help you address the cases where traditional ``Synchronous SGD`` does not scale.
+* Simplicity: KungFu allows you to enable distributed training by adding only one line of code to your training program.
+* Adaptive synchronisation: KungFu provides many advanced [synchronisation algorithms](srcs/python/kungfu/optimizers/__init__.py) such as
+[AD-PSGD](https://arxiv.org/abs/1710.06952) and [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases where traditional [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) is not effective.
 * Monitoring: KungFu provides useful training metrics such as ``gradient variance`` and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help you understand your training with negligble overheads.
-* Control: KungFu provides control operators such as ``barrier`` and ``resize`` to control your training system online.
+* Control: KungFu provides online control operators such as ``barrier`` and ``resize`` to seamlessly control your training system.
 
 ## Usage
 
@@ -114,7 +115,7 @@ The stations are interconnected by a 100Gbps network.
 We benchmark the training throughput of
  ResNet-50, VGG16 and InceptionV3. These models represent different kinds of training workloads.
 
-In the synchronous training case, we compare KungFu with Horovod (0.16.1). Horovod uses OpenMPI 4.0.0.
+In the synchronous training case, we compare KungFu with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0.
 We evaluate the spectrum of batch size (from 256 to 4096) commonly used by S-SGD users.
 This batch size is evenly shared by 16 GPUs.
 As we can see,
