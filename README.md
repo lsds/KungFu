@@ -51,7 +51,7 @@ Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the followi
 ./bin/kungfu-run -np 4 python3 examples/mnist_slp.py --data-dir=./mnist
 ```
 
-If you want to run this example on two machines (assuming each machine 8 GPUs), run the following command:
+If you want to run this example on two machines (each has 8 GPUs), run the following on BOTH machines:
 
 ```bash
 # Assuming the machines have the following IPs: 192.168.0.1 and 192.168.0.2.
