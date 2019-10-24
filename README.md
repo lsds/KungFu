@@ -71,7 +71,7 @@ kungfu-run -np 4 python3 examples/mnist_slp.py --data-dir=./mnist
 If you want to run this example on two machines (each has 8 GPUs), run the following on ALL machines:
 
 ```bash
-# Assum the machines have the following IPs: 192.168.0.1 and 192.168.0.2.
+# Assume the machines have the IPs: 192.168.0.1 and 192.168.0.2.
 # Assume NUM_GPU_SLOTS=8, NUM_GPUS=16
 kungfu-run -np $NUM_GPUS \
     -H 192.168.0.1:$NUM_GPU_SLOTS,192.168.0.2:$NUM_GPU_SLOTS \
