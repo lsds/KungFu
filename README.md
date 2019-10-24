@@ -97,13 +97,30 @@ export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.d
 
 ## Benchmark
 
-Synchronous case
+KungFu allows users to adapt the choice of synchronisation and
+can still out-perform specialised distributed training systems.
+We benchmark the performance of KungFu
+on a GPU cluster that has 16 V100 GPUs hosted by 2 DGX-1 stations.
+The stations are interconnected by a 100Gbps network.
+We benchmark the training throughput of
+ ResNet-50, VGG16 and InceptionV3. These models represent different kinds of training workloads.
+
+In the synchronous training case, we compare KungFu with Horovod (0.16.1). Horovod uses OpenMPI 4.0.0.
+We evaluate the spectrum of batch size (from 256 to 4096) commonly used by S-SGD users.
+This batch size is evenly shared by 16 GPUs.
+As we can see,
+KungFu outperforms Horovod in all tested models,
+in particular with small batch sizes and thus the
+frequency for synchronisation is high.
+
 ![sync](benchmarks/synchronisation/result/sync-scalability.svg)
 
-Asynchronous case
-![sync](benchmarks/synchronisation/result/async-scalability.svg)
+In the asynchronous training case, we compare KungFu with TensorFlow parameter servers (1.13.1).
+We uses the same spectrum of batch size as above.
+KungFu also exhibits better scalablity compared to parameter servers.
 
+![async](benchmarks/synchronisation/result/async-scalability.svg)
 
 ## Contribute
 
-[Contributor Guideline](CONTRIBUTING.md).
+[Guideline](CONTRIBUTING.md).
