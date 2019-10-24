@@ -12,9 +12,10 @@ int kungfu_rank() { return _kungfu_world->Rank(); }
 
 int kungfu_cluster_size() { return _kungfu_world->ClusterSize(); }
 
+void kungfu_barrier() { _kungfu_world->Barrier(); }
+
 namespace kungfu
 {
-
 order_group::order_group(const std::vector<std::string> &names)
     : og_(new_ranked_order_group(names.size()))
 {
@@ -34,5 +35,4 @@ void order_group::Start(const std::string &name, const Task &task)
 }
 
 void order_group::Wait() { order_group_wait(og_); }
-
 }  // namespace kungfu

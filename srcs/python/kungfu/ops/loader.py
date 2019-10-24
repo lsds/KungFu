@@ -40,3 +40,7 @@ def _load_and_init_op_lib():
 
 
 _op_lib, _init_lib, _has_gpu = _load_and_init_op_lib()
+
+
+def run_barrier():
+    return _init_lib.kungfu_barrier()
