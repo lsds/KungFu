@@ -91,7 +91,7 @@ pip3 install tensorflow==1.13.1
 git clone https://github.com/lsds/KungFu.git
 
 # Install KungFu
-# export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) # Parallel install.
+# export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) # Parallel build.
 pip3 install .
 ```
 
@@ -99,8 +99,8 @@ KungFu provides ``kungfu-run`` to launch a training program on a multi-GPU serve
 Using the following command to build kungfu-run.
 
 ```bash
-# Build kungfu-run in the given GOBIN directory.
-GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run/
+# Build and install kungfu-run in the given GOBIN directory.
+GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 
 # Check if kungfu-run is built
 ./bin/kungfu-run -help
