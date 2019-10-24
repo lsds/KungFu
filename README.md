@@ -88,18 +88,16 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run/
 ./bin/kungfu-run -help
 ```
 
-### Mac Users
-
 For Mac users, the following is required after the install:
 
 ```bash
 export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
 ```
 
-### Benchmark
+## Benchmark
 
 TODO
 
-## Contribution
+## Contribute
 
 [Contributor Guideline](CONTRIBUTING.md).
