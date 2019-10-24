@@ -36,7 +36,7 @@ train_op = opt.minimize(loss)
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    sess.run(kungfu_optimizer.distributed_initializer()) # KungFu
+    sess.run(opt.distributed_initializer()) # KungFu
 
     # Train your model for 10 steps.
     for step in range(10):
