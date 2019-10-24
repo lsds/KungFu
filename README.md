@@ -13,7 +13,7 @@ KungFu has the following unique features:
 * Simplicity: KungFu allows you to enable distributed training by adding only one line of code.
 * Adaptive synchronisation: KungFu provides many advanced [synchronisation algorithms](srcs/python/kungfu/optimizers/__init__.py) such as
 [AD-PSGD](https://arxiv.org/abs/1710.06952) and [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases where [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
-* Monitoring: KungFu provides useful monitoring operators such as ``gradient variance`` and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help training at low overheads.
+* Monitoring: KungFu provides useful [monitoring-based optimizers](srcs/python/kungfu/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help training at low overheads.
 * Control: KungFu provides control operators such as ``barrier`` and ``resize`` to seamlessly reconfigure training, even according to monitored metrics.
 * Extensibility: KungFu has a clean low-level API that allows you easily implement new synchronisation, monitoring and control algorithms.
 
@@ -22,9 +22,9 @@ its high-performance implementation of synchronisation, monitoring
 and control operators. KungFu is also scalable thanks to its decentralised runtime.
 Check the performance of KungFu in the Benchmark section below.
 
-## Usage
+## Basic Usage
 
-To use KungFu, make the following additions to your program. This example uses TensorFlow.
+To use KungFu to scale out your TensorFlow training program, you simply needs to make two changes.
 
 1. Wrap optimizer in ``kungfu.optimizers.SyncSGDOptimizer`` or other [distributed optimizers](srcs/python/kungfu/optimizers/__init__.py).
 
@@ -57,7 +57,7 @@ with tf.Session() as sess:
         sess.run(train_op)
 ```
 
-See the [TensorFlow Classic](examples/mnist_slp.py) and [TensorFlow Keras](examples/mnist_keras.py) for full training examples:
+See the [TensorFlow Classic](examples/mnist_slp.py) and [TensorFlow Keras](examples/mnist_keras.py) for full training examples.
 
 ## Run
 
