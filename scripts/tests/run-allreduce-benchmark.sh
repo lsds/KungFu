@@ -32,7 +32,7 @@ prun() {
 reset_go_mod
 rebuild
 
-prun 4 ./bin/bench-allreduce -model resnet50-imagenet -mode seq
-prun 4 ./bin/bench-allreduce -model resnet50-imagenet -mode par
-prun 4 ./bin/bench-allreduce -model vgg16-imagenet -mode seq
-prun 4 ./bin/bench-allreduce -model vgg16-imagenet -mode par
+prun 4 ./bin/kungfu-bench-allreduce -model resnet50-imagenet -mode seq
+prun 4 ./bin/kungfu-bench-allreduce -model resnet50-imagenet -mode par
+prun 4 ./bin/kungfu-bench-allreduce -model vgg16-imagenet -mode seq
+prun 4 ./bin/kungfu-bench-allreduce -model vgg16-imagenet -mode par
