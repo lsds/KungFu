@@ -17,8 +17,7 @@ To use KungFu, make the following additions to your program. This example uses T
 
 Example (see the [example](examples/mnist_slp.py) for a full training example):
 
-.. code-block:: python
-
+```python
     import tensorflow as tf
     from kungfu.optimizers import SyncSGDOptimizer
 
@@ -39,6 +38,7 @@ Example (see the [example](examples/mnist_slp.py) for a full training example):
       # Train your model in a loop.
       for step in range(n_steps):
         ...
+```
 
 
 ## Install
