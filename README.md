@@ -55,7 +55,18 @@ Download MNIST dataset ([script](scripts/download-mnist.sh)) and run the followi
 ./scripts/download-mnist.sh
 
 # Train a Single Layer Perception (SLP) model for the MNIST dataset using 4 CPUs for 10 data epochs.
-./bin/kungfu-run -np 4 -timeout 1h python3 examples/mnist_slp.py --n-epochs 10
+./bin/kungfu-run -np 4 python3 examples/mnist_slp.py --n-epochs 10
+```
+
+## Distributed training
+
+Assuming you would like to train the mnist model using 2 machines and each machine has 8 GPUs.
+
+```bash
+# Assuming the machines have the following IPs: 192.168.0.1 and 192.168.0.2.
+NUM_GPU_SLOTS=8
+NUM_GPUS=16
+./bin/kungfu-run -np $NUM_GPUS -H 192.168.0.1:$NUM_GPU_SLOTS,192.168.0.2:$NUM_GPU_SLOTS python3 examples/mnist_slp.py --n-epochs 10
 ```
 
 ## Contribution
