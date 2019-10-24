@@ -135,7 +135,7 @@ All benchmark scripts are available [here](KungFu/benchmarks/synchronisation/).
 The synchronisation algorithms (``SyncSGDOptimizer``, ``PeerModelAveragingOptimizer`` and ``SyncModelAveragingSGDOptimizer``)
 can reach the same evaluation accuracy as Horovod.
 We tested this using the ResNet-50 and ResNet-101 models in the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
-You can add your own KungFu distributed optimizer into the benchmark by adding one line of code, following the way we enable the others.
+You can add your own KungFu distributed optimizer into the benchmark by adding one line of code, following the [way](https://github.com/luomai/benchmarks/blob/1eb102a81cdcd42cdbea56d2d19f36a8018e9f80/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1197) we enable the others.
 
 ## Contribute
 
