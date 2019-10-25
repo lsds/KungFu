@@ -107,8 +107,7 @@ The machines are interconnected by a 100 Gbps network. We benchmark the training
 
 In the synchronous training case, we compare KungFu (``SyncSGDOptimizer``) with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0. We evaluate the spectrum of batch size (from 256 to 4096) commonly used by SGD users.
 This batch size is evenly shared by the 16 GPUs.
-
-KungFu outperforms Horovod on all tested models, in particular with small batch sizes which can significantly raise the the
+KungFu outperforms Horovod on all tested models, in particular with small batch sizes which significantly raise the
 frequency of synchronisation.
 
 ![sync](benchmarks/synchronisation/result/sync-scalability.svg)
