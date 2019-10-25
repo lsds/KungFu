@@ -1,12 +1,12 @@
 # KungFu
 
-Adaptive, fast and easy distributed machine learning at scale.
+Easy, adaptive and fast distributed machine learning.
 
 ## Features
 
-KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must copy with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
+KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in the traning program.
+* Simplicity: KungFu permits distributed training by adding only one line of code in the traning program. In addition, KungFu is simple to deploy. It does not require partitioning resource like parameter servers. It also avoids external software dependency like MPI and NCCL which often complicates the deployment.
 * Adaptive synchronisation: KungFu provides many advanced [synchronisation algorithms](srcs/python/kungfu/optimizers/__init__.py) such as
 [AD-PSGD](https://arxiv.org/abs/1710.06952) and [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
 * Monitoring: KungFu supports [distributed SGD monitoring metrics](srcs/python/kungfu/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
@@ -14,7 +14,7 @@ KungFu enables users to achieve *fast* and *adaptive* distributed machine learni
 * Extensibility: KungFu has a clean low-level API that allows the easy implementation of new synchronisation, monitoring and control algorithms.
 
 KungFu is fast because it exploits a high-performance implementation of synchronisation, monitoring
-and control operators. KungFu is also scalable thanks to its decentralised runtime. Check out the performance of KungFu in the Benchmark section below.
+and control operators. KungFu is also scalable thanks to its decentralised runtime. Please check out the performance of KungFu in the Benchmark section below.
 
 ## Basic Usage
 
@@ -62,13 +62,13 @@ Download the MNIST dataset ([script](scripts/download-mnist.sh)) and run the fol
 kungfu-run -np 4 python3 examples/mnist_slp.py --data-dir=./mnist
 ```
 
-If you want to run this example on two machines (each with 8 GPUs), run the following on ALL machines:
+If you want to run this example on two machines (each with 8 GPUs), run the following on BOTH machines:
 
 ```bash
-# Assume the machines have the IPs: 192.168.0.1 and 192.168.0.2.
+# Assume the machines have NIC eth0 and their IPs are 192.168.0.1 and 192.168.0.2.
 # Assume NUM_GPU_SLOTS=8, NUM_GPUS=16
 kungfu-run -np $NUM_GPUS \
-    -H 192.168.0.1:$NUM_GPU_SLOTS,192.168.0.2:$NUM_GPU_SLOTS \
+    -H 192.168.0.1:$NUM_GPU_SLOTS,192.168.0.2:$NUM_GPU_SLOTS -nic eth0 \
     python3 examples/mnist_slp.py  --data-dir=./mnist
 ```
 
@@ -101,18 +101,18 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 
 ## Benchmark
 
-KungFu allows users to adapt the choice of synchronisation strategy, and it can still out-perform specialised distributed training systems. We benchmark the performance of KungFu on a GPU cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
+KungFu allows users to adapt the choice of synchronisation strategy, and it can still out-perform specialised distributed training systems. We benchmark the performance of KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
 The machines are interconnected by a 100 Gbps network. We benchmark the training throughput of ResNet-50, VGG16 and InceptionV3. These models represent different kinds of training workloads.
 
-In the synchronous training case, we compare KungFu (``SyncSGDOptimizer``) with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0. We evaluate the spectrum of batch size (from 256 to 4096) commonly used by S-SGD users.
+In the synchronous training case, we compare KungFu (``SyncSGDOptimizer``) with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0. We evaluate the spectrum of batch size (from 256 to 4096) commonly used by SGD users.
 This batch size is evenly shared by the 16 GPUs.
 
-As we can see, KungFu outperforms Horovod on all tested models, in particular with small batch sizes and thus when the
-frequency of synchronisation is high.
+KungFu outperforms Horovod on all tested models, in particular with small batch sizes which can significantly raise the the
+frequency of synchronisation.
 
 ![sync](benchmarks/synchronisation/result/sync-scalability.svg)
 
-In the asynchronous training case, we compare KungFu (``PeerModelAveragingOptimizer``) with TensorFlow parameter servers (1.13.1). We uses the same range of batch sizes as above. KungFu exhibits better scalablity compared to to the parameter server.
+In the asynchronous training case, we compare KungFu (``PeerModelAveragingOptimizer``) with TensorFlow parameter servers (1.13.1). We uses the same range of batch sizes as above. KungFu exhibits better scalablity as well.
 
 ![async](benchmarks/synchronisation/result/async-scalability.svg)
 
@@ -121,7 +121,7 @@ All benchmark scripts are available [here](KungFu/benchmarks/synchronisation/).
 ## Convergence
 
 The synchronisation algorithms (``SyncSGDOptimizer``, ``PeerModelAveragingOptimizer`` and ``SyncModelAveragingSGDOptimizer``)
-can reach the same evaluation accuracy as Horovod. We validared this with the the ResNet-50 and ResNet-101 models in the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
+can reach the same evaluation accuracy as Horovod. We validared this with the ResNet-50 and ResNet-101 models in the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
 You can also add your own KungFu distributed optimizer to the benchmark by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/1eb102a81cdcd42cdbea56d2d19f36a8018e9f80/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1197).
 
 ## Contribute
