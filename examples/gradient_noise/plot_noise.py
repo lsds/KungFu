@@ -1,10 +1,11 @@
 import re
 
+import numpy as np
+
 import matplotlib
 import matplotlib.cm as cm
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Regex used to match relevant loglines (in this case, a specific IP address)
 line_regex = re.compile(r".*$")
