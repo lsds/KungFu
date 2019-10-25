@@ -4,7 +4,6 @@ import argparse
 
 import gym
 import numpy as np
-
 from diff_trainer import DiffTrainer
 
 
