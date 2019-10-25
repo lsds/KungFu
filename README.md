@@ -6,7 +6,8 @@ Easy, adaptive and fast distributed machine learning.
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in the traning program. In addition, KungFu is simple to deploy. It does not require partitioning resource like parameter servers. It also avoids external software dependency like MPI and NCCL which often complicates the deployment.
+* Simplicity: KungFu permits distributed training by adding only one line of code in the traning program. KungFu is simple to deploy. It does not require partitioning resource, like parameter servers, and
+installing dependency, like Horovod.
 * Adaptive synchronisation: KungFu provides many advanced [synchronisation algorithms](srcs/python/kungfu/optimizers/__init__.py) such as
 [AD-PSGD](https://arxiv.org/abs/1710.06952) and [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
 * Monitoring: KungFu supports [distributed SGD monitoring metrics](srcs/python/kungfu/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
