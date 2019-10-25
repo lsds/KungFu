@@ -6,13 +6,13 @@ Easy, adaptive and fast distributed machine learning.
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in the traning program. KungFu is easy to deploy. It does not require partitioning resource, like parameter servers, and
+* Simplicity: KungFu permits distributed training by adding only one line of code in the traning program. KungFu is easy to deploy. It does not require partitioning resources, like parameter servers, and
 installing dependency, like MPI in Horovod.
 * Adaptive synchronisation: KungFu provides many advanced [synchronisation algorithms](srcs/python/kungfu/optimizers/__init__.py) such as
 [AD-PSGD](https://arxiv.org/abs/1710.06952) and [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
 * Monitoring: KungFu supports [distributed SGD monitoring metrics](srcs/python/kungfu/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
 * Control: KungFu provides control operators such as ``barrier`` and ``resize`` to seamlessly reconfigure training, even in response to monitored metrics.
-* Extensibility: KungFu has a clean low-level API that allows the easy implementation of new synchronisation, monitoring and control algorithms.
+* Extensibility: KungFu has a clean low-level API that allows an easy implementation of new synchronisation, monitoring and control algorithms.
 
 KungFu is fast because it exploits a high-performance implementation of synchronisation, monitoring
 and control operators. KungFu is also scalable thanks to its decentralised runtime. Please check out the performance of KungFu in the Benchmark section below.
@@ -102,7 +102,7 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 
 ## Benchmark
 
-KungFu allows users to adapt the choice of synchronisation strategy, and it can still out-perform specialised distributed training systems. We benchmark the performance of KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
+We benchmark the performance of KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
 The machines are interconnected by a 100 Gbps network. We benchmark the training throughput of ResNet-50, VGG16 and InceptionV3. These models represent different kinds of training workloads.
 
 In the synchronous training case, we compare KungFu (``SyncSGDOptimizer``) with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0. We evaluate the spectrum of batch size (from 256 to 4096) commonly used by SGD users.
