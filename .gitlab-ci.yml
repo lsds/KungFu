@@ -73,7 +73,7 @@ python format test:
   #- apk update
   #- apk add git python3
   - apt update
-  - apt install -y python3-pip
+  - apt install -y git python3-pip
   - pip3 install -U -r tests/lint.requirements.txt
 
   script:
