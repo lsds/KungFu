@@ -23,7 +23,6 @@ class RunningSum(object):
 
 class DiffTrainer(object):
     """An agent trainer that uses state different as training data."""
-
     def __init__(self, batch_size, prepro):
         self._batch_size = batch_size
         self._prepro = prepro
@@ -62,9 +61,8 @@ class DiffTrainer(object):
             dur = now - t1
             total_dur = now - t0
 
-            runnings = ', '.join(
-                '%s-running reward: %-8.2f' % (r.rate(), r.get())
-                for r in running_rewards)
+            runnings = ', '.join('%s-running reward: %-8.2f' %
+                                 (r.rate(), r.get()) for r in running_rewards)
 
             print(
                 'episode: %-3d end in %d steps, took %6.2fs (%6.2fms/step), reward: %8.2f; all took %8.2fs; %s'

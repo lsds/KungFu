@@ -27,7 +27,7 @@ TARGET_LINK_LIBRARIES(kungfu kungfu-comm)
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 ADD_CGO_DEPS(kungfu)
 
-IF(KUNGFU_USE_NCCL)
+IF(KUNGFU_ENABLE_NCCL)
     INCLUDE(cmake/nccl.cmake)
 ENDIF()
 
@@ -50,7 +50,7 @@ IF(KUNGFU_BUILD_TF_OPS)
                   )
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
 
-    IF(KUNGFU_USE_NCCL)
+    IF(KUNGFU_ENABLE_NCCL)
         TARGET_SOURCES(kungfu_tensorflow_init
                        PRIVATE
                        srcs/cpp/src/tensorflow/init_gpu.cpp

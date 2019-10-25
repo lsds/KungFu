@@ -25,6 +25,22 @@ class PeerModelAveragingOptimizer(KungFuOptimizer):
     Asynchronous Decentralized Parallel Stochastic Gradient Descent, ICML 2018
     https://arxiv.org/abs/1710.06952
 
+    Args:
+      optimizer:
+        Optimizer to use for computing gradients and applying updates.
+      device_batch_size:
+        The training batch size of the local device
+      fuse_variables:
+        Fusing variables before saving a model.
+        Turning it off to overlap training and synchronisation.
+      name:
+        Optional name prefix for the operations created when applying
+        gradients. Defaults to "KungFuOptimizer" followed by the provided
+        optimizer type.
+      use_locking:
+        Whether to use locking when updating variables.
+        See Optimizer.__init__ for more info.
+
     """
     def __init__(self,
                  optimizer,

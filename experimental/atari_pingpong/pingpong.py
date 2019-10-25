@@ -1,28 +1,36 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
-import time
 
-import gym
 import numpy as np
 
+import gym
 from diff_trainer import DiffTrainer
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='RL example.')
     parser.add_argument('--agent', type=str, default='mlp', help='agent name')
-    parser.add_argument(
-        '--optimizer', type=str, default='sgd', help='sgd | adam | rmsp')
-    parser.add_argument(
-        '--batch-size', type=int, default=10, help='batch size')
-    parser.add_argument(
-        '--episodes', type=int, default=50000, help='max number of episodes')
-    parser.add_argument(
-        '--checkpoint', type=str, default='', help='path to checkpoint file')
-    parser.add_argument(
-        '--init', type=bool, default=False, help='generate init checkpoint')
+    parser.add_argument('--optimizer',
+                        type=str,
+                        default='sgd',
+                        help='sgd | adam | rmsp')
+    parser.add_argument('--batch-size',
+                        type=int,
+                        default=10,
+                        help='batch size')
+    parser.add_argument('--episodes',
+                        type=int,
+                        default=50000,
+                        help='max number of episodes')
+    parser.add_argument('--checkpoint',
+                        type=str,
+                        default='',
+                        help='path to checkpoint file')
+    parser.add_argument('--init',
+                        type=bool,
+                        default=False,
+                        help='generate init checkpoint')
     return parser.parse_args()
 
 

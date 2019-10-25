@@ -130,13 +130,12 @@ class BaseAgent(object):
             train_op,
         ) = self._model_ops
 
-        self.sess.run(
-            train_op,
-            feed_dict={
-                images: self.xs,
-                actions: self.ys,
-                discount_rewards: discount_episode_rewards(self.rs),
-            })
+        self.sess.run(train_op,
+                      feed_dict={
+                          images: self.xs,
+                          actions: self.ys,
+                          discount_rewards: discount_episode_rewards(self.rs),
+                      })
 
         self.xs = []
         self.ys = []

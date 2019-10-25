@@ -1,5 +1,5 @@
-from operator import mul
 from functools import reduce
+from operator import mul
 
 import numpy as np
 import tensorflow as tf

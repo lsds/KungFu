@@ -1,1 +1,0 @@
-# Ako k-partitioner is deprecated
