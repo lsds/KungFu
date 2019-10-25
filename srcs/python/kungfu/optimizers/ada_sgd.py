@@ -15,7 +15,7 @@ class AdaptiveSGDOptimizer(KungFuOptimizer):
         Optimizer to use for computing gradients and applying updates.
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "Distributed" followed by the provided
+        gradients. Defaults to "KungFuOptimizer" followed by the provided
         optimizer type.
       use_locking:
         Whether to use locking when updating variables.
