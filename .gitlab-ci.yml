@@ -66,11 +66,14 @@ go format test:
 
 python format test:
   stage: lint
-  image: alpine:3.9
+  # image: alpine:3.9
+  image: ubuntu:bionic
 
   before_script:
-  - apk update
-  - apk add git python3
+  #- apk update
+  #- apk add git python3
+  - apt update
+  - apt install -y git python3-pip
   - pip3 install -U -r tests/lint.requirements.txt
 
   script:

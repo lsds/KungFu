@@ -6,7 +6,7 @@ from .core import KungFuOptimizer, defuse, fuse
 
 
 class SyncSGDOptimizer(KungFuOptimizer):
-    """SyncSGDOptimizer implements synchronous SGD to scale out training.
+    """SyncSGDOptimizer implements synchronous SGD.
 
     Synchronous SGD is explained in the following paper:
     Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour
@@ -17,7 +17,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
         Optimizer to use for computing gradients and applying updates.
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "Distributed" followed by the provided
+        gradients. Defaults to "KungFuOptimizer" followed by the provided
         optimizer type.
       nccl:
         Optional flag for using NCCL to perform all-reduce.
@@ -79,7 +79,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
         Optimizer to use for computing gradients and applying updates.
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "Distributed" followed by the provided
+        gradients. Defaults to "KungFuOptimizer" followed by the provided
         optimizer type.
       monitor_interval:
         The interval of computing the variance for gradients.
@@ -165,7 +165,7 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
         The training batch size of the local device
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "Distributed" followed by the provided
+        gradients. Defaults to "KungFuOptimizer" followed by the provided
         optimizer type.
       monitor_interval:
         The interval of computing the variance for gradients.
