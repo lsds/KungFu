@@ -2,8 +2,9 @@
 
 import argparse
 
-import gym
 import numpy as np
+
+import gym
 from diff_trainer import DiffTrainer
 
 
