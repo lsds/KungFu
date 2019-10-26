@@ -2,7 +2,13 @@
 
 Distributed training benchmark of KungFu, Horovod and Parameter Servers.
 
-We assume the benchmark runs on a server with 4 GPUs. The Tensorflow version is 1.13.1.
+## Intro
+
+This benchmark requires TensorFlow <=1.13.2, KungFu and Horovod.
+We have run this benchmark on two clusters: one has two DGX-1 machines (each has 8 V100) and one has 16 P100 machines. You can see the benchmark result [here](result/).
+
+In the following, we provide sample commands to run the benchmark.
+We assume the benchmark runs on a server with 4 GPUs.
 The benchmark imports models from [tf.keras.applications](https://www.tensorflow.org/api_docs/python/tf/keras/applications). You can freely choose different models
 and batch sizes.
 
@@ -48,7 +54,7 @@ kungfu-run -np 4 python3 benchmark_kungfu.py --kungfu=async-sgd --model=ResNet50
 Use the following shell script to run the parameter server benchmark.
 
 ```bash
-# Configure 1 local parameter server (You can create more parameter servers)
+# Configure 1 local parameter server (We suggest users to have a 1:1 ratio between parameter servers and workers)
 PS_HOSTS="localhost:2220"
 
 # Configure four training workers
