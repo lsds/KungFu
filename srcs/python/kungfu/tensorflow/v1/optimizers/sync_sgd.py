@@ -73,7 +73,7 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
 
 
 class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
-    """SyncSGDWithGradVarianceOptimizer monitors gradinet variance when performing synchronous SGD.
+    """SyncSGDWithGradVarianceOptimizer monitors gradient variance when performing synchronous SGD.
 
     You can find the defintion of variance of tensors here:
     https://en.wikipedia.org/wiki/Variance
@@ -136,7 +136,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
     def apply_gradients(self, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
 
-        # Synchronisation logic
+        # Synchronization logic
         summed_grads = group_all_reduce(grads)
         reduced_grads = [g / self._num_workers for g in summed_grads]
 
@@ -156,7 +156,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
 
 
 class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
-    """SyncSGDWithGradNoiseScaleOptimizer monitors gradinet noise scale when performing synchronous SGD.
+    """SyncSGDWithGradNoiseScaleOptimizer monitors gradient noise scale when performing synchronous SGD.
 
     Gradient noise scale is proposed in:
     An Empirical Model of Large-Batch Training
@@ -215,7 +215,7 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
     def apply_gradients(self, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
 
-        # Synchronisation logic
+        # Synchronization logic
         summed_grads = group_all_reduce(grads)
         reduced_grads = [g / self._num_workers for g in summed_grads]
 

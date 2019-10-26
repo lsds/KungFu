@@ -14,7 +14,7 @@ def get_random_peer(cluster_size, self_rank):
 
 
 class PairAveragingOptimizer(KungFuOptimizer):
-    """PairAveragingOptimizer implements communication-efficient asynchrounous training.
+    """PairAveragingOptimizer implements communication-efficient asynchronous training.
 
     Every iteration of training, this optimizer
     (1) Randomly selects a peer in the current cluster.
@@ -23,7 +23,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
     (4) Applies local gradients
     (5) Saves the model to a local store which allows other peers to pull from.
 
-    This optimizer realises the principle proposed in the following paper:
+    This optimizer realizes the principle proposed in the following paper:
     Asynchronous Decentralized Parallel Stochastic Gradient Descent, ICML 2018
     https://arxiv.org/abs/1710.06952
 
@@ -34,7 +34,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
         The training batch size of the local device
       fuse_variables:
         Fusing variables before saving a model.
-        Turning it off to overlap training and synchronisation.
+        Turning it off to overlap training and synchronization.
       name:
         Optional name prefix for the operations created when applying
         gradients. Defaults to "KungFu" followed by the provided
@@ -49,8 +49,8 @@ class PairAveragingOptimizer(KungFuOptimizer):
                  fuse_variables=True,
                  name=None,
                  use_locking=False):
-        super(PeerModelAveragingOptimizer,
-              self).__init__(optimizer, name, use_locking)
+        super(PairAveragingOptimizer, self).__init__(optimizer, name,
+                                                     use_locking)
         self._fuse_variables = fuse_variables
 
     def _build_request_and_save_ops(self, target, variables):
