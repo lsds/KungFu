@@ -7,7 +7,7 @@ Easy, adaptive and fast distributed machine learning.
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
 * Simplicity: KungFu permits distributed training by adding only one line of code in your existing training program.
-* Easy to deploy: KungFu has minimal dependency. It does not require heavy dependency like MPI in Horovod and external resource like parameter servers. Check the KungFu [Dockerfile](docker/Dockerfile.tf-gpu).
+* Easy to deploy: KungFu has minimal dependency. It does not require heavy dependency like MPI in Horovod and external resource like parameter servers. Check the [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) docker files.
 * Adaptive distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/optimizers/__init__.py) such as
 communication-efficient [AD-PSGD](https://arxiv.org/abs/1710.06952) and small-batch-efficient [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
 * Monitoring: KungFu supports [distributed SGD metrics](srcs/python/kungfu/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
@@ -24,7 +24,7 @@ To use KungFu to scale out your TensorFlow training program, you simply need to 
 1. Wrap the optimizer in ``SynchronousSGDOptimizer`` or another [distributed optimizer](srcs/python/kungfu/optimizers/__init__.py).
 
 2. Run ``distributed_initializer()`` after calling ``global_variables_initializer()``.
-    The distributed initializer synchronizes the initial variables on all workers.
+    The distributed initializer ensures the initial variables on all workers are consistent.
 
 ```python
 import tensorflow as tf
@@ -73,8 +73,6 @@ kungfu-run -np $NUM_GPUS \
 ## Install
 
 KungFu requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
-
-The easiest way to use KungFu is through [Docker](docker/Dockerfile.tf-gpu).
 You can also install KungFu using the following few lines assuming you have installed the above pre-requites.
 
 ```bash
@@ -100,6 +98,8 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 ./bin/kungfu-run -help
 ```
 
+You can also use KungFu within a Docker. Check the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-gpu) machines.
+
 ## Benchmark
 
 We benchmark the performance of KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
@@ -120,7 +120,7 @@ All benchmark scripts are available [here](benchmarks/system/).
 
 ## Convergence
 
-The synchronization algorithms (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``)
+The distributed optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``)
 can reach the same evaluation accuracy as Horovod. We validated this with the ResNet-50 and ResNet-101 models in the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
 You can also add your own KungFu distributed optimizer to the benchmark by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/1eb102a81cdcd42cdbea56d2d19f36a8018e9f80/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1197).
 
