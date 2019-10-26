@@ -1,5 +1,4 @@
-from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
-from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
+from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer
 import tensorflow as tf
 
 
@@ -11,12 +10,10 @@ def test_sync_sgd():
     train_op = optimizer.minimize(y)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for _ in range(10):
+        sess.run(tf.distributed_initializer())
+        for _ in range(1):
             sess.run(train_op)
         # FIXME: check values
-
-
-test_sync_sgd()
 
 
 def test_pair_averaging():
@@ -27,9 +24,11 @@ def test_pair_averaging():
     train_op = optimizer.minimize(y)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for _ in range(10):
+        sess.run(tf.distributed_initializer())
+        for _ in range(1):
             sess.run(train_op)
         # FIXME: check values
 
 
+test_sync_sgd()
 test_pair_averaging()
