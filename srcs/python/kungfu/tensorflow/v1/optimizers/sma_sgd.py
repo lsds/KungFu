@@ -5,8 +5,8 @@ from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
 from .core import KungFuOptimizer
 
 
-class SyncModelAveragingSGDOptimizer(KungFuOptimizer):
-    """SyncModelAveragingSGDOptimizer implements synchrounous model averaging [1][2].
+class SynchronousAveragingOptimizer(KungFuOptimizer):
+    """SynchronousAveragingOptimizer implements the small-batch-efficient model averaging algorithm [1][2].
 
     EA-SGD [1] proposed to use model averaging to train deep learning models and prove its convergence.
     CrossBow [2] further improves [1] results and show model averaging can benefit small-batch training
@@ -22,7 +22,7 @@ class SyncModelAveragingSGDOptimizer(KungFuOptimizer):
         Optimizer to use for computing gradients and applying updates.
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "KungFuOptimizer" followed by the provided
+        gradients. Defaults to "KungFu" followed by the provided
         optimizer type.
       use_locking:
         Whether to use locking when updating variables.
@@ -30,7 +30,7 @@ class SyncModelAveragingSGDOptimizer(KungFuOptimizer):
 
     """
     def __init__(self, optimizer, name=None, use_locking=False):
-        super(SyncModelAveragingSGDOptimizer,
+        super(SynchronousAveragingOptimizer,
               self).__init__(optimizer, name, use_locking=use_locking)
         self._num_workers = current_cluster_size()
         self._rank = current_rank()

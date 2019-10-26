@@ -1,4 +1,5 @@
-from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
+from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer
+from kungfu.tensorflow.v1.ops import run_barrier
 import tensorflow as tf
 
 
@@ -6,15 +7,30 @@ def test_sync_sgd():
     x = tf.Variable(tf.ones([], tf.float32))
     y = x * x
     optimizer = tf.train.GradientDescentOptimizer(0.1)
-    optimizer = SyncSGDOptimizer(optimizer)
+    optimizer = SynchronousSGDOptimizer(optimizer)
     train_op = optimizer.minimize(y)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for _ in range(10):
+        sess.run(optimizer.distributed_initializer())
+        for _ in range(2):
             sess.run(train_op)
         # FIXME: check values
 
 
-test_sync_sgd()
+def test_pair_averaging():
+    x = tf.Variable(tf.ones([], tf.float32))
+    y = x * x
+    optimizer = tf.train.GradientDescentOptimizer(0.1)
+    optimizer = PairAveragingOptimizer(optimizer)
+    train_op = optimizer.minimize(y)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        sess.run(optimizer.distributed_initializer())
+        for _ in range(2):
+            sess.run(train_op)
+        # FIXME: check values
+    run_barrier()
 
-# TODO: more tests
+
+test_sync_sgd()
+test_pair_averaging()

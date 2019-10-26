@@ -6,10 +6,13 @@ from kungfu.tensorflow.v1.ops import (broadcast, global_noise_scale,
 from .core import KungFuOptimizer, defuse, fuse
 
 
-class SyncSGDOptimizer(KungFuOptimizer):
-    """SyncSGDOptimizer implements synchronous SGD.
+class SynchronousSGDOptimizer(KungFuOptimizer):
+    """SynchronousSGDOptimizer implements the synchronous SGD algorithm.
 
-    Synchronous SGD is explained in the following paper:
+    Every iteration of training, this optimizer computes the averaged gradients
+    to correct all model replicas.
+
+    More details about this algorithm can be found here:
     Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour
     https://arxiv.org/pdf/1706.02677
 
@@ -18,7 +21,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
         Optimizer to use for computing gradients and applying updates.
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "KungFuOptimizer" followed by the provided
+        gradients. Defaults to "KungFu" followed by the provided
         optimizer type.
       nccl:
         Optional flag for using NCCL to perform all-reduce.
@@ -36,9 +39,9 @@ class SyncSGDOptimizer(KungFuOptimizer):
                  nccl_fusion=True,
                  name=None,
                  use_locking=False):
-        super(SyncSGDOptimizer, self).__init__(optimizer,
-                                               name,
-                                               use_locking=use_locking)
+        super(SynchronousSGDOptimizer, self).__init__(optimizer,
+                                                      name,
+                                                      use_locking=use_locking)
         _rank, np = peer_info()
         # FIXME: use type of gradient
         self._num_workers = tf.cast(np, tf.float32)
@@ -70,7 +73,7 @@ class SyncSGDOptimizer(KungFuOptimizer):
 
 
 class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
-    """SyncSGDWithGradVarianceOptimizer monitors gradinet variance when performing synchronous SGD.
+    """SyncSGDWithGradVarianceOptimizer monitors gradient variance when performing synchronous SGD.
 
     You can find the defintion of variance of tensors here:
     https://en.wikipedia.org/wiki/Variance
@@ -80,7 +83,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
         Optimizer to use for computing gradients and applying updates.
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "KungFuOptimizer" followed by the provided
+        gradients. Defaults to "KungFu" followed by the provided
         optimizer type.
       monitor_interval:
         The interval of computing the variance for gradients.
@@ -133,7 +136,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
     def apply_gradients(self, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
 
-        # Synchronisation logic
+        # Synchronization logic
         summed_grads = group_all_reduce(grads)
         reduced_grads = [g / self._num_workers for g in summed_grads]
 
@@ -153,7 +156,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
 
 
 class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
-    """SyncSGDWithGradNoiseScaleOptimizer monitors gradinet noise scale when performing synchronous SGD.
+    """SyncSGDWithGradNoiseScaleOptimizer monitors gradient noise scale when performing synchronous SGD.
 
     Gradient noise scale is proposed in:
     An Empirical Model of Large-Batch Training
@@ -166,7 +169,7 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
         The training batch size of the local device
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "KungFuOptimizer" followed by the provided
+        gradients. Defaults to "KungFu" followed by the provided
         optimizer type.
       monitor_interval:
         The interval of computing the variance for gradients.
@@ -212,7 +215,7 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
     def apply_gradients(self, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
 
-        # Synchronisation logic
+        # Synchronization logic
         summed_grads = group_all_reduce(grads)
         reduced_grads = [g / self._num_workers for g in summed_grads]
 
