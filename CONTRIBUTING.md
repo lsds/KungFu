@@ -50,11 +50,14 @@ All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 pip3 wheel -vvv --no-index .
 ```
 
-### Build Docker image
+### Docker
 
 ```bash
 # Run the following command in the KungFu folder
 docker build -f docker/Dockerfile.tf-gpu -t kungfu:gpu .
+
+# Run the docker
+docker run -it kungfu:gpu
 ```
 
 ## Use NVIDIA NCCL
