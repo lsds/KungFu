@@ -5,7 +5,7 @@ from ctypes import cdll
 
 def _module_path():
     dirname = os.path.dirname
-    return dirname(dirname(dirname(dirname(__file__))))
+    return dirname(__file__)
 
 
 def _load_clib(name):
