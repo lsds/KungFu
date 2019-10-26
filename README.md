@@ -51,31 +51,10 @@ with tf.Session() as sess:
 
 See the [TensorFlow Session](examples/mnist_slp.py) and [TensorFlow Keras](examples/mnist_keras.py) examples for full training examples.
 
-## Example
-
-Download the MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script:
-
-```bash
-# Train a Single Layer Perception (SLP) model for the MNIST dataset using 4 CPUs for 10 data epochs.
-kungfu-run -np 4 python3 examples/mnist_slp.py --data-dir=./mnist
-```
-
-If you want to run this example on two machines (each with 8 GPUs), run the following on both machines:
-
-```bash
-# Assume the machines have NIC eth0 and their IPs are 192.168.0.1 and 192.168.0.2.
-# Assume NUM_GPU_SLOTS=8, NUM_GPUS=16
-kungfu-run -np $NUM_GPUS \
-    -H 192.168.0.1:$NUM_GPU_SLOTS,192.168.0.2:$NUM_GPU_SLOTS -nic eth0 \
-    python3 examples/mnist_slp.py  --data-dir=./mnist
-```
-
-``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the training cluster.
-
 ## Install
 
 KungFu requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
-You can install KungFu using the following few lines assuming you have installed the above pre-requites.
+You can install KungFu using the following few lines, assuming you have installed the above pre-requites.
 
 ```bash
 # Download the KungFu source code
@@ -96,7 +75,28 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 ./bin/kungfu-run -help
 ```
 
-You can also use KungFu within a Docker. Check the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) machines.
+You can also use KungFu with Docker. Check the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) machines.
+
+## Example
+
+Download the MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script:
+
+```bash
+# Train a Single Layer Perception (SLP) model for the MNIST dataset using 4 CPUs for 10 data epochs.
+kungfu-run -np 4 python3 examples/mnist_slp.py --data-dir=./mnist
+```
+
+If you want to run this example on two machines (each with 8 GPUs), run the following on both machines:
+
+```bash
+# Assume the machines have NIC eth0 and their IPs are 192.168.0.1 and 192.168.0.2.
+# Assume NUM_GPU_SLOTS=8, NUM_GPUS=16
+kungfu-run -np $NUM_GPUS \
+    -H 192.168.0.1:$NUM_GPU_SLOTS,192.168.0.2:$NUM_GPU_SLOTS -nic eth0 \
+    python3 examples/mnist_slp.py  --data-dir=./mnist
+```
+
+``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the training cluster.
 
 ## Benchmark
 
