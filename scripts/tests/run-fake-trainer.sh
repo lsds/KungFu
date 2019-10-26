@@ -78,10 +78,6 @@ run_fake_tf_trainer() {
     local np=$1
     local H=127.0.0.1:$np
 
-    if [ $(uname -s) = "Darwin" ]; then
-        export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
-    fi
-
     env \
         KUNGFU_TEST_CLUSTER_SIZE=$np \
         ${KUNGFU_RUN} \

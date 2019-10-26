@@ -33,7 +33,6 @@ ENDIF()
 
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(cmake/tf-op.cmake)
-    INCLUDE(cmake/rpath.cmake)
 
     ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/python/init.cpp)
     TARGET_LINK_LIBRARIES(kungfu_python kungfu)
@@ -61,8 +60,6 @@ IF(KUNGFU_BUILD_TF_OPS)
     ENDIF()
 
     SET_TF_CXX11_ABI(kungfu_python)
-    SET_INSTALL_RPATH(kungfu_python)
-    SET_INSTALL_RPATH(kungfu_tensorflow_ops)
 ENDIF()
 
 IF(KUNGFU_BUILD_TOOLS)

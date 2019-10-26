@@ -1,4 +1,4 @@
-from .loader import _op_lib
+from ._tf_oplib import _op_lib
 from .topology import peer_info
 
 

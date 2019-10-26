@@ -1,12 +1,14 @@
+from kungfu.ext import (_get_other_ranks, _has_gpu, current_cluster_size,
+                        current_rank, run_barrier)
+
+from ._tf_oplib import _op_lib
 from .adapt import get_init_checkpoint, resize_cluster
 from .collective import (all_reduce, barrier, broadcast, group_all_reduce,
                          group_nccl_all_reduce)
-from .loader import _has_gpu, _op_lib, _python_lib, run_barrier
 from .local import save_variable, save_variables
 from .monitor import global_noise_scale
 from .p2p import request_variable, request_variable_with_template
-from .topology import (_get_other_ranks, current_cluster_size, current_rank,
-                       peer_info)
+from .topology import peer_info
 
 
 def _tensor_size(t):

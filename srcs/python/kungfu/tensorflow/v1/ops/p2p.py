@@ -1,4 +1,4 @@
-from .loader import _op_lib
+from ._tf_oplib import _op_lib
 
 
 def request_variable(target, version=None, name=None, shape=None, dtype=None):

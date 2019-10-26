@@ -1,4 +1,4 @@
-from .loader import _op_lib
+from ._tf_oplib import _op_lib
 
 
 def save_variable(t, version=None):

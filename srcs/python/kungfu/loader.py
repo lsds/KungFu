@@ -12,3 +12,10 @@ def _load_clib(name):
     suffix = 'so' if platform.uname()[0] != 'Darwin' else 'dylib'
     filename = os.path.join(_module_path(), name + '.' + suffix)
     return cdll.LoadLibrary(filename)
+
+
+def _call_method(lib, name):
+    if hasattr(lib, name):
+        getattr(lib, name)()
+        return True
+    return False

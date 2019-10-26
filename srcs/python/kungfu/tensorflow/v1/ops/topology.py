@@ -1,18 +1,4 @@
-from .loader import _op_lib, _python_lib
-
-
-def current_rank():
-    return _python_lib.kungfu_rank()
-
-
-def current_cluster_size():
-    return _python_lib.kungfu_cluster_size()
-
-
-def _get_other_ranks():
-    self_rank = current_rank()
-    ranks = list(range(current_cluster_size()))
-    return [r for r in ranks if r != self_rank]
+from ._tf_oplib import _op_lib
 
 
 def peer_info():

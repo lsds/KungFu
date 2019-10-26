@@ -4,10 +4,6 @@ set -e
 cd $(dirname $0)
 ROOT=$(cd ../../.. && pwd)
 
-if [ $(uname -s) = "Darwin" ]; then
-    export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
-fi
-
 single_train() {
     export PYTHONUNBUFFERED=1
     python3 ./pingpong.py

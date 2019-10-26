@@ -20,10 +20,6 @@ kungfu_run() {
         $@
 }
 
-if [ $(uname -s) = "Darwin" ]; then
-    export DYLD_LIBRARY_PATH=$(python3 -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
-fi
-
 TF_CPP_MIN_LOG_LEVEL=2
 
 kungfu_run 2 python3 adaptive_trainer.py

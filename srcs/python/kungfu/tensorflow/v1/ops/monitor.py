@@ -1,4 +1,4 @@
-from .loader import _op_lib
+from ._tf_oplib import _op_lib
 
 
 def global_noise_scale(batch_small, batch_big, tensor, avg_tensor, alpha=0.6):

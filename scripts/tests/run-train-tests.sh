@@ -32,10 +32,6 @@ ensure_kungfu_run() {
 ensure_kungfu_run
 export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
 
-if [ $(uname -s) = "Darwin" ]; then
-    export DYLD_LIBRARY_PATH=$(${PYTHON} -c "import os; import kungfu; print(os.path.dirname(kungfu.__file__))")
-fi
-
 SCRIPT=${ROOT}/tests/python/test_mnist_slp.py
 
 epochs=2
