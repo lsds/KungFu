@@ -6,16 +6,14 @@ Easy, adaptive and fast distributed machine learning.
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in your existing training program.
-* Easy to deploy: KungFu has minimal dependency. It does not require heavy dependency like MPI in Horovod and extra deployment like parameter servers. Check the [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) docker files.
+* Simplicity: KungFu permits distributed training by adding only one line of code in your existing training program. KungFu is also easy to run because it does not require heavy dependency like MPI in Horovod and extra deployment like parameter servers.
 * Adaptive distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py) such as
 communication-efficient [AD-PSGD](https://arxiv.org/abs/1710.06952) and small-batch-efficient [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
 * Monitoring: KungFu supports [distributed SGD metrics](srcs/python/kungfu/tensorflow/v1/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
 * Online control: KungFu provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
 * Extensibility: KungFu has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
 
-KungFu is fast and scalable. It exploits a high-performance implementation of communication, monitoring
-and control operators, and adopts a decentralized architecture. Please check out the performance of KungFu in the Benchmark section below.
+KungFu is fast and scalable. It adopts a decentralized architecture and exploits a high-performance implementation of synchronization, monitoring and control operators. Check out the performance of KungFu in the Benchmark section below.
 
 ## Basic Usage
 
@@ -24,7 +22,7 @@ To scale out your TensorFlow training program using KungFu, you simply need to m
 1. Wrap the optimizer in ``SynchronousSGDOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py).
 
 2. Run ``distributed_initializer()`` after calling ``global_variables_initializer()``.
-    The distributed initializer ensures the initial variables on all workers are consistent.
+    The distributed initializer ensures that initial variables on all workers are consistent.
 
 ```python
 import tensorflow as tf
@@ -65,7 +63,7 @@ git clone https://github.com/lsds/KungFu.git
 pip3 install .
 ```
 
-KungFu provides ``kungfu-run`` to launch a training program on a multi-GPU server. Using the following command to build ``kungfu-run``.
+KungFu provides ``kungfu-run`` to launch a training program on a multi-GPU server.
 
 ```bash
 # Build and install kungfu-run in the given GOBIN directory.
@@ -75,7 +73,7 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 ./bin/kungfu-run -help
 ```
 
-You can also use KungFu with Docker. Check the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) machines.
+You can use KungFu with Docker. Check out the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) machines.
 
 ## Example
 
@@ -96,7 +94,7 @@ kungfu-run -np $NUM_GPUS \
     python3 examples/mnist_slp.py  --data-dir=./mnist
 ```
 
-``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the training cluster.
+``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the cluster.
 
 ## Benchmark
 
