@@ -14,7 +14,7 @@ communication-efficient [AD-PSGD](https://arxiv.org/abs/1710.06952) and small-ba
 * Online control: KungFu provides control operators such as ``barrier`` and ``resize`` to seamlessly reconfigure training, even in response to monitored metrics.
 * Extensibility: KungFu has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
 
-KungFu has a fast and scalable runtime. It exploits a high-performance implementation of communication, monitoring
+KungFu is fast and scalable. It exploits a high-performance implementation of communication, monitoring
 and control operators, and adopts a decentralized architecture. Please check out the performance of KungFu in the Benchmark section below.
 
 ## Basic Usage
@@ -102,7 +102,7 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 
 ## Benchmark
 
-We benchmark the performance of the KungFu decentralized runtime in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
+We benchmark the performance of KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
 The machines are interconnected by a 100 Gbps network. We benchmark the training throughput of ResNet-50, VGG16 and InceptionV3. These models represent different kinds of training workloads.
 
 In the synchronous training case, we compare KungFu (``SynchronousSGDOptimizer``) with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0. We evaluate the spectrum of batch size (from 256 to 4096) commonly used by SGD users.
@@ -110,13 +110,13 @@ This batch size is evenly shared by the 16 GPUs.
 KungFu outperforms Horovod on all tested models, in particular with small batch sizes which significantly raise the
 frequency of synchronization.
 
-![sync](benchmarks/runtime/result/sync-scalability.svg)
+![sync](benchmarks/system/result/sync-scalability.svg)
 
 In the asynchronous training case, we compare KungFu (``PairAveragingOptimizer``) with TensorFlow parameter servers (1.13.1). We uses the same range of batch sizes as above. KungFu exhibits better scalability as well.
 
-![async](benchmarks/runtime/result/async-scalability.svg)
+![async](benchmarks/system/result/async-scalability.svg)
 
-All benchmark scripts are available [here](benchmarks/synchronization/).
+All benchmark scripts are available [here](benchmarks/system/).
 
 ## Convergence
 
