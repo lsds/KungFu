@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.ops import barrier, peer_info, request_variable, save_variable
+from kungfu.tensorflow.v1.ops import barrier, peer_info, request_variable, save_variable
 
 
 def test_barrier():

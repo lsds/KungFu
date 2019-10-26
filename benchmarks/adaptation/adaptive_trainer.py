@@ -6,8 +6,8 @@ import time
 t0 = time.time()  # before import tensorflow
 
 import tensorflow as tf
-from kungfu.ops import all_reduce, barrier, current_cluster_size
-from kungfu.ops.adapt import get_init_checkpoint, resize_cluster
+from kungfu.tensorflow.v1.ops import all_reduce, barrier, current_cluster_size
+from kungfu.tensorflow.v1.ops.adapt import get_init_checkpoint, resize_cluster
 from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False

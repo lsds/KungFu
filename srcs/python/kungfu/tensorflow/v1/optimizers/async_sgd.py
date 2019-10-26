@@ -1,6 +1,8 @@
 import tensorflow as tf
-from kungfu.ops import (barrier, broadcast, current_cluster_size, current_rank,
-                        request_variable_with_template, save_variable)
+from kungfu.tensorflow.v1.ops import (barrier, broadcast, current_cluster_size,
+                                      current_rank,
+                                      request_variable_with_template,
+                                      save_variable)
 
 from .core import KungFuOptimizer, defuse, fuse
 

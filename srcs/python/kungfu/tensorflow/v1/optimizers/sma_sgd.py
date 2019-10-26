@@ -1,6 +1,6 @@
 import tensorflow as tf
-from kungfu.ops import (broadcast, current_cluster_size, current_rank,
-                        group_all_reduce)
+from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
+                                      current_rank, group_all_reduce)
 
 from .core import KungFuOptimizer
 

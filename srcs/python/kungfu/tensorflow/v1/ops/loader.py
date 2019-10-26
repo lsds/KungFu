@@ -8,7 +8,7 @@ EXT_SUFFIX_KEY = 'SO'  # 'EXT_SUFFIX' does't work for python2
 
 def _module_path():
     dirname = os.path.dirname
-    return dirname(dirname(__file__))
+    return dirname(dirname(dirname(dirname(__file__))))
 
 
 def _load_op_lib(name):
