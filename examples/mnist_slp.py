@@ -76,14 +76,11 @@ def build_optimizer(name, n_shards=1):
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
-        from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
-        return SyncSGDOptimizer(optimizer)
-    if name == 'variance':
-        from kungfu.tensorflow.v1.optimizers import SyncSGDWithGradVarianceOptimizer
-        return SyncSGDWithGradVarianceOptimizer(optimizer, monitor_interval=10)
-    elif name == 'model-avg':
-        from kungfu.tensorflow.v1.optimizers import PeerModelAveragingOptimizer
-        return PeerModelAveragingOptimizer(optimizer)
+        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+        return SynchronousSGDOptimizer(optimizer)
+    elif name == 'async-sgd':
+        from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
+        return PairAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
 
@@ -181,7 +178,10 @@ def train_mnist(sess,
 # parse arguments from the command line
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument('--optimizer', type=str, default='sync-sgd', help='')
+    parser.add_argument('--optimizer',
+                        type=str,
+                        default='sync-sgd',
+                        help='available options: sync-sgd, async-sgd')
     parser.add_argument('--n-epochs',
                         type=int,
                         default=1,
