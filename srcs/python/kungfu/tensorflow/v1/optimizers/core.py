@@ -23,7 +23,7 @@ class KungFuOptimizer(tf.train.Optimizer):
     """An optimizer that would negotiate the gradients before apply it."""
     def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
-            name = "KungFuOptimizer{}".format(type(optimizer).__name__)
+            name = "KungFuO{}".format(type(optimizer).__name__)
         super(KungFuOptimizer, self).__init__(name=name,
                                               use_locking=use_locking)
         self._optimizer = optimizer

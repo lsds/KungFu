@@ -92,20 +92,17 @@ if args.kungfu:
     from kungfu.tensorflow.v1.ops import barrier
     barrier_op = barrier()
     if args.kungfu == 'sync-sgd':
-        from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
-        opt = SyncSGDOptimizer(opt)
+        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+        opt = SynchronousSGDOptimizer(opt)
     elif args.kungfu == 'async-sgd':
-        from kungfu.tensorflow.v1.optimizers import PeerModelAveragingOptimizer
-        opt = PeerModelAveragingOptimizer(opt)
+        from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
+        opt = PairAveragingOptimizer(opt)
     elif args.kungfu == 'sync-sgd-nccl':
-        from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
-        opt = SyncSGDOptimizer(opt, nccl=True, nccl_fusion=True)
-    elif args.kungfu == 'ada-sgd':
-        from kungfu.tensorflow.v1.optimizers import AdaptiveSGDOptimizer
-        opt = AdaptiveSGDOptimizer(opt, 10)
+        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=True)
     elif args.kungfu == 'sma-sgd':
-        from kungfu.tensorflow.v1.optimizers import SyncModelAveragingSGDOptimizer
-        opt = SyncModelAveragingSGDOptimizer(opt)
+        from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
+        opt = SynchronousAveragingOptimizer(opt)
     elif args.kungfu == 'ideal':
         opt = opt
     else:

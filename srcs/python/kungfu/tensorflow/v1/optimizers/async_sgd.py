@@ -13,8 +13,8 @@ def get_random_peer(cluster_size, self_rank):
                    lambda: tf.identity(t))
 
 
-class PeerModelAveragingOptimizer(KungFuOptimizer):
-    """An optimizer that implements asynchrounous training.
+class PairAveragingOptimizer(KungFuOptimizer):
+    """PairAveragingOptimizer implements communication-efficient asynchrounous training.
 
     Every iteration of training, this optimizer
     (1) Randomly selects a peer in the current cluster.
@@ -37,7 +37,7 @@ class PeerModelAveragingOptimizer(KungFuOptimizer):
         Turning it off to overlap training and synchronisation.
       name:
         Optional name prefix for the operations created when applying
-        gradients. Defaults to "KungFuOptimizer" followed by the provided
+        gradients. Defaults to "KungFu" followed by the provided
         optimizer type.
       use_locking:
         Whether to use locking when updating variables.
