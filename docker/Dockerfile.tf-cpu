@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:1.13.1-gpu-py3
+FROM tensorflow/tensorflow:1.13.1-py3
 
 RUN apt update && apt install -y cmake wget
 RUN wget -q https://dl.google.com/go/go1.13.linux-amd64.tar.gz && \
@@ -9,5 +9,5 @@ ENV PATH=${PATH}:/usr/local/go/bin
 ADD . /src/kungfu
 WORKDIR /src/kungfu
 
-RUN ldconfig /usr/local/cuda-10.0/targets/x86_64-linux/lib/stubs && pip3 install --no-index -U .
+RUN pip3 install --no-index -U .
 RUN GOBIN=/usr/bin go install -v ./srcs/go/cmd/kungfu-run
