@@ -6,12 +6,11 @@ Easy, adaptive and fast distributed machine learning.
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in the training program. KungFu is easy to deploy. It does not require partitioning resources as in parameter servers, and
-installing heavy dependency like MPI in Horovod.
+* Simplicity: KungFu permits distributed training by adding only one line of code in the training program. KungFu is easy to deploy. It does not require partitioning resources as in parameter servers and heavy dependency like MPI in Horovod.
 * Adaptive distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/optimizers/__init__.py) such as
 communication-efficient [AD-PSGD](https://arxiv.org/abs/1710.06952) and small-batch-efficient [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
 * Monitoring: KungFu supports [distributed SGD metrics](srcs/python/kungfu/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
-* Online control: KungFu provides control operators such as ``barrier`` and ``resize`` to seamlessly reconfigure training, even in response to monitored metrics.
+* Online control: KungFu provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
 * Extensibility: KungFu has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
 
 KungFu is fast and scalable. It exploits a high-performance implementation of communication, monitoring
