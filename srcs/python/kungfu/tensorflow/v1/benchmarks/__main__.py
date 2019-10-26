@@ -3,7 +3,8 @@ import time
 
 import tensorflow as tf
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
-from kungfu.tensorflow.v1.ops import _tensor_size, current_cluster_size, group_all_reduce
+from kungfu.tensorflow.v1.ops import (_tensor_size, current_cluster_size,
+                                      group_all_reduce)
 
 
 def all_reduce_benchmark(sizes, dtype=tf.float32):

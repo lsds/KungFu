@@ -16,7 +16,8 @@ import argparse
 
 import kungfu as kf
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import broadcast, current_cluster_size, current_rank
+from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
+                                      current_rank)
 
 
 class InitalizationCallback(tf.keras.callbacks.Callback):
