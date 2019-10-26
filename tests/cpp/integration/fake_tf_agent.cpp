@@ -1,4 +1,4 @@
-#include <kungfu_tensorflow_init.h>
+#include <kungfu/tensorflow/init.h>
 
 int main()
 {

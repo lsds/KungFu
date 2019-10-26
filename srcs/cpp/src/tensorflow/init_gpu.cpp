@@ -1,5 +1,5 @@
 #include <kungfu.h>
-#include <kungfu_tensorflow_init.h>
+#include <kungfu/tensorflow/init.h>
 
 void kungfu_tensorflow_init_gpu()
 {

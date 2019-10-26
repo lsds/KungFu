@@ -2,14 +2,9 @@
 #include <mutex>
 #include <random>
 
-#include <tensorflow/core/framework/common_shape_fns.h>
-#include <tensorflow/core/framework/op.h>
-#include <tensorflow/core/framework/op_kernel.h>
-#include <tensorflow/core/framework/shape_inference.h>
+#include <kungfu/tensorflow/ops.h>
 
-#include <kungfu_tensorflow_ops.h>
-
-#include "model_buffer.hpp"
+#include <model_buffer.hpp>
 
 class SelectionStrategy
 {

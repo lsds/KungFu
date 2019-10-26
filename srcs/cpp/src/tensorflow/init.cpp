@@ -2,7 +2,7 @@
 
 #include <kungfu.h>
 #include <kungfu/callback.h>
-#include <kungfu_tensorflow_init.h>
+#include <kungfu/tensorflow/init.h>
 
 std::unique_ptr<kungfu_world> _kungfu_world;
 

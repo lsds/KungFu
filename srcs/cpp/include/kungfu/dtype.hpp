@@ -56,6 +56,7 @@ struct encoding {
 struct op_max;
 struct op_min;
 struct op_sum;
+struct op_prod;
 
 namespace internal
 {
@@ -75,6 +76,10 @@ template <> struct op_type_t<op_min> {
 
 template <> struct op_type_t<op_sum> {
     static constexpr V value = KungFu_SUM;
+};
+
+template <> struct op_type_t<op_prod> {
+    static constexpr V value = KungFu_PROD;
 };
 
 struct encoding {
