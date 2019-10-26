@@ -6,7 +6,7 @@
 #include <tensorflow/core/framework/shape_inference.h>
 
 #include <kungfu.h>
-#include <kungfu/tensorflow/init.h>
+#include <kungfu/python/init.h>
 
 namespace tensorflow
 {

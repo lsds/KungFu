@@ -1,7 +1,7 @@
-#include <kungfu/tensorflow/init.h>
+#include <kungfu/python/init.h>
 
 int main()
 {
-    kungfu_tensorflow_init();
+    kungfu_python_init();
     return 0;
 }

@@ -21,15 +21,15 @@ def _call_method(lib, name):
 
 
 def _load_and_init_op_lib():
+    _python_lib = _load_clib('libkungfu_python')
+    _call_method(_python_lib, 'kungfu_python_init')
+    has_gpu = _call_method(_python_lib, 'kungfu_python_init_gpu')
     _op_lib = _load_op_lib('kungfu_tensorflow_ops')
-    _init_lib = _load_clib('libkungfu_tensorflow_init')
-    _call_method(_init_lib, 'kungfu_tensorflow_init')
-    has_gpu = _call_method(_init_lib, 'kungfu_tensorflow_init_gpu')
-    return _op_lib, _init_lib, has_gpu
+    return _python_lib, _op_lib, has_gpu
 
 
-_op_lib, _init_lib, _has_gpu = _load_and_init_op_lib()
+_python_lib, _op_lib, _has_gpu = _load_and_init_op_lib()
 
 
 def run_barrier():
-    _init_lib.kungfu_barrier()
+    _python_lib.kungfu_barrier()

@@ -1,7 +1,7 @@
 #include <kungfu.h>
-#include <kungfu/tensorflow/init.h>
+#include <kungfu/python/init.h>
 
-void kungfu_tensorflow_init_gpu()
+void kungfu_python_init_gpu()
 {
     kungfu::tensorflow::_world_gpu.reset(
         new kungfu::tensorflow::world<kungfu::tensorflow::gpu>);
