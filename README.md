@@ -21,23 +21,20 @@ and control operators, and adopts a decentralized architecture. Please check out
 
 To use KungFu to scale out your TensorFlow training program, you simply need to make two changes:
 
-1. Wrap the optimizer in ``kungfu.optimizers.v1.SynchronousSGDOptimizer`` or another [distributed optimizer](srcs/python/kungfu/optimizers/__init__.py).
+1. Wrap the optimizer in ``SynchronousSGDOptimizer`` or another [distributed optimizer](srcs/python/kungfu/optimizers/__init__.py).
 
-2. Run ``opt.distributed_initializer()`` after calling ``tf.global_variables_initializer()``.
+2. Run ``distributed_initializer()`` after calling ``global_variables_initializer()``.
     The distributed initializer synchronizes the initial variables on all workers.
 
 ```python
 import tensorflow as tf
+from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
 
 # Build model...
 loss = ...
 
-# You may want to scale the learning rate
-from kungfu.tensorflow.v1.ops import current_cluster_size
-opt = tf.train.AdagradOptimizer(0.01 * current_cluster_size())
-
 # Add KungFu Distributed Optimizer
-from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+opt = tf.train.AdamOptimizer(0.01)
 opt = SynchronousSGDOptimizer(opt)
 
 # Make training operation
