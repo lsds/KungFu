@@ -1,7 +1,6 @@
 #include <cstdio>
 
 #include <kungfu.h>
-#include <kungfu/callback.h>
 #include <kungfu/tensorflow/init.h>
 
 std::unique_ptr<kungfu_world> _kungfu_world;
