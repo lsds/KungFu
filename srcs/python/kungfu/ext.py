@@ -2,6 +2,7 @@ from .loader import _call_method, _load_clib, _module_path
 
 
 def _load_and_init_python_lib():
+    _load_clib('libkungfu')
     _python_lib = _load_clib('libkungfu_python')
     _call_method(_python_lib, 'kungfu_python_init')
     has_gpu = _call_method(_python_lib, 'kungfu_python_init_gpu')
