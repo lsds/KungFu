@@ -6,7 +6,8 @@ Easy, adaptive and fast distributed machine learning.
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in the training program. KungFu is easy to deploy. It does not require partitioning resources as in parameter servers and heavy dependency like MPI in Horovod.
+* Simplicity: KungFu permits distributed training by adding only one line of code in the training program.
+* Easy to deploy. KungFu does not require partitioning resources as in parameter servers and heavy dependency like MPI in Horovod. Check the KungFu [Dockerfile](docker/Dockerfile.tf-gpu).
 * Adaptive distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/optimizers/__init__.py) such as
 communication-efficient [AD-PSGD](https://arxiv.org/abs/1710.06952) and small-batch-efficient [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
 * Monitoring: KungFu supports [distributed SGD metrics](srcs/python/kungfu/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
@@ -71,7 +72,10 @@ kungfu-run -np $NUM_GPUS \
 
 ## Install
 
-KungFu requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.11+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
+KungFu requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
+
+The easiest way to use KungFu is through [Docker](docker/Dockerfile.tf-gpu).
+You can also install KungFu using the following few lines assuming you have installed the above pre-requites.
 
 ```bash
 # Install tensorflow CPU

@@ -35,7 +35,7 @@ All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 
 * Graph: A directed graph, which may contain self loops. The vertices are numbered from 0 to n - 1.
 
-## Useful commands for development
+## Useful commands
 
 ### Format code
 
@@ -48,6 +48,13 @@ All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 ```bash
 # build a .whl package for release
 pip3 wheel -vvv --no-index .
+```
+
+### Build Docker image
+
+```bash
+# Run the following command in the KungFu folder
+docker build -f docker/Dockerfile.tf-gpu -t kungfu:gpu .
 ```
 
 ## Use NVIDIA NCCL

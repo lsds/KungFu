@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:1.12.0-gpu-py3
+FROM tensorflow/tensorflow:1.13.1-gpu-py3
 
 RUN apt update && apt install -y cmake wget
 RUN wget -q https://dl.google.com/go/go1.13.linux-amd64.tar.gz && \

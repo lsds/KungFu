@@ -16,8 +16,8 @@ RUN apt update && \
 ARG PY_MIRROR='-i https://pypi.tuna.tsinghua.edu.cn/simple'
 RUN pip3 install ${PY_MIRROR} tensorflow
 
-RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
-    tar -C /usr/local -xf go1.11.linux-amd64.tar.gz && \
-    rm go1.11.linux-amd64.tar.gz
+RUN wget -q https://dl.google.com/go/go1.13.linux-amd64.tar.gz && \
+    tar -C /usr/local -xf go1.13.linux-amd64.tar.gz && \
+    rm go1.13.linux-amd64.tar.gz
 
 ENV PATH=${PATH}:/usr/local/go/bin
