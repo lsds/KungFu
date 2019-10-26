@@ -1,6 +1,5 @@
 #pragma once
 #include <kungfu.h>
-#include <kungfu_types.hpp>
 
 namespace kungfu
 {

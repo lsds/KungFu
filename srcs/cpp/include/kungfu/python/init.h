@@ -5,11 +5,11 @@
 #include <vector>
 
 #include <kungfu.h>
-#include <kungfu_gpu_collective.hpp>
+#include <kungfu/gpu_collective.hpp>
 
 extern "C" {
-extern void kungfu_tensorflow_init();
-extern void kungfu_tensorflow_init_gpu();
+extern void kungfu_python_init();
+extern void kungfu_python_init_gpu();
 
 // helpers APIs to access kungfu without tensorflow operators
 // FIXME: don't mix with tensorflow binding

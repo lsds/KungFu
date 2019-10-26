@@ -78,7 +78,7 @@ class BaseAgent(object):
             optimizer = tf.train.GradientDescentOptimizer(learning_rate)
 
         if self._use_kungfu:
-            from kungfu.optimizers import ParallelOptimizer
+            from kungfu.tensorflow.v1.optimizers import ParallelOptimizer
             optimizer = ParallelOptimizer(optimizer)
         return optimizer
 

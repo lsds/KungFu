@@ -1,15 +1,15 @@
 // https://www.tensorflow.org/extend/adding_an_op
 #pragma once
+#include <tensorflow/core/framework/common_shape_fns.h>
 #include <tensorflow/core/framework/op.h>
 #include <tensorflow/core/framework/op_kernel.h>
 #include <tensorflow/core/framework/shape_inference.h>
 
 #include <kungfu.h>
-#include <kungfu_tensorflow_init.h>
+#include <kungfu/python/init.h>
 
 namespace tensorflow
 {
-
 inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
 {
     switch (dtype) {

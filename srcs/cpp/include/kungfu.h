@@ -22,7 +22,7 @@ extern void order_group_wait(order_group_t *);
 }
 
 #include <functional>
-#include <kungfu_types.hpp>
+#include <kungfu/dtype.hpp>
 
 using DoneCallback = std::function<void()>;
 

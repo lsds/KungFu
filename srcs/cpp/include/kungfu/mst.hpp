@@ -1,8 +1,8 @@
 #pragma once
+#include <algorithm>
 #include <vector>
 
 #include <kungfu.h>
-#include <kungfu_types.hpp>
 
 namespace kungfu
 {

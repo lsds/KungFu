@@ -1,12 +1,12 @@
-from .loader import _init_lib, _op_lib
+from .loader import _op_lib, _python_lib
 
 
 def current_rank():
-    return _init_lib.kungfu_rank()
+    return _python_lib.kungfu_rank()
 
 
 def current_cluster_size():
-    return _init_lib.kungfu_cluster_size()
+    return _python_lib.kungfu_cluster_size()
 
 
 def _get_other_ranks():

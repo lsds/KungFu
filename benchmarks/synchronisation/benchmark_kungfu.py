@@ -89,22 +89,22 @@ else:
 barrier_op = None
 
 if args.kungfu:
-    from kungfu.ops import barrier
+    from kungfu.tensorflow.v1.ops import barrier
     barrier_op = barrier()
     if args.kungfu == 'sync-sgd':
-        from kungfu.optimizers import SyncSGDOptimizer
+        from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
         opt = SyncSGDOptimizer(opt)
     elif args.kungfu == 'async-sgd':
-        from kungfu.optimizers import PeerModelAveragingOptimizer
+        from kungfu.tensorflow.v1.optimizers import PeerModelAveragingOptimizer
         opt = PeerModelAveragingOptimizer(opt)
     elif args.kungfu == 'sync-sgd-nccl':
-        from kungfu.optimizers import SyncSGDOptimizer
+        from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
         opt = SyncSGDOptimizer(opt, nccl=True, nccl_fusion=True)
     elif args.kungfu == 'ada-sgd':
-        from kungfu.optimizers import AdaptiveSGDOptimizer
+        from kungfu.tensorflow.v1.optimizers import AdaptiveSGDOptimizer
         opt = AdaptiveSGDOptimizer(opt, 10)
     elif args.kungfu == 'sma-sgd':
-        from kungfu.optimizers import SyncModelAveragingSGDOptimizer
+        from kungfu.tensorflow.v1.optimizers import SyncModelAveragingSGDOptimizer
         opt = SyncModelAveragingSGDOptimizer(opt)
     elif args.kungfu == 'ideal':
         opt = opt

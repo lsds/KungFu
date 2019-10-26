@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
 import os
 
 import tensorflow as tf
-from kungfu.helpers.mnist import load_datasets
+from kungfu.tensorflow.v1.helpers.mnist import load_datasets
 
 
 def new_bias(shape):
@@ -32,7 +31,7 @@ def dense(x, logits, act):
 
 def fake_get_shard_info(use_kungfu):
     if use_kungfu:
-        from kungfu.ops import current_cluster_size, current_rank
+        from kungfu.tensorflow.v1.ops import current_cluster_size, current_rank
         return current_rank(), current_cluster_size()
     return 0, 1
 
@@ -51,7 +50,7 @@ def build_optimizer(shards, use_kungfu=True):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_kungfu:
-        from kungfu.optimizers import SyncSGDOptimizer
+        from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
         optimizer = SyncSGDOptimizer(optimizer)
     return optimizer
 

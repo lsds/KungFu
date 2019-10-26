@@ -1,14 +1,8 @@
-#include <tensorflow/core/framework/common_shape_fns.h>
-#include <tensorflow/core/framework/op.h>
-#include <tensorflow/core/framework/op_kernel.h>
-#include <tensorflow/core/framework/shape_inference.h>
+#include <kungfu/tensorflow/ops.h>
 #include <tensorflow/stream_executor/stream.h>
-
-#include <kungfu_tensorflow_ops.h>
 
 namespace tensorflow
 {
-
 REGISTER_OP("StartNcclScheduler").Input("input: string");
 
 class StartNcclScheduler : public OpKernel

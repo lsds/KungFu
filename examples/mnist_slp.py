@@ -16,8 +16,8 @@ import os
 import kungfu as kf
 import numpy as np
 import tensorflow as tf
-from kungfu.helpers.mnist import load_datasets
-from kungfu.ops import current_cluster_size, current_rank
+from kungfu.tensorflow.v1.helpers.mnist import load_datasets
+from kungfu.tensorflow.v1.ops import current_cluster_size, current_rank
 
 
 # TODO add an explaination what the function does
@@ -76,13 +76,13 @@ def build_optimizer(name, n_shards=1):
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
-        from kungfu.optimizers import SyncSGDOptimizer
+        from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
         return SyncSGDOptimizer(optimizer)
     if name == 'variance':
-        from kungfu.optimizers import SyncSGDWithGradVarianceOptimizer
+        from kungfu.tensorflow.v1.optimizers import SyncSGDWithGradVarianceOptimizer
         return SyncSGDWithGradVarianceOptimizer(optimizer, monitor_interval=10)
     elif name == 'model-avg':
-        from kungfu.optimizers import PeerModelAveragingOptimizer
+        from kungfu.tensorflow.v1.optimizers import PeerModelAveragingOptimizer
         return PeerModelAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)

@@ -35,8 +35,8 @@ IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(cmake/tf-op.cmake)
     INCLUDE(cmake/rpath.cmake)
 
-    ADD_LIBRARY(kungfu_tensorflow_init SHARED srcs/cpp/src/tensorflow/init.cpp)
-    TARGET_LINK_LIBRARIES(kungfu_tensorflow_init kungfu)
+    ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/python/init.cpp)
+    TARGET_LINK_LIBRARIES(kungfu_python kungfu)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops
                   # BEGIN sort
@@ -48,20 +48,20 @@ IF(KUNGFU_BUILD_TF_OPS)
                   srcs/cpp/src/tensorflow/ops/topology.cpp
                   # END sort
                   )
-    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_tensorflow_init kungfu)
+    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
 
     IF(KUNGFU_ENABLE_NCCL)
-        TARGET_SOURCES(kungfu_tensorflow_init
+        TARGET_SOURCES(kungfu_python
                        PRIVATE
-                       srcs/cpp/src/tensorflow/init_gpu.cpp
+                       srcs/cpp/src/python/init_gpu.cpp
                        srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
-        USE_NCCL(kungfu_tensorflow_init)
+        USE_NCCL(kungfu_python)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE
                        srcs/cpp/src/tensorflow/ops/collective_gpu.cpp)
     ENDIF()
 
-    SET_TF_CXX11_ABI(kungfu_tensorflow_init)
-    SET_INSTALL_RPATH(kungfu_tensorflow_init)
+    SET_TF_CXX11_ABI(kungfu_python)
+    SET_INSTALL_RPATH(kungfu_python)
     SET_INSTALL_RPATH(kungfu_tensorflow_ops)
 ENDIF()
 

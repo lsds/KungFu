@@ -2,8 +2,6 @@
 #include <numeric>
 #include <vector>
 
-#include <kungfu/callback.h>
-
 #include "testing.hpp"
 
 TEST(kungfu_order_group_test, test_order_group_simple)

@@ -73,15 +73,15 @@ model = getattr(applications, args.model)(weights=None)
 opt = tf.train.GradientDescentOptimizer(0.01)
 
 if args.metric == 'variance':
-    from kungfu.optimizers import SyncSGDWithGradVarianceOptimizer
+    from kungfu.tensorflow.v1.optimizers import SyncSGDWithGradVarianceOptimizer
     opt = SyncSGDWithGradVarianceOptimizer(opt, monitor_interval=args.interval)
 elif args.metric == 'noise-scale':
-    from kungfu.optimizers import SyncSGDWithGradNoiseScaleOptimizer
+    from kungfu.tensorflow.v1.optimizers import SyncSGDWithGradNoiseScaleOptimizer
     opt = SyncSGDWithGradNoiseScaleOptimizer(opt,
                                              device_batch_size=args.batch_size,
                                              monitor_interval=args.interval)
 elif args.metric == 'ideal':
-    from kungfu.optimizers import SyncSGDOptimizer
+    from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
     opt = SyncSGDOptimizer(opt)
 else:
     raise Exception('Unknown monitoring metric: %s' % args.metric)

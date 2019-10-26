@@ -1,6 +1,6 @@
 import os
 
-from .loader import _init_lib, _op_lib
+from .loader import _op_lib, _python_lib
 
 
 def get_init_checkpoint():

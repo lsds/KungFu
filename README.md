@@ -33,11 +33,11 @@ import tensorflow as tf
 loss = ...
 
 # You may want to scale the learning rate
-from kungfu.ops import current_cluster_size
+from kungfu.tensorflow.v1.ops import current_cluster_size
 opt = tf.train.AdagradOptimizer(0.01 * current_cluster_size())
 
 # Add KungFu Distributed Optimizer
-from kungfu.optimizers import SyncSGDOptimizer
+from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
 opt = SyncSGDOptimizer(opt)
 
 # Make training operation

@@ -1,12 +1,11 @@
 #include <cstdio>
 
 #include <kungfu.h>
-#include <kungfu/callback.h>
-#include <kungfu_tensorflow_init.h>
+#include <kungfu/python/init.h>
 
 std::unique_ptr<kungfu_world> _kungfu_world;
 
-void kungfu_tensorflow_init() { _kungfu_world.reset(new kungfu_world); }
+void kungfu_python_init() { _kungfu_world.reset(new kungfu_world); }
 
 int kungfu_rank() { return _kungfu_world->Rank(); }
 

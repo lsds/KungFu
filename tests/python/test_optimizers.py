@@ -1,4 +1,4 @@
-from kungfu.optimizers import SyncSGDOptimizer
+from kungfu.tensorflow.v1.optimizers import SyncSGDOptimizer
 import tensorflow as tf
 
 
