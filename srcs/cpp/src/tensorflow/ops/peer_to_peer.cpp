@@ -2,9 +2,8 @@
 #include <mutex>
 #include <random>
 
+#include <kungfu/tensorflow/model_buffer.hpp>
 #include <kungfu/tensorflow/ops.h>
-
-#include <model_buffer.hpp>
 
 class SelectionStrategy
 {

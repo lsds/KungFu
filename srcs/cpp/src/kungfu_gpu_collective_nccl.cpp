@@ -1,9 +1,9 @@
-#include <kungfu_gpu_collective.hpp>
+#include <kungfu/gpu_collective.hpp>
 
 #include <nccl.h>
 
-#include "cuda_helper.hpp"
-#include "error_checker.hpp"
+#include <cuda_helper.hpp>
+#include <error_checker.hpp>
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const

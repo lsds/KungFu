@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <kungfu.h>
-#include <kungfu_gpu_collective.hpp>
+#include <kungfu/gpu_collective.hpp>
 
 extern "C" {
 extern void kungfu_tensorflow_init();
