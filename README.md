@@ -6,14 +6,14 @@ Easy, adaptive and fast distributed machine learning.
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in your existing training program. KungFu is also easy to run because it does not require heavy dependency like MPI in Horovod and extra deployment like parameter servers.
+* Simplicity: KungFu permits distributed training by adding only one line of code in your training program. KungFu is easy to run because it does not require heavy dependency like MPI in Horovod and extra deployment like parameter servers.
 * Adaptive distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py) such as
 communication-efficient [AD-PSGD](https://arxiv.org/abs/1710.06952) and small-batch-efficient [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
-* Monitoring: KungFu supports [distributed SGD metrics](srcs/python/kungfu/tensorflow/v1/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
-* Online control: KungFu provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
-* Extensibility: KungFu has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
+* Online monitoring and control: KungFu supports [distributed SGD metrics](srcs/python/kungfu/tensorflow/v1/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
+KungFu further provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
+* Fast and scalable: KungFu adopts a decentralized architecture and exploits a high-performance implementation of communication, monitoring and control operators. Check out the performance of KungFu in the Benchmark section below.
 
-KungFu is fast and scalable. It adopts a decentralized architecture and exploits a high-performance implementation of synchronization, monitoring and control operators. Check out the performance of KungFu in the Benchmark section below.
+KungFu is highly extensible. It has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
 
 ## Usage
 
@@ -30,9 +30,9 @@ from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
 
 # Build model...
 loss = ...
-
-# Add KungFu Distributed Optimizer
 opt = tf.train.AdamOptimizer(0.01)
+
+# KungFu: Wrap optimizer with KungFu optimizers
 opt = SynchronousSGDOptimizer(opt)
 
 # Make training operation
@@ -40,7 +40,9 @@ train_op = opt.minimize(loss)
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    sess.run(opt.distributed_initializer()) # KungFu
+    
+    # KungFu: Synchronise distributed worker states
+    sess.run(opt.distributed_initializer())
 
     # Train your model for 10 steps.
     for step in range(10):
@@ -51,7 +53,9 @@ See the [TensorFlow Session](examples/mnist_slp.py) and [TensorFlow Keras](examp
 
 ## Install
 
-KungFu requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
+KungFu is implemented in Go and exposes a C interface. Currently, it has a Python binding for TensorFlow.
+
+KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
 You can install KungFu using the following few lines, assuming you have installed the above pre-requites.
 
 ```bash
@@ -100,7 +104,7 @@ kungfu-run -np $NUM_GPUS \
 
 ### ImageNet
 
-We have used an ImageNet training [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) to validate the convergence properties of KungFu distributed optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``. We have tested them with the ResNet-50 and ResNet-101 models in the [TensorFlow ImageNet benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu) and showed that they can reach the same evaluation accuracy as Horovod which implements synchronous SGD.
+KungFu also has a ImageNet [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu). We have used this example to validate the convergence properties of KungFu optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``. We have tested them with the ResNet-50 and ResNet-101 models in the [TensorFlow ImageNet benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu) and showed that they can reach the same evaluation accuracy as Horovod.
 You can add your own KungFu distributed optimizer to the ImageNet example by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
 
 ## Benchmark
