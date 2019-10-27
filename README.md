@@ -96,6 +96,12 @@ kungfu-run -np $NUM_GPUS \
 
 ``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the cluster.
 
+## ImageNet
+
+The distributed optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``)
+can reach the same evaluation accuracy as Horovod. We validated this with the ResNet-50 and ResNet-101 models in the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
+You can also add your own KungFu distributed optimizer to the benchmark by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
+
 ## Benchmark
 
 We benchmark KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
@@ -113,12 +119,6 @@ In the asynchronous training case, we compare KungFu (``PairAveragingOptimizer``
 ![async](benchmarks/system/result/async-scalability.svg)
 
 All benchmark scripts are available [here](benchmarks/system/).
-
-## Convergence
-
-The distributed optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``)
-can reach the same evaluation accuracy as Horovod. We validated this with the ResNet-50 and ResNet-101 models in the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
-You can also add your own KungFu distributed optimizer to the benchmark by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/1eb102a81cdcd42cdbea56d2d19f36a8018e9f80/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1197).
 
 ## Contribute
 
