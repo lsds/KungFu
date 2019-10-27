@@ -100,7 +100,7 @@ kungfu-run -np $NUM_GPUS \
 
 ### ImageNet
 
-We have used an ImageNet training example to validate the convergence properties of KungFu distributed optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``. We have tested them with the ResNet-50 and ResNet-101 models in the [TensorFlow ImageNet benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu) and showed that they can reach the same evaluation accuracy as Horovod which implements synchronous SGD.
+We have used an ImageNet training [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) to validate the convergence properties of KungFu distributed optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``. We have tested them with the ResNet-50 and ResNet-101 models in the [TensorFlow ImageNet benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu) and showed that they can reach the same evaluation accuracy as Horovod which implements synchronous SGD.
 You can add your own KungFu distributed optimizer to the ImageNet example by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
 
 ## Benchmark
