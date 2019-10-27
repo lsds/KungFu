@@ -1,2 +1,2 @@
-tensorflow
+tensorflow==1.12
 cmake
