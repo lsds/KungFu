@@ -10,7 +10,7 @@ FUNCTION(ADD_CGO_LIBRARY target)
                               CGO_CFLAGS=${CGO_CFLAGS}
                               CGO_LDFLAGS=${CGO_LDFLAGS}
                               CGO_CXXFLAGS=${CGO_CXXFLAGS}
-                              go
+                              ${GO}
                               build
                               -v
                               -buildmode=c-archive
@@ -27,7 +27,7 @@ FUNCTION(ADD_CGO_SHARED_LIBRARY target)
                               CGO_CFLAGS=${CGO_CFLAGS}
                               CGO_LDFLAGS=${CGO_LDFLAGS}
                               CGO_CXXFLAGS=${CGO_CXXFLAGS}
-                              go
+                              ${GO}
                               build
                               -v
                               -buildmode=c-shared

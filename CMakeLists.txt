@@ -12,6 +12,23 @@ OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
 OPTION(KUNGFU_BUILD_TOOLS "Build kungfu tools." OFF)
 OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
 
+IF($ENV{READTHEDOCS})
+    # https://docs.readthedocs.io/en/stable/builds.html#the-build-environment
+    OPTION(KUNGFU_DOWNLOAD_GO "Download golang." ON)
+ELSE()
+    OPTION(KUNGFU_DOWNLOAD_GO "Download golang." OFF)
+ENDIF()
+
+IF(KUNGFU_DOWNLOAD_GO)
+    FILE(DOWNLOAD "https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz"
+         ${CMAKE_SOURCE_DIR}/go1.13.3.linux-amd64.tar.gz
+         SHOW_PROGRESS EXPECTED_MD5 e0b36adf4dbb7fa53b477df5d7b1dd8c)
+    EXECUTE_PROCESS(COMMAND tar -xf go1.13.3.linux-amd64.tar.gz)
+    SET(GO "${CMAKE_SOURCE_DIR}/go/bin/go")
+ELSE()
+    FIND_PROGRAM(GO NAMES go)
+ENDIF()
+
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
 
@@ -71,7 +88,7 @@ IF(KUNGFU_BUILD_TOOLS)
                                   CGO_CFLAGS=${CGO_CFLAGS}
                                   CGO_LDFLAGS=${CGO_LDFLAGS}
                                   CGO_CXXFLAGS=${CGO_CXXFLAGS}
-                                  go
+                                  ${GO}
                                   install
                                   -v
                                   ${ARGN})
