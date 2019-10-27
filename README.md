@@ -53,10 +53,10 @@ See the [TensorFlow Session](examples/mnist_slp.py) and [TensorFlow Keras](examp
 
 ## Install
 
-KungFu is implemented in Go and exposes a C interface. Currently, it has a Python binding for TensorFlow.
+KungFu is implemented in Go. Currently, it has a Python binding for TensorFlow.
 
 KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
-You can install KungFu using the following few lines, assuming you have installed the above pre-requites.
+It can be installed with the following few lines, assuming you have the above pre-requites.
 
 ```bash
 # Download the KungFu source code
