@@ -13,13 +13,14 @@ def is_private(o):
     return o.__name__.startswith('_')
 
 
-def list_members(m, pred):
+def list_members(m, pred, whitelist):
     for _name, f in getmembers(m):
         if not pred(f):
             continue
         if is_private(f):
             continue
-        yield f
+        if not whitelist or _name in whitelist:
+            yield f
 
 
 def title(name, lvl):
@@ -27,15 +28,16 @@ def title(name, lvl):
     return '%s\n%s\n' % (name, levels[lvl] * len(name))
 
 
-def gen_module_doc(m):
+def gen_module_doc(m, whitelist):
     yield title('module %s' % (m.__name__), 1)
-    functions = list(list_members(m, isfunction))
+
+    functions = list(list_members(m, isfunction, whitelist))
     if functions:
         yield title('functions', 2)
         for f in functions:
             yield '.. autofunction:: %s.%s' % (m.__name__, f.__name__)
 
-    classes = list(list_members(m, isclass))
+    classes = list(list_members(m, isclass, whitelist))
     if classes:
         yield title('classes', 2)
         for c in classes:
@@ -45,17 +47,21 @@ def gen_module_doc(m):
 
 
 modules = [
-    (kungfu, ),
-    (kungfu.tensorflow.v1.ops, ),
-    (kungfu.tensorflow.v1.optimizers, ),
+    (kungfu, []),
+    (kungfu.tensorflow.v1.ops, [
+        'barrier',
+        'group_all_reduce',
+        'group_nccl_all_reduce',
+    ]),
+    (kungfu.tensorflow.v1.optimizers, []),
 ]
 
 
 def main(args):
     output = 'index.rst'
     with open(output, 'w') as f:
-        for (m, ) in modules:
-            for line in gen_module_doc(m):
+        for (m, whitelist) in modules:
+            for line in gen_module_doc(m, whitelist):
                 f.write(line + '\n')
 
 
