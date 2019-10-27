@@ -57,12 +57,19 @@ modules = [
 ]
 
 
+def gen_doc(modules):
+    yield title('KungFu distributed machine learning framework', 1)
+
+    for (m, whitelist) in modules:
+        for line in gen_module_doc(m, whitelist):
+            yield line
+
+
 def main(args):
     output = 'index.rst'
     with open(output, 'w') as f:
-        for (m, whitelist) in modules:
-            for line in gen_module_doc(m, whitelist):
-                f.write(line + '\n')
+        for line in gen_doc(modules):
+            f.write(line + '\n')
 
 
 main(sys.argv)
