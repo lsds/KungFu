@@ -15,7 +15,7 @@ communication-efficient [AD-PSGD](https://arxiv.org/abs/1710.06952) and small-ba
 
 KungFu is fast and scalable. It adopts a decentralized architecture and exploits a high-performance implementation of synchronization, monitoring and control operators. Check out the performance of KungFu in the Benchmark section below.
 
-## Basic Usage
+## Usage
 
 To scale out your TensorFlow training program using KungFu, you simply need to make two changes:
 
@@ -75,7 +75,9 @@ GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 
 You can use KungFu with Docker. Check out the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) machines.
 
-## Example
+## Examples
+
+### MNIST
 
 Download the MNIST dataset ([script](scripts/download-mnist.sh)) and run the following training script:
 
@@ -96,11 +98,10 @@ kungfu-run -np $NUM_GPUS \
 
 ``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the cluster.
 
-## ImageNet
+### ImageNet
 
-The distributed optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``)
-can reach the same evaluation accuracy as Horovod. We validated this with the ResNet-50 and ResNet-101 models in the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
-You can also add your own KungFu distributed optimizer to the benchmark by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
+We have used an ImageNet training example to validate the convergence properties of KungFu distributed optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``. We have tested them with the ResNet-50 and ResNet-101 models in the [TensorFlow ImageNet benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu) and showed that they can reach the same evaluation accuracy as Horovod which implements synchronous SGD.
+You can add your own KungFu distributed optimizer to the ImageNet example by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
 
 ## Benchmark
 
