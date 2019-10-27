@@ -2,6 +2,9 @@
 
 Easy, adaptive and fast distributed machine learning.
 
+[![Build Status](https://travis-ci.com/lsds/KungFu.svg?branch=master)](https://travis-ci.com/lsds/KungFu)
+[![Documentation Status](https://readthedocs.org/projects/kungfu/badge/?version=latest)](https://kungfu.readthedocs.io/en/latest/?badge=latest)
+
 ## Features
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
@@ -40,7 +43,7 @@ train_op = opt.minimize(loss)
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    
+
     # KungFu: Synchronise distributed worker states
     sess.run(opt.distributed_initializer())
 
@@ -109,7 +112,7 @@ You can add your own KungFu distributed optimizer to the ImageNet example by add
 
 ### BERT
 
-We are working on a BERT example and will release it very soon. 
+We are working on a BERT example and will release it very soon.
 
 ## Benchmark
 
