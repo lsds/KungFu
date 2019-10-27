@@ -1,6 +1,7 @@
 # https://docs.readthedocs.io/en/stable/config-file/v2.html
 sphinx:
   configuration: docs/conf.py
+  fail_on_warning: true
 
 python:
   version: 3.7
