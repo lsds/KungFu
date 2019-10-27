@@ -5,10 +5,7 @@ BUILDDIR      = build
 
 default: html
 
-rst: gen-doc.py
-	./gen-doc.py
-
-html: rst
+html:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 serve:
