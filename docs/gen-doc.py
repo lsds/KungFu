@@ -9,32 +9,39 @@ import kungfu.tensorflow.v1.ops
 import kungfu.tensorflow.v1.optimizers
 
 
-def list_classes(m):
-    for _name, f in getmembers(m):
-        if isclass(f):
-            yield f
-
-
-def list_functions(m):
-    for _name, f in getmembers(m):
-        if isfunction(f):
-            yield f
-
-
 def is_private(o):
     return o.__name__.startswith('_')
 
 
-def gen_module_doc(m):
-    for f in list_functions(m):
+def list_members(m, pred):
+    for _name, f in getmembers(m):
+        if not pred(f):
+            continue
         if is_private(f):
             continue
-        yield '.. autofunction:: %s.%s' % (m.__name__, f.__name__)
+        yield f
 
-    for c in list_classes(m):
-        if is_private(c):
-            continue
-        yield '.. autoclass:: %s.%s' % (m.__name__, c.__name__)
+
+def title(name, lvl):
+    levels = ['=', '-', '~']
+    return '%s\n%s\n' % (name, levels[lvl] * len(name))
+
+
+def gen_module_doc(m):
+    yield title('module %s' % (m.__name__), 1)
+    functions = list(list_members(m, isfunction))
+    if functions:
+        yield title('functions', 2)
+        for f in functions:
+            yield '.. autofunction:: %s.%s' % (m.__name__, f.__name__)
+
+    classes = list(list_members(m, isclass))
+    if classes:
+        yield title('classes', 2)
+        for c in classes:
+            yield '.. autoclass:: %s.%s' % (m.__name__, c.__name__)
+
+    yield ''
 
 
 modules = [
