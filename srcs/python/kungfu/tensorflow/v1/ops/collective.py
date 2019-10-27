@@ -3,14 +3,17 @@ from .topology import peer_info
 
 
 def barrier():
+    """Create a new barrier operator."""
     return _op_lib.kungfu_barrier()
 
 
 def broadcast(t):
+    """Create a new broadcast operator for given tensor."""
     return _op_lib.broadcast(t)
 
 
 def all_reduce(t):
+    """Create a new all_reduce operator for given tensor."""
     return _op_lib.all_reduce(t, input_tensor_name=t.name)
 
 
@@ -23,6 +26,7 @@ def _maybe_group_all_reduce(ts, group_all_reduce_fn):
 
 
 def group_all_reduce(ts):
+    """Create a list of all_reduce operators for given tensor list."""
     return [all_reduce(t) for t in ts]
 
 
@@ -38,6 +42,7 @@ def _start_nccl_scheduler(*args, **kwargs):
 
 
 def group_nccl_all_reduce(ts):
+    """Create a list of all_reduce operators for given tensor list, using NCCL."""
     names = [t.name for t in ts]
     if len(names) > 1:
         print("WARNING: Please fuse tensors before using NCCL.")
