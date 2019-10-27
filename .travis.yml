@@ -9,6 +9,6 @@ go:
 
 script:
 - go test -v ./...
-- ./configure --build-tests
+- ./configure --build-tests --build-gtest
 - make
 - make test
