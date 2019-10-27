@@ -10,6 +10,11 @@ from .monitor import global_noise_scale
 from .p2p import request_variable, request_variable_with_template
 from .topology import peer_info
 
+__all__ = [
+    'barrier',
+    'group_all_reduce',
+]
+
 
 def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size

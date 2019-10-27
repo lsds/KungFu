@@ -1,0 +1,18 @@
+# https://docs.readthedocs.io/en/stable/config-file/v2.html
+
+# Required
+version: 2
+
+sphinx:
+  configuration: docs/conf.py
+  fail_on_warning: true
+
+formats:
+- htmlzip
+
+python:
+  version: 3.6
+  install:
+  - requirements: docs/requirements.extra.txt
+  - method: pip
+    path: .

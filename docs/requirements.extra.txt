@@ -1,0 +1,3 @@
+numpy==1.16
+tensorflow==1.12
+cmake
