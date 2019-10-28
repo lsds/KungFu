@@ -52,30 +52,44 @@ class PairAveragingOptimizer(KungFuOptimizer):
         super(PairAveragingOptimizer, self).__init__(optimizer, name,
                                                      use_locking)
         self._fuse_variables = fuse_variables
+        self._fused_variable = None
+        self._shapes = None
 
-    def _build_request_and_save_ops(self, target, variables):
+    def _fuse(self, variables):
+        if self._fused_variable is None:
+            self._fused_variable = fuse(variables)
+            self._shapes = [v.shape for v in variables]
+        return self._fused_variable
+
+    def _defuse(self, fused_variable):
+        return defuse(fused_variable, self._shapes)
+
+    def _build_request_ops(self, target, variables):
         if self._fuse_variables:
-            var_fused = fuse(variables)
-            save_model_op = save_variable(var_fused)
+            var_fused = self._fuse(variables)
             other_peer_var_fused = request_variable_with_template(
                 target, var_fused)
-            other_peer_vars = defuse(other_peer_var_fused,
-                                     [v.shape for v in variables])
+            return self._defuse(other_peer_var_fused)
         else:
-            save_model_op = tf.group([save_variable(v) for v in variables])
-            other_peer_vars = [
+            return [
                 request_variable_with_template(target, v) for v in variables
             ]
-        self._save_model_op = save_model_op  # save for _get_initializer_op
-        return other_peer_vars, save_model_op
+
+    def _build_save_op(self, variables):
+        if self._fuse_variables:
+            var_fused = self._fuse(variables)
+            return save_variable(var_fused)
+        else:
+            return tf.group([save_variable(v) for v in variables])
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         """Calls this same method on the underlying optimizer."""
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
         variables = [v for _g, v in grads_and_vars]
-        other_peer_vars, save_model_op = self._build_request_and_save_ops(
-            target, variables)
+
+        other_peer_vars = self._build_request_ops(target, variables)
+        save_model_op = self._build_save_op(variables)
 
         assign_ops = [
             tf.assign(v, 0.5 * (v + other_v))
@@ -95,5 +109,6 @@ class PairAveragingOptimizer(KungFuOptimizer):
             bcast_ops.append(tf.assign(v, broadcast(v)))
 
         with tf.control_dependencies(bcast_ops):
-            with tf.control_dependencies([self._save_model_op]):
+            with tf.control_dependencies(
+                [self._build_save_op(self.variables())]):
                 return barrier()
