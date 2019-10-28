@@ -77,7 +77,6 @@ class PairAveragingOptimizer(KungFuOptimizer):
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
         variables = [v for _g, v in grads_and_vars]
-
         with tf.control_dependencies([self._init_op]):
             other_peer_vars = self._build_request_ops(target, variables)
 
@@ -98,7 +97,14 @@ class PairAveragingOptimizer(KungFuOptimizer):
     def _distributed_initializer(self):
         bcast_ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
 
+        # FIXME: tf.trainable_variables() will return a TFOptimizer/iterations:0 if with Keras
+        # I think we need to find a better way to identify trainable variables?
+        # TODO: Can we decouple distribuetd_initilizer and the tensor store init?
         variables = tf.trainable_variables()
+        variables = [
+            v for v in variables if 'TFOptimizer/iterations' not in v.name
+        ]
+
         with tf.control_dependencies(bcast_ops):
             with tf.control_dependencies([self._build_save_op(variables)]):
                 return barrier()

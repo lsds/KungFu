@@ -15,7 +15,8 @@ def test_peer_info():
 
 
 def test_save_and_request():
-    global_step = tf.Variable(tf.constant(0, dtype=tf.int64))
+    global_step = tf.Variable(tf.constant(0, dtype=tf.int64),
+                              name='global_step')
     target = tf.Variable(tf.constant(0, dtype=tf.int32))
 
     x = tf.Variable(tf.zeros([10], dtype=tf.int32))
