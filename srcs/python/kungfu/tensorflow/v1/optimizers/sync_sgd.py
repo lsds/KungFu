@@ -67,8 +67,8 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         return self._optimizer.apply_gradients(reduced_grads_and_vars,
                                                **kwargs)
 
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.variables()]
+    def _distributed_initializer(self):
+        ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
         return tf.group(ops)
 
 
@@ -150,8 +150,8 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
                 return self._optimizer.apply_gradients(
                     zip(reduced_grads, variables), **kwargs)
 
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.variables()]
+    def _distributed_initializer(self):
+        ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
         return tf.group(ops)
 
 
@@ -229,6 +229,6 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
                 return self._optimizer.apply_gradients(
                     zip(reduced_grads, variables), **kwargs)
 
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.variables()]
+    def _distributed_initializer(self):
+        ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
         return tf.group(ops)

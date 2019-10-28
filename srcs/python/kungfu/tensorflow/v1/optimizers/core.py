@@ -27,16 +27,16 @@ class KungFuOptimizer(tf.train.Optimizer):
         super(KungFuOptimizer, self).__init__(name=name,
                                               use_locking=use_locking)
         self._optimizer = optimizer
-        self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
+        self._kf_step = tf.Variable(0, trainable=False, dtype=tf.int32)
 
     def _distributed_initializer(self):
         raise RuntimeError('_distributed_initializer is not implemented.')
 
     def compute_gradients(self, *args, **kwargs):
-        self._init_op = tf.cond(tf.equal(self._step, 0),
+        self._init_op = tf.cond(tf.equal(self._kf_step, 0),
                                 self._distributed_initializer, tf.no_op)
         with tf.control_dependencies([self._init_op]):
-            with tf.control_dependencies([tf.assign_add(self._step, 1)]):
+            with tf.control_dependencies([tf.assign_add(self._kf_step, 1)]):
                 return self._optimizer.compute_gradients(*args, **kwargs)
 
     def apply_gradients(self, *args, **kwargs):

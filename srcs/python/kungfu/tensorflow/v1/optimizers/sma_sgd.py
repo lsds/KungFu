@@ -50,6 +50,6 @@ class SynchronousAveragingOptimizer(KungFuOptimizer):
         with tf.control_dependencies(assign_ops):
             return self._optimizer.apply_gradients(grads_and_vars, **kwargs)
 
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.variables()]
+    def _distributed_initializer(self):
+        ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
         return tf.group(ops)

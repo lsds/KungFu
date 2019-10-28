@@ -30,11 +30,10 @@ class PairAveragingOptimizer(KungFuOptimizer):
     Args:
       optimizer:
         Optimizer to use for computing gradients and applying updates.
-      device_batch_size:
-        The training batch size of the local device
-      fuse_variables:
-        Fusing variables before saving a model.
-        Turning it off to overlap training and synchronization.
+      fuse_requests:
+        Fusing the requests for remote variables to amortise communication cost.
+        The fusing however takes extra memory and prevents overlapping
+        synchronization and training.
       name:
         Optional name prefix for the operations created when applying
         gradients. Defaults to "KungFu" followed by the provided
@@ -46,19 +45,19 @@ class PairAveragingOptimizer(KungFuOptimizer):
     """
     def __init__(self,
                  optimizer,
-                 fuse_variables=True,
+                 fuse_requests=False,
                  name=None,
                  use_locking=False):
         super(PairAveragingOptimizer, self).__init__(optimizer, name,
                                                      use_locking)
-        self._fuse_variables = fuse_variables
+        self._fuse_requests = fuse_requests
 
     def _build_request_ops(self, target, variables):
-        if self._fuse_variables:
+        if self._fuse_requests:
             var_fused = fuse(variables)
             other_peer_var_fused = request_variable(target,
                                                     version=None,
-                                                    name='KUNGFU_MODEL',
+                                                    name='FUSED_MODEL',
                                                     shape=var_fused.shape,
                                                     dtype=var_fused.dtype)
             return defuse(other_peer_var_fused, [v.shape for v in variables])
@@ -68,14 +67,13 @@ class PairAveragingOptimizer(KungFuOptimizer):
             ]
 
     def _build_save_op(self, variables):
-        if self._fuse_variables:
+        if self._fuse_requests:
             var_fused = fuse(variables)
-            return save_variable(var_fused, name='KUNGFU_MODEL')
+            return save_variable(var_fused, name='FUSED_MODEL')
         else:
             return tf.group([save_variable(v) for v in variables])
 
     def apply_gradients(self, grads_and_vars, **kwargs):
-        """Calls this same method on the underlying optimizer."""
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
         variables = [v for _g, v in grads_and_vars]
@@ -99,6 +97,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
 
     def _distributed_initializer(self):
         bcast_ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
+
         variables = tf.trainable_variables()
         with tf.control_dependencies(bcast_ops):
             with tf.control_dependencies([self._build_save_op(variables)]):

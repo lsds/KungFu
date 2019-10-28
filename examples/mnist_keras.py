@@ -4,10 +4,8 @@
 # KungFu requires users to make four changes:
 # 1. KungFu provides distributed optimizers that can wrap the original optimizer.
 # The distributed optimizer defines how local gradients and model weights are synchronized.
-# 2. KungFu provides distributed variable initializers that defines how model weights are
-# initialized on distributed devices.
-# 3. (Optional) In a distributed training setting, the training dataset is often partitioned.
-# 4. (Optional) Scaling the learning rate of your local optimizer
+# 2. (Optional) In a distributed training setting, the training dataset is often partitioned.
+# 3. (Optional) Scaling the learning rate of your local optimizer
 #
 # Command to run this script:
 # $ ./bin/kungfu-run -np 4 -timeout 1h python3 examples/mnist_keras.py --n-epochs 10
@@ -17,16 +15,7 @@ import argparse
 import kungfu as kf
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.v1.ops import broadcast
-
-
-class InitalizationCallback(tf.keras.callbacks.Callback):
-    def on_train_begin(self, logs=None):
-        tf.keras.backend.get_session().run(tf.global_variables_initializer())
-        # KUNGFU: KungFu initilizer defines how model weights are initilised on distributed devices
-        if hasattr(self.model.optimizer.optimizer, 'distributed_initializer'):
-            tf.keras.backend.get_session().run(
-                self.model.optimizer.optimizer.distributed_initializer())
+from kungfu.tensorflow.v1.optimizers import KerasInitCallback
 
 
 def load_dataset():
@@ -61,6 +50,9 @@ def build_optimizer(name, n_shards=1):
     elif name == 'async-sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
         return PairAveragingOptimizer(optimizer)
+    elif name == 'sma':
+        from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
+        return SynchronousAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
 
@@ -99,7 +91,7 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
               y,
               batch_size=batch_size,
               epochs=n_epochs,
-              callbacks=[InitalizationCallback()],
+              callbacks=[KerasInitCallback()],
               validation_data=(dataset['x_val'], dataset['y_val']),
               verbose=2)
 

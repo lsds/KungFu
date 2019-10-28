@@ -11,7 +11,6 @@ def test_sync_sgd():
     train_op = optimizer.minimize(y)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        sess.run(optimizer.distributed_initializer())
         for _ in range(2):
             sess.run(train_op)
         # FIXME: check values
@@ -25,7 +24,6 @@ def test_pair_averaging():
     train_op = optimizer.minimize(y)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        sess.run(optimizer.distributed_initializer())
         for _ in range(2):
             sess.run(train_op)
         # FIXME: check values
