@@ -15,15 +15,14 @@ def test_peer_info():
 
 
 def test_save_and_request():
-    global_step = tf.Variable(tf.constant(0, dtype=tf.int64),
-                              name='global_step')
+    global_step = tf.Variable(tf.constant(0, dtype=tf.int64))
     target = tf.Variable(tf.constant(0, dtype=tf.int32))
 
     x = tf.Variable(tf.zeros([10], dtype=tf.int32))
 
     inc_op = tf.assign_add(global_step, 1)
     update_op = tf.assign(x, x + 1)
-    save_op = save_variable(x, global_step)
+    save_op = save_variable(x, version=global_step)
     y = request_variable(target, global_step, x.name, x.shape, x.dtype)
 
     with tf.Session() as sess:

@@ -1,7 +1,7 @@
 from ._tf_oplib import _op_lib
 
 
-def save_variable(t, name=None, version=None):
+def save_variable(t, version=None, name=None):
     """
     t: the tensor variable to save
     version: a scalar tensor of int64 or None
