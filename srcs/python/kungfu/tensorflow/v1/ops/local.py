@@ -1,7 +1,7 @@
 from ._tf_oplib import _op_lib
 
 
-def save_variable(t, version=None):
+def save_variable(t, name=None, version=None):
     """
     t: the tensor variable to save
     version: a scalar tensor of int64 or None
@@ -11,9 +11,11 @@ def save_variable(t, version=None):
         use_version = False
     else:
         use_version = True
+    if name is None:
+        name = t.name
     return _op_lib.kungfu_save_variable(version,
                                         t,
-                                        input_tensor_name=t.name,
+                                        input_tensor_name=name,
                                         use_version=use_version)
 
 
