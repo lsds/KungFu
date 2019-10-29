@@ -4,9 +4,9 @@
 namespace tensorflow
 {
 REGISTER_OP("KungfuGetPeerInfo")
-    .Input("version: int32")  // FIXME: not used
     .Output("rank: int32")
     .Output("cluster_size: int32")
+    .SetIsStateful()
     .SetShapeFn([](shape_inference::InferenceContext *c) {
         c->set_output(0, c->Scalar());
         c->set_output(1, c->Scalar());

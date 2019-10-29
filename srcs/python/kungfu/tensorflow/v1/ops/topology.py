@@ -7,5 +7,4 @@ def peer_info():
         a pair of scalar tensors of int32: (rank, cluster_size).
     """
     import tensorflow as tf
-    version = tf.constant(-1, dtype=tf.int32)
-    return _op_lib.kungfu_get_peer_info(version)
+    return _op_lib.kungfu_get_peer_info()
