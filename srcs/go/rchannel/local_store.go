@@ -23,7 +23,7 @@ func (s *LocalStore) Emplace(name string, buf *kb.Vector) {
 	s.Lock()
 	defer s.Unlock()
 	if _, ok := s.data[name]; !ok {
-		log.Warnf("%s has no entry in the store, init as %s[%d].", name, buf.Type /* TODO: show dtype name*/, buf.Count)
+		log.Warnf("%s has no entry in the store, init as %s[%d].", name, buf.Type, buf.Count)
 		s.data[name] = kb.NewVector(buf.Count, buf.Type)
 		// TODO: support GC
 	} else {
