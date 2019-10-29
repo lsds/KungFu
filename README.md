@@ -11,52 +11,45 @@ KungFu enables users to achieve *fast* and *adaptive* distributed machine learni
 
 * Simplicity: KungFu permits distributed training by adding only one line of code in your training program. KungFu is easy to run because it does not require heavy dependency like MPI in Horovod and extra deployment like parameter servers.
 * Adaptive distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py) such as
-communication-efficient [AD-PSGD](https://arxiv.org/abs/1710.06952) and small-batch-efficient [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [Synchronous SGD](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
+communication-efficient [PairAveragingOptimizer](https://arxiv.org/abs/1710.06952) and hyper-parameter-robust [SynchronousAveragingOptimizer](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [SynchronousSGDOptimizer](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
 * Online monitoring and control: KungFu supports [distributed SGD metrics](srcs/python/kungfu/tensorflow/v1/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
 KungFu further provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
-* Fast and scalable: KungFu adopts a decentralized architecture and exploits a high-performance implementation of communication, monitoring and control operators. Check out the performance of KungFu in the Benchmark section below.
+* Fast and scalable: KungFu adopts a decentralized architecture and exploits a high-performance implementation of communication, monitoring and control operators. Check out the performance of KungFu in the [Benchmark section](https://github.com/lsds/KungFu#benchmark).
 
 KungFu is highly extensible. It has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
 
 ## Usage
 
-To scale out your TensorFlow training program using KungFu, you simply need to make two changes:
-
-1. Wrap the optimizer in ``SynchronousSGDOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py).
-
-2. Run ``distributed_initializer()`` after calling ``global_variables_initializer()``.
-    The distributed initializer ensures that initial variables on all workers are consistent.
+To scale out your TensorFlow training program, you simply need to make one change: Wrapping your local optimizer in ``SynchronousSGDOptimizer`` or ``SynchronousAveragingOptimizer`` or ``PairAveragingOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py).
 
 ```python
 import tensorflow as tf
-from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
 
 # Build model...
 loss = ...
 opt = tf.train.AdamOptimizer(0.01)
 
-# KungFu: Wrap optimizer with KungFu optimizers
+# KungFu: Wrap tf.optimizer in KungFu optimizers
+from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
 opt = SynchronousSGDOptimizer(opt)
 
 # Make training operation
 train_op = opt.minimize(loss)
 
+# Train your model
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-
-    # KungFu: Synchronise distributed worker states
-    sess.run(opt.distributed_initializer())
-
-    # Train your model for 10 steps.
     for step in range(10):
         sess.run(train_op)
 ```
 
-See the [TensorFlow Session](examples/mnist_slp.py) and [TensorFlow Keras](examples/mnist_keras.py) examples for full training examples.
+See [TensorFlow Session](examples/mnist_slp.py) and [TensorFlow Keras](examples/mnist_keras.py) for full training examples.
+See [Optimizers](https://github.com/lsds/KungFu#optimizers) for how to choose the right KungFu optimizer for your training scenario.
 
 ## Install
 
-KungFu is implemented in Go. Currently, it has a Python binding for TensorFlow.
+KungFu is implemented in Go and C++. It exposes a C interface so that it can be easily integrated within existing machine learning systems.
+Currently, it has a Python binding for TensorFlow.
 
 KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
 It can be installed with the following few lines, assuming you have the above pre-requites.
@@ -107,12 +100,16 @@ kungfu-run -np $NUM_GPUS \
 
 ### ImageNet
 
-KungFu also has a ImageNet [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) which is slightly modified from the [TensorFlow ImageNet benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu). We have used this example to validate the convergence properties of KungFu optimizers (``SynchronousSGDOptimizer``, ``PairAveragingOptimizer`` and ``SynchronousAveragingOptimizer``). We have tested them with the ResNet-50 and ResNet-101 models and showed that they can reach the same evaluation accuracy as Horovod.
+KungFu also has a ImageNet [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) which is slightly modified from the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
 You can add your own KungFu distributed optimizer to the ImageNet example by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
 
 ### BERT
 
-We are working on a BERT example and will release it very soon.
+We are working on a BERT distributed training example and will release it soon.
+
+### Alpha Zero
+
+We are working on an Alpha Zero distributed training example and will release it soon.
 
 ## Benchmark
 
@@ -131,6 +128,35 @@ In the asynchronous training case, we compare KungFu (``PairAveragingOptimizer``
 ![async](benchmarks/system/result/async-scalability.svg)
 
 All benchmark scripts are available [here](benchmarks/system/).
+
+## Optimizers
+
+KungFu provide many useful distributed optimizers that achieve different trade-off between hardware efficiency and statical efficiency.
+
+* ``SynchronousSGDOptimizer``: this optimizer is the most common today. However, it inevitably increases batch size
+when scaling out training,
+and eventually adversely affect the generality of the trained model (check [paper](https://arxiv.org/abs/1609.04836)).
+The loss in generality must be compensated by hyper-parameter tuning techniques.
+Synchronous SGD is also hard to scale within a commodity network because it
+maintains a global barrier and transmit all gradients.
+* ``SynchronousAveragingOptimizer``: this optimizer adopts model averaging to synchronize models.
+It often converges faster than the synchronous SGD as it allows parallel workers
+to diverge and improves the generality of the trained model. Hence, if you don't know how to
+tune the hyper-parameters of ``SynchronousSGDOptimizer`` for your specific models, you can try to
+use ``SynchronousAveragingOptimizer``.
+* ``PairAveragingOptimizer``: this optimizer asynchronously synchronizes workers, making
+it suitable for the environment that has limited bandwidth
+and stragglers. The large divergence of workers could slightly affect model accuracy.
+
+We have tested these optimizers using ResNet-50 and ResNet-101 in the TensorFlow benchmark.
+When using 8 V100, all KungFu optimizers together with Horovod
+can all reach the target 75% accuracy.
+When using 16 V100, Horovod and ``SynchronousSGDOptimizer`` suffer from the
+increased batch sizes and their accuracy drop to 59% while
+``SynchronousAveragingOptimizer`` and ``PairAveragingOptimizer`` still
+reach the target 75%.
+All these convergence tests are using the [hyper-parameter setup](https://github.com/tensorflow/benchmarks/tree/master/scripts/tf_cnn_benchmarks#getting-started)
+suggested by the TensorFlow benchmark authors.
 
 ## Contribute
 

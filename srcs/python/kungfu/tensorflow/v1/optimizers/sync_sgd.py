@@ -7,14 +7,13 @@ from .core import KungFuOptimizer, defuse, fuse
 
 
 class SynchronousSGDOptimizer(KungFuOptimizer):
-    """SynchronousSGDOptimizer implements the synchronous SGD algorithm.
+    """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
 
+    This optimizer is equivalent to the DistributedOptimizer in Horovod.
     Every iteration of training, this optimizer computes the averaged gradients
-    to correct all model replicas.
+    to correct diverged model replicas.
 
-    More details about this algorithm can be found here:
-    Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour
-    https://arxiv.org/pdf/1706.02677
+    .. [S-SGD] Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour, 2017, `S-SGD Paper <https://arxiv.org/pdf/1706.02677>`_
 
     Args:
       optimizer:
@@ -67,8 +66,8 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         return self._optimizer.apply_gradients(reduced_grads_and_vars,
                                                **kwargs)
 
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.variables()]
+    def _distributed_initializer(self):
+        ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
         return tf.group(ops)
 
 
@@ -150,8 +149,8 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
                 return self._optimizer.apply_gradients(
                     zip(reduced_grads, variables), **kwargs)
 
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.variables()]
+    def _distributed_initializer(self):
+        ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
         return tf.group(ops)
 
 
@@ -229,6 +228,6 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
                 return self._optimizer.apply_gradients(
                     zip(reduced_grads, variables), **kwargs)
 
-    def distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in self.variables()]
+    def _distributed_initializer(self):
+        ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
         return tf.group(ops)

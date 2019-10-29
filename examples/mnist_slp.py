@@ -2,13 +2,11 @@
 # This example shows how a MNIST Single Layer Perception Model training program
 # can adopt various distributed synchronization strategies using KungFu.
 #
-# In principle, KungFu requires users to make four changes:
+# In principle, KungFu requires users to make the following changes:
 # 1. KungFu provides distributed optimizers that can wrap the original optimizer.
 # The distributed optimizer defines how local gradients and model weights are synchronized.
-# 2. KungFu provides distributed variable initializers that defines how model weights are
-# initialized on distributed devices.
-# 3. (Optional) In a distributed training setting, the training dataset is often partitioned.
-# 4. (Optional) Scaling the learning rate of your local optimizer
+# 2. (Optional) In a distributed training setting, the training dataset is often partitioned.
+# 3. (Optional) Scaling the learning rate of your local optimizer
 
 import argparse
 import os
@@ -20,14 +18,12 @@ from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.v1.helpers.mnist import load_datasets
 
 
-# TODO add an explaination what the function does
 def save_vars(sess, variables, filename):
     values = sess.run(variables)
     npz = dict((var.name, val) for var, val in zip(variables, values))
     np.savez(filename, **npz)
 
 
-# TODO add an explaination what the function does
 def save_all(sess, prefix):
     g = tf.get_default_graph()
     filename = '%s-%d.npz' % (prefix, os.getpid())
@@ -35,13 +31,11 @@ def save_all(sess, prefix):
 
 
 def load_mnist(data_dir):
-    # initialise dataset dictionary
     dataset = dict()
     dataset['training_set'] = dict()
     dataset['validation_set'] = dict()
     dataset['test_set'] = dict()
 
-    # load mnist dataset from file
     mnist = load_datasets(data_dir, normalize=True, one_hot=True)
 
     # reshape the inputs
@@ -67,20 +61,23 @@ def load_mnist(data_dir):
     return dataset
 
 
-# instanciate the optimizer
+# instantiate the optimizer
 def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
 
     # Scale learning rate according to the level of data parallelism
     optimizer = tf.train.GradientDescentOptimizer(learning_rate * n_shards)
 
-    # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
+    # KungFu: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         return SynchronousSGDOptimizer(optimizer)
     elif name == 'async-sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
         return PairAveragingOptimizer(optimizer)
+    elif name == 'sma':
+        from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
+        return SynchronousAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknow optimizer: %s' % name)
 
@@ -102,7 +99,7 @@ def build_model(optimizer):
     # minimise the loss
     train_op = optimizer.minimize(loss)
 
-    # calculate the number of correctly classifed datapoints
+    # calculate the number of correctly classified datapoints
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
     test_op = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -144,15 +141,10 @@ def train_mnist(sess,
     n_steps = step_per_epoch * n_epochs
     print('step_per_epoch: %d, %d steps in total' % (step_per_epoch, n_steps))
 
-    # KUNGFU: Each replica is responsible for a data shard.
+    # KungFu: Each replica is responsible for a data shard.
     offset = batch_size * shard_id
 
     sess.run(tf.global_variables_initializer())
-
-    # KUNGFU: KungFu initilizer defines how model weights are initilised on distributed devices
-    if hasattr(optimizer, 'distributed_initializer'):
-        sess.run(optimizer.distributed_initializer())
-
     print('training')
     # train the model with all batches allocated to the node
     for step in range(n_steps):
