@@ -1,9 +1,7 @@
+from kungfu._utils import map_maybe
+
 from ._tf_oplib import _op_lib
 from .topology import peer_info
-
-
-def _map_maybe(f, lst):
-    return [f(x) if x is not None else None for x in lst]
 
 
 def barrier():
@@ -31,7 +29,7 @@ def _maybe_group_all_reduce(ts, group_all_reduce_fn):
 
 def group_all_reduce(ts):
     """Create a list of all_reduce operators for given tensor list."""
-    return _map_maybe(all_reduce, ts)
+    return map_maybe(all_reduce, ts)
 
 
 def _nccl_all_reduce(t):
@@ -55,4 +53,4 @@ def group_nccl_all_reduce(ts):
     with tf.control_dependencies([
             _start_nccl_scheduler(names),
     ]):
-        return _map_maybe(_nccl_all_reduce, ts)
+        return map_maybe(_nccl_all_reduce, ts)
