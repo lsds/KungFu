@@ -49,7 +49,7 @@ def test_save_and_request():
 
 # TODO: more tests
 
-# test_barrier()
+test_barrier()
 test_group_all_reduce()
-# test_peer_info()
-# test_save_and_request()
+test_peer_info()
+test_save_and_request()
