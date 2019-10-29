@@ -1,10 +1,20 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import barrier, group_all_reduce, peer_info, request_variable, save_variable
+from kungfu.tensorflow.v1.ops import barrier, counter, group_all_reduce, peer_info, request_variable, save_variable
 
 
 def test_barrier():
     with tf.Session() as sess:
         sess.run(barrier())
+
+
+def test_counter():
+    c = counter()
+    with tf.Session() as sess:
+        for i in range(10):
+            n = sess.run(c)
+            print(n)
+            if n != i:
+                raise RuntimeError('counter failed!')
 
 
 def test_group_all_reduce():
@@ -49,7 +59,13 @@ def test_save_and_request():
 
 # TODO: more tests
 
-test_barrier()
-test_group_all_reduce()
-test_peer_info()
-test_save_and_request()
+
+def test_all():
+    test_barrier()
+    test_counter()
+    test_group_all_reduce()
+    test_peer_info()
+    test_save_and_request()
+
+
+test_all()
