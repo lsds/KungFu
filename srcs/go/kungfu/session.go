@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/lsds/KungFu/srcs/go/utils"
-
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 const defaultRoot = 0
@@ -25,7 +24,7 @@ type strategy struct {
 type session struct {
 	strategies []strategy
 	self       plan.PeerID
-	cluster    plan.PeerList
+	peers      plan.PeerList
 	myRank     int
 	router     *rch.Router
 }
@@ -41,7 +40,7 @@ func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router
 	sess := &session{
 		strategies: partitionStrategies[strategy](pl),
 		self:       self,
-		cluster:    pl,
+		peers:      pl,
 		myRank:     myRank,
 		router:     router,
 	}
@@ -49,7 +48,7 @@ func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router
 }
 
 func (sess *session) ClusterSize() int {
-	return len(sess.cluster)
+	return len(sess.peers)
 }
 
 func (sess *session) Rank() int {
@@ -61,7 +60,7 @@ func (sess *session) Barrier() error {
 }
 
 func (sess *session) barrier() error {
-	k := len(sess.cluster)
+	k := len(sess.peers)
 	count := k * 1
 	dtype := kb.U8
 	w := Workspace{
@@ -93,15 +92,15 @@ func (sess *session) Gather(w Workspace) error {
 }
 
 func (sess *session) Request(rank int, name string, model *kb.Vector) error {
-	if rank < 0 || len(sess.cluster) <= rank {
+	if rank < 0 || len(sess.peers) <= rank {
 		return errInvalidRank
 	}
-	peer := sess.cluster[rank]
+	peer := sess.peers[rank]
 	return sess.router.Request(peer.WithName(name), model)
 }
 
 func (sess *session) Pull(rank int, version, name string, model *kb.Vector) error {
-	peer := sess.cluster[rank]
+	peer := sess.peers[rank]
 	return sess.router.Pull(version, peer.WithName(name), model)
 }
 
@@ -119,12 +118,12 @@ func asMessage(b *kb.Vector) rch.Message {
 
 func (sess *session) runGather(w Workspace) error {
 	if sess.myRank != defaultRoot {
-		peer := sess.cluster[defaultRoot]
+		peer := sess.peers[defaultRoot]
 		return sess.router.Send(peer.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective, rch.NoFlag)
 	}
 	var wg sync.WaitGroup
 	count := w.SendBuf.Count
-	for rank, peer := range sess.cluster {
+	for rank, peer := range sess.peers {
 		wg.Add(1)
 		go func(rank int, peer plan.PeerID, recvBuf *kb.Vector) {
 			if rank == sess.myRank {
@@ -142,7 +141,7 @@ func (sess *session) runGather(w Workspace) error {
 }
 
 func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
-	if len(sess.cluster) == 1 {
+	if len(sess.peers) == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)
 		return nil
 	}
@@ -188,7 +187,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		for i, rank := range ranks {
 			wg.Add(1)
 			go func(i, rank int) {
-				errs[i] = op(sess.cluster[rank])
+				errs[i] = op(sess.peers[rank])
 				wg.Done()
 			}(i, rank)
 		}
@@ -198,7 +197,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 	seq := func(ranks []int, op func(plan.PeerID)) {
 		for _, rank := range ranks {
-			op(sess.cluster[rank])
+			op(sess.peers[rank])
 		}
 	}
 

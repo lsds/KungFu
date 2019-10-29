@@ -6,18 +6,21 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
-type Env struct {
-	Self      PeerID
-	Parent    PeerID
-	InitPeers PeerList
-	Strategy  kb.Strategy
+type Config struct {
+	Parent   PeerID
+	Parents  PeerList
+	Self     PeerID
+	Strategy kb.Strategy
+
+	Checkpoint string
+	InitPeers  PeerList
 
 	// resources
 	HostList  HostList
 	PortRange PortRange
 }
 
-func ParseEnv() (*Env, error) {
+func ParseConfigFromEnv() (*Config, error) {
 	if _, ok := os.LookupEnv(kb.SelfSpecEnvKey); !ok {
 		return singleEnv(), nil
 	}
@@ -45,19 +48,29 @@ func ParseEnv() (*Env, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Env{
-		Self:      *self,
-		Parent:    *parent,
-		HostList:  hostList,
-		PortRange: *portRange,
-		InitPeers: initPeers,
-		Strategy:  *strategy,
+	return &Config{
+		Self:       *self,
+		Parent:     *parent,
+		Parents:    getParentIDs(hostList, *parent),
+		HostList:   hostList,
+		PortRange:  *portRange,
+		InitPeers:  initPeers,
+		Strategy:   *strategy,
+		Checkpoint: os.Getenv(kb.CheckpointEnvKey),
 	}, nil
 }
 
-func singleEnv() *Env {
+func getParentIDs(hl HostList, parent PeerID) PeerList {
+	var ps PeerList
+	for _, h := range hl {
+		ps = append(ps, PeerID{IPv4: h.IPv4, Port: parent.Port})
+	}
+	return ps
+}
+
+func singleEnv() *Config {
 	self := DefaultHostList.genPeerList(1, DefaultPortRange)[0]
-	return &Env{
+	return &Config{
 		Self:      self,
 		InitPeers: PeerList{self},
 		Strategy:  kb.DefaultStrategy,

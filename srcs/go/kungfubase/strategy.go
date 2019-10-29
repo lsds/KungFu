@@ -1,8 +1,9 @@
 package kungfubase
 
+import "errors"
+
 // #include "kungfu/strategy.h"
 import "C"
-import "errors"
 
 type Strategy C.KungFu_Strategy
 
@@ -16,6 +17,8 @@ const (
 	Auto           Strategy = C.KungFu_AUTO
 )
 
+const DefaultStrategy = BinaryTreeStar
+
 var (
 	strategyNames = map[Strategy]string{
 		Star:           `STAR`,
@@ -26,8 +29,6 @@ var (
 		BinaryTreeStar: `BINARY_TREE_STAR`,
 		Auto:           `AUTO`,
 	}
-
-	DefaultStrategy = BinaryTreeStar
 )
 
 func StrategyNames() []string {

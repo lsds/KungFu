@@ -5,17 +5,6 @@ stages:
 - test
 - lint
 
-unit test:
-  stage: test
-  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
-
-  script:
-  - go test -v ./srcs/go/...
-  - | # C++ test
-    ./configure --build-tests
-    make
-    make test
-
 integration test:
   stage: test
   image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
