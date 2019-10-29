@@ -3,7 +3,7 @@ from .topology import peer_info
 
 
 def _map_maybe(f, lst):
-    [f(x) if x is not None else None for x in lst]
+    return [f(x) if x is not None else None for x in lst]
 
 
 def barrier():
