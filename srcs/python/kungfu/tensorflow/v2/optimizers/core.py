@@ -31,6 +31,7 @@ class KungFuOptimizer(tf.keras.optimizers.Optimizer):
         raise RuntimeError('_distributed_initializer is not implemented.')
 
     def compute_gradients(self, *args, **kwargs):
+        print("compute_gradients is called!!!")
         self._init_op = tf.cond(tf.equal(self._kf_step, 0),
                                 self._distributed_initializer, tf.no_op)
         with tf.control_dependencies([self._init_op]):

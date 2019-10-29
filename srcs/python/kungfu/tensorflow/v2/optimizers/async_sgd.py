@@ -8,8 +8,8 @@ from .core import KungFuOptimizer, defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):
-    t = tf.random_uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
-    return tf.cond(tf.equal(t, self_rank), lambda: tf.mod(t + 1, cluster_size),
+    t = tf.random.uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
+    return tf.cond(tf.equal(t, self_rank), lambda: tf.math.floormod(t + 1, cluster_size),
                    lambda: tf.identity(t))
 
 

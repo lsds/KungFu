@@ -41,7 +41,7 @@ class SynchronousAveragingOptimizer(KungFuOptimizer):
 
         # TODO: Apply momentum to the averaged model [2]
         assign_ops = [
-            tf.assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
+            v.assign(avg_v) for v, avg_v in zip(variables, avg_vars)
         ]
 
         # We can overlap model averaging and local SGD [2].
@@ -49,5 +49,5 @@ class SynchronousAveragingOptimizer(KungFuOptimizer):
             return self._optimizer.apply_gradients(grads_and_vars, **kwargs)
 
     def _distributed_initializer(self):
-        ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
+        ops = [v.assign(broadcast(v)) for v in tf.global_variables()]
         return tf.group(ops)

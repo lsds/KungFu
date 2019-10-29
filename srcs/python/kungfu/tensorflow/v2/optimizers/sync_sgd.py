@@ -49,6 +49,7 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         self._nccl_fusion = nccl_fusion
 
     def apply_gradients(self, grads_and_vars, **kwargs):
+        print("apply_gradients is called!!!")
         gradients, variables = list(zip(*grads_and_vars))
 
         if self._nccl:
