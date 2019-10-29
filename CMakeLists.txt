@@ -58,17 +58,12 @@ IF(KUNGFU_BUILD_TF_OPS)
     ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/python/init.cpp)
     TARGET_LINK_LIBRARIES(kungfu_python kungfu)
 
-    ADD_TF_OP_LIB(kungfu_tensorflow_ops
-                  # BEGIN sort
-                  srcs/cpp/src/tensorflow/ops/collective.cpp
-                  srcs/cpp/src/tensorflow/ops/control.cpp
-                  srcs/cpp/src/tensorflow/ops/local.cpp
-                  srcs/cpp/src/tensorflow/ops/p2p_new.cpp
-                  srcs/cpp/src/tensorflow/ops/peer_to_peer.cpp
-                  srcs/cpp/src/tensorflow/ops/state.cpp
-                  srcs/cpp/src/tensorflow/ops/topology.cpp
-                  # END sort
-                  )
+    FILE(GLOB CPU_OP_SRCS
+         ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/cpu/*.cpp)
+    FILE(GLOB GPU_OP_SRCS
+         ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/gpu/*.cpp)
+
+    ADD_TF_OP_LIB(kungfu_tensorflow_ops ${CPU_OP_SRCS})
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
 
     IF(KUNGFU_ENABLE_NCCL)
@@ -77,8 +72,7 @@ IF(KUNGFU_BUILD_TF_OPS)
                        srcs/cpp/src/python/init_gpu.cpp
                        srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
         USE_NCCL(kungfu_python)
-        TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE
-                       srcs/cpp/src/tensorflow/ops/collective_gpu.cpp)
+        TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${GPU_OP_SRCS})
     ENDIF()
 
     SET_TF_CXX11_ABI(kungfu_python)
