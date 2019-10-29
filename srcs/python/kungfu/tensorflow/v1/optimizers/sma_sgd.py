@@ -6,16 +6,14 @@ from .core import KungFuOptimizer
 
 
 class SynchronousAveragingOptimizer(KungFuOptimizer):
-    """SynchronousAveragingOptimizer implements the small-batch-efficient model averaging algorithm [1][2].
+    """SynchronousAveragingOptimizer implements the [SMA]_ algorithm.
 
-    EA-SGD [1] proposed to use model averaging to train deep learning models and prove its convergence.
-    CrossBow [2] further improves [1] results and show model averaging can benefit small-batch training
+    [EA-SGD]_ proposed to use model averaging to train deep learning models and prove its convergence.
+    [SMA]_ further improves [EA-SGD]_ results and show model averaging can benefit small-batch training
     and achieves fast convergence compared to synchronous SGD.
 
-    [1] Deep learning with Elastic Averaging SGD, NIPS 2015
-    https://arxiv.org/abs/1412.6651
-    [2] CrossBow: Scaling Deep Learning with Small Batch Sizes on Multi-GPU Servers, VLDB 2019
-    http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf
+    .. [EA-SGD] Deep learning with Elastic Averaging SGD, NIPS 2015, `EA-SGD Paper <https://arxiv.org/abs/1412.6651>`_
+    .. [SMA] CrossBow: Scaling Deep Learning with Small Batch Sizes on Multi-GPU Servers, VLDB 2019, `SMA Paper <http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf>`_
 
     Args:
       optimizer:

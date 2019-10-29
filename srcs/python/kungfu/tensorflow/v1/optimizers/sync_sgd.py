@@ -7,13 +7,13 @@ from .core import KungFuOptimizer, defuse, fuse
 
 
 class SynchronousSGDOptimizer(KungFuOptimizer):
-    """SynchronousSGDOptimizer implements [S-SGD]_.
+    """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
 
     This optimizer is equivalent to the DistributedOptimizer in Horovod.
     Every iteration of training, this optimizer computes the averaged gradients
     to correct diverged model replicas.
 
-    .. [S-SGD] `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour<https://arxiv.org/pdf/1706.02677>`_
+    .. [S-SGD] Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour, 2017, `S-SGD Paper <https://arxiv.org/pdf/1706.02677>`_
 
     Args:
       optimizer:

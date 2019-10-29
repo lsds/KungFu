@@ -24,7 +24,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
     4. Applies local gradients
     5. Saves the model to a local store which allows other peers to pull from.
 
-    .. [AD-PSGD] `Asynchronous Decentralized Parallel Stochastic Gradient Descent<https://arxiv.org/abs/1710.06952>`_
+    .. [AD-PSGD] Asynchronous Decentralized Parallel Stochastic Gradient Descent, ICML 2018, `AD-PSGD Paper <https://arxiv.org/abs/1710.06952>`_
 
     Args:
       optimizer:
