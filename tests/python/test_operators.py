@@ -1,10 +1,20 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import barrier, peer_info, request_variable, save_variable
+from kungfu.tensorflow.v1.ops import barrier, group_all_reduce, peer_info, request_variable, save_variable
 
 
 def test_barrier():
     with tf.Session() as sess:
         sess.run(barrier())
+
+
+def test_group_all_reduce():
+    sizes = [i % 5 for i in range(10)]
+    xs = [tf.Variable(tf.ones([n], tf.int32)) if n else None for n in sizes]
+    ys = group_all_reduce(xs)
+    op = [y for y in ys if y is not None]
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        sess.run(op)
 
 
 def test_peer_info():
@@ -40,5 +50,6 @@ def test_save_and_request():
 # TODO: more tests
 
 test_barrier()
+test_group_all_reduce()
 test_peer_info()
 test_save_and_request()

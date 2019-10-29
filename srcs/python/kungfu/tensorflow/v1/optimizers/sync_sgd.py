@@ -1,4 +1,5 @@
 import tensorflow as tf
+from kungfu._utils import map_maybe
 from kungfu.tensorflow.v1.ops import (broadcast, global_noise_scale,
                                       group_all_reduce, group_nccl_all_reduce,
                                       peer_info)
@@ -61,7 +62,8 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         else:
             summed_gradients = group_all_reduce(gradients)
 
-        reduced_grads = [g / self._num_workers for g in summed_gradients]
+        reduced_grads = map_maybe(lambda g: g / self._num_workers,
+                                  summed_gradients)
         reduced_grads_and_vars = zip(reduced_grads, variables)
         return self._optimizer.apply_gradients(reduced_grads_and_vars,
                                                **kwargs)

@@ -3,7 +3,6 @@ package kungfu
 import (
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -39,34 +38,30 @@ type Kungfu struct {
 	updated        bool
 }
 
-func getParentIDs(hl plan.HostList, parent plan.PeerID) plan.PeerList {
-	var ps plan.PeerList
-	for _, h := range hl {
-		ps = append(ps, plan.PeerID{IPv4: h.IPv4, Port: parent.Port})
-	}
-	return ps
-}
-
 func New() (*Kungfu, error) {
-	env, err := plan.ParseEnv()
+	config, err := plan.ParseConfigFromEnv()
 	if err != nil {
 		return nil, err
 	}
+	return NewFromConfig(config)
+}
+
+func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	store := store.NewVersionedStore(3)
-	router := rch.NewRouter(env.Self, store)
+	router := rch.NewRouter(config.Self, store)
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
 	}
 	return &Kungfu{
-		parent:       env.Parent,
-		parents:      getParentIDs(env.HostList, env.Parent),
-		currentPeers: env.InitPeers,
-		self:         env.Self,
-		hostList:     env.HostList,
-		portRange:    env.PortRange,
-		strategy:     env.Strategy,
-		checkpoint:   os.Getenv(kb.CheckpointEnvKey),
+		parent:       config.Parent,
+		parents:      config.Parents,
+		currentPeers: config.InitPeers,
+		self:         config.Self,
+		hostList:     config.HostList,
+		portRange:    config.PortRange,
+		strategy:     config.Strategy,
+		checkpoint:   config.Checkpoint,
 		store:        store,
 		router:       router,
 		server:       server,
