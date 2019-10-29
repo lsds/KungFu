@@ -47,9 +47,9 @@ class PairAveragingOptimizer(KungFuOptimizer):
                  fuse_requests=False,
                  name=None,
                  use_locking=False):
-        self._fuse_requests = fuse_requests
         super(PairAveragingOptimizer, self).__init__(optimizer, name,
                                                      use_locking)
+        self._fuse_requests = fuse_requests
 
     def _build_request_ops(self, target, variables):
         if self._fuse_requests:
@@ -76,7 +76,8 @@ class PairAveragingOptimizer(KungFuOptimizer):
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
         variables = [v for _g, v in grads_and_vars]
-        with tf.control_dependencies([self._init_op]):
+        init_op = self.get_init_op()
+        with tf.control_dependencies([init_op]):
             other_peer_vars = self._build_request_ops(target, variables)
 
         save_model_op = self._build_save_op(variables)
