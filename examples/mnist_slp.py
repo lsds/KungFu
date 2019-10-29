@@ -62,11 +62,12 @@ def load_mnist(data_dir):
 
 
 # instantiate the optimizer
-def build_optimizer(name, n_shards=1):
+def build_optimizer(name, batch_size):
     learning_rate = 0.1
 
     # Scale learning rate according to the level of data parallelism
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate * n_shards)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate *
+                                                  current_cluster_size())
 
     # KungFu: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
@@ -78,8 +79,12 @@ def build_optimizer(name, n_shards=1):
     elif name == 'sma':
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
+    elif name == 'noise-scale':
+        from kungfu.tensorflow.v1.optimizers import SyncSGDWithGradNoiseScaleOptimizer
+        return SyncSGDWithGradNoiseScaleOptimizer(optimizer,
+                                                  device_batch_size=batch_size)
     else:
-        raise RuntimeError('unknow optimizer: %s' % name)
+        raise RuntimeError('unknown optimizer: %s' % name)
 
 
 def build_model(optimizer):
@@ -191,8 +196,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    optimizer = build_optimizer(args.optimizer)
-    x, y_, train_op, test_op = build_model(optimizer)
+    optimizer = build_optimizer(name=args.optimizer,
+                                batch_size=args.batch_size)
+    x, y_, train_op, test_op = build_model(optimizer, )
     mnist = load_mnist(args.data_dir)
 
     with tf.Session() as sess:

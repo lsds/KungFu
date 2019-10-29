@@ -1,8 +1,8 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.v1.ops import (broadcast, global_noise_scale,
-                                      group_all_reduce, group_nccl_all_reduce,
-                                      peer_info)
+from kungfu.tensorflow.v1.ops import (broadcast, counter, current_cluster_size,
+                                      global_noise_scale, group_all_reduce,
+                                      group_nccl_all_reduce, peer_info)
 
 from .core import KungFuOptimizer, defuse, fuse
 
@@ -42,9 +42,7 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         super(SynchronousSGDOptimizer, self).__init__(optimizer,
                                                       name,
                                                       use_locking=use_locking)
-        _rank, np = peer_info()
-        # FIXME: use type of gradient
-        self._num_workers = tf.cast(np, tf.float32)
+        self._num_workers = current_cluster_size()
         self._nccl = nccl
         self._nccl_fusion = nccl_fusion
 
@@ -100,10 +98,8 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
                  use_locking=False):
         super(SyncSGDWithGradVarianceOptimizer,
               self).__init__(optimizer, name, use_locking=use_locking)
-        _rank, np = peer_info()
-        # FIXME: use type of gradient
-        self._num_workers = tf.cast(np, tf.float32)
-        self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
+        self._num_workers = current_cluster_size()
+        self._step = counter()
 
         self._interval = monitor_interval
         self._summed_variance = None
@@ -147,9 +143,8 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
             lambda: self._monitor(grads, reduced_grads), lambda: tf.no_op())
 
         with tf.control_dependencies([monitor_grads_op]):
-            with tf.control_dependencies([tf.assign_add(self._step, 1)]):
-                return self._optimizer.apply_gradients(
-                    zip(reduced_grads, variables), **kwargs)
+            return self._optimizer.apply_gradients(
+                zip(reduced_grads, variables), **kwargs)
 
     def _distributed_initializer(self):
         ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
@@ -187,10 +182,8 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
                  use_locking=False):
         super(SyncSGDWithGradNoiseScaleOptimizer,
               self).__init__(optimizer, name, use_locking=use_locking)
-        _rank, np = peer_info()
-        # FIXME: use type of gradient
-        self._num_workers = tf.cast(np, tf.float32)
-        self._step = tf.Variable(0, trainable=False, dtype=tf.int32)
+        self._num_workers = current_cluster_size()
+        self._step = counter()
 
         self._interval = monitor_interval
         self._device_batch_size = tf.cast(device_batch_size, dtype=tf.float32)
@@ -226,9 +219,8 @@ class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
             lambda: self._monitor(grads, reduced_grads), lambda: tf.no_op())
 
         with tf.control_dependencies([monitor_grads_op]):
-            with tf.control_dependencies([tf.assign_add(self._step, 1)]):
-                return self._optimizer.apply_gradients(
-                    zip(reduced_grads, variables), **kwargs)
+            return self._optimizer.apply_gradients(
+                zip(reduced_grads, variables), **kwargs)
 
     def _distributed_initializer(self):
         ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]

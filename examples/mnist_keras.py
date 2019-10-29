@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 # This example is inspired by https://www.tensorflow.org/guide/keras/train_and_evaluate
 #
-# KungFu requires users to make four changes:
+# KungFu requires users to make the following changes:
 # 1. KungFu provides distributed optimizers that can wrap the original optimizer.
 # The distributed optimizer defines how local gradients and model weights are synchronized.
 # 2. (Optional) In a distributed training setting, the training dataset is often partitioned.
 # 3. (Optional) Scaling the learning rate of your local optimizer
 #
 # Command to run this script:
-# $ ./bin/kungfu-run -np 4 -timeout 1h python3 examples/mnist_keras.py --n-epochs 10
+# $ ./bin/kungfu-run -np 4 python3 examples/mnist_keras.py --n-epochs 10
 
 import argparse
 
 import kungfu as kf
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.v1.optimizers import KerasInitCallback
 
 
 def load_dataset():
@@ -49,12 +48,12 @@ def build_optimizer(name, n_shards=1):
         return SynchronousSGDOptimizer(optimizer)
     elif name == 'async-sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
-        return PairAveragingOptimizer(optimizer, fuse_requests=True)
+        return PairAveragingOptimizer(optimizer)
     elif name == 'sma':
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
     else:
-        raise RuntimeError('unknow optimizer: %s' % name)
+        raise RuntimeError('unknown optimizer: %s' % name)
 
 
 def build_model(optimizer):
@@ -91,7 +90,6 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
               y,
               batch_size=batch_size,
               epochs=n_epochs,
-              callbacks=[KerasInitCallback()],
               validation_data=(dataset['x_val'], dataset['y_val']),
               verbose=2)
 

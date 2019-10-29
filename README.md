@@ -9,14 +9,14 @@ Easy, adaptive and fast distributed machine learning.
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in your training program. KungFu is easy to run because it does not require heavy dependency like MPI in Horovod and extra deployment like parameter servers.
-* Adaptive distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py) such as
-communication-efficient [PairAveragingOptimizer](https://arxiv.org/abs/1710.06952) and hyper-parameter-robust [SynchronousAveragingOptimizer](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf) to help you address the cases in which [SynchronousSGDOptimizer](https://papers.nips.cc/paper/4687-large-scale-distributed-deep-networks.pdf) does not scale.
+* Simplicity: KungFu permits distributed training by adding only one line of code in your training program. KungFu is very easy to deploy and run because it does not require extra deployment like parameter servers and heavy dependencies like MPI or RDMA in Horovod.
+* Adaptable distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py) such as
+communication-efficient ``PairAveragingOptimizer`` and hyper-parameter-robust ``SynchronousAveragingOptimizer`` to help you address the cases in which conventional Synchronous SGD does not scale. See [Optimizers](https://github.com/lsds/KungFu#optimizers) for how to choose the right KungFu optimizer for your training scenario.
 * Online monitoring and control: KungFu supports [distributed SGD metrics](srcs/python/kungfu/tensorflow/v1/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
 KungFu further provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
-* Fast and scalable: KungFu adopts a decentralized architecture and exploits a high-performance implementation of communication, monitoring and control operators. Check out the performance of KungFu in the [Benchmark section](https://github.com/lsds/KungFu#benchmark).
+* Fast and scalable: KungFu adopts a decentralized architecture and exploits a high-performance implementation of communication, monitoring and control operators. Check out the performance of KungFu in the [Benchmark](https://github.com/lsds/KungFu#benchmark).
 
-KungFu is highly extensible. It has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
+KungFu is extensible. It has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
 
 ## Usage
 
@@ -44,7 +44,6 @@ with tf.Session() as sess:
 ```
 
 See [TensorFlow Session](examples/mnist_slp.py) and [TensorFlow Keras](examples/mnist_keras.py) for full training examples.
-See [Optimizers](https://github.com/lsds/KungFu#optimizers) for how to choose the right KungFu optimizer for your training scenario.
 
 ## Install
 
@@ -131,32 +130,34 @@ All benchmark scripts are available [here](benchmarks/system/).
 
 ## Optimizers
 
-KungFu provide many useful distributed optimizers that achieve different trade-off between hardware efficiency and statical efficiency.
+KungFu provide many useful distributed optimizers that achieve different trade-off between hardware efficiency and statistical efficiency.
 
-* ``SynchronousSGDOptimizer``: this optimizer is the most common today. However, it inevitably increases batch size
-when scaling out training,
-and eventually adversely affect the generality of the trained model (check [paper](https://arxiv.org/abs/1609.04836)).
-The loss in generality must be compensated by hyper-parameter tuning techniques.
+* ``SynchronousSGDOptimizer``: this optimizer is the most common one. However, it inevitably increases batch size
+when scaling out training, and reduces the number of model updates,
+which eventually adversely affect the generality of the trained model ([paper](https://arxiv.org/abs/1609.04836)).
+The loss in the updates must be compensated by many [hyper-parameter tuning](https://research.fb.com/wp-content/uploads/2017/06/imagenet1kin1h5.pdf)
+which is unfortunately model-specific.
 Synchronous SGD is also hard to scale within a commodity network because it
 maintains a global barrier and transmit all gradients.
-* ``SynchronousAveragingOptimizer``: this optimizer adopts model averaging to synchronize models.
+* ``SynchronousAveragingOptimizer``: this optimizer adopts [synchronous model averaging](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf).
+It is proven to converge in this [paper](https://arxiv.org/abs/1412.6651).
 It often converges faster than the synchronous SGD as it allows parallel workers
-to diverge and improves the generality of the trained model. Hence, if you don't know how to
-tune the hyper-parameters of ``SynchronousSGDOptimizer`` for your specific models, you can try to
-use ``SynchronousAveragingOptimizer``.
+to slightly diverge, which improves the generality of the trained model. Hence, the
+hyper-parameters you find useful in a single node scenario is often also
+effective in a parallel training case, making this optimizer hyper-parameter-robust.
 * ``PairAveragingOptimizer``: this optimizer asynchronously synchronizes workers, making
 it suitable for the environment that has limited bandwidth
-and stragglers. The large divergence of workers could slightly affect model accuracy.
+and stragglers. This optimizer is also proven to converge with deep learning models in this [paper](https://arxiv.org/abs/1710.06952).
 
 We have tested these optimizers using ResNet-50 and ResNet-101 in the TensorFlow benchmark.
 When using 8 V100, all KungFu optimizers together with Horovod
 can all reach the target 75% accuracy.
 When using 16 V100, Horovod and ``SynchronousSGDOptimizer`` suffer from the
-increased batch sizes and their accuracy drop to 59% while
+loss in model updates and their accuracy drop to 59% while
 ``SynchronousAveragingOptimizer`` and ``PairAveragingOptimizer`` still
 reach the target 75%.
-All these convergence tests are using the [hyper-parameter setup](https://github.com/tensorflow/benchmarks/tree/master/scripts/tf_cnn_benchmarks#getting-started)
-suggested by the TensorFlow benchmark authors.
+All these convergence tests are using the same [hyper-parameter setup](https://github.com/tensorflow/benchmarks/tree/master/scripts/tf_cnn_benchmarks#getting-started)
+along with a per-GPU batch size as 64, suggested by the TensorFlow benchmark authors.
 
 ## Contribute
 

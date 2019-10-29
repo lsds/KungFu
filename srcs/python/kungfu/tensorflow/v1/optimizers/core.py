@@ -1,4 +1,5 @@
 import tensorflow as tf
+from kungfu.tensorflow.v1.ops import counter
 
 
 def fuse(ts):
@@ -26,7 +27,7 @@ class KungFuOptimizer(tf.train.Optimizer):
         super(KungFuOptimizer, self).__init__(name=name,
                                               use_locking=use_locking)
         self._optimizer = optimizer
-        self._kf_step = tf.Variable(0, trainable=False, dtype=tf.int32)
+        self._kf_step = counter()
 
     def _distributed_initializer(self):
         raise RuntimeError('_distributed_initializer is not implemented.')
@@ -35,8 +36,7 @@ class KungFuOptimizer(tf.train.Optimizer):
         self._init_op = tf.cond(tf.equal(self._kf_step, 0),
                                 self._distributed_initializer, tf.no_op)
         with tf.control_dependencies([self._init_op]):
-            with tf.control_dependencies([tf.assign_add(self._kf_step, 1)]):
-                return self._optimizer.compute_gradients(*args, **kwargs)
+            return self._optimizer.compute_gradients(*args, **kwargs)
 
     def apply_gradients(self, *args, **kwargs):
         return self._optimizer.apply_gradients(*args, **kwargs)
