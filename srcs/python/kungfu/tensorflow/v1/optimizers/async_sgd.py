@@ -14,18 +14,17 @@ def get_random_peer(cluster_size, self_rank):
 
 
 class PairAveragingOptimizer(KungFuOptimizer):
-    """PairAveragingOptimizer implements communication-efficient asynchronous training.
+    """PairAveragingOptimizer implements the [AD-PSGD]_ algorithm.
 
-    Every iteration of training, this optimizer
-    (1) Randomly selects a peer in the current cluster.
-    (2) Pulls the selected peer's model
-    (3) Performs model averaging with the local model.
-    (4) Applies local gradients
-    (5) Saves the model to a local store which allows other peers to pull from.
+    Every iteration of training, this optimizer:
 
-    This optimizer realizes the principle proposed in the following paper:
-    Asynchronous Decentralized Parallel Stochastic Gradient Descent, ICML 2018
-    https://arxiv.org/abs/1710.06952
+    1. Randomly selects a peer in the current cluster.
+    2. Pulls the selected peer's model
+    3. Performs model averaging with the local model.
+    4. Applies local gradients
+    5. Saves the model to a local store which allows other peers to pull from.
+
+    .. [AD-PSGD] `Asynchronous Decentralized Parallel Stochastic Gradient Descent<https://arxiv.org/abs/1710.06952>`_
 
     Args:
       optimizer:
