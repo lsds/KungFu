@@ -129,10 +129,6 @@ def run(benchmark_step):
 
 loss = loss_function()
 train_opt = opt.minimize(loss)
-if hasattr(opt, 'distributed_initializer'):
-    kf_init = opt.distributed_initializer()
-else:
-    kf_init = None
 
 if tf.executing_eagerly():
     with tf.device(device):
