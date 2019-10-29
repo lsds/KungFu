@@ -22,21 +22,25 @@ def defuse(y, shapes):
 
 class KungFuOptimizer(tf.train.Optimizer):
     def __init__(self, optimizer, name=None, use_locking=False):
+        self._optimizer = optimizer
+        self._kf_step = counter()
+        self._init_op = tf.cond(tf.equal(self._kf_step, 0),
+                                self._distributed_initializer, tf.no_op)
+
         if name is None:
             name = "KungFu{}".format(type(optimizer).__name__)
         super(KungFuOptimizer, self).__init__(name=name,
                                               use_locking=use_locking)
-        self._optimizer = optimizer
-        self._kf_step = counter()
 
     def _distributed_initializer(self):
         raise RuntimeError('_distributed_initializer is not implemented.')
 
+    def kungfu_initializer(self):
+        return self._init_op
+
     def compute_gradients(self, *args, **kwargs):
-        self._init_op = tf.cond(tf.equal(self._kf_step, 0),
-                                self._distributed_initializer, tf.no_op)
-        with tf.control_dependencies([self._init_op]):
-            return self._optimizer.compute_gradients(*args, **kwargs)
+        # with tf.control_dependencies([self._init_op]):
+        return self._optimizer.compute_gradients(*args, **kwargs)
 
     def apply_gradients(self, *args, **kwargs):
         return self._optimizer.apply_gradients(*args, **kwargs)
