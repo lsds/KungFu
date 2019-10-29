@@ -39,6 +39,10 @@ train_op = opt.minimize(loss)
 # Train your model
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
+
+    # KungFu: ensure distributed workers start with consistent states
+    sess.run(opt.distributed_initializer())
+
     for step in range(10):
         sess.run(train_op)
 ```

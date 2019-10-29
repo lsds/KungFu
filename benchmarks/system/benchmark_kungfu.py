@@ -152,6 +152,11 @@ def run(benchmark_step):
 loss = loss_function()
 train_opt = opt.minimize(loss)
 
+if hasattr(opt, 'distributed_initializer'):
+    kf_init = opt.distributed_initializer()
+else:
+    kf_init = None
+
 if tf.executing_eagerly():
     with tf.device(device):
         run(lambda: opt.minimize(loss_function,
@@ -160,6 +165,8 @@ else:
     init = tf.global_variables_initializer()
     with tf.Session(config=config) as session:
         session.run(init)
+        if kf_init:
+            session.run(kf_init)
         run(lambda: session.run(train_opt))
         if barrier_op is not None:
             session.run(barrier_op)

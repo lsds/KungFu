@@ -27,25 +27,12 @@ class KungFuOptimizer(tf.train.Optimizer):
         super(KungFuOptimizer, self).__init__(name=name,
                                               use_locking=use_locking)
         self._optimizer = optimizer
-        self._kf_step = counter()
-        self._init_op = None
-
-    def _distributed_initializer(self):
-        raise RuntimeError('_distributed_initializer is not implemented.')
-
-    def get_init_op(self):
-        if self._init_op is None:
-            self._init_op = tf.cond(tf.equal(self._kf_step, 0),
-                                    self._distributed_initializer, tf.no_op)
-        return self._init_op
 
     def compute_gradients(self, *args, **kwargs):
-        init_op = self.get_init_op()
-        with tf.control_dependencies([init_op]):
-            return self._optimizer.compute_gradients(*args, **kwargs)
+        return self._optimizer.compute_gradients(*args, **kwargs)
 
     def apply_gradients(self, *args, **kwargs):
-        return self._optimizer.apply_gradients(*args, **kwargs)
+        raise RuntimeError('apply_gradients should be called in a subclass.')
 
     def get_slot(self, *args, **kwargs):
         return self._optimizer.get_slot(*args, **kwargs)

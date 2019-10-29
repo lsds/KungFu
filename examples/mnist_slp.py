@@ -150,6 +150,10 @@ def train_mnist(sess,
     offset = batch_size * shard_id
 
     sess.run(tf.global_variables_initializer())
+
+    # KungFu: call the distributed initializer
+    sess.run(optimizer.distributed_initializer())
+
     print('training')
     # train the model with all batches allocated to the node
     for step in range(n_steps):
