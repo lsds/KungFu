@@ -15,6 +15,7 @@ import argparse
 import kungfu as kf
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
+from kungfu.tensorflow.v2.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 
 
 def load_dataset():
@@ -40,17 +41,14 @@ def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
 
     # Scale learning rate according to the level of data parallelism
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate * n_shards)
+    optimizer = tf.keras.optimizers.SGD(learning_rate=(learning_rate * n_shards))
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
-        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         return SynchronousSGDOptimizer(optimizer)
     elif name == 'async-sgd':
-        from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
-        return PairAveragingOptimizer(optimizer)
+        return PairAveragingOptimizer(optimizer, fuse_requests=True)
     elif name == 'sma':
-        from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknown optimizer: %s' % name)
