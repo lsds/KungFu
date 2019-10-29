@@ -79,7 +79,7 @@ def build_optimizer(name, n_shards=1):
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
     else:
-        raise RuntimeError('unknow optimizer: %s' % name)
+        raise RuntimeError('unknown optimizer: %s' % name)
 
 
 def build_model(optimizer):
