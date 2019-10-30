@@ -41,13 +41,13 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     # KungFu: ensure distributed workers start with consistent states
-    sess.run(opt.distributed_initializer())
+    sess.run(opt.BroadcastGlobalVariablesOp())
 
     for step in range(10):
         sess.run(train_op)
 ```
 
-See [TensorFlow Session](examples/mnist_slp.py) and [TensorFlow Keras](examples/mnist_keras.py) for full training examples.
+See TensorFlow [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py) and [Estimator](examples/tf1_mnist_estimator.py) for full training examples.
 
 ## Install
 
