@@ -150,6 +150,11 @@ def train_mnist(sess,
     offset = batch_size * shard_id
 
     sess.run(tf.global_variables_initializer())
+
+    # KungFu: broadcast the global variable
+    from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+    sess.run(BroadcastGlobalVariablesOp())
+
     print('training')
     # train the model with all batches allocated to the node
     for step in range(n_steps):
@@ -175,10 +180,10 @@ def train_mnist(sess,
 # parse arguments from the command line
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument('--optimizer',
+    parser.add_argument('--kf-optimizer',
                         type=str,
                         default='sync-sgd',
-                        help='available options: sync-sgd, async-sgd')
+                        help='kungfu optimizer')
     parser.add_argument('--n-epochs',
                         type=int,
                         default=1,
@@ -196,9 +201,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    optimizer = build_optimizer(name=args.optimizer,
+    optimizer = build_optimizer(name=args.kf_optimizer,
                                 batch_size=args.batch_size)
-    x, y_, train_op, test_op = build_model(optimizer, )
+    x, y_, train_op, test_op = build_model(optimizer)
     mnist = load_mnist(args.data_dir)
 
     with tf.Session() as sess:
