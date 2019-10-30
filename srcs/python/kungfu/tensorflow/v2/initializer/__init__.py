@@ -1,8 +1,6 @@
 import tensorflow as tf
-from tensorflow import keras
-from tensorflow.python.keras import backend as K
 from kungfu.tensorflow.v1.ops import broadcast
-from pprint import pprint
+from tensorflow import keras
 
 __all__ = [
     'BroadcastGlobalVariablesCallback',
