@@ -46,14 +46,13 @@ class PairAveragingOptimizer(KungFuOptimizer):
     def __init__(self,
                  optimizer,
                  fuse_requests=True,
-                 fuse_model_name='FUSED_MODEL',
                  name=None,
                  use_locking=False):
         super(PairAveragingOptimizer, self).__init__(optimizer, name,
                                                      use_locking)
         self._fuse_requests = fuse_requests
         self._step = counter()
-        self._fused_model_name = fuse_model_name
+        self._fused_model_name = optimizer.name
 
     def _build_request_ops(self, target, variables):
         if self._fuse_requests:
