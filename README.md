@@ -9,7 +9,7 @@ Easy, adaptive and fast distributed machine learning.
 
 KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
-* Simplicity: KungFu permits distributed training by adding only one line of code in your training program. KungFu is very easy to deploy and run because it does not require extra deployment like parameter servers and heavy dependencies like MPI or RDMA in Horovod.
+* Simplicity: KungFu permits distributed training by adding minimal code in your training program. KungFu is easy to deploy and run, because it does not require extra deployment like parameter servers and heavy dependencies like MPI in Horovod.
 * Adaptable distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py) such as
 communication-efficient ``PairAveragingOptimizer`` and hyper-parameter-robust ``SynchronousAveragingOptimizer`` to help you address the cases in which conventional Synchronous SGD does not scale. See [Optimizers](https://github.com/lsds/KungFu#optimizers) for how to choose the right KungFu optimizer for your training scenario.
 * Online monitoring and control: KungFu supports [distributed SGD metrics](srcs/python/kungfu/tensorflow/v1/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
@@ -20,7 +20,11 @@ KungFu is extensible. It has a clean low-level API that allows an easy implement
 
 ## Usage
 
-To scale out your TensorFlow training program, you simply need to make one change: Wrapping your local optimizer in ``SynchronousSGDOptimizer`` or ``SynchronousAveragingOptimizer`` or ``PairAveragingOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py).
+To scale out your TensorFlow training program, you simply need to make two changes:
+
+1. Wrap your ``tf.train.optimizer`` in KungFu's ``SynchronousSGDOptimizer``, ``SynchronousAveragingOptimizer``, ``PairAveragingOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py).
+
+2. Ensure all distributed workers start with consistent states by broadcasting a worker's global variable.
 
 ```python
 import tensorflow as tf
@@ -29,7 +33,7 @@ import tensorflow as tf
 loss = ...
 opt = tf.train.AdamOptimizer(0.01)
 
-# KungFu: Wrap tf.optimizer in KungFu optimizers
+# KungFu Step 1: Wrap tf.optimizer in KungFu optimizers
 from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
 opt = SynchronousSGDOptimizer(opt)
 
@@ -40,8 +44,9 @@ train_op = opt.minimize(loss)
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
-    # KungFu: ensure distributed workers start with consistent states
-    sess.run(opt.BroadcastGlobalVariablesOp())
+    # KungFu Step 2: ensure distributed workers start with consistent states
+    from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+    sess.run(BroadcastGlobalVariablesOp())
 
     for step in range(10):
         sess.run(train_op)
@@ -86,7 +91,7 @@ Download the MNIST dataset ([script](scripts/download-mnist.sh)) and run the fol
 
 ```bash
 # Train a Single Layer Perception (SLP) model for the MNIST dataset using 4 CPUs for 10 data epochs.
-kungfu-run -np 4 python3 examples/mnist_slp.py --data-dir=./mnist
+kungfu-run -np 4 python3 examples/tf1_mnist_session.py --data-dir=./mnist
 ```
 
 If you want to run this example on two machines (each with 8 GPUs), run the following on both machines:
@@ -96,7 +101,7 @@ If you want to run this example on two machines (each with 8 GPUs), run the foll
 # Assume NUM_GPU_SLOTS=8, NUM_GPUS=16
 kungfu-run -np $NUM_GPUS \
     -H 192.168.0.1:$NUM_GPU_SLOTS,192.168.0.2:$NUM_GPU_SLOTS -nic eth0 \
-    python3 examples/mnist_slp.py  --data-dir=./mnist
+    python3 examples/tf1_mnist_session.py  --data-dir=./mnist
 ```
 
 ``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the cluster.
