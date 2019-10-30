@@ -32,8 +32,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
         Optimizer to use for computing gradients and applying updates.
       fuse_requests:
         Fusing the requests for remote variables to amortise communication cost.
-        The fusing however takes extra memory and prevents overlapping
-        synchronization and training.
+        The fusing however takes extra memory.
       name:
         Optional name prefix for the operations created when applying
         gradients. Defaults to "KungFu" followed by the provided
@@ -52,7 +51,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
                                                      use_locking)
         self._fuse_requests = fuse_requests
         self._step = counter()
-        self._fused_model_name = optimizer.name
+        self._fused_model_name = optimizer.get_name()
 
     def _build_request_ops(self, target, variables):
         if self._fuse_requests:
