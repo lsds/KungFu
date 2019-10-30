@@ -49,7 +49,7 @@ def build_optimizer(name, n_shards=1):
         return SynchronousSGDOptimizer(optimizer)
     elif name == 'async-sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
-        return PairAveragingOptimizer(optimizer)
+        return PairAveragingOptimizer(optimizer, fuse_requests=True)
     elif name == 'sma':
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)

@@ -46,21 +46,24 @@ class PairAveragingOptimizer(KungFuOptimizer):
     def __init__(self,
                  optimizer,
                  fuse_requests=False,
+                 fuse_model_name='FUSED_MODEL',
                  name=None,
                  use_locking=False):
         super(PairAveragingOptimizer, self).__init__(optimizer, name,
                                                      use_locking)
         self._fuse_requests = fuse_requests
         self._step = counter()
+        self._fused_model_name = fuse_model_name
 
     def _build_request_ops(self, target, variables):
         if self._fuse_requests:
             var_fused = fuse(variables)
-            other_peer_var_fused = request_variable(target,
-                                                    version=None,
-                                                    name='FUSED_MODEL',
-                                                    shape=var_fused.shape,
-                                                    dtype=var_fused.dtype)
+            other_peer_var_fused = request_variable(
+                target,
+                version=None,
+                name=self._fused_model_name,
+                shape=var_fused.shape,
+                dtype=var_fused.dtype)
             return defuse(other_peer_var_fused, [v.shape for v in variables])
         else:
             return [
@@ -70,7 +73,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
     def _build_save_op(self, variables):
         if self._fuse_requests:
             var_fused = fuse(variables)
-            return save_variable(var_fused, name='FUSED_MODEL')
+            return save_variable(var_fused, name=self._fused_model_name)
         else:
             return tf.group([save_variable(v) for v in variables])
 
