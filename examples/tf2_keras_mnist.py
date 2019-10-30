@@ -11,7 +11,7 @@
 # $ ./bin/kungfu-run -np 4 python3 examples/mnist_keras.py --n-epochs 10
 
 import argparse
-
+import logging
 import kungfu as kf
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
@@ -117,6 +117,11 @@ def parse_args():
 
 
 def main():
+    logging.basicConfig(
+        filename="tf2.log",
+        level=logging.DEBUG,
+        format="%(asctime)s:%(levelname)s:%(message)s"
+        )
     # parse arguements from the command line
     args = parse_args()
     # build the KungFu optimizer
