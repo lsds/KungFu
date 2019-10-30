@@ -45,7 +45,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
     """
     def __init__(self,
                  optimizer,
-                 fuse_requests=False,
+                 fuse_requests=True,
                  fuse_model_name='FUSED_MODEL',
                  name=None,
                  use_locking=False):

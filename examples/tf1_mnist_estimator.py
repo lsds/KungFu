@@ -15,6 +15,7 @@ flags.DEFINE_string(
     ' if the data is not already there')
 flags.DEFINE_string('model_dir', './mnist/model',
                     'Directory where all models are saved')
+flags.DEFINE_string('kungfu', 'sync-sgd', 'KungFu optimizer')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('num_epochs', 1, 'Num of batches to train (epochs).')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning Rate')
@@ -171,9 +172,15 @@ def model_function(features, labels, mode):
         optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
         tf.identity(FLAGS.learning_rate, name='learning_rate')
 
-        # KungFu: Wrap the tf.train.optimizer
-        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
-        optimizer = SynchronousSGDOptimizer(optimizer)
+        # KungFu: Wrap the tf.train.optimizer with KungFu optimizers
+        if FLAGS.kungfu == 'sync-sgd':
+            from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+            optimizer = SynchronousSGDOptimizer(optimizer)
+        elif FLAGS.kungfu == 'async-sgd':
+            from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
+            optimizer = PairAveragingOptimizer(optimizer)
+        else:
+            raise RuntimeError('Unknown kungfu optimizer')
 
         # create an estimator spec to optimize the loss
         estimator_spec = tf.estimator.EstimatorSpec(
@@ -211,8 +218,14 @@ def main(_):
                                    every_n_iter=10)
     ]
 
+    from kungfu import current_rank
+    save_checkpoints_secs = None if current_rank() != 0 else 30
+    config = tf.estimator.RunConfig(
+        save_checkpoints_secs=save_checkpoints_secs)
+
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-                                              model_dir=FLAGS.model_dir)
+                                              model_dir=FLAGS.model_dir,
+                                              config=config)
 
     for _ in range(FLAGS.num_epochs):
         mnist_classifier.train(

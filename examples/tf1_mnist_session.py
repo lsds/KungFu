@@ -180,10 +180,10 @@ def train_mnist(sess,
 # parse arguments from the command line
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument('--optimizer',
+    parser.add_argument('--kungfu',
                         type=str,
                         default='sync-sgd',
-                        help='available options: sync-sgd, async-sgd')
+                        help='kungfu optimizer: sync-sgd, async-sgd')
     parser.add_argument('--n-epochs',
                         type=int,
                         default=1,
@@ -201,8 +201,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    optimizer = build_optimizer(name=args.optimizer,
-                                batch_size=args.batch_size)
+    optimizer = build_optimizer(name=args.kungfu, batch_size=args.batch_size)
     x, y_, train_op, test_op = build_model(optimizer)
     mnist = load_mnist(args.data_dir)
 

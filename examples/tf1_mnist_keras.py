@@ -105,10 +105,10 @@ def test_model(model, dataset):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument('--optimizer',
+    parser.add_argument('--kungfu',
                         type=str,
                         default='sync-sgd',
-                        help='available options: sync-sgd, async-sgd')
+                        help='kungfu optimizer: sync-sgd, async-sgd')
     parser.add_argument('--n-epochs',
                         type=int,
                         default=1,
@@ -124,7 +124,7 @@ def main():
     # parse arguements from the command line
     args = parse_args()
     # build the KungFu optimizer
-    optimizer = build_optimizer(args.optimizer)
+    optimizer = build_optimizer(args.kungfu)
     # build the Tensorflow model
     model = build_model(optimizer)
     # load mnist dataset

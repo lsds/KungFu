@@ -15,7 +15,7 @@ def BroadcastGlobalVariablesOp():
 
 class BroadcastGlobalVariablesHook(tf.estimator.SessionRunHook):
     def __init__(self):
-        super(BroadcastGlobalVariableHook, self).__init__()
+        super(BroadcastGlobalVariablesHook, self).__init__()
         self.bcast_op = None
 
     def begin(self):
