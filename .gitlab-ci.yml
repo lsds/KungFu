@@ -24,6 +24,10 @@ python3 test:
     DATA_DIR=$HOME/var/data \
     ./scripts/download-mnist.sh
 
+  - python3 -c "import tensorflow as tf; print(tf.__version__)"
+  - pip3 install tensorflow==1.13.2 # FIXME: upgrade TF in the image
+  - python3 -c "import tensorflow as tf; print(tf.__version__)"
+
   script:
   - cmake --version
   - pip3 install -vvv -U .
