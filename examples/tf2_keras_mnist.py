@@ -18,6 +18,12 @@ from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.v2.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 
 
+class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
+    def on_train_begin(self, logs=None):
+        for v in tf.compat.v1.global_variables():
+            tf.assign(v, broadcast(v)) 
+
+
 def load_dataset():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     # preprocess the mnist dataset
@@ -90,6 +96,7 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
               epochs=n_epochs,
               validation_data=(dataset['x_val'], dataset['y_val']),
               verbose=2)
+              # callbacks=[BroadcastGlobalVariablesCallback()])
 
 
 def test_model(model, dataset):
