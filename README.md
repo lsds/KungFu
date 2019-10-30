@@ -24,7 +24,7 @@ To scale out your TensorFlow training program, you simply need to make two chang
 
 1. Wrap your ``tf.train.optimizer`` in KungFu's ``SynchronousSGDOptimizer``, ``SynchronousAveragingOptimizer``, ``PairAveragingOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py).
 
-2. Ensure all distributed workers start with consistent states by broadcasting a worker's global variable.
+2. Ensure all distributed workers start with consistent states by broadcasting a worker's global variables.
 
 ```python
 import tensorflow as tf
@@ -52,7 +52,7 @@ with tf.Session() as sess:
         sess.run(train_op)
 ```
 
-See TensorFlow [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py) and [Estimator](examples/tf1_mnist_estimator.py) for full training examples.
+See TensorFlow full training examples that use [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py) and [Estimator](examples/tf1_mnist_estimator.py), respectively.
 
 ## Install
 
