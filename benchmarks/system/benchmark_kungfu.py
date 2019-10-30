@@ -48,13 +48,10 @@ parser.add_argument('--no-cuda',
                     action='store_true',
                     default=False,
                     help='disables CUDA training')
-parser.add_argument(
-    '--kungfu',
-    type=str,
-    default='sync-sgd',
-    help=
-    'KungFu strategy: sync-sgd, async-sgd, sync-sgd-nccl, ideal, ada-sgd, sma-sgd'
-)
+parser.add_argument('--kf_optimizer',
+                    type=str,
+                    default='sync_sgd',
+                    help='KungFu optimizers')
 parser.add_argument('--optimizer',
                     type=str,
                     default='sgd',
@@ -88,23 +85,21 @@ else:
 
 barrier_op = None
 
-if args.kungfu:
+if args.kf_optimizer:
     from kungfu.tensorflow.v1.ops import barrier
     barrier_op = barrier()
-    if args.kungfu == 'sync-sgd':
+    if args.kf_optimizer == 'sync_sgd':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt)
-    elif args.kungfu == 'async-sgd':
+    elif args.kf_optimizer == 'async_sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
         opt = PairAveragingOptimizer(opt)
-    elif args.kungfu == 'sync-sgd-nccl':
+    elif args.kf_optimizer == 'sync_sgd_nccl':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=True)
-    elif args.kungfu == 'sma-sgd':
+    elif args.kf_optimizer == 'sma_sgd':
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         opt = SynchronousAveragingOptimizer(opt)
-    elif args.kungfu == 'ideal':
-        opt = opt
     else:
         raise Exception('Unknown kungfu option')
 
@@ -152,11 +147,6 @@ def run(benchmark_step):
 loss = loss_function()
 train_opt = opt.minimize(loss)
 
-if hasattr(opt, 'distributed_initializer'):
-    kf_init = opt.distributed_initializer()
-else:
-    kf_init = None
-
 if tf.executing_eagerly():
     with tf.device(device):
         run(lambda: opt.minimize(loss_function,
@@ -165,8 +155,9 @@ else:
     init = tf.global_variables_initializer()
     with tf.Session(config=config) as session:
         session.run(init)
-        if kf_init:
-            session.run(kf_init)
+        if args.kf_optimizer:
+            from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+            session.run(BroadcastGlobalVariablesOp())
         run(lambda: session.run(train_opt))
         if barrier_op is not None:
             session.run(barrier_op)

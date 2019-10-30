@@ -15,7 +15,7 @@ flags.DEFINE_string(
     ' if the data is not already there')
 flags.DEFINE_string('model_dir', './mnist/model',
                     'Directory where all models are saved')
-flags.DEFINE_string('kungfu', 'sync-sgd', 'KungFu optimizer')
+flags.DEFINE_string('kf_optimizer', 'sync_sgd', 'KungFu optimizer')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('num_epochs', 1, 'Num of batches to train (epochs).')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning Rate')
@@ -173,10 +173,10 @@ def model_function(features, labels, mode):
         tf.identity(FLAGS.learning_rate, name='learning_rate')
 
         # KungFu: Wrap the tf.train.optimizer with KungFu optimizers
-        if FLAGS.kungfu == 'sync-sgd':
+        if FLAGS.kf_optimizer == 'sync_sgd':
             from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
             optimizer = SynchronousSGDOptimizer(optimizer)
-        elif FLAGS.kungfu == 'async-sgd':
+        elif FLAGS.kf_optimizer == 'async_sgd':
             from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
             optimizer = PairAveragingOptimizer(optimizer)
         else:

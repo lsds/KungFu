@@ -70,16 +70,16 @@ def build_optimizer(name, batch_size):
                                                   current_cluster_size())
 
     # KungFu: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
-    if name == 'sync-sgd':
+    if name == 'sync_sgd':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         return SynchronousSGDOptimizer(optimizer)
-    elif name == 'async-sgd':
+    elif name == 'async_sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
         return PairAveragingOptimizer(optimizer)
     elif name == 'sma':
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
-    elif name == 'noise-scale':
+    elif name == 'noise_scale':
         from kungfu.tensorflow.v1.optimizers import SyncSGDWithGradNoiseScaleOptimizer
         return SyncSGDWithGradNoiseScaleOptimizer(optimizer,
                                                   device_batch_size=batch_size)
@@ -180,19 +180,19 @@ def train_mnist(sess,
 # parse arguments from the command line
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument('--kungfu',
+    parser.add_argument('--kf_optimizer',
                         type=str,
-                        default='sync-sgd',
-                        help='kungfu optimizer: sync-sgd, async-sgd')
-    parser.add_argument('--n-epochs',
+                        default='sync_sgd',
+                        help='kungfu optimizer: sync_sgd, async_sgd')
+    parser.add_argument('--n_epochs',
                         type=int,
                         default=1,
                         help='number of epochs')
-    parser.add_argument('--batch-size',
+    parser.add_argument('--batch_size',
                         type=int,
                         default=50,
                         help='batch size')
-    parser.add_argument('--data-dir',
+    parser.add_argument('--data_dir',
                         type=str,
                         default='mnist',
                         help='Path to the MNIST dataset directory.')
@@ -201,7 +201,8 @@ def parse_args():
 
 def main():
     args = parse_args()
-    optimizer = build_optimizer(name=args.kungfu, batch_size=args.batch_size)
+    optimizer = build_optimizer(name=args.kf_optimizer,
+                                batch_size=args.batch_size)
     x, y_, train_op, test_op = build_model(optimizer)
     mnist = load_mnist(args.data_dir)
 
