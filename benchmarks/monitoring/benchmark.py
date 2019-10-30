@@ -46,7 +46,7 @@ parser.add_argument('--no-cuda',
                     help='disables CUDA training')
 parser.add_argument('--kf_optimizer',
                     type=str,
-                    default='sync_sgd',
+                    default='variance',
                     help='KungFu optimizers')
 parser.add_argument('--interval',
                     type=int,
