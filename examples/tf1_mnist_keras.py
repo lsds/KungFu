@@ -15,7 +15,7 @@ import argparse
 import kungfu as kf
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.v1.optimizers.keras import KerasInitCallback
+from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesCallback
 
 
 def load_dataset():
@@ -91,7 +91,7 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
               y,
               batch_size=batch_size,
               epochs=n_epochs,
-              callbacks=[KerasInitCallback()],
+              callbacks=[BroadcastGlobalVariablesCallback()],
               validation_data=(dataset['x_val'], dataset['y_val']),
               verbose=2)
 

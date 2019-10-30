@@ -151,8 +151,9 @@ def train_mnist(sess,
 
     sess.run(tf.global_variables_initializer())
 
-    # KungFu: call the distributed initializer
-    sess.run(optimizer.distributed_initializer())
+    # KungFu: broadcast the global variable
+    from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+    sess.run(BroadcastGlobalVariablesOp())
 
     print('training')
     # train the model with all batches allocated to the node
@@ -202,7 +203,7 @@ def main():
     args = parse_args()
     optimizer = build_optimizer(name=args.optimizer,
                                 batch_size=args.batch_size)
-    x, y_, train_op, test_op = build_model(optimizer, )
+    x, y_, train_op, test_op = build_model(optimizer)
     mnist = load_mnist(args.data_dir)
 
     with tf.Session() as sess:
