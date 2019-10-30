@@ -44,10 +44,10 @@ def build_optimizer(name, n_shards=1):
     optimizer = tf.train.GradientDescentOptimizer(learning_rate * n_shards)
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
-    if name == 'sync_sgd':
+    if name == 'sync-sgd':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         return SynchronousSGDOptimizer(optimizer)
-    elif name == 'async_sgd':
+    elif name == 'async-sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
         return PairAveragingOptimizer(optimizer, fuse_requests=True)
     elif name == 'sma':
@@ -105,15 +105,15 @@ def test_model(model, dataset):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument('--kf_optimizer',
+    parser.add_argument('--kf-optimizer',
                         type=str,
-                        default='sync_sgd',
-                        help='kungfu optimizer: sync_sgd, async_sgd')
-    parser.add_argument('--n_epochs',
+                        default='sync-sgd',
+                        help='kungfu optimizer')
+    parser.add_argument('--n-epochs',
                         type=int,
                         default=1,
                         help='number of epochs')
-    parser.add_argument('--batch_size',
+    parser.add_argument('--batch-size',
                         type=int,
                         default=50,
                         help='batch size')

@@ -48,9 +48,9 @@ parser.add_argument('--no-cuda',
                     action='store_true',
                     default=False,
                     help='disables CUDA training')
-parser.add_argument('--kf_optimizer',
+parser.add_argument('--kf-optimizer',
                     type=str,
-                    default='sync_sgd',
+                    default='sync-sgd',
                     help='KungFu optimizers')
 parser.add_argument('--optimizer',
                     type=str,
@@ -88,16 +88,16 @@ barrier_op = None
 if args.kf_optimizer:
     from kungfu.tensorflow.v1.ops import barrier
     barrier_op = barrier()
-    if args.kf_optimizer == 'sync_sgd':
+    if args.kf_optimizer == 'sync-sgd':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt)
-    elif args.kf_optimizer == 'async_sgd':
+    elif args.kf_optimizer == 'async-sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
         opt = PairAveragingOptimizer(opt)
-    elif args.kf_optimizer == 'sync_sgd_nccl':
+    elif args.kf_optimizer == 'sync-sgd-nccl':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=True)
-    elif args.kf_optimizer == 'sma_sgd':
+    elif args.kf_optimizer == 'sma':
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         opt = SynchronousAveragingOptimizer(opt)
     else:

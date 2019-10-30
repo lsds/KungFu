@@ -21,7 +21,7 @@ In the synchronous training benchmark, we compare KungFu with Horovod.
 Use the following command to run the KungFu benchmark.
 
 ```bash
-kungfu-run -np 4 python3 benchmark_kungfu.py --kf_optimizer=sync_sgd --model=ResNet50 --batch-size=64
+kungfu-run -np 4 python3 benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
 ```
 
 ### Horovod
@@ -46,7 +46,7 @@ Asynchronous training is useful for addressing network bottlenecks, stragglers a
 Use the following command to run the KungFu benchmark.
 
 ```bash
-kungfu-run -np 4 python3 benchmark_kungfu.py --kf_optimizer=async_sgd --model=ResNet50 --batch-size=64
+kungfu-run -np 4 python3 benchmark_kungfu.py --kf-optimizer=async-sgd --model=ResNet50 --batch-size=64
 ```
 
 ### Parameter Servers

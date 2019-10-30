@@ -70,16 +70,16 @@ def build_optimizer(name, batch_size):
                                                   current_cluster_size())
 
     # KungFu: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
-    if name == 'sync_sgd':
+    if name == 'sync-sgd':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
         return SynchronousSGDOptimizer(optimizer)
-    elif name == 'async_sgd':
+    elif name == 'async-sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
         return PairAveragingOptimizer(optimizer)
     elif name == 'sma':
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
-    elif name == 'noise_scale':
+    elif name == 'noise-scale':
         from kungfu.tensorflow.v1.optimizers import SyncSGDWithGradNoiseScaleOptimizer
         return SyncSGDWithGradNoiseScaleOptimizer(optimizer,
                                                   device_batch_size=batch_size)
@@ -180,19 +180,19 @@ def train_mnist(sess,
 # parse arguments from the command line
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument('--kf_optimizer',
+    parser.add_argument('--kf-optimizer',
                         type=str,
-                        default='sync_sgd',
-                        help='kungfu optimizer: sync_sgd, async_sgd')
-    parser.add_argument('--n_epochs',
+                        default='sync-sgd',
+                        help='kungfu optimizer')
+    parser.add_argument('--n-epochs',
                         type=int,
                         default=1,
                         help='number of epochs')
-    parser.add_argument('--batch_size',
+    parser.add_argument('--batch-size',
                         type=int,
                         default=50,
                         help='batch size')
-    parser.add_argument('--data_dir',
+    parser.add_argument('--data-dir',
                         type=str,
                         default='mnist',
                         help='Path to the MNIST dataset directory.')

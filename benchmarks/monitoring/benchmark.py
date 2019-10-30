@@ -44,7 +44,7 @@ parser.add_argument('--no-cuda',
                     action='store_true',
                     default=False,
                     help='disables CUDA training')
-parser.add_argument('--kf_optimizer',
+parser.add_argument('--kf-optimizer',
                     type=str,
                     default='variance',
                     help='KungFu optimizers')
@@ -84,7 +84,7 @@ if args.kf_optimizer:
             device_batch_size=args.batch_size,
             monitor_interval=args.interval)
     else:
-        raise Exception('Unknown kungfu optimizer')
+        raise Exception('Unknown KungFu optimizer')
 
 data = tf.random_uniform([args.batch_size, 224, 224, 3])
 target = tf.random_uniform([args.batch_size, 1],

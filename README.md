@@ -91,7 +91,7 @@ Download the MNIST dataset ([script](scripts/download-mnist.sh)) and run the fol
 
 ```bash
 # Train a Single Layer Perception (SLP) model for the MNIST dataset using 4 CPUs for 10 data epochs.
-kungfu-run -np 4 python3 examples/tf1_mnist_session.py --data_dir=./mnist
+kungfu-run -np 4 python3 examples/tf1_mnist_session.py --data-dir=./mnist
 ```
 
 If you want to run this example on two machines (each with 8 GPUs), run the following on both machines:
@@ -101,7 +101,7 @@ If you want to run this example on two machines (each with 8 GPUs), run the foll
 # Assume NUM_GPU_SLOTS=8, NUM_GPUS=16
 kungfu-run -np $NUM_GPUS \
     -H 192.168.0.1:$NUM_GPU_SLOTS,192.168.0.2:$NUM_GPU_SLOTS -nic eth0 \
-    python3 examples/tf1_mnist_session.py  --data_dir=./mnist
+    python3 examples/tf1_mnist_session.py  --data-dir=./mnist
 ```
 
 ``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the cluster.
