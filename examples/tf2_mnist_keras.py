@@ -1,6 +1,8 @@
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank, run_barrier
-from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
+from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
+                                          SynchronousAveragingOptimizer,
+                                          SynchronousSGDOptimizer)
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
 
 flags = tf.compat.v1.flags

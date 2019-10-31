@@ -1,7 +1,8 @@
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-# from kungfu.tensorflow.v2.gradient_tapes import SynchronousSGDGradientTape, SynchronousAveragingGradientTape
-from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
+from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
+                                          SynchronousAveragingOptimizer,
+                                          SynchronousSGDOptimizer)
 
 flags = tf.compat.v1.flags
 flags.DEFINE_string('kf-optimizer', 'sync-sgd', 'KungFu optimizer')
@@ -50,12 +51,7 @@ def training_step(images, labels, first_batch):
     grads = tape.gradient(loss_value, mnist_model.trainable_variables)
     opt.apply_gradients(zip(grads, mnist_model.trainable_variables))
 
-    # KungFu: broadcast initial variable states from rank 0 to all other processes.
-    # This is necessary to ensure consistent initialization of all workers when
-    # training is started with random weights or restored from a checkpoint.
-    #
-    # Note: broadcast should be done after the first gradient step to ensure optimizer
-    # initialization.
+    # KungFu: broadcast is done after the first gradient step to ensure optimizer initialization.
     if first_batch:
         from kungfu.tensorflow.v2.initializer import broadcast_variables
         broadcast_variables(mnist_model.variables)
