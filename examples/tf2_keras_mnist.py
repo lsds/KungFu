@@ -16,8 +16,36 @@ import kungfu as kf
 import tensorflow as tf
 from kungfu.tensorflow.v1.ops import broadcast
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.v2.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
+from kungfu.tensorflow.keras.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 
+
+class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
+    def __init__(self, *args):
+        super(BroadcastGlobalVariablesCallback, self).__init__(*args)
+        self.broadcast_done = False
+
+    def on_batch_end(self, batch, logs=None):
+        if self.broadcast_done:
+            return
+
+        if hasattr(self.model, 'variables'):
+            for v in self.model.variables:
+                v.assign(broadcast(v))
+
+            opt_variables = None
+            if hasattr(self.model.optimizer, 'variables'):
+                opt_variables = self.model.optimizer.variables()
+            else:
+                opt_variables = self.model.optimizer.optimizer.variables()
+
+            # print(opt_variables)
+            for v in opt_variables:
+                v.assign(broadcast(v))
+        else:
+            raise RuntimeError('No variables() in %s', self.model)
+
+        self.broadcast_done = True
+        
 
 def load_dataset():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -90,7 +118,8 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
               batch_size=batch_size,
               epochs=n_epochs,
               validation_data=(dataset['x_val'], dataset['y_val']),
-              verbose=2)
+              verbose=2,
+              callbacks=[BroadcastGlobalVariablesCallback()])
 
 
 def test_model(model, dataset):
@@ -105,7 +134,7 @@ def parse_args():
     parser.add_argument('--optimizer',
                         type=str,
                         default='sync-sgd',
-                        help='available options: sync-sgd, async-sgd')
+                        help='available options: sync-sgd, async-sgd, sma')
     parser.add_argument('--n-epochs',
                         type=int,
                         default=1,

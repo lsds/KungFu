@@ -2,9 +2,9 @@ import tensorflow as tf
 from kungfu.tensorflow.v1.ops import (barrier, broadcast, current_cluster_size,
                                       current_rank, request_variable,
                                       request_variable_with_template,
-                                      save_variable)
+                                      save_variable, counter)
 
-from .core import KungFuOptimizer, defuse, fuse
+from .core import defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):
@@ -13,7 +13,7 @@ def get_random_peer(cluster_size, self_rank):
                    lambda: tf.identity(t))
 
 
-class PairAveragingOptimizer(KungFuOptimizer):
+class PairAveragingOptimizer(tf.keras.optimizers.Optimizer):
     """PairAveragingOptimizer implements the [AD-PSGD]_ algorithm.
 
     Every iteration of training, this optimizer:
@@ -45,11 +45,12 @@ class PairAveragingOptimizer(KungFuOptimizer):
     def __init__(self,
                  optimizer,
                  fuse_requests=False,
-                 name=None,
-                 use_locking=False):
-        super(PairAveragingOptimizer, self).__init__(optimizer, name,
-                                                     use_locking)
+                 name="PairAveragingOptimizer"):
+        super(PairAveragingOptimizer, self).__init__(name=name)
+        self._optimizer = optimizer
+        self._step = counter()
         self._fuse_requests = fuse_requests
+        self._fused_model_name = name
 
     def _build_request_ops(self, target, variables):
         if self._fuse_requests:
@@ -65,27 +66,49 @@ class PairAveragingOptimizer(KungFuOptimizer):
                 request_variable_with_template(target, v) for v in variables
             ]
 
+    def _build_request_ops(self, target, variables):
+        if self._fuse_requests:
+            var_fused = fuse(variables)
+            other_peer_var_fused = request_variable(
+                target,
+                version=None,
+                name=self._fused_model_name,
+                shape=var_fused.shape,
+                dtype=var_fused.dtype)
+            return defuse(other_peer_var_fused, [v.shape for v in variables])
+        else:
+            return [
+                request_variable_with_template(target, v) for v in variables
+            ]
+
     def _build_save_op(self, variables):
         if self._fuse_requests:
             var_fused = fuse(variables)
-            return save_variable(var_fused, name='FUSED_MODEL')
+            return save_variable(var_fused, name=self._fused_model_name)
         else:
             return tf.group([save_variable(v) for v in variables])
+
+    def init_store(self, variables):
+        with tf.control_dependencies([self._build_save_op(variables)]):
+            return barrier()
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
-        variables = [v for _g, v in grads_and_vars]
-        with tf.control_dependencies([self._init_op]):
+        gradients, variables = list(zip(*grads_and_vars))
+
+        init_store_op = tf.cond(tf.equal(self._step, 0),
+                                lambda: self.init_store(variables), tf.no_op)
+        with tf.control_dependencies([init_store_op]):
             other_peer_vars = self._build_request_ops(target, variables)
 
         save_model_op = self._build_save_op(variables)
 
         assign_ops = [
-            tf.assign(v, 0.5 * (v + other_v))
+            v.assign(0.5 * (v + other_v))
             for v, other_v in zip(variables, other_peer_vars)
         ]
-
+        grads_and_vars = zip(gradients, variables)
         apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
 
         with tf.control_dependencies(assign_ops):
@@ -93,17 +116,5 @@ class PairAveragingOptimizer(KungFuOptimizer):
                 with tf.control_dependencies([save_model_op]):
                     return tf.group(apply_op)
 
-    def _distributed_initializer(self):
-        bcast_ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
-
-        # FIXME: tf.trainable_variables() will return a TFOptimizer/iterations:0 if with Keras
-        # I think we need to find a better way to identify trainable variables?
-        # TODO: Can we decouple distribuetd_initilizer and the tensor store init?
-        variables = tf.trainable_variables()
-        variables = [
-            v for v in variables if 'TFOptimizer/iterations' not in v.name
-        ]
-
-        with tf.control_dependencies(bcast_ops):
-            with tf.control_dependencies([self._build_save_op(variables)]):
-                return barrier()
+    def get_config(self):
+        return self._optimizer.optimizer.get_config()
