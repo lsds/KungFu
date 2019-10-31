@@ -50,7 +50,7 @@ def build_optimizer(shards, use_kungfu=True):
     learning_rate = 0.1
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
     if use_kungfu:
-        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+        from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
         optimizer = SynchronousSGDOptimizer(optimizer)
     return optimizer
 

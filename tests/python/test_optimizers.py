@@ -1,4 +1,4 @@
-from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer
 from kungfu.tensorflow.v1.ops import run_barrier
 from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
 import tensorflow as tf
