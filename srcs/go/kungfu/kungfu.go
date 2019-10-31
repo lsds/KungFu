@@ -127,8 +127,12 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	return true
 }
 
-func (kf *Kungfu) Save(version, name string, buf *kb.Vector) error {
+func (kf *Kungfu) SaveVersion(version, name string, buf *kb.Vector) error {
 	return kf.router.P2P.SaveVersion(version, name, buf)
+}
+
+func (kf *Kungfu) Save(name string, buf *kb.Vector) error {
+	return kf.router.P2P.Save(name, buf)
 }
 
 func par(ps plan.PeerList, f func(plan.PeerID) error) error {

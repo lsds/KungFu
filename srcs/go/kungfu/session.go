@@ -91,22 +91,12 @@ func (sess *session) Gather(w Workspace) error {
 	return sess.runGather(w)
 }
 
-func (sess *session) Request(rank int, name string, model *kb.Vector) error {
+func (sess *session) Request(rank int, version, name string, model *kb.Vector) error {
 	if rank < 0 || len(sess.peers) <= rank {
 		return errInvalidRank
 	}
 	peer := sess.peers[rank]
-	return sess.router.Request(peer.WithName(name), model)
-}
-
-func (sess *session) Pull(rank int, version, name string, model *kb.Vector) error {
-	peer := sess.peers[rank]
-	return sess.router.Pull(version, peer.WithName(name), model)
-}
-
-// FIXME: move it to kungfu
-func (sess *session) Save(name string, buf *kb.Vector) error {
-	return sess.router.P2P.Save(name, buf)
+	return sess.router.Request(version, peer.WithName(name), model)
 }
 
 func asMessage(b *kb.Vector) rch.Message {

@@ -46,29 +46,7 @@ func (r *Router) ResetConnections(keeps plan.PeerList) {
 	r.connPool.reset(keeps)
 }
 
-// Request sends request name to given Addr
-func (r *Router) Request(a plan.Addr, buf *kb.Vector) error {
-	ch, err := r.getChannel(a, ConnPeerToPeer)
-	if err != nil {
-		return err
-	}
-	r.reqMu.Lock() // FIXME: lock per target
-	defer r.reqMu.Unlock()
-	if err := ch.Send(Message{}, NoFlag); err != nil {
-		return err
-	}
-	msg := Message{
-		Length: uint32(buf.Count * buf.Type.Size()),
-		Data:   buf.Data,
-	}
-	if err := ch.Receive(msg); err != nil {
-		return err
-	}
-	r.monitor.Ingress(int64(msg.Length), a.NetAddr())
-	return nil
-}
-
-func (r *Router) Pull(version string, a plan.Addr, buf *kb.Vector) error {
+func (r *Router) Request(version string, a plan.Addr, buf *kb.Vector) error {
 	ch, err := r.getChannel(a, ConnPeerToPeer)
 	if err != nil {
 		return err
