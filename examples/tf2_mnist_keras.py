@@ -13,8 +13,9 @@ test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 
 # KungFu: sharding your data using local rank.
 epochs = 10
-train_dataset = train_dataset.shard(current_cluster_size(),
-                                    current_rank()).repeat(epochs).batch(128)
+train_dataset = train_dataset.shard(
+    current_cluster_size(),
+    current_rank()).repeat(epochs).shuffle(10000).batch(128)
 test_dataset = test_dataset.batch(128)
 
 mnist_model = tf.keras.Sequential([

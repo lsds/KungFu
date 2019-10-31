@@ -9,10 +9,13 @@ from .core import KungFuOptimizer, defuse, fuse
 
 class SynchronousSGDOptimizer(KungFuOptimizer):
     """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
+
     This optimizer is equivalent to the DistributedOptimizer in Horovod.
     Every iteration of training, this optimizer computes the averaged gradients
     to correct diverged model replicas.
+
     .. [S-SGD] Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour, 2017, `S-SGD Paper <https://arxiv.org/pdf/1706.02677>`_
+
     Args:
       optimizer:
         Optimizer to use for computing gradients and applying updates.
@@ -28,6 +31,7 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
       use_locking:
         Whether to use locking when updating variables.
         See Optimizer.__init__ for more info.
+
     """
     def __init__(self,
                  optimizer,
@@ -46,6 +50,11 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         gradients, variables = list(zip(*grads_and_vars))
 
         if self._nccl:
+            # FIXME: We have a limitation that KungFu schedules NCCL operations
+            # in the order of the given gradients. This order is sub-optimal
+            # to the topological sorting order of dataflow. We get around of this issue by
+            # fusing all gradients. We need to figure out H ow to get the optimal topological s
+            # sortting order from TensorFlow.
             if self._nccl_fusion:
                 fused_grad = fuse(gradients)
                 summed_fused_gradients = group_nccl_all_reduce([fused_grad])

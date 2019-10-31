@@ -4,9 +4,7 @@ from kungfu.tensorflow import _tf_assign
 from kungfu.tensorflow.v1.ops import broadcast
 from tensorflow import keras
 
-__all__ = [
-    'BroadcastGlobalVariablesCallback',
-]
+__all__ = ['BroadcastGlobalVariablesCallback', 'broadcast_variables']
 
 
 class BroadcastGlobalVariablesCallback(keras.callbacks.Callback):
@@ -35,3 +33,8 @@ class BroadcastGlobalVariablesCallback(keras.callbacks.Callback):
             raise RuntimeError('No variables() in %s', self.model)
 
         self.broadcast_done = True
+
+
+def broadcast_variables(variables):
+    for v in variables:
+        _tf_assign(v, broadcast(v))
