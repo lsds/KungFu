@@ -53,7 +53,7 @@ func benchPeerToPeer(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 
 	for _, name := range m.Names {
 		b := m.Buffers[name]
-		sess.Save(name, b.SendBuf)
+		kungfu.Save(name, b.SendBuf)
 	}
 
 	np := sess.ClusterSize()
@@ -73,7 +73,7 @@ func benchPeerToPeer(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 					OP:      kb.SUM,
 					Name:    name,
 				}
-				sess.Request(target, w.Name, w.RecvBuf)
+				sess.Request(target, "", w.Name, w.RecvBuf)
 			})
 		}(name, m.Buffers[name])
 	}

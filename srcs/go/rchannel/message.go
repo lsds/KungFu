@@ -160,6 +160,8 @@ func (m *Message) ReadFrom(r io.Reader) error {
 	return nil
 }
 
+var errUnexpectedMessageLength = errors.New("Unexpected message length")
+
 // ReadInto reads the message from a reader into existing buffer.
 // The message length obtained from the reader should be checked.
 func (m *Message) ReadInto(r io.Reader) error {
@@ -168,7 +170,7 @@ func (m *Message) ReadInto(r io.Reader) error {
 		return err
 	}
 	if length != m.Length {
-		return errors.New("Unexpected message length")
+		return errUnexpectedMessageLength
 	}
 	if err := readN(r, m.Data, int(m.Length)); err != nil {
 		return err

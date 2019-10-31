@@ -122,5 +122,15 @@ func testP2P(kungfu *kf.Kungfu) {
 	if err := sess.Barrier(); err != nil {
 		utils.ExitErr(err)
 	}
+	for i := 0; i < step; i++ {
+		target := (rank + 1) % np
+		fmt.Printf("step=%d, rank=%d, target=%d, should fail\n", i, rank, target)
+		if ok, err := sess.Request(target, "", name+"!", b); ok || err != nil {
+			utils.ExitErr(fmt.Errorf("%s failed", `testP2P`))
+		}
+	}
+	if err := sess.Barrier(); err != nil {
+		utils.ExitErr(err)
+	}
 	fmt.Printf("%s OK\n", `testP2P`)
 }

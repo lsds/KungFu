@@ -69,6 +69,10 @@ func (e *PeerToPeerEndpoint) accept(conn net.Conn, remote plan.NetAddr) (string,
 		m := <-e.waitQ.require(remote.WithName(name))
 		m.flags = mh.Flags
 		if mh.HasFlag(RequestFailed) {
+			var empty Message
+			if err := empty.ReadInto(conn); err != nil {
+				return "", nil, err
+			}
 			return name, m, nil
 		}
 		if err := m.ReadInto(conn); err != nil {
