@@ -8,7 +8,6 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	"github.com/lsds/KungFu/srcs/go/store"
 )
 
 type Router struct {
@@ -20,11 +19,11 @@ type Router struct {
 	reqMu      sync.Mutex
 }
 
-func NewRouter(self plan.PeerID, store *store.VersionedStore) *Router {
+func NewRouter(self plan.PeerID) *Router {
 	return &Router{
 		localAddr:  plan.NetAddr(self),
 		Collective: NewCollectiveEndpoint(),
-		P2P:        NewPeerToPeerEndpoint(store),
+		P2P:        NewPeerToPeerEndpoint(),
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
 	}

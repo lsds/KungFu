@@ -16,9 +16,9 @@ type PeerToPeerEndpoint struct {
 	localStore *LocalStore // TODO: replaced by verison store
 }
 
-func NewPeerToPeerEndpoint(store *store.VersionedStore) *PeerToPeerEndpoint {
+func NewPeerToPeerEndpoint() *PeerToPeerEndpoint {
 	return &PeerToPeerEndpoint{
-		store:      store,
+		store:      store.NewVersionedStore(3),
 		localStore: newLocalStore(), // TODO: replaced by verison store
 	}
 }
@@ -35,6 +35,11 @@ func (e *PeerToPeerEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t ConnTy
 func (e *PeerToPeerEndpoint) Save(name string, model *kb.Vector) error {
 	e.localStore.Emplace(name, model)
 	return nil
+}
+
+func (e *PeerToPeerEndpoint) SaveVersion(version, name string, buf *kb.Vector) error {
+	blob := &store.Blob{Data: buf.Data}
+	return e.store.Create(version, name, blob)
 }
 
 func (e *PeerToPeerEndpoint) handle(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {

@@ -12,7 +12,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
-	"github.com/lsds/KungFu/srcs/go/store"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -27,7 +26,6 @@ type Kungfu struct {
 	self      plan.PeerID
 	strategy  kb.Strategy
 
-	store  *store.VersionedStore
 	router *rch.Router
 	server rch.Server
 
@@ -47,8 +45,7 @@ func New() (*Kungfu, error) {
 }
 
 func NewFromConfig(config *plan.Config) (*Kungfu, error) {
-	store := store.NewVersionedStore(3)
-	router := rch.NewRouter(config.Self, store)
+	router := rch.NewRouter(config.Self)
 	server, err := rch.NewServer(router)
 	if err != nil {
 		return nil, err
@@ -62,7 +59,6 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 		portRange:    config.PortRange,
 		strategy:     config.Strategy,
 		checkpoint:   config.Checkpoint,
-		store:        store,
 		router:       router,
 		server:       server,
 	}, nil
@@ -132,8 +128,7 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 }
 
 func (kf *Kungfu) Save(version, name string, buf *kb.Vector) error {
-	blob := &store.Blob{Data: buf.Data}
-	return kf.store.Create(version, name, blob)
+	return kf.router.P2P.SaveVersion(version, name, buf)
 }
 
 func par(ps plan.PeerList, f func(plan.PeerID) error) error {
