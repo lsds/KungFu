@@ -4,7 +4,7 @@ from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingO
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
 
 flags = tf.compat.v1.flags
-flags.DEFINE_string('kf_optimizer', 'sync-sgd', 'KungFu optimizer')
+flags.DEFINE_string('kf-optimizer', 'sync-sgd', 'KungFu optimizer')
 FLAGS = flags.FLAGS
 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()

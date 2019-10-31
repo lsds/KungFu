@@ -4,7 +4,7 @@ from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 
 flags = tf.compat.v1.flags
-flags.DEFINE_string('kf_optimizer', 'sync-sgd', 'KungFu optimizer')
+flags.DEFINE_string('kf-optimizer', 'sync-sgd', 'KungFu optimizer')
 FLAGS = flags.FLAGS
 
 (mnist_images, mnist_labels), _ = \
