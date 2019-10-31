@@ -5,13 +5,13 @@ from kungfu.tensorflow.v1.ops import (barrier, broadcast, counter,
                                       request_variable_with_template,
                                       save_variable)
 
-from .core import KungFuOptimizer, defuse, fuse, _tf_assign
+from .core import KungFuOptimizer, _tf_assign, _tf_mod, defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):
     t = tf.random.uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
-    return tf.cond(tf.equal(t, self_rank),
-                   lambda: tf.math.floormod(t + 1, cluster_size),
+    return tf.cond(tf.equal(t,
+                            self_rank), lambda: _tf_mod(t + 1, cluster_size),
                    lambda: tf.identity(t))
 
 

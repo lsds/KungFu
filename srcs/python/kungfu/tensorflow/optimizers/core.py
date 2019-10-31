@@ -24,11 +24,13 @@ try:
     # TensorFlow 2.x
     _Optimizer = tf.compat.v1.train.Optimizer
     _tf_assign = tf.compat.v1.assign
+    _tf_mod = tf.math.floormod
 except AttributeError:
     try:
         # TensorFlow 1.x
         _Optimizer = tf.train.Optimizer
         _tf_assign = tf.assign
+        _tf_mod = tf.mod
     except AttributeError:
         # Future TensorFlow versions
         _Optimizer = None
