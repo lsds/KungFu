@@ -84,7 +84,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
     def apply_gradients(self, grads_and_vars, **kwargs):
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
-        variables = [v for _g, v in grads_and_vars]
+        gradients, variables = list(zip(*grads_and_vars))
 
         init_store_op = tf.cond(tf.equal(self._step, 0),
                                 lambda: self.init_store(variables), tf.no_op)
@@ -98,7 +98,10 @@ class PairAveragingOptimizer(KungFuOptimizer):
             for v, other_v in zip(variables, other_peer_vars)
         ]
 
-        apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
+        # This is important to re-zip to ensure AutoGraph can track the dependency
+        new_grads_and_vars = zip(gradients, variables)
+        apply_op = self._optimizer.apply_gradients(new_grads_and_vars,
+                                                   **kwargs)
 
         with tf.control_dependencies(assign_ops):
             with tf.control_dependencies([apply_op]):

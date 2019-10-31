@@ -1,6 +1,11 @@
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
+# from kungfu.tensorflow.v2.gradient_tapes import SynchronousSGDGradientTape, SynchronousAveragingGradientTape
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 
+flags = tf.compat.v1.flags
+flags.DEFINE_string('kf_optimizer', 'sync-sgd', 'KungFu optimizer')
+FLAGS = flags.FLAGS
 
 (mnist_images, mnist_labels), _ = \
     tf.keras.datasets.mnist.load_data(path='mnist-%d.npz' % current_rank())
@@ -23,10 +28,17 @@ mnist_model = tf.keras.Sequential([
 loss = tf.losses.SparseCategoricalCrossentropy()
 
 # KungFu: adjust learning rate based on number of GPUs.
-opt = tf.optimizers.Adam(0.001 * current_cluster_size())
+opt = tf.compat.v1.train.AdamOptimizer(0.001 * current_cluster_size())
 
-checkpoint_dir = './checkpoints'
-checkpoint = tf.train.Checkpoint(model=mnist_model, optimizer=opt)
+# KungFu: wrap tf.compat.v1.train.Optimizer.
+if FLAGS.kf_optimizer == 'sync-sgd':
+    opt = SynchronousSGDOptimizer(opt)
+elif FLAGS.kf_optimizer == 'async-sgd':
+    opt = PairAveragingOptimizer(opt)
+elif FLAGS.kf_optimizer == 'sma':
+    opt = SynchronousAveragingOptimizer(opt)
+else:
+    raise RuntimeError('Unknown KungFu optimizer')
 
 
 @tf.function
@@ -34,10 +46,6 @@ def training_step(images, labels, first_batch):
     with tf.GradientTape() as tape:
         probs = mnist_model(images, training=True)
         loss_value = loss(labels, probs)
-
-    # KungFu: add KungFu Distributed GradientTape.
-    from kungfu.tensorflow.v2.gradient_tapes import SynchronousSGDGradientTape
-    tape = SynchronousSGDGradientTape(tape)
 
     grads = tape.gradient(loss_value, mnist_model.trainable_variables)
     opt.apply_gradients(zip(grads, mnist_model.trainable_variables))
@@ -56,15 +64,10 @@ def training_step(images, labels, first_batch):
     return loss_value
 
 
-# Horovod: adjust number of steps based on number of GPUs.
+# KungFu: adjust number of steps based on number of GPUs.
 for batch, (images, labels) in enumerate(
         dataset.take(10000 // current_cluster_size())):
     loss_value = training_step(images, labels, batch == 0)
 
     if batch % 10 == 0 and current_rank() == 0:
         print('Step #%d\tLoss: %.6f' % (batch, loss_value))
-
-# Horovod: save checkpoints only on worker 0 to prevent other workers from
-# corrupting it.
-if current_rank() == 0:
-    checkpoint.save(checkpoint_dir)
