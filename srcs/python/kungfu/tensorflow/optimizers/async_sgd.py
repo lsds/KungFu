@@ -9,9 +9,22 @@ from .core import KungFuOptimizer, defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):
-    t = tf.random_uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
-    return tf.cond(tf.equal(t, self_rank), lambda: tf.mod(t + 1, cluster_size),
+    t = tf.random.uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
+    return tf.cond(tf.equal(t, self_rank),
+                   lambda: tf.math.floormod(t + 1, cluster_size),
                    lambda: tf.identity(t))
+
+
+try:
+    # TensorFlow 2.x
+    _tf_assign = tf.compat.v1.assign
+except AttributeError:
+    try:
+        # TensorFlow 1.x
+        _tf_assign = tf.assign
+    except AttributeError:
+        # Future TensorFlow versions
+        _tf_assign = None
 
 
 class PairAveragingOptimizer(KungFuOptimizer):
@@ -92,7 +105,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
         save_model_op = self._build_save_op(variables)
 
         assign_ops = [
-            tf.assign(v, 0.5 * (v + other_v))
+            _tf_assign(v, 0.5 * (v + other_v))
             for v, other_v in zip(variables, other_peer_vars)
         ]
 

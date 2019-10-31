@@ -1,7 +1,11 @@
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
+
+flags = tf.compat.v1.flags
+flags.DEFINE_string('kf_optimizer', 'sync-sgd', 'KungFu optimizer')
+FLAGS = flags.FLAGS
 
 (mnist_images, mnist_labels), _ = \
     tf.keras.datasets.mnist.load_data(path='mnist-%d.npz' % current_rank())
@@ -26,7 +30,12 @@ mnist_model = tf.keras.Sequential([
 opt = tf.compat.v1.train.AdamOptimizer(0.001 * current_cluster_size())
 
 # KungFu: wrap tf.compat.v1.train.Optimizer.
-opt = SynchronousSGDOptimizer(opt)
+if FLAGS.kf_optimizer == 'sync-sgd':
+    opt = SynchronousSGDOptimizer(opt)
+elif FLAGS.kf_optimizer == 'async-sgd':
+    opt = PairAveragingOptimizer(opt)
+else:
+    raise RuntimeError('Unknown KungFu optimizer')
 
 mnist_model.compile(loss=tf.losses.SparseCategoricalCrossentropy(),
                     optimizer=opt,
