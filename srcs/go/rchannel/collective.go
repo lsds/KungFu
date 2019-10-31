@@ -14,8 +14,8 @@ type CollectiveEndpoint struct {
 
 func NewCollectiveEndpoint() *CollectiveEndpoint {
 	return &CollectiveEndpoint{
-		waitQ: newBufferPool(),
-		recvQ: newBufferPool(),
+		waitQ: newBufferPool(1),
+		recvQ: newBufferPool(1),
 	}
 }
 

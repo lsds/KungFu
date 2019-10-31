@@ -3,9 +3,7 @@ package rchannel
 import (
 	"errors"
 	"net"
-	"sync"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -16,17 +14,17 @@ type Router struct {
 	P2P        *PeerToPeerEndpoint
 	connPool   *ConnectionPool
 	monitor    monitor.Monitor
-	reqMu      sync.Mutex
 }
 
 func NewRouter(self plan.PeerID) *Router {
-	return &Router{
+	router := &Router{
 		localAddr:  plan.NetAddr(self),
 		Collective: NewCollectiveEndpoint(),
-		P2P:        NewPeerToPeerEndpoint(),
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
 	}
+	router.P2P = NewPeerToPeerEndpoint(router) // FIXME: remove mutual membership
+	return router
 }
 
 func (r *Router) Self() plan.PeerID {
@@ -44,28 +42,6 @@ func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
 
 func (r *Router) ResetConnections(keeps plan.PeerList) {
 	r.connPool.reset(keeps)
-}
-
-func (r *Router) Request(version string, a plan.Addr, buf *kb.Vector) error {
-	ch, err := r.getChannel(a, ConnPeerToPeer)
-	if err != nil {
-		return err
-	}
-	r.reqMu.Lock() // FIXME: lock per target
-	defer r.reqMu.Unlock()
-	bs := []byte(version)
-	if err := ch.Send(Message{Length: uint32(len(bs)), Data: bs}, NoFlag); err != nil {
-		return err
-	}
-	msg := Message{
-		Length: uint32(buf.Count * buf.Type.Size()),
-		Data:   buf.Data,
-	}
-	if err := ch.Receive(msg); err != nil {
-		return err
-	}
-	r.monitor.Ingress(int64(msg.Length), a.NetAddr())
-	return nil
 }
 
 // Send sends data in buf to given Addr

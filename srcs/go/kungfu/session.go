@@ -91,12 +91,16 @@ func (sess *session) Gather(w Workspace) error {
 	return sess.runGather(w)
 }
 
-func (sess *session) Request(rank int, version, name string, model *kb.Vector) error {
+func (sess *session) Request(rank int, version, name string, buf *kb.Vector) (bool, error) {
 	if rank < 0 || len(sess.peers) <= rank {
-		return errInvalidRank
+		return false, errInvalidRank
 	}
 	peer := sess.peers[rank]
-	return sess.router.Request(version, peer.WithName(name), model)
+	a := peer.WithName(name)
+	if err := sess.router.Send(a, []byte(version), rch.ConnPeerToPeer, rch.NoFlag); err != nil {
+		return false, err // FIXME: allow send to fail
+	}
+	return sess.router.P2P.RecvInto(a, asMessage(buf))
 }
 
 func asMessage(b *kb.Vector) rch.Message {

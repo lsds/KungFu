@@ -54,7 +54,13 @@ func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtyp
 	sess := kungfu.CurrentSession()
 	goName := C.GoString(name) // copy *C.char into go string before entering closure
 	b := toVector(buf, count, dtype)
-	op := func() error { return sess.Request(rank, "", goName, b) }
+	op := func() error {
+		ok, err := sess.Request(rank, "", goName, b)
+		if !ok {
+			log.Warnf("Request %s not found", goName)
+		}
+		return err
+	}
 	return callOP("Request", op, done)
 }
 
@@ -64,8 +70,14 @@ func GoKungfuRequestVersion(rank int, version, name *C.char, buf unsafe.Pointer,
 	goVersion := C.GoString(version)
 	goName := C.GoString(name)
 	b := toVector(buf, count, dtype)
-	op := func() error { return sess.Request(rank, goVersion, goName, b) }
-	return callOP("Pull", op, done)
+	op := func() error {
+		ok, err := sess.Request(rank, goVersion, goName, b)
+		if !ok {
+			log.Warnf("RequestVersion %s@%s not found", goName, goVersion)
+		}
+		return err
+	}
+	return callOP("RequestVersion", op, done)
 }
 
 //export GoKungfuSave

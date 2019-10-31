@@ -52,13 +52,16 @@ func (h *connectionHeader) ReadFrom(r io.Reader) error {
 const NoFlag uint32 = 0
 
 const (
-	WaitRecvBuf = 1 << iota // The recevier should wait receive buffer
+	// TODO: meaning of flags should be based on conn Type
+	WaitRecvBuf   uint32 = 1 << iota // The recevier should wait receive buffer
+	IsResponse    uint32 = 1 << iota // This is a response message for ConnPeerToPeer
+	RequestFailed uint32 = 1 << iota // This is a response meesage for failed request
 )
 
 type messageHeader struct {
 	NameLength uint32
 	Name       []byte
-	Flags      uint32
+	Flags      uint32 // TODO: meaning of flags should be based on conn Type
 }
 
 func (h *messageHeader) HasFlag(flag uint32) bool {
@@ -124,10 +127,15 @@ func (h messageHeader) String() string {
 type Message struct {
 	Length uint32
 	Data   []byte
+	flags  uint32 // copied from Header, shouldn't be used during Read or Write
 }
 
 func (m *Message) same(pm *Message) bool {
 	return &m.Data[0] == &pm.Data[0]
+}
+
+func (m *Message) hasFlag(flag uint32) bool {
+	return m.flags&flag == flag
 }
 
 func (m Message) WriteTo(w io.Writer) error {
