@@ -96,11 +96,7 @@ func (sess *session) Request(rank int, version, name string, buf *kb.Vector) (bo
 		return false, errInvalidRank
 	}
 	peer := sess.peers[rank]
-	a := peer.WithName(name)
-	if err := sess.router.Send(a, []byte(version), rch.ConnPeerToPeer, rch.NoFlag); err != nil {
-		return false, err // FIXME: allow send to fail
-	}
-	return sess.router.P2P.RecvInto(a, asMessage(buf))
+	return sess.router.P2P.Request(peer.WithName(name), version, name, asMessage(buf))
 }
 
 func asMessage(b *kb.Vector) rch.Message {

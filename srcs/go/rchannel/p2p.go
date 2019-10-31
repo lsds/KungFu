@@ -37,8 +37,11 @@ func (e *PeerToPeerEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t ConnTy
 	return err
 }
 
-func (e *PeerToPeerEndpoint) RecvInto(a plan.Addr, m Message) (bool, error) {
+func (e *PeerToPeerEndpoint) Request(a plan.Addr, version, name string, m Message) (bool, error) {
 	e.waitQ.require(a) <- &m
+	if err := e.router.Send(a, []byte(version), ConnPeerToPeer, NoFlag); err != nil {
+		return false, err // FIXME: allow send to fail
+	}
 	pm := <-e.recvQ.require(a)
 	if !m.same(pm) {
 		return false, errRegisteredBufferNotUsed
@@ -86,7 +89,7 @@ func (e *PeerToPeerEndpoint) handle(name string, msg *Message, conn net.Conn, re
 		e.recvQ.require(remote.WithName(name)) <- msg
 		return
 	}
-	e.response(name, string(msg.Data), remote)
+	go e.response(name, string(msg.Data), remote) // FIXME: check error, use one queue
 }
 
 func (e *PeerToPeerEndpoint) response(name, version string, remote plan.NetAddr) error {
