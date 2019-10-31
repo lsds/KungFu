@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu import current_cluster_size, current_rank
+from kungfu import current_cluster_size, current_rank, run_barrier
 from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
 
@@ -7,22 +7,20 @@ flags = tf.compat.v1.flags
 flags.DEFINE_string('kf_optimizer', 'sync-sgd', 'KungFu optimizer')
 FLAGS = flags.FLAGS
 
-(mnist_images, mnist_labels), _ = \
-    tf.keras.datasets.mnist.load_data(path='mnist-%d.npz' % current_rank())
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 
-dataset = tf.data.Dataset.from_tensor_slices(
-    (tf.cast(mnist_images[..., tf.newaxis] / 255.0,
-             tf.float32), tf.cast(mnist_labels, tf.int64)))
-dataset = dataset.repeat().shuffle(10000).batch(128)
+# KungFu: sharding your data using local rank.
+epochs = 10
+train_dataset = train_dataset.shard(current_cluster_size(),
+                                    current_rank()).repeat(epochs).batch(128)
+test_dataset = test_dataset.batch(128)
 
 mnist_model = tf.keras.Sequential([
-    tf.keras.layers.Conv2D(32, [3, 3], activation='relu'),
-    tf.keras.layers.Conv2D(64, [3, 3], activation='relu'),
-    tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-    tf.keras.layers.Dropout(0.25),
-    tf.keras.layers.Flatten(),
+    tf.keras.layers.Flatten(input_shape=(28, 28)),
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(10, activation='softmax')
 ])
 
@@ -43,22 +41,20 @@ mnist_model.compile(loss=tf.losses.SparseCategoricalCrossentropy(),
                     optimizer=opt,
                     metrics=['accuracy'])
 
+# KungFu: insert the global variable broadcast callback.
 callbacks = [
     BroadcastGlobalVariablesCallback(),
 ]
-
-# KungFu: save checkpoints only on worker 0 to prevent other workers from corrupting them.
-if current_rank() == 0:
-    callbacks.append(
-        tf.keras.callbacks.ModelCheckpoint('./checkpoint-{epoch}.h5'))
 
 # KungFu: write logs on worker 0.
 verbose = 1 if current_rank() == 0 else 0
 
 # Train the model.
 # KungFu: adjust number of steps based on number of GPUs.
-mnist_model.fit(dataset,
-                steps_per_epoch=500 // current_cluster_size(),
-                callbacks=callbacks,
-                epochs=24,
-                verbose=verbose)
+mnist_model.fit(train_dataset, callbacks=callbacks, verbose=verbose)
+
+# KungFu: run evaluation after all finishes training.
+run_barrier()
+print('\n# Evaluate on test data')
+results = mnist_model.evaluate(test_dataset)
+print('test loss, test acc:', results)

@@ -22,22 +22,20 @@ def defuse(y, shapes):
 
 try:
     # TensorFlow 2.x
-    _Optimizer = tf.compat.v1.train.Optimizer
+    _tf_optimizer = tf.compat.v1.train.Optimizer
     _tf_assign = tf.compat.v1.assign
     _tf_mod = tf.math.floormod
 except AttributeError:
     try:
         # TensorFlow 1.x
-        _Optimizer = tf.train.Optimizer
+        _tf_optimizer = tf.train.Optimizer
         _tf_assign = tf.assign
         _tf_mod = tf.mod
     except AttributeError:
-        # Future TensorFlow versions
-        _Optimizer = None
-        _tf_assign = None
+        raise RuntimeError('Not sure what TensorFlow version to use.')
 
 
-class KungFuOptimizer(_Optimizer):
+class KungFuOptimizer(_tf_optimizer):
     def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
             name = "KungFu{}".format(type(optimizer).__name__)

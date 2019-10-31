@@ -1,6 +1,8 @@
 import tensorflow as tf
 from kungfu.tensorflow.v1.ops import broadcast
 from tensorflow import keras
+from kungfu import current_rank
+from kungfu.tensorflow.optimizers.core import _tf_assign
 
 __all__ = [
     'BroadcastGlobalVariablesCallback',
@@ -18,15 +20,17 @@ class BroadcastGlobalVariablesCallback(keras.callbacks.Callback):
 
         if hasattr(self.model, 'variables'):
             for v in self.model.variables:
-                broadcast(v)
+                _tf_assign(v, broadcast(v))
 
             opt_variables = None
             if hasattr(self.model.optimizer, 'variables'):
                 opt_variables = self.model.optimizer.variables()
             else:
                 opt_variables = self.model.optimizer.optimizer.variables()
+
+            # print(opt_variables)
             for v in opt_variables:
-                broadcast(v)
+                _tf_assign(v, broadcast(v))
         else:
             raise RuntimeError('No variables() in %s', self.model)
 
