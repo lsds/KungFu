@@ -1,4 +1,4 @@
-from .sync_sgd import (SynchronousSGDGradientTape)
+from .sync_sgd import SynchronousSGDGradientTape
 
 __all__ = [
     'SynchronousSGDGradientTape',

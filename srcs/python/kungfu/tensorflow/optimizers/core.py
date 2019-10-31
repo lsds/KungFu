@@ -1,6 +1,6 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import counter
 from kungfu.tensorflow import _tf_optimizer
+from kungfu.tensorflow.v1.ops import counter
 
 
 def fuse(ts):

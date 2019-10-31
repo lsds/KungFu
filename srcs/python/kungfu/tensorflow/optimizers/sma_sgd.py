@@ -1,7 +1,8 @@
 import tensorflow as tf
+from kungfu.tensorflow import _tf_assign
 from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
                                       current_rank, group_all_reduce)
-from kungfu.tensorflow import _tf_assign
+
 from .core import KungFuOptimizer
 
 
