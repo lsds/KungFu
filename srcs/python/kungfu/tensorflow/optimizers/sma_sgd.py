@@ -2,7 +2,7 @@ import tensorflow as tf
 from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
                                       current_rank, group_all_reduce)
 
-from .core import KungFuOptimizer
+from .core import KungFuOptimizer, _tf_assign
 
 
 class SynchronousAveragingOptimizer(KungFuOptimizer):
@@ -41,7 +41,7 @@ class SynchronousAveragingOptimizer(KungFuOptimizer):
 
         # TODO: Apply momentum to the averaged model [2]
         assign_ops = [
-            tf.assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
+            _tf_assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
         ]
 
         # We can overlap model averaging and local SGD [2].

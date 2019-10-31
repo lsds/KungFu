@@ -5,7 +5,7 @@ from kungfu.tensorflow.v1.ops import (barrier, broadcast, counter,
                                       request_variable_with_template,
                                       save_variable)
 
-from .core import KungFuOptimizer, defuse, fuse
+from .core import KungFuOptimizer, defuse, fuse, _tf_assign
 
 
 def get_random_peer(cluster_size, self_rank):
@@ -13,18 +13,6 @@ def get_random_peer(cluster_size, self_rank):
     return tf.cond(tf.equal(t, self_rank),
                    lambda: tf.math.floormod(t + 1, cluster_size),
                    lambda: tf.identity(t))
-
-
-try:
-    # TensorFlow 2.x
-    _tf_assign = tf.compat.v1.assign
-except AttributeError:
-    try:
-        # TensorFlow 1.x
-        _tf_assign = tf.assign
-    except AttributeError:
-        # Future TensorFlow versions
-        _tf_assign = None
 
 
 class PairAveragingOptimizer(KungFuOptimizer):

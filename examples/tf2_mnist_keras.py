@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
 
 flags = tf.compat.v1.flags
@@ -34,6 +34,8 @@ if FLAGS.kf_optimizer == 'sync-sgd':
     opt = SynchronousSGDOptimizer(opt)
 elif FLAGS.kf_optimizer == 'async-sgd':
     opt = PairAveragingOptimizer(opt)
+elif FLAGS.kf_optimizer == 'sma':
+    opt = SynchronousAveragingOptimizer(opt)
 else:
     raise RuntimeError('Unknown KungFu optimizer')
 

@@ -23,13 +23,16 @@ def defuse(y, shapes):
 try:
     # TensorFlow 2.x
     _Optimizer = tf.compat.v1.train.Optimizer
+    _tf_assign = tf.compat.v1.assign
 except AttributeError:
     try:
         # TensorFlow 1.x
         _Optimizer = tf.train.Optimizer
+        _tf_assign = tf.assign
     except AttributeError:
         # Future TensorFlow versions
         _Optimizer = None
+        _tf_assign = None
 
 
 class KungFuOptimizer(_Optimizer):
