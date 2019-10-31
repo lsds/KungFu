@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"time"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -86,20 +87,28 @@ func newTCPServer(endpoint Endpoint) (*server, error) {
 	}, nil
 }
 
-func fileExists(filename string) bool {
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return false
+func fileExists(filename string) (bool, time.Duration) {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false, 0
 	}
-	return true
+	if err != nil {
+		return false, 0
+	}
+	return true, time.Since(info.ModTime())
 }
 
 // newUnixServer creates a new Server listening Unix socket
 func newUnixServer(endpoint Endpoint) (*server, error) {
 	sockFile := endpoint.Self().SockFile()
-	if fileExists(sockFile) {
-		log.Warnf("%s already exists, trying to remove", sockFile)
-		if err := os.Remove(sockFile); err != nil {
-			utils.ExitErr(err)
+	if ok, age := fileExists(sockFile); ok {
+		if age > 0 {
+			log.Warnf("%s already exists for %s, trying to remove", sockFile, age)
+			if err := os.Remove(sockFile); err != nil {
+				utils.ExitErr(err)
+			}
+		} else {
+			utils.ExitErr(fmt.Errorf("can't cleanup socket file: %s", sockFile))
 		}
 	}
 	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockFile, Net: "unix"})

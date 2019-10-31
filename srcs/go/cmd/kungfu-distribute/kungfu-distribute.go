@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
@@ -15,6 +16,7 @@ import (
 	runner "github.com/lsds/KungFu/srcs/go/runner/remote"
 	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/srcs/go/xterm"
 )
 
 var (
@@ -22,15 +24,19 @@ var (
 	timeout    = flag.Duration("timeout", 0, "timeout")
 	verboseLog = flag.Bool("v", true, "show task log")
 	user       = flag.String("u", "", "user name for ssh")
+	quiet      = flag.Bool("q", false, "don't log debug info")
 )
 
 func init() {
+	log.SetFlags(0)
 	flag.Parse()
-	utils.LogArgs()
-	utils.LogKungfuEnv()
-	utils.LogNICInfo()
-	utils.LogCudaEnv()
-	utils.LogNCCLEnv()
+	if !*quiet {
+		utils.LogArgs()
+		utils.LogKungfuEnv()
+		utils.LogNICInfo()
+		utils.LogCudaEnv()
+		utils.LogNCCLEnv()
+	}
 }
 
 func progName() string {
@@ -41,8 +47,15 @@ func progName() string {
 }
 
 func main() {
+	args := flag.Args()
+	if len(args) < 1 {
+		utils.ExitErr(errors.New("missing program name"))
+	}
 	t0 := time.Now()
-	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(progName())
+	defer func(prog string) {
+		highlight := xterm.Yellow.S("`") + xterm.Blue.S(strings.Join(args, " ")) + xterm.Yellow.S("`")
+		log.Infof("%s %s took %s", prog, highlight, time.Since(t0))
+	}(progName())
 	hl, err := run.ParseHostList(*hostList)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
@@ -52,10 +65,6 @@ func main() {
 	if *timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, *timeout)
 		defer cancel()
-	}
-	args := flag.Args()
-	if len(args) < 1 {
-		utils.ExitErr(errors.New("missing program name"))
 	}
 	distribute(ctx, hl, args[0], args[1:])
 }

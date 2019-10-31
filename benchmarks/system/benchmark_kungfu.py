@@ -56,6 +56,10 @@ parser.add_argument('--optimizer',
                     type=str,
                     default='sgd',
                     help='Optimizer: sgd, adam')
+parser.add_argument('--fuse',
+                    type=bool,
+                    default=True,
+                    help='Apply fuse if possible')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -93,10 +97,10 @@ if args.kf_optimizer:
         opt = SynchronousSGDOptimizer(opt)
     elif args.kf_optimizer == 'async-sgd':
         from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
-        opt = PairAveragingOptimizer(opt)
+        opt = PairAveragingOptimizer(opt, fuse_requests=args.fuse)
     elif args.kf_optimizer == 'sync-sgd-nccl':
         from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
-        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=True)
+        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=args.fuse)
     elif args.kf_optimizer == 'sma':
         from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
         opt = SynchronousAveragingOptimizer(opt)
