@@ -129,7 +129,7 @@ func (sess *session) runGather(w Workspace) error {
 			if rank == sess.myRank {
 				recvBuf.CopyFrom(w.SendBuf)
 			} else {
-				m := sess.router.Recv(peer.WithName(w.Name))
+				m := sess.router.Collective.Recv(peer.WithName(w.Name))
 				b := &kb.Vector{Data: m.Data, Count: recvBuf.Count, Type: recvBuf.Type}
 				recvBuf.CopyFrom(b)
 			}
@@ -162,7 +162,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 	var lock sync.Mutex
 	recvOnto := func(peer plan.PeerID) error {
-		m := sess.router.Recv(peer.WithName(w.Name))
+		m := sess.router.Collective.Recv(peer.WithName(w.Name))
 		b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
 		defer lock.Unlock()
@@ -177,7 +177,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	}
 
 	recvInto := func(peer plan.PeerID) {
-		sess.router.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
+		sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 		recvCount++
 	}
 

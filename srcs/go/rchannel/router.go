@@ -15,11 +15,10 @@ import (
 )
 
 type Router struct {
-	localAddr plan.NetAddr
-	waitQ     *BufferPool
-	recvQ     *BufferPool
-	connPool  *ConnectionPool
-	monitor   monitor.Monitor
+	localAddr  plan.NetAddr
+	Collective *CollectiveEndpoint // FIXME: move it out of Router
+	connPool   *ConnectionPool
+	monitor    monitor.Monitor
 
 	store      *store.VersionedStore
 	localStore *LocalStore // TODO: replaced by verison store
@@ -29,11 +28,8 @@ type Router struct {
 
 func NewRouter(self plan.PeerID, store *store.VersionedStore) *Router {
 	return &Router{
-		localAddr: plan.NetAddr(self),
-
-		waitQ: newBufferPool(),
-		recvQ: newBufferPool(),
-
+		localAddr:  plan.NetAddr(self),
+		Collective: NewCollectiveEndpoint(),
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
 		store:      store,
@@ -126,48 +122,6 @@ func (r *Router) send(a plan.Addr, msg Message, t ConnType, flags uint32) error 
 	return nil
 }
 
-// Recv recevies a message from given Addr
-func (r *Router) Recv(a plan.Addr) Message {
-	m := <-r.recvQ.require(a)
-	return *m
-}
-
-var errRegisteredBufferNotUsed = errors.New("registered buffer not used")
-
-// RecvInto receives a message into given buffer
-func (r *Router) RecvInto(a plan.Addr, m Message) error {
-	r.waitQ.require(a) <- &m
-	pm := <-r.recvQ.require(a)
-	if !m.same(pm) {
-		return errRegisteredBufferNotUsed
-	}
-	return nil
-}
-
-func (r *Router) acceptOne(conn net.Conn, remote plan.NetAddr) (string, *Message, error) {
-	var mh messageHeader
-	if err := mh.ReadFrom(conn); err != nil {
-		return "", nil, err
-	}
-	name := string(mh.Name)
-	if mh.HasFlag(WaitRecvBuf) {
-		m := <-r.waitQ.require(remote.WithName(name))
-		if err := m.ReadInto(conn); err != nil {
-			return "", nil, err
-		}
-		return name, m, nil
-	}
-	var m Message
-	if err := m.ReadFrom(conn); err != nil {
-		return "", nil, err
-	}
-	return name, &m, nil
-}
-
-func (r *Router) handleCollective(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
-	r.recvQ.require(remote.WithName(name)) <- msg
-}
-
 func (r *Router) handlePeerToPeerConn(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
 	version := string(msg.Data)
 	if len(version) == 0 {
@@ -237,13 +191,13 @@ func (r *Router) Save(name string, model *kb.Vector) error {
 
 var ErrInvalidConnectionType = errors.New("invalid connection type")
 
+// Handle implements ConnHandler.Handle interface
 func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error {
 	switch t {
 	case ConnCollective:
-		_, err := Stream(conn, remote, r.acceptOne, r.handleCollective)
-		return err
+		return r.Collective.Handle(conn, remote, t)
 	case ConnPeerToPeer:
-		_, err := Stream(conn, remote, r.acceptOne, r.handlePeerToPeerConn)
+		_, err := Stream(conn, remote, Accept, r.handlePeerToPeerConn)
 		return err
 	default:
 		return ErrInvalidConnectionType

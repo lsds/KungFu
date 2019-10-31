@@ -1,9 +1,6 @@
 package rchannel
 
 import (
-	"errors"
-	"fmt"
-	"io"
 	"net"
 	"os"
 	"sync"
@@ -144,11 +141,6 @@ func (s *server) Close() {
 	}
 }
 
-var (
-	errNotImplemented          = errors.New("Not Implemented")
-	errInvalidConnectionHeader = errors.New("Invalid connection header")
-)
-
 func (s *server) handle(conn net.Conn) error {
 	defer conn.Close()
 	var ch connectionHeader
@@ -158,19 +150,10 @@ func (s *server) handle(conn net.Conn) error {
 	remote := plan.NetAddr{IPv4: ch.SrcIPv4, Port: ch.SrcPort}
 	t := ConnType(ch.Type)
 	log.Debugf("got new connection of type %s from: %s", t, remote)
-	switch t {
-	case ConnPing:
+	if t == ConnPing {
 		return s.handlePing(remote, conn)
-	case ConnControl:
-		return s.handleControl(remote, conn)
-	case ConnCollective:
-		return s.handleCollective(remote, conn)
-	case ConnPeerToPeer:
-		return s.handlePeerToPeer(remote, conn)
-	default:
-		log.Debugf("%v", errInvalidConnectionHeader) // FIXME: filter out health check pings
-		return nil
 	}
+	return s.endpoint.Handle(conn, remote, t)
 }
 
 func (s *server) handlePing(remote plan.NetAddr, conn net.Conn) error {
@@ -186,27 +169,6 @@ func (s *server) handlePing(remote plan.NetAddr, conn net.Conn) error {
 		return err
 	}
 	return empty.WriteTo(conn)
-}
-
-func (s *server) handleControl(remote plan.NetAddr, conn net.Conn) error {
-	if err := s.endpoint.Handle(conn, remote, ConnControl); err != nil && err != io.EOF {
-		return fmt.Errorf("handle error: %v", err)
-	}
-	return nil
-}
-
-func (s *server) handleCollective(remote plan.NetAddr, conn net.Conn) error {
-	if err := s.endpoint.Handle(conn, remote, ConnCollective); err != nil && err != io.EOF {
-		return fmt.Errorf("handle error: %v", err)
-	}
-	return nil
-}
-
-func (s *server) handlePeerToPeer(remote plan.NetAddr, conn net.Conn) error {
-	if err := s.endpoint.Handle(conn, remote, ConnPeerToPeer); err != nil && err != io.EOF {
-		return fmt.Errorf("handle error: %v", err)
-	}
-	return nil
 }
 
 // check if error is internal/poll.ErrNetClosing

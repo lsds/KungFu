@@ -162,7 +162,7 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max"}
 		sess.AllReduce(w1)
 		sess.AllReduce(w2)
-		if !bytesEq(x.Data, y.Data) || !bytesEq(x.Data, z.Data) {
+		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
 			return false
 		}
 	}
@@ -177,7 +177,7 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max"}
 		sess.AllReduce(w1)
 		sess.AllReduce(w2)
-		if !bytesEq(x.Data, y.Data) || !bytesEq(x.Data, z.Data) {
+		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
 			return false
 		}
 	}
@@ -222,16 +222,4 @@ func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, error) {
 		return false, nil
 	}
 	return kf.Update(), nil
-}
-
-func bytesEq(x, y []byte) bool {
-	if len(x) != len(y) {
-		return false
-	}
-	for i, a := range x {
-		if a != y[i] {
-			return false
-		}
-	}
-	return true
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"os"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -42,11 +43,18 @@ func testGetPeerLatencies(kungfu *kf.Kungfu) {
 
 func testAllReduce(kungfu *kf.Kungfu) {
 	sess := kungfu.CurrentSession()
+	np := sess.ClusterSize()
 	{
 		x := kb.NewVector(1, kb.I32)
 		y := kb.NewVector(1, kb.I32)
+		z := kb.NewVector(1, kb.I32)
+		x.AsI32()[0] = 1
+		z.AsI32()[0] = int32(np)
 		w := kf.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
 		sess.AllReduce(w)
+		if !utils.BytesEq(y.Data, z.Data) {
+			os.Exit(1)
+		}
 	}
 	{
 		bs := make([]byte, 1)
