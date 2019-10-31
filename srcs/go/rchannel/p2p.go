@@ -37,7 +37,7 @@ func (e *PeerToPeerEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t ConnTy
 	return err
 }
 
-func (e *PeerToPeerEndpoint) Request(a plan.Addr, version, name string, m Message) (bool, error) {
+func (e *PeerToPeerEndpoint) Request(a plan.Addr, version string, m Message) (bool, error) {
 	e.waitQ.require(a) <- &m
 	if err := e.router.Send(a, []byte(version), ConnPeerToPeer, NoFlag); err != nil {
 		return false, err // FIXME: allow send to fail

@@ -96,7 +96,7 @@ func (sess *session) Request(rank int, version, name string, buf *kb.Vector) (bo
 		return false, errInvalidRank
 	}
 	peer := sess.peers[rank]
-	return sess.router.P2P.Request(peer.WithName(name), version, name, asMessage(buf))
+	return sess.router.P2P.Request(peer.WithName(name), version, asMessage(buf))
 }
 
 func asMessage(b *kb.Vector) rch.Message {
