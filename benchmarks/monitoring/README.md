@@ -5,7 +5,7 @@
 Use the following command to run the KungFu benchmark.
 
 ```bash
-kungfu-run -np 4 python3 benchmark.py --metric=variance --model=ResNet50 --batch-size=64
+kungfu-run -np 4 python3 benchmark.py --kf-optimizer=variance --model=ResNet50 --batch-size=64
 ```
 
 ## Gradient Noise Scale
@@ -13,5 +13,5 @@ kungfu-run -np 4 python3 benchmark.py --metric=variance --model=ResNet50 --batch
 Use the following command to run the KungFu benchmark.
 
 ```bash
-kungfu-run -np 4 python3 benchmark.py --metric=noise-scale --model=ResNet50 --batch-size=64
+kungfu-run -np 4 python3 benchmark.py --kf-optimizer=noise-scale --model=ResNet50 --batch-size=64
 ```
