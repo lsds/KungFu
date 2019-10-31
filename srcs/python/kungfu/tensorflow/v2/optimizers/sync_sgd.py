@@ -55,9 +55,9 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         gradients, variables = list(zip(*grads_and_vars))
 
         for var in variables:
-            logging.debug(str(current_rank()) + ":" + str(var))
-            var = broadcast(var)
-            logging.debug(str(current_rank()) + ":" + str(var))
+            logging.debug(str(current_rank()) + ":apply_gradients:" + str(var))
+            var.assign(broadcast(var))
+            logging.debug(str(current_rank()) + ":apply_gradients:" + str(var))
         
 
         if self._nccl:
