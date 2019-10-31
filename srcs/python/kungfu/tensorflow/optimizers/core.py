@@ -1,5 +1,6 @@
 import tensorflow as tf
 from kungfu.tensorflow.v1.ops import counter
+from kungfu.tensorflow import _tf_optimizer
 
 
 def fuse(ts):
@@ -18,21 +19,6 @@ def defuse(y, shapes):
     if off != y.shape.num_elements():
         raise RuntimeError('invalid shapes')
     return ts
-
-
-try:
-    # TensorFlow 2.x
-    _tf_optimizer = tf.compat.v1.train.Optimizer
-    _tf_assign = tf.compat.v1.assign
-    _tf_mod = tf.math.floormod
-except AttributeError:
-    try:
-        # TensorFlow 1.x
-        _tf_optimizer = tf.train.Optimizer
-        _tf_assign = tf.assign
-        _tf_mod = tf.mod
-    except AttributeError:
-        raise RuntimeError('Not sure what TensorFlow version to use.')
 
 
 class KungFuOptimizer(_tf_optimizer):

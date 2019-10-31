@@ -4,8 +4,8 @@ from kungfu.tensorflow.v1.ops import (barrier, broadcast, counter,
                                       request_variable,
                                       request_variable_with_template,
                                       save_variable)
-
-from .core import KungFuOptimizer, _tf_assign, _tf_mod, defuse, fuse
+from kungfu.tensorflow import _tf_assign, _tf_mod
+from .core import KungFuOptimizer, defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):
