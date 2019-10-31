@@ -6,6 +6,9 @@ from kungfu.tensorflow.v1.ops import (broadcast, global_noise_scale,
 
 from .core import KungFuOptimizer, defuse, fuse
 
+import logging
+from kungfu import current_rank
+
 
 class SynchronousSGDOptimizer(KungFuOptimizer):
     """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
@@ -50,6 +53,12 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
+
+        for var in variables:
+            logging.debug(str(current_rank()) + ":" + str(var))
+            var = broadcast(var)
+            logging.debug(str(current_rank()) + ":" + str(var))
+        
 
         if self._nccl:
             if self._nccl_fusion:
