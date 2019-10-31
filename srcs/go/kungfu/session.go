@@ -106,7 +106,7 @@ func (sess *session) Pull(rank int, version, name string, model *kb.Vector) erro
 
 // FIXME: move it to kungfu
 func (sess *session) Save(name string, buf *kb.Vector) error {
-	return sess.router.Save(name, buf)
+	return sess.router.P2P.Save(name, buf)
 }
 
 func asMessage(b *kb.Vector) rch.Message {
