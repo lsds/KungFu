@@ -14,14 +14,16 @@ import argparse
 import logging
 import kungfu as kf
 import tensorflow as tf
+from kungfu.tensorflow.v1.ops import broadcast
 from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.v2.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 
 
 class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
-        for v in tf.compat.v1.global_variables():
-            tf.assign(v, broadcast(v)) 
+        for var in self.model.variables:
+            var = broadcast(var)
+        logging.debug("broadcasted self.model.variables")
 
 
 def load_dataset():
@@ -95,8 +97,9 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
               batch_size=batch_size,
               epochs=n_epochs,
               validation_data=(dataset['x_val'], dataset['y_val']),
-              verbose=2)
-              # callbacks=[BroadcastGlobalVariablesCallback()])
+              verbose=2,
+              callbacks=[BroadcastGlobalVariablesCallback()]
+              )
 
 
 def test_model(model, dataset):

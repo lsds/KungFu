@@ -6,9 +6,6 @@ from kungfu.tensorflow.v1.ops import (broadcast, global_noise_scale,
 
 from .core import KungFuOptimizer, defuse, fuse
 
-import logging
-import traceback
-
 
 class SynchronousSGDOptimizer(KungFuOptimizer):
     """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
@@ -52,9 +49,6 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         self._nccl_fusion = nccl_fusion
 
     def apply_gradients(self, grads_and_vars, **kwargs):
-        logging.debug("apply_gradients")
-        logging.debug(traceback.extract_stack(f=None, limit=None))
-
         gradients, variables = list(zip(*grads_and_vars))
 
         if self._nccl:
