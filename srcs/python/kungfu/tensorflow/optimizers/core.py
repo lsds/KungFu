@@ -20,7 +20,19 @@ def defuse(y, shapes):
     return ts
 
 
-class KungFuOptimizer(tf.train.Optimizer):
+try:
+    # TensorFlow 2.x
+    _Optimizer = tf.compat.v1.train.Optimizer
+except AttributeError:
+    try:
+        # TensorFlow 1.x
+        _Optimizer = tf.train.Optimizer
+    except AttributeError:
+        # Future TensorFlow versions
+        _Optimizer = None
+
+
+class KungFuOptimizer(_Optimizer):
     def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
             name = "KungFu{}".format(type(optimizer).__name__)

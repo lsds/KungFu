@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.v2.optimizers import SynchronousSGDOptimizer
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
 
 (mnist_images, mnist_labels), _ = \

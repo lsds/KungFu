@@ -9,13 +9,10 @@ from .core import KungFuOptimizer, defuse, fuse
 
 class SynchronousSGDOptimizer(KungFuOptimizer):
     """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
-
     This optimizer is equivalent to the DistributedOptimizer in Horovod.
     Every iteration of training, this optimizer computes the averaged gradients
     to correct diverged model replicas.
-
     .. [S-SGD] Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour, 2017, `S-SGD Paper <https://arxiv.org/pdf/1706.02677>`_
-
     Args:
       optimizer:
         Optimizer to use for computing gradients and applying updates.
@@ -31,7 +28,6 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
       use_locking:
         Whether to use locking when updating variables.
         See Optimizer.__init__ for more info.
-
     """
     def __init__(self,
                  optimizer,
