@@ -20,22 +20,22 @@ stages:
   - pip3 install --no-index -U .
 
 tensorflow 1.12.3:
-  extends: .job_linux_build_test
+  extends: .tensorflow
   variables:
     TF_VERSION: '1.12.3'
 
 tensorflow 1.13.0:
-  extends: .job_linux_build_test
+  extends: .tensorflow
   variables:
     TF_VERSION: '1.13.0'
 
 tensorflow 1.14.0:
-  extends: .job_linux_build_test
+  extends: .tensorflow
   variables:
     TF_VERSION: '1.14.0'
 
 tensorflow 2.0.0b1:
-  extends: .job_linux_build_test
+  extends: .tensorflow
   variables:
     TF_VERSION: '2.0.0b1'
 
