@@ -5,15 +5,33 @@ stages:
 - test
 - lint
 
-integration test:
+tensorflow 1.14.0:
   stage: test
-  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
+  image: python:3.6
+  variables:
+    KUNGFU_DOWNLOAD_GO: 'ON'
+
+  before_script:
+  - pip3 install cmake tensorflow==1.14.0
+  - python3 --version
+  - python3 -c "import tensorflow as tf; print(tf.__version__)"
 
   script:
-  - ./configure --build-tests --build-tools
-  - make
-  - ./scripts/tests/run-integration-tests.sh
-  - ./scripts/tests/run-go-tests.sh
+  - pip3 install --no-index -U .
+
+tensorflow 2.0.0b1:
+  stage: test
+  image: python:3.6
+  variables:
+    KUNGFU_DOWNLOAD_GO: 'ON'
+
+  before_script:
+  - pip3 install cmake tensorflow==2.0.0b1
+  - python3 --version
+  - python3 -c "import tensorflow as tf; print(tf.__version__)"
+
+  script:
+  - pip3 install --no-index -U .
 
 python3 test:
   stage: test
@@ -30,7 +48,7 @@ python3 test:
 
   script:
   - cmake --version
-  - pip3 install -vvv -U .
+  - pip3 install --no-index -U .
   - GOBIN=$PWD/bin go install -v ./srcs/go/cmd/kungfu-run
 
   - ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow

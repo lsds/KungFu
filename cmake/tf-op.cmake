@@ -1,19 +1,21 @@
 SET(PYTHON "python3" CACHE STRING "python command to use")
 
-IF(NOT DEFINED TF_INCLUDE)
+IF(NOT DEFINED TF_COMPILE_FLAGS)
     EXECUTE_PROCESS(
-        COMMAND ${PYTHON} -c
-                "import tensorflow as tf; print(tf.sysconfig.get_include())"
+        COMMAND
+            ${PYTHON} -c
+            "import tensorflow as tf; print(' '.join(tf.sysconfig.get_compile_flags()))"
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        OUTPUT_VARIABLE TF_INCLUDE)
+        OUTPUT_VARIABLE TF_COMPILE_FLAGS)
 ENDIF()
 
-IF(NOT DEFINED TF_LIB)
+IF(NOT DEFINED TF_LINK_FLAGS)
     EXECUTE_PROCESS(
-        COMMAND ${PYTHON} -c
-                "import tensorflow as tf; print(tf.sysconfig.get_lib())"
+        COMMAND
+            ${PYTHON} -c
+            "import tensorflow as tf; print(' '.join(tf.sysconfig.get_link_flags()))"
         OUTPUT_STRIP_TRAILING_WHITESPACE
-        OUTPUT_VARIABLE TF_LIB)
+        OUTPUT_VARIABLE TF_LINK_FLAGS)
 ENDIF()
 
 IF(NOT DEFINED PY_EXT_SUFFIX)
@@ -26,17 +28,15 @@ IF(NOT DEFINED PY_EXT_SUFFIX)
         OUTPUT_VARIABLE PY_EXT_SUFFIX)
 ENDIF()
 
-LINK_DIRECTORIES(${TF_LIB})
-
-FUNCTION(SET_TF_CXX11_ABI target)
-    TARGET_COMPILE_OPTIONS(${target} PRIVATE "-D_GLIBCXX_USE_CXX11_ABI=0")
+FUNCTION(SET_TF_COMPILE_OPTION target)
+    SET_TARGET_PROPERTIES(${target}
+                          PROPERTIES COMPILE_FLAGS ${TF_COMPILE_FLAGS})
 ENDFUNCTION()
 
 FUNCTION(ADD_TF_OP_LIB target)
     ADD_LIBRARY(${target} SHARED ${ARGN})
-    TARGET_LINK_LIBRARIES(${target} tensorflow_framework)
-    TARGET_INCLUDE_DIRECTORIES(${target} PRIVATE ${TF_INCLUDE})
-    SET_TF_CXX11_ABI(${target})
+    SET_TF_COMPILE_OPTION(${target})
+    TARGET_LINK_LIBRARIES(${target} ${TF_LINK_FLAGS})
     SET_TARGET_PROPERTIES(${target} PROPERTIES SUFFIX ${PY_EXT_SUFFIX})
     SET_TARGET_PROPERTIES(${target} PROPERTIES PREFIX "")
 ENDFUNCTION()
