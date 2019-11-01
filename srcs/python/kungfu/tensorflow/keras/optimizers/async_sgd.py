@@ -1,15 +1,17 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import (barrier, broadcast, current_cluster_size,
-                                      current_rank, request_variable,
+from kungfu.tensorflow.v1.ops import (barrier, broadcast, counter,
+                                      current_cluster_size, current_rank,
+                                      request_variable,
                                       request_variable_with_template,
-                                      save_variable, counter)
+                                      save_variable)
 
 from .core import defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):
     t = tf.random.uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
-    return tf.cond(tf.equal(t, self_rank), lambda: tf.math.floormod(t + 1, cluster_size),
+    return tf.cond(tf.equal(t, self_rank),
+                   lambda: tf.math.floormod(t + 1, cluster_size),
                    lambda: tf.identity(t))
 
 

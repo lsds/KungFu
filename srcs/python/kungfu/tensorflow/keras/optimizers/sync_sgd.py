@@ -34,10 +34,10 @@ class SynchronousSGDOptimizer(tf.keras.optimizers.Optimizer):
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
-        
+
         # for var in variables:
         #     var.assign(broadcast(var))
-        
+
         summed_gradients = group_all_reduce(gradients)
 
         reduced_grads = map_maybe(lambda g: g / self._num_workers,
