@@ -80,7 +80,7 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 			all.Wait()
 		} else {
 			all.Wait()
-			router := rch.NewRouter(parent, nil)
+			router := rch.NewRouter(parent)
 			for _, p := range parents[1:] {
 				router.Send(p.WithName("exit"), nil, rch.ConnControl, 0)
 			}

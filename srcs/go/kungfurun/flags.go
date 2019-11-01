@@ -8,6 +8,7 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -16,6 +17,7 @@ func Init(f *FlagSet) {
 	if err := f.Parse(); err != nil {
 		utils.ExitErr(err)
 	}
+	log.SetFlags(0)
 	if !f.Quiet {
 		utils.LogArgs()
 		utils.LogKungfuEnv()

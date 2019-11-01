@@ -1,12 +1,11 @@
 package rchannel
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"sync"
+	"time"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -89,20 +88,28 @@ func newTCPServer(endpoint Endpoint) (*server, error) {
 	}, nil
 }
 
-func fileExists(filename string) bool {
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		return false
+func fileExists(filename string) (bool, time.Duration) {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false, 0
 	}
-	return true
+	if err != nil {
+		return false, 0
+	}
+	return true, time.Since(info.ModTime())
 }
 
 // newUnixServer creates a new Server listening Unix socket
 func newUnixServer(endpoint Endpoint) (*server, error) {
 	sockFile := endpoint.Self().SockFile()
-	if fileExists(sockFile) {
-		log.Warnf("%s already exists, trying to remove", sockFile)
-		if err := os.Remove(sockFile); err != nil {
-			utils.ExitErr(err)
+	if ok, age := fileExists(sockFile); ok {
+		if age > 0 {
+			log.Warnf("%s already exists for %s, trying to remove", sockFile, age)
+			if err := os.Remove(sockFile); err != nil {
+				utils.ExitErr(err)
+			}
+		} else {
+			utils.ExitErr(fmt.Errorf("can't cleanup socket file: %s", sockFile))
 		}
 	}
 	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockFile, Net: "unix"})
@@ -144,11 +151,6 @@ func (s *server) Close() {
 	}
 }
 
-var (
-	errNotImplemented          = errors.New("Not Implemented")
-	errInvalidConnectionHeader = errors.New("Invalid connection header")
-)
-
 func (s *server) handle(conn net.Conn) error {
 	defer conn.Close()
 	var ch connectionHeader
@@ -158,19 +160,10 @@ func (s *server) handle(conn net.Conn) error {
 	remote := plan.NetAddr{IPv4: ch.SrcIPv4, Port: ch.SrcPort}
 	t := ConnType(ch.Type)
 	log.Debugf("got new connection of type %s from: %s", t, remote)
-	switch t {
-	case ConnPing:
+	if t == ConnPing {
 		return s.handlePing(remote, conn)
-	case ConnControl:
-		return s.handleControl(remote, conn)
-	case ConnCollective:
-		return s.handleCollective(remote, conn)
-	case ConnPeerToPeer:
-		return s.handlePeerToPeer(remote, conn)
-	default:
-		log.Debugf("%v", errInvalidConnectionHeader) // FIXME: filter out health check pings
-		return nil
 	}
+	return s.endpoint.Handle(conn, remote, t)
 }
 
 func (s *server) handlePing(remote plan.NetAddr, conn net.Conn) error {
@@ -186,27 +179,6 @@ func (s *server) handlePing(remote plan.NetAddr, conn net.Conn) error {
 		return err
 	}
 	return empty.WriteTo(conn)
-}
-
-func (s *server) handleControl(remote plan.NetAddr, conn net.Conn) error {
-	if err := s.endpoint.Handle(conn, remote, ConnControl); err != nil && err != io.EOF {
-		return fmt.Errorf("handle error: %v", err)
-	}
-	return nil
-}
-
-func (s *server) handleCollective(remote plan.NetAddr, conn net.Conn) error {
-	if err := s.endpoint.Handle(conn, remote, ConnCollective); err != nil && err != io.EOF {
-		return fmt.Errorf("handle error: %v", err)
-	}
-	return nil
-}
-
-func (s *server) handlePeerToPeer(remote plan.NetAddr, conn net.Conn) error {
-	if err := s.endpoint.Handle(conn, remote, ConnPeerToPeer); err != nil && err != io.EOF {
-		return fmt.Errorf("handle error: %v", err)
-	}
-	return nil
 }
 
 // check if error is internal/poll.ErrNetClosing

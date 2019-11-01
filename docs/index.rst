@@ -8,10 +8,10 @@ The following is the public API we released by far.
 .. automodule:: kungfu
    :members:
 
-.. automodule:: kungfu.tensorflow.v1.ops
+.. automodule:: kungfu.tensorflow.ops
    :members:
 
-.. automodule:: kungfu.tensorflow.v1.optimizers
+.. automodule:: kungfu.tensorflow.optimizers
    :members:
 
 Indices and tables

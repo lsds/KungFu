@@ -34,7 +34,7 @@ loss = ...
 opt = tf.train.AdamOptimizer(0.01)
 
 # KungFu Step 1: Wrap tf.optimizer in KungFu optimizers
-from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 opt = SynchronousSGDOptimizer(opt)
 
 # Make training operation
