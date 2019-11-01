@@ -93,16 +93,16 @@ if args.kf_optimizer:
     from kungfu.tensorflow.v1.ops import barrier
     barrier_op = barrier()
     if args.kf_optimizer == 'sync-sgd':
-        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+        from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt)
     elif args.kf_optimizer == 'async-sgd':
-        from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
-        opt = PairAveragingOptimizer(opt, fuse_requests=args.fuse)
+        from kungfu.tensorflow.optimizers import PairAveragingOptimizer
+        opt = PairAveragingOptimizer(opt)
     elif args.kf_optimizer == 'sync-sgd-nccl':
-        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
-        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=args.fuse)
+        from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=True)
     elif args.kf_optimizer == 'sma':
-        from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
+        from kungfu.tensorflow.optimizers import SynchronousAveragingOptimizer
         opt = SynchronousAveragingOptimizer(opt)
     else:
         raise Exception('Unknown kungfu option')

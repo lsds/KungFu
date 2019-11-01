@@ -1,4 +1,5 @@
 import tensorflow as tf
+from kungfu.tensorflow import _tf_optimizer
 from kungfu.tensorflow.v1.ops import counter
 
 
@@ -20,7 +21,7 @@ def defuse(y, shapes):
     return ts
 
 
-class KungFuOptimizer(tf.train.Optimizer):
+class KungFuOptimizer(_tf_optimizer):
     def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
             name = "KungFu{}".format(type(optimizer).__name__)

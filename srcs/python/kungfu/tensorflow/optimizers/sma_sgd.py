@@ -1,4 +1,5 @@
 import tensorflow as tf
+from kungfu.tensorflow import _tf_assign
 from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
                                       current_rank, group_all_reduce)
 
@@ -35,15 +36,19 @@ class SynchronousAveragingOptimizer(KungFuOptimizer):
 
     def apply_gradients(self, grads_and_vars, **kwargs):
         # It is important to apply model averaging every iteration [2]
-        _, variables = list(zip(*grads_and_vars))
+        gradients, variables = list(zip(*grads_and_vars))
         sum_vars = group_all_reduce(variables)
         avg_vars = [g / self._num_workers for g in sum_vars]
 
         # TODO: Apply momentum to the averaged model [2]
         assign_ops = [
-            tf.assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
+            _tf_assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
         ]
+
+        # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
+        new_grads_and_vars = zip(gradients, variables)
 
         # We can overlap model averaging and local SGD [2].
         with tf.control_dependencies(assign_ops):
-            return self._optimizer.apply_gradients(grads_and_vars, **kwargs)
+            return self._optimizer.apply_gradients(new_grads_and_vars,
+                                                   **kwargs)

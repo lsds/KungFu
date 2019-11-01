@@ -45,13 +45,13 @@ def build_optimizer(name, n_shards=1):
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
-        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+        from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
         return SynchronousSGDOptimizer(optimizer)
     elif name == 'async-sgd':
-        from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
+        from kungfu.tensorflow.optimizers import PairAveragingOptimizer
         return PairAveragingOptimizer(optimizer, fuse_requests=True)
     elif name == 'sma':
-        from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
+        from kungfu.tensorflow.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
     else:
         raise RuntimeError('unknown optimizer: %s' % name)

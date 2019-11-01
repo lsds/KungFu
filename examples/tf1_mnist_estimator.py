@@ -174,10 +174,10 @@ def model_function(features, labels, mode):
 
         # KungFu: Wrap the tf.train.optimizer with KungFu optimizers
         if FLAGS.kf_optimizer == 'sync_sgd':
-            from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+            from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
             optimizer = SynchronousSGDOptimizer(optimizer)
         elif FLAGS.kf_optimizer == 'async_sgd':
-            from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
+            from kungfu.tensorflow.optimizers import PairAveragingOptimizer
             optimizer = PairAveragingOptimizer(optimizer)
         else:
             raise RuntimeError('Unknown kungfu optimizer')

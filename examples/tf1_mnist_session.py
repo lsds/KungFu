@@ -71,16 +71,16 @@ def build_optimizer(name, batch_size):
 
     # KungFu: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
-        from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+        from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
         return SynchronousSGDOptimizer(optimizer)
     elif name == 'async-sgd':
-        from kungfu.tensorflow.v1.optimizers import PairAveragingOptimizer
+        from kungfu.tensorflow.optimizers import PairAveragingOptimizer
         return PairAveragingOptimizer(optimizer)
     elif name == 'sma':
-        from kungfu.tensorflow.v1.optimizers import SynchronousAveragingOptimizer
+        from kungfu.tensorflow.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
     elif name == 'noise-scale':
-        from kungfu.tensorflow.v1.optimizers import SyncSGDWithGradNoiseScaleOptimizer
+        from kungfu.tensorflow.optimizers import SyncSGDWithGradNoiseScaleOptimizer
         return SyncSGDWithGradNoiseScaleOptimizer(optimizer,
                                                   device_batch_size=batch_size)
     else:
