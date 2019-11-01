@@ -40,6 +40,7 @@ func (e *PeerToPeerEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t ConnTy
 func (e *PeerToPeerEndpoint) Request(a plan.Addr, version string, m Message) (bool, error) {
 	e.waitQ.require(a) <- &m
 	if err := e.router.Send(a, []byte(version), ConnPeerToPeer, NoFlag); err != nil {
+		<-e.waitQ.require(a)
 		return false, err // FIXME: allow send to fail
 	}
 	pm := <-e.recvQ.require(a)
@@ -93,14 +94,10 @@ func (e *PeerToPeerEndpoint) handle(name string, msg *Message, conn net.Conn, re
 		e.recvQ.require(remote.WithName(name)) <- msg
 		return
 	}
-	go e.response(name, string(msg.Data), remote) // FIXME: check error, use one queue
+	go e.response(name, msg.Data, remote) // FIXME: check error, use one queue
 }
 
-func (e *PeerToPeerEndpoint) response(name, version string, remote plan.NetAddr) error {
-	ch, err := e.router.getChannel(remote.WithName(name), ConnPeerToPeer)
-	if err != nil {
-		return err
-	}
+func (e *PeerToPeerEndpoint) response(name string, version []byte, remote plan.NetAddr) error {
 	flags := IsResponse
 	var buf []byte
 	if len(version) == 0 {
@@ -113,15 +110,11 @@ func (e *PeerToPeerEndpoint) response(name, version string, remote plan.NetAddr)
 		}
 	} else {
 		var blob *store.Blob // FIXME: copy elision
-		if err := e.store.Get(version, name, &blob); err == nil {
+		if err := e.store.Get(string(version), name, &blob); err == nil {
 			buf = blob.Data
 		} else {
 			flags |= RequestFailed
 		}
 	}
-	msg := Message{
-		Length: uint32(len(buf)),
-		Data:   buf,
-	}
-	return ch.Send(msg, flags)
+	return e.router.Send(remote.WithName(name), buf, ConnPeerToPeer, flags)
 }
