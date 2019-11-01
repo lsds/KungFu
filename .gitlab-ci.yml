@@ -19,23 +19,38 @@ stages:
   script:
   - pip3 install --no-index -U .
 
-tensorflow 1.12.3:
+.tensorflow1:
   extends: .tensorflow
+
+  script:
+  - python3 -m kungfu.tensorflow.v1.examples
+
+.tensorflow2:
+  extends: .tensorflow
+  # TODO: run TF2 examples
+
+tensorflow 1.12.3:
+  extends: .tensorflow1
   variables:
     TF_VERSION: '1.12.3'
 
 tensorflow 1.13.2:
-  extends: .tensorflow
+  extends: .tensorflow1
   variables:
     TF_VERSION: '1.13.2'
 
 tensorflow 1.14.0:
-  extends: .tensorflow
+  extends: .tensorflow1
   variables:
     TF_VERSION: '1.14.0'
 
+tensorflow 1.15.0:
+  extends: .tensorflow1
+  variables:
+    TF_VERSION: '1.15.0'
+
 tensorflow 2.0.0b1:
-  extends: .tensorflow
+  extends: .tensorflow2
   variables:
     TF_VERSION: '2.0.0b1'
 
