@@ -6,27 +6,9 @@ import (
 )
 
 var (
-	errReadConflict  = errors.New("read conflict")
-	errWriteConflict = errors.New("write conflict")
-	errNotFound      = errors.New("not found")
-	errSizeNotMatch  = errors.New("size not match")
+	errConflict = errors.New("conflict")
+	errNotFound = errors.New("not found")
 )
-
-type Blob struct {
-	Data []byte
-}
-
-func NewBlob(n int) *Blob {
-	return &Blob{Data: make([]byte, n)}
-}
-
-func (b *Blob) copyFrom(c *Blob) error {
-	if len(b.Data) != len(c.Data) {
-		return errSizeNotMatch
-	}
-	copy(b.Data, c.Data)
-	return nil
-}
 
 // Store is a simple Key-Value store
 type Store struct {
@@ -35,38 +17,43 @@ type Store struct {
 	data map[string]*Blob
 }
 
-func newStore() *Store {
+func NewStore() *Store {
 	return &Store{
 		data: make(map[string]*Blob),
 	}
 }
 
-func (s *Store) Create(name string, buf *Blob) error {
+func (s *Store) Create(name string, size int) (*Blob, error) {
 	s.Lock()
 	defer s.Unlock()
 	if _, ok := s.data[name]; ok {
-		return errWriteConflict
+		return nil, errConflict
 	}
-	value := NewBlob(len(buf.Data))
-	value.copyFrom(buf)
-	s.data[name] = value
-	return nil
+	blob := NewBlob(size)
+	s.data[name] = blob
+	return blob, nil
 }
 
-// Get retrives the data with given name, if blob is not nil,
-// the length of blob.Data is used to validate the stored data
-func (s *Store) Get(name string, blob **Blob) error {
+func (s *Store) Get(name string) (*Blob, error) {
 	s.RLock()
 	defer s.RUnlock()
-	value, ok := s.data[name]
+	blob, ok := s.data[name]
 	if !ok {
-		return errNotFound
+		return nil, errNotFound
 	}
-	if *blob == nil {
-		*blob = NewBlob(len(value.Data))
+	return blob, nil
+}
+
+func (s *Store) GetOrCreate(name string, size int) (*Blob, error) {
+	s.Lock()
+	defer s.Unlock()
+	if blob, ok := s.data[name]; ok {
+		if len(blob.Data) == size {
+			return blob, nil
+		}
+		return nil, errConflict
 	}
-	if err := (*blob).copyFrom(value); err != nil {
-		return errReadConflict
-	}
-	return nil
+	blob := NewBlob(size)
+	s.data[name] = blob
+	return blob, nil
 }

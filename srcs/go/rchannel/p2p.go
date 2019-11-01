@@ -8,23 +8,23 @@ import (
 	"github.com/lsds/KungFu/srcs/go/store"
 )
 
+const defaultVersionCount = 3
+
 type PeerToPeerEndpoint struct {
-	store      *store.VersionedStore
-	localStore *LocalStore // TODO: replaced by verison store
-
-	waitQ *BufferPool
-	recvQ *BufferPool
-
-	router *Router
+	versionedStore *store.VersionedStore
+	store          *store.Store
+	waitQ          *BufferPool
+	recvQ          *BufferPool
+	router         *Router
 }
 
 func NewPeerToPeerEndpoint(router *Router) *PeerToPeerEndpoint {
 	return &PeerToPeerEndpoint{
-		store:      store.NewVersionedStore(3),
-		localStore: newLocalStore(), // TODO: replaced by verison store
-		waitQ:      newBufferPool(1),
-		recvQ:      newBufferPool(1),
-		router:     router,
+		versionedStore: store.NewVersionedStore(defaultVersionCount),
+		store:          store.NewStore(),
+		waitQ:          newBufferPool(1),
+		recvQ:          newBufferPool(1),
+		router:         router,
 	}
 }
 
@@ -50,14 +50,20 @@ func (e *PeerToPeerEndpoint) Request(a plan.Addr, version string, m Message) (bo
 	return !pm.hasFlag(RequestFailed), nil
 }
 
-func (e *PeerToPeerEndpoint) Save(name string, model *kb.Vector) error {
-	e.localStore.Emplace(name, model)
-	return nil
+func (e *PeerToPeerEndpoint) Save(name string, buf *kb.Vector) error {
+	blob, err := e.store.GetOrCreate(name, len(buf.Data))
+	if err != nil {
+		return err
+	}
+	return blob.CopyFrom(buf.Data)
 }
 
 func (e *PeerToPeerEndpoint) SaveVersion(version, name string, buf *kb.Vector) error {
-	blob := &store.Blob{Data: buf.Data}
-	return e.store.Create(version, name, blob)
+	blob, err := e.versionedStore.GetOrCreate(version, name, len(buf.Data))
+	if err != nil {
+		return err
+	}
+	return blob.CopyFrom(buf.Data)
 }
 
 func (e *PeerToPeerEndpoint) accept(conn net.Conn, remote plan.NetAddr) (string, *Message, error) {
@@ -98,23 +104,21 @@ func (e *PeerToPeerEndpoint) handle(name string, msg *Message, conn net.Conn, re
 }
 
 func (e *PeerToPeerEndpoint) response(name string, version []byte, remote plan.NetAddr) error {
+	var blob *store.Blob
+	var err error
+	if len(version) == 0 {
+		blob, err = e.store.Get(name)
+	} else {
+		blob, err = e.versionedStore.Get(string(version), name)
+	}
 	flags := IsResponse
 	var buf []byte
-	if len(version) == 0 {
-		e.localStore.RLock()
-		defer e.localStore.RUnlock()
-		if v, ok := e.localStore.data[name]; ok {
-			buf = v.Data
-		} else {
-			flags |= RequestFailed
-		}
+	if err == nil {
+		blob.RLock()
+		defer blob.RUnlock()
+		buf = blob.Data
 	} else {
-		var blob *store.Blob // FIXME: copy elision
-		if err := e.store.Get(string(version), name, &blob); err == nil {
-			buf = blob.Data
-		} else {
-			flags |= RequestFailed
-		}
+		flags |= RequestFailed
 	}
 	return e.router.Send(remote.WithName(name), buf, ConnPeerToPeer, flags)
 }
