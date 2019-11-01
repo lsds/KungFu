@@ -34,7 +34,7 @@ loss = ...
 opt = tf.train.AdamOptimizer(0.01)
 
 # KungFu Step 1: Wrap tf.optimizer in KungFu optimizers
-from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 opt = SynchronousSGDOptimizer(opt)
 
 # Make training operation
@@ -45,7 +45,7 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     # KungFu Step 2: ensure distributed workers start with consistent states
-    from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+    from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
     sess.run(BroadcastGlobalVariablesOp())
 
     for step in range(10):
