@@ -5,33 +5,39 @@ stages:
 - test
 - lint
 
-tensorflow 1.14.0:
+.tensorflow:
   stage: test
   image: python:3.6
   variables:
     KUNGFU_DOWNLOAD_GO: 'ON'
 
   before_script:
-  - pip3 install cmake tensorflow==1.14.0
+  - pip3 install cmake tensorflow==${TF_VERSION}
   - python3 --version
   - python3 -c "import tensorflow as tf; print(tf.__version__)"
 
   script:
   - pip3 install --no-index -U .
+
+tensorflow 1.12.3:
+  extends: .job_linux_build_test
+  variables:
+    TF_VERSION: '1.12.3'
+
+tensorflow 1.13.0:
+  extends: .job_linux_build_test
+  variables:
+    TF_VERSION: '1.13.0'
+
+tensorflow 1.14.0:
+  extends: .job_linux_build_test
+  variables:
+    TF_VERSION: '1.14.0'
 
 tensorflow 2.0.0b1:
-  stage: test
-  image: python:3.6
+  extends: .job_linux_build_test
   variables:
-    KUNGFU_DOWNLOAD_GO: 'ON'
-
-  before_script:
-  - pip3 install cmake tensorflow==2.0.0b1
-  - python3 --version
-  - python3 -c "import tensorflow as tf; print(tf.__version__)"
-
-  script:
-  - pip3 install --no-index -U .
+    TF_VERSION: '2.0.0b1'
 
 python3 test:
   stage: test
