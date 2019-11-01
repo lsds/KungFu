@@ -5,15 +5,56 @@ stages:
 - test
 - lint
 
-integration test:
+.tensorflow:
   stage: test
-  image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
+  image: python:3.6
+  variables:
+    KUNGFU_DOWNLOAD_GO: 'ON'
+
+  before_script:
+  - pip3 install cmake tensorflow==${TF_VERSION}
+  - python3 --version
+  - python3 -c "import tensorflow as tf; print(tf.__version__)"
+
+.tensorflow1:
+  extends: .tensorflow
 
   script:
-  - ./configure --build-tests --build-tools
-  - make
-  - ./scripts/tests/run-integration-tests.sh
-  - ./scripts/tests/run-go-tests.sh
+  - pip3 install --no-index -U .
+  - python3 -m kungfu.tensorflow.v1.examples
+
+.tensorflow2:
+  extends: .tensorflow
+
+  script:
+  - pip3 install --no-index -U .
+  # TODO: run TF2 examples
+
+tensorflow 1.12.3:
+  extends: .tensorflow1
+  variables:
+    TF_VERSION: '1.12.3'
+
+tensorflow 1.13.2:
+  extends: .tensorflow1
+  variables:
+    TF_VERSION: '1.13.2'
+
+# FIXME: Segmentation fault      (core dumped)
+# tensorflow 1.14.0:
+#   extends: .tensorflow1
+#   variables:
+#     TF_VERSION: '1.14.0'
+
+tensorflow 1.15.0:
+  extends: .tensorflow1
+  variables:
+    TF_VERSION: '1.15.0'
+
+tensorflow 2.0.0b1:
+  extends: .tensorflow2
+  variables:
+    TF_VERSION: '2.0.0b1'
 
 python3 test:
   stage: test
@@ -30,7 +71,7 @@ python3 test:
 
   script:
   - cmake --version
-  - pip3 install -vvv -U .
+  - pip3 install --no-index -U .
   - GOBIN=$PWD/bin go install -v ./srcs/go/cmd/kungfu-run
 
   - ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow

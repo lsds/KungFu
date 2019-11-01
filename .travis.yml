@@ -12,3 +12,6 @@ script:
 - ./configure --build-tests --build-gtest
 - make
 - make test
+- GOBIN=$PWD/bin go install -v ./...
+- ./scripts/tests/run-integration-tests.sh
+- ./scripts/tests/run-go-tests.sh
