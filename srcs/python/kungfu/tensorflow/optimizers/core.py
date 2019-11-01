@@ -25,17 +25,24 @@ class KungFuOptimizer(_tf_optimizer, tf.keras.optimizers.Optimizer):
     def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
             name = "KungFu{}".format(type(optimizer).__name__)
-        super(KungFuOptimizer, self).__init__(name=name,
-                                              use_locking=use_locking)
+
+        if isinstance(optimizer, _tf_optimizer):
+            super(KungFuOptimizer, self).__init__(name=name,
+                                                  use_locking=use_locking)
+        elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
+            super(KungFuOptimizer, self).__init__(name=name)
+        else:
+            raise RuntimeError('Cannot wrap: %s' % type(optimizer).__name__)
+
         self._optimizer = optimizer
+
+    # tf.train.Optimizer, tf.keras.optimizers.Optimizer
+    def apply_gradients(self, *args, **kwargs):
+        raise RuntimeError('apply_gradients should be called in a subclass.')
 
     # tf.train.Optimizer
     def compute_gradients(self, *args, **kwargs):
         return self._optimizer.compute_gradients(*args, **kwargs)
-
-    # tf.train.Optimizer
-    def apply_gradients(self, *args, **kwargs):
-        raise RuntimeError('apply_gradients should be called in a subclass.')
 
     # tf.train.Optimizer
     def get_slot(self, *args, **kwargs):
