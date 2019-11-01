@@ -3,19 +3,6 @@ set -e
 
 cd $(dirname $0)/../..
 
-reset_go_mod() {
-    echo 'module github.com/lsds/KungFu' >go.mod
-    if [ -f go.sum ]; then
-        rm go.sum
-    fi
-}
-
-rebuild() {
-    env \
-        GOBIN=$(pwd)/bin \
-        go install -v ./...
-}
-
 run_integration_tests() {
     local period=10ms
     env \
@@ -31,6 +18,4 @@ run_integration_tests() {
         ./bin/kungfu-test-public-apis
 }
 
-reset_go_mod
-rebuild
 run_integration_tests
