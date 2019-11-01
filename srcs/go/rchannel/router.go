@@ -31,15 +31,6 @@ func (r *Router) Self() plan.PeerID {
 	return plan.PeerID(r.localAddr)
 }
 
-// getChannel returns the Channel of given Addr
-func (r *Router) getChannel(a plan.Addr, t ConnType) (*Channel, error) {
-	conn, err := r.connPool.get(a.NetAddr(), r.localAddr, t)
-	if err != nil {
-		return nil, err
-	}
-	return newChannel(a.Name, conn), nil
-}
-
 func (r *Router) ResetConnections(keeps plan.PeerList) {
 	r.connPool.reset(keeps)
 }
@@ -58,11 +49,11 @@ func (r *Router) Send(a plan.Addr, buf []byte, t ConnType, flags uint32) error {
 }
 
 func (r *Router) send(a plan.Addr, msg Message, t ConnType, flags uint32) error {
-	ch, err := r.getChannel(a, t)
+	conn, err := r.connPool.get(a.NetAddr(), r.localAddr, t)
 	if err != nil {
 		return err
 	}
-	if err := ch.Send(msg, flags); err != nil {
+	if err := conn.Send(a.Name, msg, flags); err != nil {
 		return err
 	}
 	return nil
