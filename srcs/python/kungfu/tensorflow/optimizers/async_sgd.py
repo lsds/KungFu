@@ -1,4 +1,5 @@
 import tensorflow as tf
+from kungfu.tensorflow import _tf_assign, _tf_mod
 from kungfu.tensorflow.v1.ops import (barrier, broadcast, counter,
                                       current_cluster_size, current_rank,
                                       request_variable,
@@ -9,8 +10,9 @@ from .core import KungFuOptimizer, defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):
-    t = tf.random_uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
-    return tf.cond(tf.equal(t, self_rank), lambda: tf.mod(t + 1, cluster_size),
+    t = tf.random.uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
+    return tf.cond(tf.equal(t,
+                            self_rank), lambda: _tf_mod(t + 1, cluster_size),
                    lambda: tf.identity(t))
 
 
@@ -82,7 +84,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
     def apply_gradients(self, grads_and_vars, **kwargs):
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
-        variables = [v for _g, v in grads_and_vars]
+        gradients, variables = list(zip(*grads_and_vars))
 
         init_store_op = tf.cond(tf.equal(self._step, 0),
                                 lambda: self.init_store(variables), tf.no_op)
@@ -92,11 +94,14 @@ class PairAveragingOptimizer(KungFuOptimizer):
         save_model_op = self._build_save_op(variables)
 
         assign_ops = [
-            tf.assign(v, 0.5 * (v + other_v))
+            _tf_assign(v, 0.5 * (v + other_v))
             for v, other_v in zip(variables, other_peer_vars)
         ]
 
-        apply_op = self._optimizer.apply_gradients(grads_and_vars, **kwargs)
+        # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
+        new_grads_and_vars = zip(gradients, variables)
+        apply_op = self._optimizer.apply_gradients(new_grads_and_vars,
+                                                   **kwargs)
 
         with tf.control_dependencies(assign_ops):
             with tf.control_dependencies([apply_op]):

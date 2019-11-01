@@ -50,6 +50,11 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         gradients, variables = list(zip(*grads_and_vars))
 
         if self._nccl:
+            # FIXME: We have a limitation that KungFu schedules NCCL operations
+            # in the order of the given gradients. This order is sub-optimal
+            # to the topological sorting order of dataflow. We get around of this issue by
+            # fusing all gradients. We need to figure out H ow to get the optimal topological s
+            # sortting order from TensorFlow.
             if self._nccl_fusion:
                 fused_grad = fuse(gradients)
                 summed_fused_gradients = group_nccl_all_reduce([fused_grad])
@@ -62,7 +67,10 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
 
         reduced_grads = map_maybe(lambda g: g / self._num_workers,
                                   summed_gradients)
+
+        # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         reduced_grads_and_vars = zip(reduced_grads, variables)
+
         return self._optimizer.apply_gradients(reduced_grads_and_vars,
                                                **kwargs)
 
