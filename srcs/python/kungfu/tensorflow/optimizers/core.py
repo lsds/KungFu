@@ -21,7 +21,7 @@ def defuse(y, shapes):
     return ts
 
 
-class KungFuOptimizer(_tf_optimizer):
+class KungFuOptimizer(_tf_optimizer, tf.keras.optimizers.Optimizer):
     def __init__(self, optimizer, name=None, use_locking=False):
         if name is None:
             name = "KungFu{}".format(type(optimizer).__name__)
@@ -29,17 +29,26 @@ class KungFuOptimizer(_tf_optimizer):
                                               use_locking=use_locking)
         self._optimizer = optimizer
 
+    # tf.train.Optimizer
     def compute_gradients(self, *args, **kwargs):
         return self._optimizer.compute_gradients(*args, **kwargs)
 
+    # tf.train.Optimizer
     def apply_gradients(self, *args, **kwargs):
         raise RuntimeError('apply_gradients should be called in a subclass.')
 
+    # tf.train.Optimizer
     def get_slot(self, *args, **kwargs):
         return self._optimizer.get_slot(*args, **kwargs)
 
+    # tf.train.Optimizer
     def get_slot_names(self, *args, **kwargs):
         return self._optimizer.get_slot_names(*args, **kwargs)
 
+    # tf.train.Optimizer
     def variables(self, *args, **kwargs):
         return self._optimizer.variables(*args, **kwargs)
+
+    # tf.keras.optimizers.Optimizer
+    def get_config(self):
+        return self._optimizer.optimizer.get_config()
