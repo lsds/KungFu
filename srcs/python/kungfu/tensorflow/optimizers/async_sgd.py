@@ -1,12 +1,12 @@
 import tensorflow as tf
 from kungfu.tensorflow import _tf_assign, _tf_mod
-from kungfu.tensorflow.v1.ops import (barrier, broadcast, counter,
+from kungfu.tensorflow.v1.ops import (barrier, counter,
                                       current_cluster_size, current_rank,
                                       request_variable,
                                       request_variable_with_template,
                                       save_variable)
 
-from .core import KungFuOptimizer, defuse, fuse
+from .core import KungFuTFOptimizer, defuse, fuse
 
 
 def get_random_peer(cluster_size, self_rank):
@@ -16,7 +16,7 @@ def get_random_peer(cluster_size, self_rank):
                    lambda: tf.identity(t))
 
 
-class PairAveragingOptimizer(KungFuOptimizer):
+class PairAveragingOptimizer(KungFuTFOptimizer):
     """PairAveragingOptimizer implements the [AD-PSGD]_ algorithm.
 
     Every iteration of training, this optimizer:
@@ -49,11 +49,20 @@ class PairAveragingOptimizer(KungFuOptimizer):
                  fuse_requests=True,
                  name=None,
                  use_locking=False):
-        super(PairAveragingOptimizer, self).__init__(optimizer, name,
-                                                     use_locking)
-        self._fuse_requests = fuse_requests
+        opt_type_name = type(optimizer).__name__
+        algo = _PairAveraging(fuse_requests, fused_model_name=opt_type_name)
+        super(PairAveragingOptimizer, self).__init__(optimizer,
+                                                      algo,
+                                                      name,
+                                                      use_locking=use_locking)
+
+class _PairAveraging:
+    def __init__(self,
+                 fuse_requests,
+                 fused_model_name=None):
         self._step = counter()
-        self._fused_model_name = optimizer.get_name()
+        self._fuse_requests = fuse_requests
+        self._fused_model_name = fused_model_name
 
     def _build_request_ops(self, target, variables):
         if self._fuse_requests:
@@ -81,7 +90,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
         with tf.control_dependencies([self._build_save_op(variables)]):
             return barrier()
 
-    def apply_gradients(self, grads_and_vars, **kwargs):
+    def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
         gradients, variables = list(zip(*grads_and_vars))
@@ -100,8 +109,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         new_grads_and_vars = zip(gradients, variables)
-        apply_op = self._optimizer.apply_gradients(new_grads_and_vars,
-                                                   **kwargs)
+        apply_op = apply_grads_func(new_grads_and_vars, **kwargs)
 
         with tf.control_dependencies(assign_ops):
             with tf.control_dependencies([apply_op]):

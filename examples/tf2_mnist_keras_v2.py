@@ -45,7 +45,7 @@ class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
             raise RuntimeError('No variables() in %s', self.model)
 
         self.broadcast_done = True
-        
+
 
 def load_dataset():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -123,7 +123,7 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
 
 
 def test_model(model, dataset):
-    test_metrics = model.evaluate(dataset['x_test'], dataset['y_test'])
+    test_metrics = model.evaluate(dataset['x_test'], dataset['y_test'], verbose=0)
     # print test accuracy
     accuracy_index = 1
     print('test accuracy: %f' % test_metrics[accuracy_index])

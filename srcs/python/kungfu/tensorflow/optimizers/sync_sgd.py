@@ -4,10 +4,10 @@ from kungfu.tensorflow.v1.ops import (broadcast, counter, current_cluster_size,
                                       global_noise_scale, group_all_reduce,
                                       group_nccl_all_reduce, peer_info)
 
-from .core import KungFuOptimizer, defuse, fuse
+from .core import KungFuTFOptimizer, defuse, fuse
 
 
-class SynchronousSGDOptimizer(KungFuOptimizer):
+class SynchronousSGDOptimizer(KungFuTFOptimizer):
     """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
 
     This optimizer is equivalent to the DistributedOptimizer in Horovod.
@@ -39,14 +39,21 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
                  nccl_fusion=True,
                  name=None,
                  use_locking=False):
+        algo = _SynchronousSGD(nccl, nccl_fusion)
         super(SynchronousSGDOptimizer, self).__init__(optimizer,
+                                                      algo,
                                                       name,
                                                       use_locking=use_locking)
-        self._num_workers = current_cluster_size()
+
+class _SynchronousSGD:
+    def __init__(self,
+                 nccl=False,
+                 nccl_fusion=True):
         self._nccl = nccl
         self._nccl_fusion = nccl_fusion
+        self._num_workers = current_cluster_size()
 
-    def apply_gradients(self, grads_and_vars, **kwargs):
+    def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
 
         if self._nccl:
@@ -71,11 +78,10 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         reduced_grads_and_vars = zip(reduced_grads, variables)
 
-        return self._optimizer.apply_gradients(reduced_grads_and_vars,
+        return apply_grads_func(reduced_grads_and_vars,
                                                **kwargs)
 
-
-class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
+class SyncSGDWithGradVarianceOptimizer(KungFuTFOptimizer):
     """SyncSGDWithGradVarianceOptimizer monitors gradient variance when performing synchronous SGD.
 
     You can find the defintion of variance of tensors here:
@@ -151,7 +157,7 @@ class SyncSGDWithGradVarianceOptimizer(KungFuOptimizer):
                 zip(reduced_grads, variables), **kwargs)
 
 
-class SyncSGDWithGradNoiseScaleOptimizer(KungFuOptimizer):
+class SyncSGDWithGradNoiseScaleOptimizer(KungFuTFOptimizer):
     """SyncSGDWithGradNoiseScaleOptimizer monitors gradient noise scale when performing synchronous SGD.
 
     Gradient noise scale is proposed in:

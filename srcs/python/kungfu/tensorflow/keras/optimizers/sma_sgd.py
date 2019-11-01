@@ -1,9 +1,9 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
-                                      current_rank, group_all_reduce)
+from kungfu.tensorflow.optimizers.sma_sgd import _SynchronousAveraging
+from .core import KungFuKerasOptimizer
 
 
-class SynchronousAveragingOptimizer(tf.keras.optimizers.Optimizer):
+class SynchronousAveragingOptimizer(KungFuKerasOptimizer):
     """SynchronousAveragingOptimizer implements the [SMA]_ algorithm.
 
     [EA-SGD]_ proposed to use model averaging to train deep learning models and prove its convergence.
@@ -22,23 +22,12 @@ class SynchronousAveragingOptimizer(tf.keras.optimizers.Optimizer):
         optimizer type.
 
     """
-    def __init__(self, optimizer, name=None):
-        super(SynchronousAveragingOptimizer, self).__init__(name=name)
-        self._optimizer = optimizer
-        self._num_workers = current_cluster_size()
-        self._rank = current_rank()
-
-    def apply_gradients(self, grads_and_vars, **kwargs):
-        # It is important to apply model averaging every iteration [2]
-        gradients, variables = list(zip(*grads_and_vars))
-        sum_vars = group_all_reduce(variables)
-        avg_vars = [g / self._num_workers for g in sum_vars]
-
-        # TODO: Apply momentum to the averaged model [2]
-        for v, avg_v in zip(variables, avg_vars):
-            v.assign(avg_v)
-        grads_and_vars = zip(gradients, variables)
-        return self._optimizer.apply_gradients(grads_and_vars, **kwargs)
-
-    def get_config(self):
-        return self._optimizer.optimizer.get_config()
+    def __init__(self,
+                 optimizer,
+                 nccl=False,
+                 nccl_fusion=True,
+                 name=None):
+        algo = _SynchronousAveraging()
+        super(SynchronousAveragingOptimizer, self).__init__(optimizer,
+                                                      algo,
+                                                      name)

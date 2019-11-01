@@ -21,41 +21,25 @@ def defuse(y, shapes):
     return ts
 
 
-class KungFuOptimizer(_tf_optimizer, tf.keras.optimizers.Optimizer):
-    def __init__(self, optimizer, name=None, use_locking=False):
+class KungFuTFOptimizer(_tf_optimizer):
+    def __init__(self, optimizer, algo, name=None, use_locking=False):
         if name is None:
             name = "KungFu{}".format(type(optimizer).__name__)
-
-        if isinstance(optimizer, _tf_optimizer):
-            super(KungFuOptimizer, self).__init__(name=name,
-                                                  use_locking=use_locking)
-        elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
-            super(KungFuOptimizer, self).__init__(name=name)
-        else:
-            raise RuntimeError('Cannot wrap: %s' % type(optimizer).__name__)
-
+        super(KungFuTFOptimizer, self).__init__(name=name, use_locking=use_locking)
         self._optimizer = optimizer
+        self._algo = algo
 
-    # tf.train.Optimizer, tf.keras.optimizers.Optimizer
     def apply_gradients(self, *args, **kwargs):
-        raise RuntimeError('apply_gradients should be called in a subclass.')
+        return self._algo.apply_gradients(self._optimizer.apply_gradients, *args, **kwargs)
 
-    # tf.train.Optimizer
     def compute_gradients(self, *args, **kwargs):
         return self._optimizer.compute_gradients(*args, **kwargs)
 
-    # tf.train.Optimizer
     def get_slot(self, *args, **kwargs):
         return self._optimizer.get_slot(*args, **kwargs)
 
-    # tf.train.Optimizer
     def get_slot_names(self, *args, **kwargs):
         return self._optimizer.get_slot_names(*args, **kwargs)
 
-    # tf.train.Optimizer
     def variables(self, *args, **kwargs):
         return self._optimizer.variables(*args, **kwargs)
-
-    # tf.keras.optimizers.Optimizer
-    def get_config(self):
-        return self._optimizer.optimizer.get_config()

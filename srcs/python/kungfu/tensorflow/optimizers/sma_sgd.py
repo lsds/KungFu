@@ -1,12 +1,12 @@
 import tensorflow as tf
 from kungfu.tensorflow import _tf_assign
-from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
+from kungfu.tensorflow.v1.ops import (current_cluster_size,
                                       current_rank, group_all_reduce)
 
-from .core import KungFuOptimizer
+from .core import KungFuTFOptimizer
 
 
-class SynchronousAveragingOptimizer(KungFuOptimizer):
+class SynchronousAveragingOptimizer(KungFuTFOptimizer):
     """SynchronousAveragingOptimizer implements the [SMA]_ algorithm.
 
     [EA-SGD]_ proposed to use model averaging to train deep learning models and prove its convergence.
@@ -29,12 +29,18 @@ class SynchronousAveragingOptimizer(KungFuOptimizer):
 
     """
     def __init__(self, optimizer, name=None, use_locking=False):
-        super(SynchronousAveragingOptimizer,
-              self).__init__(optimizer, name, use_locking=use_locking)
+        algo = _SynchronousAveraging()
+        super(SynchronousAveragingOptimizer, self).__init__(optimizer,
+                                                      algo,
+                                                      name,
+                                                      use_locking=use_locking)
+
+class _SynchronousAveraging:
+    def __init__(self):
         self._num_workers = current_cluster_size()
         self._rank = current_rank()
 
-    def apply_gradients(self, grads_and_vars, **kwargs):
+    def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         # It is important to apply model averaging every iteration [2]
         gradients, variables = list(zip(*grads_and_vars))
         sum_vars = group_all_reduce(variables)
@@ -50,5 +56,4 @@ class SynchronousAveragingOptimizer(KungFuOptimizer):
 
         # We can overlap model averaging and local SGD [2].
         with tf.control_dependencies(assign_ops):
-            return self._optimizer.apply_gradients(new_grads_and_vars,
-                                                   **kwargs)
+            return apply_grads_func(new_grads_and_vars, **kwargs)

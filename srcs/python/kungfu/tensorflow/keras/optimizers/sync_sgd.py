@@ -1,10 +1,9 @@
 import tensorflow as tf
-from kungfu._utils import map_maybe
-from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
-                                      current_rank, group_all_reduce)
+from kungfu.tensorflow.optimizers.sync_sgd import _SynchronousSGD
+from .core import KungFuKerasOptimizer
 
 
-class SynchronousSGDOptimizer(tf.keras.optimizers.Optimizer):
+class SynchronousSGDOptimizer(KungFuKerasOptimizer):
     """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
 
     This optimizer is equivalent to the DistributedOptimizer in Horovod.
@@ -25,26 +24,8 @@ class SynchronousSGDOptimizer(tf.keras.optimizers.Optimizer):
                  optimizer,
                  nccl=False,
                  nccl_fusion=True,
-                 name=None,
-                 use_locking=False):
-        super(SynchronousSGDOptimizer, self).__init__(name=name)
-        self._optimizer = optimizer
-        self._num_workers = current_cluster_size()
-        self._rank = current_rank()
-
-    def apply_gradients(self, grads_and_vars, **kwargs):
-        gradients, variables = list(zip(*grads_and_vars))
-
-        # for var in variables:
-        #     var.assign(broadcast(var))
-
-        summed_gradients = group_all_reduce(gradients)
-
-        reduced_grads = map_maybe(lambda g: g / self._num_workers,
-                                  summed_gradients)
-        reduced_grads_and_vars = zip(reduced_grads, variables)
-        return self._optimizer.apply_gradients(reduced_grads_and_vars,
-                                               **kwargs)
-
-    def get_config(self):
-        return self._optimizer.optimizer.get_config()
+                 name=None):
+        algo = _SynchronousSGD(nccl, nccl_fusion)
+        super(SynchronousSGDOptimizer, self).__init__(optimizer,
+                                                      algo,
+                                                      name)
