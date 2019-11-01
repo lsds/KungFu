@@ -100,7 +100,7 @@ if args.kf_optimizer:
         opt = PairAveragingOptimizer(opt, fuse_requests=args.fuse)
     elif args.kf_optimizer == 'sync-sgd-nccl':
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
-        opt = SynchronousSGDOptimizer(opt, nccl=args.fuse, nccl_fusion=True)
+        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=args.fuse)
     elif args.kf_optimizer == 'sma':
         from kungfu.tensorflow.optimizers import SynchronousAveragingOptimizer
         opt = SynchronousAveragingOptimizer(opt)

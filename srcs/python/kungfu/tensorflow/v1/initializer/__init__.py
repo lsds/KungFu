@@ -13,7 +13,7 @@ def BroadcastGlobalVariablesOp():
     return tf.group(ops)
 
 
-class BroadcastGlobalVariablesHook(tf.estimator.SessionRunHook):
+class BroadcastGlobalVariablesHook(tf.train.SessionRunHook):
     def __init__(self):
         super(BroadcastGlobalVariablesHook, self).__init__()
         self.bcast_op = None
