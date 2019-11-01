@@ -98,7 +98,7 @@ class PairAveragingOptimizer(KungFuOptimizer):
             for v, other_v in zip(variables, other_peer_vars)
         ]
 
-        # This is important to re-zip to ensure AutoGraph can track the dependency
+        # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         new_grads_and_vars = zip(gradients, variables)
         apply_op = self._optimizer.apply_gradients(new_grads_and_vars,
                                                    **kwargs)

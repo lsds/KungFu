@@ -68,7 +68,7 @@ class SynchronousSGDOptimizer(KungFuOptimizer):
         reduced_grads = map_maybe(lambda g: g / self._num_workers,
                                   summed_gradients)
 
-        # This is important to re-zip to ensure AutoGraph can track the dependency
+        # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         reduced_grads_and_vars = zip(reduced_grads, variables)
 
         return self._optimizer.apply_gradients(reduced_grads_and_vars,

@@ -1,17 +1,8 @@
-# Copyright 2019 Uber Technologies, Inc. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
+#!/usr/bin/env python3
+"""
+Implemented based on:
+https://github.com/uber/horovod/blob/master/examples/tensorflow2_synthetic_benchmark.py
+"""
 from __future__ import absolute_import, division, print_function
 
 import argparse
@@ -34,7 +25,6 @@ parser.add_argument('--fp16-allreduce',
                     action='store_true',
                     default=False,
                     help='use fp16 compression during allreduce')
-
 parser.add_argument('--model',
                     type=str,
                     default='ResNet50',
@@ -43,12 +33,10 @@ parser.add_argument('--batch-size',
                     type=int,
                     default=32,
                     help='input batch size')
-
-parser.add_argument(
-    '--num-warmup-batches',
-    type=int,
-    default=10,
-    help='number of warm-up batches that don\'t count towards benchmark')
+parser.add_argument('--num-warmup-batches',
+                    type=int,
+                    default=10,
+                    help='number of warm-up batches')
 parser.add_argument('--num-batches-per-iter',
                     type=int,
                     default=10,
@@ -57,24 +45,30 @@ parser.add_argument('--num-iters',
                     type=int,
                     default=10,
                     help='number of benchmark iterations')
-
+parser.add_argument('--no-cuda',
+                    action='store_true',
+                    default=False,
+                    help='disables CUDA training')
 parser.add_argument('--kf-optimizer',
                     type=str,
                     default='sync-sgd',
                     help='kungfu optimizer')
 
 args = parser.parse_args()
+args.cuda = not args.no_cuda
 
 # Set up standard model.
 model = getattr(applications, args.model)(weights=None)
-opt = tf.optimizers.SGD(0.01)
+
+# opt = tf.optimizers.SGD(0.01)
+opt = tf.compat.v1.train.GradientDescentOptimizer(0.01)
 
 # KungFu: wrap tf.compat.v1.train.Optimizer.
-if FLAGS.kf_optimizer == 'sync-sgd':
+if args.kf_optimizer == 'sync-sgd':
     opt = SynchronousSGDOptimizer(opt)
-elif FLAGS.kf_optimizer == 'async-sgd':
+elif args.kf_optimizer == 'async-sgd':
     opt = PairAveragingOptimizer(opt)
-elif FLAGS.kf_optimizer == 'sma':
+elif args.kf_optimizer == 'sma':
     opt = SynchronousAveragingOptimizer(opt)
 else:
     raise RuntimeError('Unknown KungFu optimizer')
@@ -98,7 +92,7 @@ def benchmark_step(first_batch):
 
     if first_batch:
         from kungfu.tensorflow.v2.initializer import broadcast_variables
-        broadcast_variables(mnist_model.variables)
+        broadcast_variables(model.variables)
         broadcast_variables(opt.variables())
 
 
@@ -111,7 +105,7 @@ def log(s, nl=True):
 log('Model: %s' % args.model)
 log('Batch size: %d' % args.batch_size)
 device = 'GPU' if args.cuda else 'CPU'
-log('Number of %ss: %d' % (device, current_cluster_size())
+log('Number of %ss: %d' % (device, current_cluster_size()))
 
 with tf.device(device):
     # Warm-up

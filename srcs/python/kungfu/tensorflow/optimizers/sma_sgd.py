@@ -45,7 +45,7 @@ class SynchronousAveragingOptimizer(KungFuOptimizer):
             _tf_assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
         ]
 
-        # This is important to re-zip to ensure AutoGraph can track the dependency
+        # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         new_grads_and_vars = zip(gradients, variables)
 
         # We can overlap model averaging and local SGD [2].
