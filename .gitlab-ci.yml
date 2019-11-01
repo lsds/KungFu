@@ -16,17 +16,18 @@ stages:
   - python3 --version
   - python3 -c "import tensorflow as tf; print(tf.__version__)"
 
-  script:
-  - pip3 install --no-index -U .
-
 .tensorflow1:
   extends: .tensorflow
 
   script:
+  - pip3 install --no-index -U .
   - python3 -m kungfu.tensorflow.v1.examples
 
 .tensorflow2:
   extends: .tensorflow
+
+  script:
+  - pip3 install --no-index -U .
   # TODO: run TF2 examples
 
 tensorflow 1.12.3:
