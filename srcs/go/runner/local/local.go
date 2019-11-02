@@ -6,13 +6,14 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/lsds/KungFu/srcs/go/iostream"
+	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
-	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/xterm"
 )
 
@@ -30,6 +31,7 @@ var (
 type Runner struct {
 	name          string
 	color         xterm.Color
+	logDir        string
 	logFilePrefix string
 	verboseLog    bool
 }
@@ -102,26 +104,31 @@ func (r Runner) streamPipe(name string, in io.Reader) error {
 	if len(r.logFilePrefix) > 0 {
 		filename = r.logFilePrefix + "-" + filename
 	}
-	f, err := os.Create(filename)
-	if err != nil {
-		log.Errorf("failed to create log file: %v", err)
-		return iostream.Tee(in, w)
+	if len(r.logDir) > 0 {
+		filename = path.Join(r.logDir, filename)
 	}
+	dir := path.Dir(filename)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		log.Warnf("failed to create log dir %s: %v", dir, err)
+	}
+	f := iostream.NewLazyFile(filename)
 	return iostream.Tee(in, w, f)
 }
 
-func LocalRunAll(ctx context.Context, ps []sch.Proc, verboseLog bool) error {
+func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	var wg sync.WaitGroup
 	var fail int32
 	for i, proc := range ps {
 		wg.Add(1)
-		go func(i int, proc sch.Proc) {
+		go func(i int, proc job.Proc) {
 			r := &Runner{
 				name:          proc.Name,
 				color:         basicColors[i%len(basicColors)],
 				verboseLog:    verboseLog,
 				logFilePrefix: strings.Replace(proc.Name, "/", "-", -1),
+				logDir:        proc.LogDir,
 			}
 			if err := r.Run(ctx, proc.Cmd()); err != nil {
 				log.Errorf("%s #%s exited with error: %v", xterm.Red.S("[E]"), proc.Name, err)

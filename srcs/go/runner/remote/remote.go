@@ -11,19 +11,19 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/iostream"
+	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
-	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/ssh"
 	"github.com/lsds/KungFu/srcs/go/xterm"
 )
 
-func RemoteRunAll(ctx context.Context, user string, ps []sch.Proc, verboseLog bool) ([]*Outputs, error) {
+func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bool) ([]*Outputs, error) {
 	outputs := make([]*Outputs, len(ps))
 	var wg sync.WaitGroup
 	var fail int32
 	for i, p := range ps {
 		wg.Add(1)
-		go func(i int, p sch.Proc) {
+		go func(i int, p job.Proc) {
 			defer wg.Done()
 			t0 := time.Now()
 			config := ssh.Config{

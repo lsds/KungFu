@@ -30,7 +30,6 @@ func New() *Logger {
 		w:     os.Stdout,
 		t0:    time.Now(),
 		debug: kungfuconfig.ShowDebugLog,
-		flags: ShowTimestamp,
 	}
 	return l
 }
