@@ -12,7 +12,7 @@ stages:
     KUNGFU_DOWNLOAD_GO: 'ON'
 
   before_script:
-  - pip3 install cmake tensorflow==${TF_VERSION}
+  - pip3 install cmake numpy==1.16 tensorflow==${TF_VERSION}
   - python3 --version
   - python3 -c "import tensorflow as tf; print(tf.__version__)"
 
