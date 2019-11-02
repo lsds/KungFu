@@ -119,7 +119,7 @@ func (r Runner) streamPipe(name string, in io.Reader) error {
 	return iostream.Tee(in, w, f)
 }
 
-func RunAll(ctx context.Context, ps []job.Proc, logDir string, verboseLog bool) error {
+func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup

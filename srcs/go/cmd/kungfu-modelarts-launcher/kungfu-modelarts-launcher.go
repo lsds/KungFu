@@ -38,7 +38,7 @@ func main() {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
-	if err := runner.RunAll(ctx, procs, j.LogDir, f.VerboseLog); err != nil {
+	if err := runner.RunAll(ctx, procs, f.VerboseLog); err != nil {
 		utils.ExitErr(err)
 	}
 }
