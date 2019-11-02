@@ -111,11 +111,7 @@ func (r Runner) streamPipe(name string, in io.Reader) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		log.Warnf("failed to create log dir %s: %v", dir, err)
 	}
-	f, err := os.Create(filename)
-	if err != nil {
-		log.Warnf("failed to create log file: %v", err)
-		return iostream.Tee(in, w)
-	}
+	f := iostream.NewLazyFile(filename)
 	return iostream.Tee(in, w, f)
 }
 
