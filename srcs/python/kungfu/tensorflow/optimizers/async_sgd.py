@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.tensorflow.compat import _tf_assign, _tf_mod, _tf_optimizer
+from kungfu.tensorflow.compat import _tf_assign, _tf_mod
 from kungfu.tensorflow.ops import (barrier, counter, current_cluster_size,
                                    current_rank, defuse, fuse,
                                    request_variable,

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.tensorflow.compat import _tf_assign, _tf_optimizer
+from kungfu.tensorflow.compat import _tf_assign
 from kungfu.tensorflow.ops import current_cluster_size, group_all_reduce
 
 from .core import _create_kungfu_optimizer, _KungFuAlgorithm
