@@ -1,8 +1,8 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
 from kungfu.tensorflow import _tf_optimizer
-from kungfu.tensorflow.v1.ops import (counter, current_cluster_size,
-                                      global_noise_scale, group_all_reduce)
+from kungfu.tensorflow.ops import (counter, current_cluster_size,
+                                   global_noise_scale, group_all_reduce)
 
 from .core import _create_kungfu_optimizer, _KungFuAlgorithm, fuse
 

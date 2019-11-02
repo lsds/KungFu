@@ -1,8 +1,8 @@
 import tensorflow as tf
-from kungfu.tensorflow.optimizers import (SynchronousSGDOptimizer,
-                                          PairAveragingOptimizer,
-                                          SynchronousAveragingOptimizer)
-from kungfu.tensorflow.v1.ops import run_barrier
+from kungfu import run_barrier
+from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
+                                          SynchronousAveragingOptimizer,
+                                          SynchronousSGDOptimizer)
 from kungfu.tensorflow.v2.initializer import broadcast_variables
 
 

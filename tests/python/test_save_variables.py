@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import save_variables
+from kungfu.tensorflow.ops import save_variables
 
 
 def test_save_variables():

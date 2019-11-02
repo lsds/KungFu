@@ -1,8 +1,8 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import (barrier, broadcast, current_cluster_size,
-                                      current_rank, group_all_reduce,
-                                      request_variable_with_template,
-                                      save_variable)
+from kungfu.tensorflow.ops import (barrier, broadcast, current_cluster_size,
+                                   current_rank, group_all_reduce,
+                                   request_variable_with_template,
+                                   save_variable)
 
 from .async_sgd import get_random_peer
 from .core import KungFuOptimizer, defuse, fuse

@@ -90,7 +90,7 @@ else:
 barrier_op = None
 
 if args.kf_optimizer:
-    from kungfu.tensorflow.v1.ops import barrier
+    from kungfu.tensorflow.ops import barrier
     barrier_op = barrier()
     if args.kf_optimizer == 'sync-sgd':
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer

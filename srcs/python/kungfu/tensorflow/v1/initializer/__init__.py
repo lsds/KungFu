@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import broadcast
+from kungfu.tensorflow.ops import broadcast
 
 __all__ = [
     'BroadcastGlobalVariablesHook',

@@ -1,5 +1,6 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import barrier, counter, group_all_reduce, peer_info, request_variable, save_variable
+from kungfu.tensorflow.ops import (barrier, counter, group_all_reduce,
+                                   peer_info, request_variable, save_variable)
 
 
 def test_barrier():
