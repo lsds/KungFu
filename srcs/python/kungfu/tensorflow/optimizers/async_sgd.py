@@ -29,15 +29,15 @@ def PairAveragingOptimizer(optimizer,
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- Optimizer to use for computing gradients and applying updates.
 
     Keyword Arguments:
-        | fuse_requests {bool} -- Fusing requests to amortise communication cost at the cost of extra GPU memory and cycles. (default: {True})
-        | name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
-        | use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+        - fuse_requests {bool} -- Fusing requests to amortise communication cost at the cost of extra GPU memory and cycles. (default: {True})
+        - name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
+        - use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
 
     Raises:
         TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
 
     Returns:
-        optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
+        optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
     opt_type_name = type(optimizer).__name__
     pair_avg = _PairAveraging(fuse_requests, fused_model_name=opt_type_name)
