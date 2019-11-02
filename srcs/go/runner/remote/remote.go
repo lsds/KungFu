@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/iostream"
-	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/job"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/ssh"
 	"github.com/lsds/KungFu/srcs/go/xterm"
 )

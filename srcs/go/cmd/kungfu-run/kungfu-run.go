@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/job"
@@ -18,8 +19,15 @@ var f run.FlagSet
 func init() { run.Init(&f) }
 
 func main() {
-	if len(f.Logfile) > 0 {
-		lf, err := os.Create(f.Logfile)
+	if logfile := f.Logfile; len(logfile) > 0 {
+		if len(f.LogDir) > 0 {
+			logfile = path.Join(f.LogDir, logfile)
+		}
+		dir := path.Dir(logfile)
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			log.Warnf("failed to create log dir %s: %v", dir, err)
+		}
+		lf, err := os.Create(logfile)
 		if err != nil {
 			utils.ExitErr(err)
 		}
