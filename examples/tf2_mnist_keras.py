@@ -1,63 +1,147 @@
+#!/usr/bin/env python3
+# This example is inspired by https://www.tensorflow.org/guide/keras/train_and_evaluate
+#
+# KungFu requires users to make the following changes:
+# 1. KungFu provides distributed optimizers that can wrap the original optimizer.
+# The distributed optimizer defines how local gradients and model weights are synchronized.
+# 2. (Optional) In a distributed training setting, the training dataset is often partitioned.
+# 3. (Optional) Scaling the learning rate of your local optimizer
+#
+# Command to run this script:
+# $ ./bin/kungfu-run -np 4 python3 examples/mnist_keras.py --n-epochs 10
+
+import argparse
+import logging
+
+import kungfu as kf
 import tensorflow as tf
-from kungfu import current_cluster_size, current_rank, run_barrier
+from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
+from kungfu.tensorflow.v1.ops import broadcast
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
 
-flags = tf.compat.v1.flags
-flags.DEFINE_string('kf-optimizer', 'sync-sgd', 'KungFu optimizer')
-FLAGS = flags.FLAGS
 
-(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
+def load_dataset():
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    # preprocess the mnist dataset
+    x_train = x_train.reshape(60000, 784).astype('float32') / 255
+    x_test = x_test.reshape(10000, 784).astype('float32') / 255
+    y_train = y_train.astype('float32')
+    y_test = y_test.astype('float32')
+    # create dataset
+    dataset = dict()
+    dataset['x_val'] = x_train[-10000:]
+    dataset['y_val'] = y_train[-10000:]
+    dataset['x_train'] = x_train[:-10000]
+    dataset['y_train'] = y_train[:-10000]
+    dataset['x_test'] = x_test
+    dataset['y_test'] = y_test
 
-# KungFu: sharding your data using local rank.
-epochs = 10
-train_dataset = train_dataset.shard(
-    current_cluster_size(),
-    current_rank()).repeat(epochs).shuffle(10000).batch(128)
-test_dataset = test_dataset.batch(128)
+    return dataset
 
-mnist_model = tf.keras.Sequential([
-    tf.keras.layers.Flatten(input_shape=(28, 28)),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Dense(10, activation='softmax')
-])
 
-# KungFu: adjust learning rate based on number of GPUs.
-opt = tf.compat.v1.train.AdamOptimizer(0.001 * current_cluster_size())
+def build_optimizer(name, n_shards=1):
+    learning_rate = 0.1
 
-# KungFu: wrap tf.compat.v1.train.Optimizer.
-if FLAGS.kf_optimizer == 'sync-sgd':
-    opt = SynchronousSGDOptimizer(opt)
-elif FLAGS.kf_optimizer == 'async-sgd':
-    opt = PairAveragingOptimizer(opt)
-elif FLAGS.kf_optimizer == 'sma':
-    opt = SynchronousAveragingOptimizer(opt)
-else:
-    raise RuntimeError('Unknown KungFu optimizer')
+    # Scale learning rate according to the level of data parallelism
+    optimizer = tf.keras.optimizers.SGD(learning_rate=(learning_rate *
+                                                       n_shards))
 
-mnist_model.compile(loss=tf.losses.SparseCategoricalCrossentropy(),
-                    optimizer=opt,
-                    metrics=['accuracy'])
+    # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
+    if name == 'sync-sgd':
+        return SynchronousSGDOptimizer(optimizer)
+    elif name == 'async-sgd':
+        return PairAveragingOptimizer(optimizer)
+    elif name == 'sma':
+        return SynchronousAveragingOptimizer(optimizer)
+    else:
+        raise RuntimeError('unknown optimizer: %s' % name)
 
-# KungFu: insert the global variable broadcast callback.
-callbacks = [
-    BroadcastGlobalVariablesCallback(),
-]
 
-# KungFu: write logs on worker 0.
-verbose = 1 if current_rank() == 0 else 0
+def build_model(optimizer):
+    num_classes = 10
+    # create a model with keras
+    model = tf.keras.Sequential()
+    # add two hidden layer
+    model.add(tf.keras.layers.Dense(64, activation='relu'))
+    model.add(tf.keras.layers.Dense(64, activation='relu'))
+    # add a dense layer with number of classes of nodes and softmax
+    model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+    # compile the model
+    model.compile(optimizer=optimizer,
+                  loss='sparse_categorical_crossentropy',
+                  metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
 
-# Train the model.
-# KungFu: adjust number of steps based on number of GPUs.
-mnist_model.fit(train_dataset, callbacks=callbacks, verbose=verbose)
+    return model
 
-# KungFu: run evaluation after all finishes training.
-run_barrier()
-print('\n# Evaluate on test data')
-results = mnist_model.evaluate(test_dataset)
-print('test loss, test acc:', results)
+
+def train_model(model, dataset, n_epochs=1, batch_size=5000):
+    n_shards = current_cluster_size()
+    shard_id = current_rank()
+    train_data_size = len(dataset['x_train'])
+
+    # calculate the offset for the data of the KungFu node
+    shard_size = train_data_size // n_shards
+    offset = batch_size * shard_id
+
+    # extract the data for learning of the KungFu node
+    x = dataset['x_train'][offset:offset + shard_size]
+    y = dataset['y_train'][offset:offset + shard_size]
+    # train the model
+    model.fit(x,
+              y,
+              batch_size=batch_size,
+              epochs=n_epochs,
+              validation_data=(dataset['x_val'], dataset['y_val']),
+              verbose=2,
+              callbacks=[BroadcastGlobalVariablesCallback()])
+
+
+def test_model(model, dataset):
+    test_metrics = model.evaluate(dataset['x_test'],
+                                  dataset['y_test'],
+                                  verbose=0)
+    # print test accuracy
+    accuracy_index = 1
+    print('test accuracy: %f' % test_metrics[accuracy_index])
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='KungFu mnist example.')
+    parser.add_argument('--optimizer',
+                        type=str,
+                        default='sync-sgd',
+                        help='available options: sync-sgd, async-sgd, sma')
+    parser.add_argument('--n-epochs',
+                        type=int,
+                        default=1,
+                        help='number of epochs')
+    parser.add_argument('--batch-size',
+                        type=int,
+                        default=50,
+                        help='batch size')
+    return parser.parse_args()
+
+
+def main():
+    logging.basicConfig(filename="tf2.log",
+                        level=logging.DEBUG,
+                        format="%(asctime)s:%(levelname)s:%(message)s")
+    # parse arguments from the command line
+    args = parse_args()
+    # build the KungFu optimizer
+    optimizer = build_optimizer(args.optimizer)
+    # build the Tensorflow model
+    model = build_model(optimizer)
+    # load mnist dataset
+    dataset = load_dataset()
+    # train the Tensorflow model
+    train_model(model, dataset, args.n_epochs, args.batch_size)
+    # test the performance of the Tensorflow model
+    test_model(model, dataset)
+
+
+if __name__ == '__main__':
+    main()

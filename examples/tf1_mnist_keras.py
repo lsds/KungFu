@@ -121,7 +121,7 @@ def parse_args():
 
 
 def main():
-    # parse arguements from the command line
+    # parse arguments from the command line
     args = parse_args()
     # build the KungFu optimizer
     optimizer = build_optimizer(args.kf_optimizer)
