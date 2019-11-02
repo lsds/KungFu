@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.tensorflow import _tf_optimizer
+from kungfu.tensorflow.compat import _tf_optimizer
 from kungfu.tensorflow.ops import counter
 
 

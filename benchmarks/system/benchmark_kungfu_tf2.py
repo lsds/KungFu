@@ -90,7 +90,7 @@ def benchmark_step(first_batch):
     opt.apply_gradients(zip(gradients, model.trainable_variables))
 
     if first_batch:
-        from kungfu.tensorflow.v2.initializer import broadcast_variables
+        from kungfu.tensorflow.initializer import broadcast_variables
         broadcast_variables(model.variables)
         broadcast_variables(opt.variables())
 

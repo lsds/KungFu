@@ -3,7 +3,7 @@ from kungfu import run_barrier
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
-from kungfu.tensorflow.v2.initializer import broadcast_variables
+from kungfu.tensorflow.initializer import broadcast_variables
 
 
 def _training_step(x, opt, first_batch):

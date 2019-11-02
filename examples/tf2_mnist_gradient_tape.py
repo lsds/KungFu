@@ -59,7 +59,7 @@ def training_step(images, labels, first_batch):
 
     # KungFu: broadcast is done after the first gradient step to ensure optimizer initialization.
     if first_batch:
-        from kungfu.tensorflow.v2.initializer import broadcast_variables
+        from kungfu.tensorflow.initializer import broadcast_variables
         broadcast_variables(mnist_model.variables)
         broadcast_variables(opt.variables())
 

@@ -3,7 +3,7 @@ from kungfu import run_barrier
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
-from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 
 
 def test_sync_sgd():

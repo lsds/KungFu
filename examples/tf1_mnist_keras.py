@@ -15,7 +15,7 @@ import argparse
 import kungfu as kf
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesCallback
+from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
 
 
 def load_dataset():

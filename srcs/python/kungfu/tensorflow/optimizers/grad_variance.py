@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow import _tf_optimizer
+from kungfu.tensorflow.compat import _tf_optimizer
 from kungfu.tensorflow.ops import (counter, current_cluster_size,
                                    group_all_reduce)
 

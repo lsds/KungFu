@@ -160,7 +160,7 @@ else:
     with tf.Session(config=config) as session:
         session.run(init)
         if args.kf_optimizer:
-            from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+            from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
             session.run(BroadcastGlobalVariablesOp())
         run(lambda: session.run(train_opt))
         if barrier_op is not None:
