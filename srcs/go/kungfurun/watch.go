@@ -10,11 +10,11 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
-	sch "github.com/lsds/KungFu/srcs/go/scheduler"
+	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, jc sch.JobConfig) {
+func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job) {
 	ctx, cancel := context.WithCancel(ctx)
 	globalCtx, globalCancel := context.WithCancel(ctx)
 	server, err := rch.NewServer(NewHandler(parent, ch, globalCancel))
@@ -50,7 +50,7 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 			all.Add(1)
 			go func(g *sync.WaitGroup, id plan.PeerID, s Stage) {
 				localRank, _ := s.Cluster.LocalRank(id)
-				proc := jc.NewProc(id, localRank, s.Checkpoint, s.Cluster)
+				proc := j.NewProc(id, localRank, s.Checkpoint, s.Cluster)
 				atomic.AddInt32(&running, 1)
 				runProc(ctx, cancel, proc, s.Checkpoint)
 				n := atomic.AddInt32(&running, -1)
@@ -91,7 +91,7 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 	log.Infof("stop watching")
 }
 
-func runProc(ctx context.Context, cancel context.CancelFunc, proc sch.Proc, version string) {
+func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version string) {
 	r := &runner.Runner{}
 	r.SetName(proc.Name)
 	r.SetLogPrefix(proc.Name + "@" + version)

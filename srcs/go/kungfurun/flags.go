@@ -8,7 +8,6 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -17,7 +16,6 @@ func Init(f *FlagSet) {
 	if err := f.Parse(); err != nil {
 		utils.ExitErr(err)
 	}
-	log.SetFlags(0)
 	if !f.Quiet {
 		utils.LogArgs()
 		utils.LogKungfuEnv()
@@ -50,6 +48,7 @@ type FlagSet struct {
 	Checkpoint string
 
 	Logfile string
+	LogDir  string
 	Quiet   bool
 
 	Prog string
@@ -76,6 +75,7 @@ func (f *FlagSet) Register() {
 	flag.StringVar(&f.Checkpoint, "checkpoint", "0", "")
 
 	flag.StringVar(&f.Logfile, "logfile", "", "path to log file")
+	flag.StringVar(&f.LogDir, "logdir", "", "path to log dir")
 	flag.BoolVar(&f.Quiet, "q", false, "don't log debug info")
 }
 

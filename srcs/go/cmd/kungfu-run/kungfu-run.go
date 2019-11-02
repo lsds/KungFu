@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/job"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -59,13 +59,14 @@ func main() {
 		}
 		log.Infof("-P resolved as %s", peers)
 	}
-	jc := sch.JobConfig{
+	j := job.Job{
 		Strategy:  f.Strategy,
 		Parent:    parent,
 		HostList:  hl,
 		PortRange: f.PortRange,
 		Prog:      f.Prog,
 		Args:      f.Args,
+		LogDir:    f.LogDir,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	if f.Timeout > 0 {
@@ -75,8 +76,8 @@ func main() {
 	if f.Watch {
 		ch := make(chan run.Stage, 1)
 		ch <- run.Stage{Cluster: peers, Checkpoint: f.Checkpoint}
-		run.WatchRun(ctx, parent, parents, ch, jc)
+		run.WatchRun(ctx, parent, parents, ch, j)
 	} else {
-		run.SimpleRun(ctx, localhostIPv4, peers, jc, f.VerboseLog)
+		run.SimpleRun(ctx, localhostIPv4, peers, j, f.VerboseLog)
 	}
 }

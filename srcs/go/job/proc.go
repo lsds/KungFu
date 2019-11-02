@@ -1,4 +1,4 @@
-package scheduler
+package job
 
 import (
 	"bytes"
@@ -35,6 +35,7 @@ type Proc struct {
 	Envs    Envs
 	IPv4    uint32
 	PubAddr string
+	LogDir  string
 }
 
 func (p Proc) Cmd() *exec.Cmd {
