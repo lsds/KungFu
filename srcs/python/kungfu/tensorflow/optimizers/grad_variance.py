@@ -25,7 +25,7 @@ def MonitorGradientVarianceOptimizer(optimizer,
         use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
 
     Raises:
-        TypeError: Wrapping tf.train.optimizer and tf.keras.optimizers.Optimizer
+        TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
 
     Returns:
         optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
@@ -74,7 +74,8 @@ class _GradVariance(_KungFuAlgorithm):
 
         # Synchronization logic
         summed_grads = group_all_reduce(grads)
-        reduced_grads = [g / self._num_workers for g in summed_grads]
+        reduced_grads = map_maybe(
+            [g / self._num_workers for g in summed_grads])
 
         # Monitoring logic
         monitor_grads_op = tf.cond(

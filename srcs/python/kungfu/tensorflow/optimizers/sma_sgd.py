@@ -23,7 +23,7 @@ def SynchronousAveragingOptimizer(optimizer, name=None, use_locking=False):
         use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
 
     Raises:
-        TypeError: Wrapping tf.train.optimizer and tf.keras.optimizers.Optimizer
+        TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
 
     Returns:
         optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
