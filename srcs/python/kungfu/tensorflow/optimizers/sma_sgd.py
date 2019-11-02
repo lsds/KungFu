@@ -19,8 +19,8 @@ def SynchronousAveragingOptimizer(optimizer, name=None, use_locking=False):
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- Optimizer to use for computing gradients and applying updates.
 
     Keyword Arguments:
-        name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
-        use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+        | name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
+        | use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
 
     Raises:
         TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
