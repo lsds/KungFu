@@ -6,8 +6,7 @@ from kungfu.tensorflow.v1.ops import run_barrier
 from kungfu.tensorflow.v2.initializer import broadcast_variables
 
 
-@tf.function
-def training_step(x, opt, first_batch):
+def _training_step(x, opt, first_batch):
     with tf.GradientTape() as tape:
         y = x * x
     grads = tape.gradient(y, [x])
@@ -25,6 +24,11 @@ def test_sync_sgd():
     x = tf.Variable(tf.ones([], tf.float32))
     opt = tf.keras.optimizers.SGD(0.1)
     opt = SynchronousSGDOptimizer(opt)
+
+    @tf.function
+    def training_step(x, opt, first_batch):
+        _training_step(x, opt, first_batch)
+
     for batch in range(5):
         y = training_step(x, opt, batch == 0)
         # FIXME: check values
@@ -34,6 +38,11 @@ def test_sma():
     x = tf.Variable(tf.ones([], tf.float32))
     opt = tf.keras.optimizers.SGD(0.1)
     opt = SynchronousAveragingOptimizer(opt)
+
+    @tf.function
+    def training_step(x, opt, first_batch):
+        _training_step(x, opt, first_batch)
+
     for batch in range(5):
         y = training_step(x, opt, batch == 0)
         # FIXME: check values
@@ -43,6 +52,11 @@ def test_pair_averaging():
     x = tf.Variable(tf.ones([], tf.float32))
     opt = tf.keras.optimizers.SGD(0.1)
     opt = PairAveragingOptimizer(opt)
+
+    @tf.function
+    def training_step(x, opt, first_batch):
+        _training_step(x, opt, first_batch)
+
     for batch in range(5):
         y = training_step(x, opt, batch == 0)
         # FIXME: check values
