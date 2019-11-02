@@ -1,22 +1,18 @@
 import tensorflow as tf
-from kungfu.tensorflow import _tf_assign, _tf_mod
-from kungfu.tensorflow.v1.ops import (barrier, counter,
-                                      current_cluster_size, current_rank,
-                                      request_variable,
+from kungfu.tensorflow import _tf_assign, _tf_mod, _tf_optimizer
+from kungfu.tensorflow.v1.ops import (barrier, counter, current_cluster_size,
+                                      current_rank, request_variable,
                                       request_variable_with_template,
                                       save_variable)
 
-from .core import KungFuTFOptimizer, defuse, fuse
+from .core import (KungFuAlgorithm, KungFuKerasOptimizer, KungFuTFOptimizer,
+                   defuse, fuse)
 
 
-def get_random_peer(cluster_size, self_rank):
-    t = tf.random.uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
-    return tf.cond(tf.equal(t,
-                            self_rank), lambda: _tf_mod(t + 1, cluster_size),
-                   lambda: tf.identity(t))
-
-
-class PairAveragingOptimizer(KungFuTFOptimizer):
+def PairAveragingOptimizer(optimizer,
+                           fuse_requests=True,
+                           name=None,
+                           use_locking=False):
     """PairAveragingOptimizer implements the [AD-PSGD]_ algorithm.
 
     Every iteration of training, this optimizer:
@@ -29,37 +25,45 @@ class PairAveragingOptimizer(KungFuTFOptimizer):
 
     .. [AD-PSGD] Asynchronous Decentralized Parallel Stochastic Gradient Descent, ICML 2018, `AD-PSGD Paper <https://arxiv.org/abs/1710.06952>`_
 
-    Args:
-      optimizer:
-        Optimizer to use for computing gradients and applying updates.
-      fuse_requests:
-        Fusing the requests for remote variables to amortise communication cost.
-        The fusing however takes extra memory.
-      name:
-        Optional name prefix for the operations created when applying
-        gradients. Defaults to "KungFu" followed by the provided
-        optimizer type.
-      use_locking:
-        Whether to use locking when updating variables.
-        See Optimizer.__init__ for more info.
+    Arguments:
+        optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- Optimizer to use for computing gradients and applying updates.
 
+    Keyword Arguments:
+        fuse_requests {bool} -- Fusing requests to amortise communication cost at the cost of extra GPU memory and cycles. (default: {True})
+        name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
+        use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+
+    Raises:
+        TypeError: Wrapping tf.train.optimizer and tf.keras.optimizers.Optimizer
+
+    Returns:
+        optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
     """
-    def __init__(self,
-                 optimizer,
-                 fuse_requests=True,
-                 name=None,
-                 use_locking=False):
-        opt_type_name = type(optimizer).__name__
-        algo = _PairAveraging(fuse_requests, fused_model_name=opt_type_name)
-        super(PairAveragingOptimizer, self).__init__(optimizer,
-                                                      algo,
-                                                      name,
-                                                      use_locking=use_locking)
+    opt_type_name = type(optimizer).__name__
+    pair_avg = _PairAveraging(fuse_requests, fused_model_name=opt_type_name)
+
+    if name is None:
+        name = "KungFu{}".format(type(optimizer).__name__)
+    if isinstance(optimizer, _tf_optimizer):
+        return KungFuTFOptimizer(optimizer,
+                                 pair_avg,
+                                 name,
+                                 use_locking=use_locking)
+    elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
+        return KungFuKerasOptimizer(optimizer, pair_avg, name)
+    else:
+        raise TypeError('Cannot wrap type %s' % type(optimizer).__name__)
+
+
+def get_random_peer(cluster_size, self_rank):
+    t = tf.random.uniform([], minval=0, maxval=cluster_size, dtype=tf.int32)
+    return tf.cond(tf.equal(t,
+                            self_rank), lambda: _tf_mod(t + 1, cluster_size),
+                   lambda: tf.identity(t))
+
 
 class _PairAveraging:
-    def __init__(self,
-                 fuse_requests,
-                 fused_model_name=None):
+    def __init__(self, fuse_requests, fused_model_name=None):
         self._step = counter()
         self._fuse_requests = fuse_requests
         self._fused_model_name = fused_model_name

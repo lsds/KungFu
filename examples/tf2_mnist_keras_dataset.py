@@ -1,3 +1,5 @@
+import argparse
+
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank, run_barrier
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
@@ -5,17 +7,19 @@ from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousSGDOptimizer)
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
 
-flags = tf.compat.v1.flags
-flags.DEFINE_string('kf_optimizer', 'sync-sgd', 'KungFu optimizer')
-FLAGS = flags.FLAGS
+parser = argparse.ArgumentParser(description='KungFu mnist example.')
+parser.add_argument('--kf-optimizer',
+                    type=str,
+                    default='sync-sgd',
+                    help='available options: sync-sgd, async-sgd, sma')
+args = parser.parse_args()
 
 (x_train, y_train), _ = \
     tf.keras.datasets.mnist.load_data(path='mnist-%d.npz' % current_rank())
 
 train_dataset = tf.data.Dataset.from_tensor_slices(
-    (tf.cast(x_train[..., tf.newaxis] / 255.0, tf.float32),
-             tf.cast(y_train, tf.int64))
-)
+    (tf.cast(x_train[..., tf.newaxis] / 255.0,
+             tf.float32), tf.cast(y_train, tf.int64)))
 train_dataset = train_dataset.repeat().shuffle(10000).batch(128)
 
 mnist_model = tf.keras.Sequential([
@@ -30,15 +34,14 @@ mnist_model = tf.keras.Sequential([
 ])
 
 # KungFu: adjust learning rate based on number of GPUs.
-# opt = tf.keras.optimizers.SGD(0.001 * current_cluster_size())
-opt = tf.compat.v1.train.AdamOptimizer(0.001 * current_cluster_size())
+opt = tf.keras.optimizers.SGD(0.001 * current_cluster_size())
+# opt = tf.compat.v1.train.AdamOptimizer(0.001 * current_cluster_size())
 
-# KungFu: wrap tf.compat.v1.train.Optimizer.
-if FLAGS.kf_optimizer == 'sync-sgd':
+if args.kf_optimizer == 'sync-sgd':
     opt = SynchronousSGDOptimizer(opt)
-elif FLAGS.kf_optimizer == 'async-sgd':
+elif args.kf_optimizer == 'async-sgd':
     opt = PairAveragingOptimizer(opt)
-elif FLAGS.kf_optimizer == 'sma':
+elif args.kf_optimizer == 'sma':
     opt = SynchronousAveragingOptimizer(opt)
 else:
     raise RuntimeError('Unknown KungFu optimizer')
@@ -57,7 +60,11 @@ verbose = 1 if current_rank() == 0 else 0
 
 # Train the model.
 # KungFu: adjust number of steps based on number of GPUs.
-mnist_model.fit(train_dataset, steps_per_epoch=500 // current_cluster_size(), epochs=1, callbacks=callbacks, verbose=verbose)
+mnist_model.fit(train_dataset,
+                steps_per_epoch=500 // current_cluster_size(),
+                epochs=1,
+                callbacks=callbacks,
+                verbose=verbose)
 
 # KungFu: run evaluation after all finishes training.
 run_barrier()
@@ -65,9 +72,8 @@ run_barrier()
 _, (x_test, y_test) = \
     tf.keras.datasets.mnist.load_data()
 test_dataset = tf.data.Dataset.from_tensor_slices(
-    (tf.cast(x_test[..., tf.newaxis] / 255.0, tf.float32),
-             tf.cast(y_test, tf.int64))
-)
+    (tf.cast(x_test[..., tf.newaxis] / 255.0,
+             tf.float32), tf.cast(y_test, tf.int64)))
 test_dataset = test_dataset.batch(128)
 
 print('\n# Evaluate on test data')

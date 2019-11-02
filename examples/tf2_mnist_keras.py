@@ -12,39 +12,15 @@
 
 import argparse
 import logging
+
 import kungfu as kf
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import broadcast
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.keras.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
-
-
-class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
-    def __init__(self, *args):
-        super(BroadcastGlobalVariablesCallback, self).__init__(*args)
-        self.broadcast_done = False
-
-    def on_batch_end(self, batch, logs=None):
-        if self.broadcast_done:
-            return
-
-        if hasattr(self.model, 'variables'):
-            for v in self.model.variables:
-                v.assign(broadcast(v))
-
-            opt_variables = None
-            if hasattr(self.model.optimizer, 'variables'):
-                opt_variables = self.model.optimizer.variables()
-            else:
-                opt_variables = self.model.optimizer.optimizer.variables()
-
-            # print(opt_variables)
-            for v in opt_variables:
-                v.assign(broadcast(v))
-        else:
-            raise RuntimeError('No variables() in %s', self.model)
-
-        self.broadcast_done = True
+from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
+                                          SynchronousAveragingOptimizer,
+                                          SynchronousSGDOptimizer)
+from kungfu.tensorflow.v1.ops import broadcast
+from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
 
 
 def load_dataset():
@@ -70,13 +46,14 @@ def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
 
     # Scale learning rate according to the level of data parallelism
-    optimizer = tf.keras.optimizers.SGD(learning_rate=(learning_rate * n_shards))
+    optimizer = tf.keras.optimizers.SGD(learning_rate=(learning_rate *
+                                                       n_shards))
 
     # KUNGFU: Wrap the TensorFlow optimizer with KungFu distributed optimizers.
     if name == 'sync-sgd':
         return SynchronousSGDOptimizer(optimizer)
     elif name == 'async-sgd':
-        return PairAveragingOptimizer(optimizer, fuse_requests=True)
+        return PairAveragingOptimizer(optimizer)
     elif name == 'sma':
         return SynchronousAveragingOptimizer(optimizer)
     else:
@@ -123,7 +100,9 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000):
 
 
 def test_model(model, dataset):
-    test_metrics = model.evaluate(dataset['x_test'], dataset['y_test'], verbose=0)
+    test_metrics = model.evaluate(dataset['x_test'],
+                                  dataset['y_test'],
+                                  verbose=0)
     # print test accuracy
     accuracy_index = 1
     print('test accuracy: %f' % test_metrics[accuracy_index])
@@ -147,12 +126,10 @@ def parse_args():
 
 
 def main():
-    logging.basicConfig(
-        filename="tf2.log",
-        level=logging.DEBUG,
-        format="%(asctime)s:%(levelname)s:%(message)s"
-        )
-    # parse arguements from the command line
+    logging.basicConfig(filename="tf2.log",
+                        level=logging.DEBUG,
+                        format="%(asctime)s:%(levelname)s:%(message)s")
+    # parse arguments from the command line
     args = parse_args()
     # build the KungFu optimizer
     optimizer = build_optimizer(args.optimizer)

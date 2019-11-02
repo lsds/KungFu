@@ -34,7 +34,7 @@ list_hdr_and_srcs() {
 
 list_py_srcs() {
     find ./srcs -type f | grep .py$
-    # find ./examples -type f | grep .py$
+    find ./examples -type f | grep .py$
 }
 
 for_all() {

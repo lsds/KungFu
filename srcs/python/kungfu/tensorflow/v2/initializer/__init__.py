@@ -1,5 +1,4 @@
 import tensorflow as tf
-from kungfu import current_rank
 from kungfu.tensorflow import _tf_assign
 from kungfu.tensorflow.v1.ops import broadcast
 from tensorflow import keras

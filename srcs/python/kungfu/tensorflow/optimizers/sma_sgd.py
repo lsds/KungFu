@@ -1,12 +1,11 @@
 import tensorflow as tf
-from kungfu.tensorflow import _tf_assign
-from kungfu.tensorflow.v1.ops import (current_cluster_size,
-                                      current_rank, group_all_reduce)
+from kungfu.tensorflow import _tf_assign, _tf_optimizer
+from kungfu.tensorflow.v1.ops import current_cluster_size, group_all_reduce
 
-from .core import KungFuTFOptimizer
+from .core import KungFuAlgorithm, KungFuKerasOptimizer, KungFuTFOptimizer
 
 
-class SynchronousAveragingOptimizer(KungFuTFOptimizer):
+def SynchronousAveragingOptimizer(optimizer, name=None, use_locking=False):
     """SynchronousAveragingOptimizer implements the [SMA]_ algorithm.
 
     [EA-SGD]_ proposed to use model averaging to train deep learning models and prove its convergence.
@@ -16,29 +15,37 @@ class SynchronousAveragingOptimizer(KungFuTFOptimizer):
     .. [EA-SGD] Deep learning with Elastic Averaging SGD, NIPS 2015, `EA-SGD Paper <https://arxiv.org/abs/1412.6651>`_
     .. [SMA] CrossBow: Scaling Deep Learning with Small Batch Sizes on Multi-GPU Servers, VLDB 2019, `SMA Paper <http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf>`_
 
-    Args:
-      optimizer:
-        Optimizer to use for computing gradients and applying updates.
-      name:
-        Optional name prefix for the operations created when applying
-        gradients. Defaults to "KungFu" followed by the provided
-        optimizer type.
-      use_locking:
-        Whether to use locking when updating variables.
-        See Optimizer.__init__ for more info.
+    Arguments:
+        optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- Optimizer to use for computing gradients and applying updates.
 
+    Keyword Arguments:
+        name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
+        use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+
+    Raises:
+        TypeError: Wrapping tf.train.optimizer and tf.keras.optimizers.Optimizer
+
+    Returns:
+        optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
     """
-    def __init__(self, optimizer, name=None, use_locking=False):
-        algo = _SynchronousAveraging()
-        super(SynchronousAveragingOptimizer, self).__init__(optimizer,
-                                                      algo,
-                                                      name,
-                                                      use_locking=use_locking)
+    sma_algo = _SynchronousAveraging()
+    if name is None:
+        name = "KungFu{}".format(type(optimizer).__name__)
 
-class _SynchronousAveraging:
+    if isinstance(optimizer, _tf_optimizer):
+        return KungFuTFOptimizer(optimizer,
+                                 sma_algo,
+                                 name,
+                                 use_locking=use_locking)
+    elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
+        return KungFuKerasOptimizer(optimizer, sma_algo, name)
+    else:
+        raise TypeError('Cannot wrap type %s' % type(optimizer).__name__)
+
+
+class _SynchronousAveraging(KungFuAlgorithm):
     def __init__(self):
         self._num_workers = current_cluster_size()
-        self._rank = current_rank()
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         # It is important to apply model averaging every iteration [2]
