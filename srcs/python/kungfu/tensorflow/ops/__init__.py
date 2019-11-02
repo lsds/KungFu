@@ -18,10 +18,12 @@ __all__ = [
 
 
 def fuse(ts):
+    import tensorflow as tf
     return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
 
 
 def defuse(y, shapes):
+    import tensorflow as tf
     ts = []
     off = 0
     for s in shapes:
