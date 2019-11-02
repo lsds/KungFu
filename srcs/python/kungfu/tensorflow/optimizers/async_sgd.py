@@ -5,8 +5,7 @@ from kungfu.tensorflow.v1.ops import (barrier, counter, current_cluster_size,
                                       request_variable_with_template,
                                       save_variable)
 
-from .core import (KungFuAlgorithm, KungFuKerasOptimizer, KungFuTFOptimizer,
-                   defuse, fuse)
+from .core import _create_kungfu_optimizer, _KungFuAlgorithm, defuse, fuse
 
 
 def PairAveragingOptimizer(optimizer,
@@ -41,18 +40,7 @@ def PairAveragingOptimizer(optimizer,
     """
     opt_type_name = type(optimizer).__name__
     pair_avg = _PairAveraging(fuse_requests, fused_model_name=opt_type_name)
-
-    if name is None:
-        name = "KungFu{}".format(type(optimizer).__name__)
-    if isinstance(optimizer, _tf_optimizer):
-        return KungFuTFOptimizer(optimizer,
-                                 pair_avg,
-                                 name,
-                                 use_locking=use_locking)
-    elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
-        return KungFuKerasOptimizer(optimizer, pair_avg, name)
-    else:
-        raise TypeError('Cannot wrap type %s' % type(optimizer).__name__)
+    return _create_kungfu_optimizer(optimizer, pair_avg, name, use_locking)
 
 
 def get_random_peer(cluster_size, self_rank):
@@ -62,7 +50,7 @@ def get_random_peer(cluster_size, self_rank):
                    lambda: tf.identity(t))
 
 
-class _PairAveraging:
+class _PairAveraging(_KungFuAlgorithm):
     def __init__(self, fuse_requests, fused_model_name=None):
         self._step = counter()
         self._fuse_requests = fuse_requests

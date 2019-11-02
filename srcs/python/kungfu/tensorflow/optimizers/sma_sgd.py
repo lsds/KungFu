@@ -2,7 +2,7 @@ import tensorflow as tf
 from kungfu.tensorflow import _tf_assign, _tf_optimizer
 from kungfu.tensorflow.v1.ops import current_cluster_size, group_all_reduce
 
-from .core import KungFuAlgorithm, KungFuKerasOptimizer, KungFuTFOptimizer
+from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
 
 def SynchronousAveragingOptimizer(optimizer, name=None, use_locking=False):
@@ -29,21 +29,10 @@ def SynchronousAveragingOptimizer(optimizer, name=None, use_locking=False):
         optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
     """
     sma_algo = _SynchronousAveraging()
-    if name is None:
-        name = "KungFu{}".format(type(optimizer).__name__)
-
-    if isinstance(optimizer, _tf_optimizer):
-        return KungFuTFOptimizer(optimizer,
-                                 sma_algo,
-                                 name,
-                                 use_locking=use_locking)
-    elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
-        return KungFuKerasOptimizer(optimizer, sma_algo, name)
-    else:
-        raise TypeError('Cannot wrap type %s' % type(optimizer).__name__)
+    return _create_kungfu_optimizer(optimizer, sma_algo, name, use_locking)
 
 
-class _SynchronousAveraging(KungFuAlgorithm):
+class _SynchronousAveraging(_KungFuAlgorithm):
     def __init__(self):
         self._num_workers = current_cluster_size()
 

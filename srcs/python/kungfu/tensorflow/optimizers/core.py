@@ -59,6 +59,21 @@ class KungFuKerasOptimizer(tf.keras.optimizers.Optimizer):
         return self._optimizer.optimizer.get_config()
 
 
-class KungFuAlgorithm:
+class _KungFuAlgorithm:
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         raise NotImplementedError('Must be implemented by sub-class.')
+
+
+def _create_kungfu_optimizer(optimizer, kungfu_algo, name, use_locking):
+    if name is None:
+        name = "KungFu{}".format(type(optimizer).__name__)
+
+    if isinstance(optimizer, _tf_optimizer):
+        return KungFuTFOptimizer(optimizer,
+                                 kungfu_algo,
+                                 name,
+                                 use_locking=use_locking)
+    elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
+        return KungFuKerasOptimizer(optimizer, kungfu_algo, name)
+    else:
+        raise TypeError('Cannot wrap type %s' % type(optimizer).__name__)

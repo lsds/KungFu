@@ -1,6 +1,7 @@
 # from .ada_sgd import AdaptiveSGDOptimizer
-# from .sync_sgd_mon import (SyncSGDWithGradNoiseScaleOptimizer, SyncSGDWithGradVarianceOptimizer)
 from .async_sgd import PairAveragingOptimizer
+from .grad_noise_scale import MonitorGradientNoiseScaleOptimizer
+from .grad_variance import MonitorGradientVarianceOptimizer
 from .sma_sgd import SynchronousAveragingOptimizer
 from .sync_sgd import SynchronousSGDOptimizer
 

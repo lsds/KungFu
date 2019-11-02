@@ -4,8 +4,7 @@ from kungfu.tensorflow import _tf_optimizer
 from kungfu.tensorflow.v1.ops import (current_cluster_size, group_all_reduce,
                                       group_nccl_all_reduce)
 
-from .core import (KungFuAlgorithm, KungFuKerasOptimizer, KungFuTFOptimizer,
-                   defuse, fuse)
+from .core import _create_kungfu_optimizer, _KungFuAlgorithm, defuse, fuse
 
 
 def SynchronousSGDOptimizer(optimizer,
@@ -37,21 +36,11 @@ def SynchronousSGDOptimizer(optimizer,
         optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
     """
     sync_sgd_algo = _SynchronousSGD(nccl, nccl_fusion)
-    if name is None:
-        name = "KungFu{}".format(type(optimizer).__name__)
-
-    if isinstance(optimizer, _tf_optimizer):
-        return KungFuTFOptimizer(optimizer,
-                                 sync_sgd_algo,
-                                 name,
-                                 use_locking=use_locking)
-    elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
-        return KungFuKerasOptimizer(optimizer, sync_sgd_algo, name)
-    else:
-        raise TypeError('Cannot wrap type %s' % type(optimizer).__name__)
+    return _create_kungfu_optimizer(optimizer, sync_sgd_algo, name,
+                                    use_locking)
 
 
-class _SynchronousSGD(KungFuAlgorithm):
+class _SynchronousSGD(_KungFuAlgorithm):
     def __init__(self, nccl=False, nccl_fusion=True):
         self._nccl = nccl
         self._nccl_fusion = nccl_fusion
