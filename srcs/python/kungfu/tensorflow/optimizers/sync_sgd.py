@@ -49,7 +49,7 @@ class _SynchronousSGD(_KungFuAlgorithm):
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
 
-        if not self._nccl:
+        if self._nccl:
             # FIXME: We have a limitation that KungFu schedules NCCL operations
             # in the order of the given gradients. This order is sub-optimal
             # to the topological sorting order of dataflow. We get around of this issue by
