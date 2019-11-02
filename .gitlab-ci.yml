@@ -12,7 +12,9 @@ stages:
     KUNGFU_DOWNLOAD_GO: 'ON'
 
   before_script:
+  - pip3 install --upgrade pip
   - pip3 install cmake numpy==1.16 tensorflow==${TF_VERSION}
+  - pip3 --version
   - python3 --version
   - python3 -c "import tensorflow as tf; print(tf.__version__)"
 
@@ -51,10 +53,10 @@ tensorflow 1.15.0:
   variables:
     TF_VERSION: '1.15.0'
 
-tensorflow 2.0.0b1:
+tensorflow 2.0.0:
   extends: .tensorflow2
   variables:
-    TF_VERSION: '2.0.0b1'
+    TF_VERSION: '2.0.0'
 
 TF1 python3 test:
   stage: test
@@ -89,7 +91,7 @@ TF1 python3 test:
 TF2 python3 test:
   extends: .tensorflow2
   variables:
-    TF_VERSION: '2.0.0b1'
+    TF_VERSION: '2.0.0'
     KUNGFU_BUILD_TOOLS: 'ON'
 
   script:
