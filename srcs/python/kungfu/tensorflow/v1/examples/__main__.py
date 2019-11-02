@@ -1,6 +1,7 @@
 import sys
 
 import tensorflow as tf
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 from kungfu.tensorflow.v1.ops import (all_reduce, current_cluster_size,
                                       current_rank)
 
@@ -22,9 +23,29 @@ def all_reduce_example():
             print('step %d, result: %d' % (step, v))
 
 
+def sgd_example():
+    x = tf.Variable(tf.ones([], tf.float32))
+    y = x * x
+    lr = 0.1
+    opt = tf.train.GradientDescentOptimizer(learning_rate=lr)
+    opt = SynchronousSGDOptimizer(opt)
+    train_step = opt.minimize(y)
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+        for step in range(5):
+            v, _ = sess.run([x, train_step])
+            print('step %d, result: %f' % (step, v))
+
+            u = (1 - 2 * lr)**(step + 1)
+            if abs(u - v) > 1e-6:
+                print('unexpected result: %f, want: %f' % (v, u))
+
+
 def main(args):
     show_info_example()
     all_reduce_example()
+    sgd_example()
 
 
 if __name__ == "__main__":
