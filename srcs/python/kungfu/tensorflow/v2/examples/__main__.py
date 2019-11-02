@@ -1,9 +1,9 @@
 import sys
 
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import (current_cluster_size, current_rank)
-from kungfu.tensorflow.v2.initializer import broadcast_variables
 from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+from kungfu.tensorflow.v1.ops import current_cluster_size, current_rank
+from kungfu.tensorflow.v2.initializer import broadcast_variables
 
 
 def show_info_example():

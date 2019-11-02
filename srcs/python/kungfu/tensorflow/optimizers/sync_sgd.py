@@ -24,8 +24,8 @@ def SynchronousSGDOptimizer(optimizer,
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- Optimizer to use for computing gradients and applying updates.
 
     Keyword Arguments:
-        nccl {bool} -- using NCCL to perform all-reduce. (default: {False})
-        nccl_fusion {bool} -- using all gradients before launch NCCL all-reduce. (default: {True})
+        nccl {bool} -- using NCCL to average gradients. (default: {False})
+        nccl_fusion {bool} -- fusing all gradients to amortise NCCL operation launch cost. (default: {True})
         name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
         use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
 
@@ -49,7 +49,7 @@ class _SynchronousSGD(_KungFuAlgorithm):
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
 
-        if self._nccl:
+        if not self._nccl:
             # FIXME: We have a limitation that KungFu schedules NCCL operations
             # in the order of the given gradients. This order is sub-optimal
             # to the topological sorting order of dataflow. We get around of this issue by
