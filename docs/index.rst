@@ -8,7 +8,7 @@ The following is the public API we released by far.
 .. automodule:: kungfu
    :members:
 
-.. automodule:: kungfu.tensorflow.ops
+.. automodule:: kungfu.tensorflow.v1.ops
    :members:
 
 .. automodule:: kungfu.tensorflow.optimizers
