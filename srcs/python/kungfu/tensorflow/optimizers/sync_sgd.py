@@ -1,10 +1,10 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
 from kungfu.tensorflow import _tf_optimizer
-from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
-                                   group_nccl_all_reduce)
+from kungfu.tensorflow.ops import (current_cluster_size, defuse, fuse,
+                                   group_all_reduce, group_nccl_all_reduce)
 
-from .core import _create_kungfu_optimizer, _KungFuAlgorithm, defuse, fuse
+from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
 
 def SynchronousSGDOptimizer(optimizer,

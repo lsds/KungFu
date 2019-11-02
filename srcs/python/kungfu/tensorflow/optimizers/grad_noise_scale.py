@@ -1,10 +1,10 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
 from kungfu.tensorflow import _tf_optimizer
-from kungfu.tensorflow.ops import (counter, current_cluster_size,
+from kungfu.tensorflow.ops import (counter, current_cluster_size, fuse,
                                    global_noise_scale, group_all_reduce)
 
-from .core import _create_kungfu_optimizer, _KungFuAlgorithm, fuse
+from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
 
 def MonitorGradientNoiseScaleOptimizer(optimizer,

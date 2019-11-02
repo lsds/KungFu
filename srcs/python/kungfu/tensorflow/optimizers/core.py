@@ -3,24 +3,6 @@ from kungfu.tensorflow import _tf_optimizer
 from kungfu.tensorflow.ops import counter
 
 
-def fuse(ts):
-    return tf.concat([tf.reshape(t, [-1]) for t in ts], -1)
-
-
-def defuse(y, shapes):
-    ts = []
-    off = 0
-    for s in shapes:
-        size = s.num_elements()
-        x = tf.slice(y, [off], [size])
-        x = tf.reshape(x, s)
-        ts.append(x)
-        off += size
-    if off != y.shape.num_elements():
-        raise RuntimeError('invalid shapes')
-    return ts
-
-
 class KungFuTFOptimizer(_tf_optimizer):
     def __init__(self, optimizer, algo, name, use_locking=False):
         super(KungFuTFOptimizer, self).__init__(name=name,

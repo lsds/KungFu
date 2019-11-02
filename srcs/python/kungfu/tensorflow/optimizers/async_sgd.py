@@ -1,11 +1,12 @@
 import tensorflow as tf
 from kungfu.tensorflow import _tf_assign, _tf_mod, _tf_optimizer
 from kungfu.tensorflow.ops import (barrier, counter, current_cluster_size,
-                                   current_rank, request_variable,
+                                   current_rank, defuse, fuse,
+                                   request_variable,
                                    request_variable_with_template,
                                    save_variable)
 
-from .core import _create_kungfu_optimizer, _KungFuAlgorithm, defuse, fuse
+from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
 
 def PairAveragingOptimizer(optimizer,
