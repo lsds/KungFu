@@ -28,7 +28,7 @@ stages:
 
   script:
   - pip3 install --no-index -U .
-  # TODO: run TF2 examples
+  - python3 -m kungfu.tensorflow.v2.examples
 
 tensorflow 1.12.3:
   extends: .tensorflow1
