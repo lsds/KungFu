@@ -47,10 +47,7 @@ func New() (*Kungfu, error) {
 
 func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
-	server, err := rch.NewServer(router)
-	if err != nil {
-		return nil, err
-	}
+	server := rch.NewServer(router)
 	return &Kungfu{
 		parent:       config.Parent,
 		parents:      config.Parents,
@@ -66,9 +63,11 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	}, nil
 }
 
-func (kf *Kungfu) Start() int {
+func (kf *Kungfu) Start() error {
 	if !kf.single {
-		go kf.server.Serve()
+		if err := kf.server.Start(); err != nil {
+			return err
+		}
 		if kc.EnableMonitoring {
 			monitoringPort := kf.self.Port + 10000
 			monitor.StartServer(int(monitoringPort))
@@ -80,17 +79,17 @@ func (kf *Kungfu) Start() int {
 		}
 	}
 	kf.Update()
-	return 0
+	return nil
 }
 
-func (kf *Kungfu) Close() int {
+func (kf *Kungfu) Close() error {
 	if !kf.single {
 		if kc.EnableMonitoring {
 			monitor.StopServer()
 		}
 		kf.server.Close() // TODO: check error
 	}
-	return 0
+	return nil
 }
 
 var errSelfNotInCluster = errors.New("self not in cluster")

@@ -26,15 +26,14 @@ func GoKungfuInit() int {
 	var err error
 	kungfu, err = kf.New()
 	if err != nil {
-		log.Errorf("failed to create KungFu instance: %v", err)
-		return 1
+		return errorCode("New", err)
 	}
-	return kungfu.Start()
+	return errorCode("Start", kungfu.Start())
 }
 
 //export GoKungfuFinalize
 func GoKungfuFinalize() int {
-	return kungfu.Close()
+	return errorCode("Close", kungfu.Close())
 }
 
 //export GoKungfuClusterSize

@@ -15,28 +15,21 @@ import (
 
 // Server receives messages from remove endpoints
 type Server interface {
-	Serve()
+	Start() error
 	Close()
 }
 
 // NewServer creates a new Server
-func NewServer(endpoint Endpoint) (Server, error) {
-	tcpServer, err := newTCPServer(endpoint)
-	if err != nil {
-		return nil, err
-	}
+func NewServer(endpoint Endpoint) Server {
+	tcpServer := newTCPServer(endpoint)
 	var unixServer *server
 	if kc.UseUnixSock {
-		var err error
-		unixServer, err = newUnixServer(endpoint)
-		if err != nil {
-			return nil, err
-		}
+		unixServer = newUnixServer(endpoint)
 	}
 	return &composedServer{
 		tcpServer:  tcpServer,
 		unixServer: unixServer,
-	}, nil
+	}
 }
 
 type composedServer struct {
@@ -44,7 +37,21 @@ type composedServer struct {
 	unixServer *server
 }
 
-func (s *composedServer) Serve() {
+func (s *composedServer) Start() error {
+	for _, srv := range []*server{s.tcpServer, s.unixServer} {
+		if srv != nil {
+			listener, err := srv.listen()
+			if err != nil {
+				return err
+			}
+			srv.listener = listener
+		}
+	}
+	go s.serve()
+	return nil
+}
+
+func (s *composedServer) serve() {
 	var wg sync.WaitGroup
 	for _, srv := range []*server{s.tcpServer, s.unixServer} {
 		if srv != nil {
@@ -68,24 +75,22 @@ func (s *composedServer) Close() {
 }
 
 type server struct {
+	listen   func() (net.Listener, error)
 	listener net.Listener
 	endpoint Endpoint
 	unix     bool
 }
 
-func newTCPServer(endpoint Endpoint) (*server, error) {
-	// addr := endpoint.Self().String()
-	listenAddr := endpoint.Self()
-	listenAddr.IPv4 = 0
-	log.Debugf("listening: %s", listenAddr)
-	listener, err := net.Listen("tcp", listenAddr.String())
-	if err != nil {
-		return nil, err
-	}
+func newTCPServer(endpoint Endpoint) *server {
 	return &server{
-		listener: listener,
+		listen: func() (net.Listener, error) {
+			listenAddr := endpoint.Self()
+			listenAddr.IPv4 = 0
+			log.Debugf("listening: %s", listenAddr)
+			return net.Listen("tcp", listenAddr.String())
+		},
 		endpoint: endpoint,
-	}, nil
+	}
 }
 
 func fileExists(filename string) (bool, time.Duration) {
@@ -100,30 +105,28 @@ func fileExists(filename string) (bool, time.Duration) {
 }
 
 // newUnixServer creates a new Server listening Unix socket
-func newUnixServer(endpoint Endpoint) (*server, error) {
-	sockFile := endpoint.Self().SockFile()
-	if ok, age := fileExists(sockFile); ok {
-		if age > 0 {
-			log.Warnf("%s already exists for %s, trying to remove", sockFile, age)
-			if err := os.Remove(sockFile); err != nil {
-				utils.ExitErr(err)
+func newUnixServer(endpoint Endpoint) *server {
+	listen := func() (net.Listener, error) {
+		sockFile := endpoint.Self().SockFile()
+		if ok, age := fileExists(sockFile); ok {
+			if age > 0 {
+				log.Warnf("%s already exists for %s, trying to remove", sockFile, age)
+				if err := os.Remove(sockFile); err != nil {
+					utils.ExitErr(err)
+				}
+			} else {
+				utils.ExitErr(fmt.Errorf("can't cleanup socket file: %s", sockFile))
 			}
-		} else {
-			utils.ExitErr(fmt.Errorf("can't cleanup socket file: %s", sockFile))
 		}
-	}
-	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockFile, Net: "unix"})
-	if err != nil {
-		return nil, err
+		return net.ListenUnix("unix", &net.UnixAddr{Name: sockFile, Net: "unix"})
 	}
 	return &server{
-		listener: listener,
+		listen:   listen,
 		endpoint: endpoint,
 		unix:     true,
-	}, nil
+	}
 }
 
-// Serve starts the server
 func (s *server) Serve() {
 	for {
 		conn, err := s.listener.Accept()

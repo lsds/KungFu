@@ -2,7 +2,6 @@ package kungfurun
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -17,11 +16,10 @@ import (
 func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job) {
 	ctx, cancel := context.WithCancel(ctx)
 	globalCtx, globalCancel := context.WithCancel(ctx)
-	server, err := rch.NewServer(NewHandler(parent, ch, globalCancel))
-	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to create server: %v", err))
+	server := rch.NewServer(NewHandler(parent, ch, globalCancel))
+	if err := server.Start(); err != nil {
+		utils.ExitErr(err)
 	}
-	go server.Serve()
 	defer server.Close()
 	log.Infof("watching config server")
 
