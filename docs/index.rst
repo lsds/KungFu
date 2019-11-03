@@ -20,7 +20,7 @@ Global variable initializers
 
 KungFu provide various initializers to help you synchronize
 the global variables of distributed training workers at the beginning of training.
-These initializers are used with ``tf.session``, ``tf.estimator``, ``tf.gradient_tape``
+These initializers are used with ``tf.session``, ``tf.estimator``, ``tf.GradientTape``
 and ``tf.keras``, respectively.
 
 .. automodule:: kungfu.tensorflow.initializer

@@ -36,9 +36,11 @@ class BroadcastGlobalVariablesHook(_tf_hook):
         self.bcast_op = None
 
     def begin(self):
+        """Create a broadcast op at the beginning."""
         self.bcast_op = BroadcastGlobalVariablesOp()
 
     def after_create_session(self, session, coord):
+        """Broadcast global vartiables after creating the session."""
         session.run(self.bcast_op)
 
 
@@ -49,6 +51,7 @@ class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
         self.broadcast_done = False
 
     def on_batch_end(self, batch, logs=None):
+        """broadcast should be done after the first gradient step to ensure optimizer initialization."""
         if self.broadcast_done:
             return
 
