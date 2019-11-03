@@ -25,6 +25,7 @@ type Kungfu struct {
 	portRange plan.PortRange
 	self      plan.PeerID
 	strategy  kb.Strategy
+	single    bool
 
 	router *rch.Router
 	server rch.Server
@@ -46,10 +47,7 @@ func New() (*Kungfu, error) {
 
 func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
-	server, err := rch.NewServer(router)
-	if err != nil {
-		return nil, err
-	}
+	server := rch.NewServer(router)
 	return &Kungfu{
 		parent:       config.Parent,
 		parents:      config.Parents,
@@ -58,33 +56,40 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 		hostList:     config.HostList,
 		portRange:    config.PortRange,
 		strategy:     config.Strategy,
-		checkpoint:   config.Checkpoint,
+		checkpoint:   config.InitCheckpoint,
+		single:       config.Single,
 		router:       router,
 		server:       server,
 	}, nil
 }
 
-func (kf *Kungfu) Start() int {
-	go kf.server.Serve()
-	if kc.EnableMonitoring {
-		monitoringPort := kf.self.Port + 10000
-		monitor.StartServer(int(monitoringPort))
-		monitorAddr := plan.NetAddr{
-			IPv4: kf.self.IPv4, // FIXME: use pubAddr
-			Port: monitoringPort,
+func (kf *Kungfu) Start() error {
+	if !kf.single {
+		if err := kf.server.Start(); err != nil {
+			return err
 		}
-		log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self, monitorAddr)
+		if kc.EnableMonitoring {
+			monitoringPort := kf.self.Port + 10000
+			monitor.StartServer(int(monitoringPort))
+			monitorAddr := plan.NetAddr{
+				IPv4: kf.self.IPv4, // FIXME: use pubAddr
+				Port: monitoringPort,
+			}
+			log.Infof("Kungfu peer %s started, monitoring endpoint http://%s/metrics", kf.self, monitorAddr)
+		}
 	}
 	kf.Update()
-	return 0
+	return nil
 }
 
-func (kf *Kungfu) Close() int {
-	if kc.EnableMonitoring {
-		monitor.StopServer()
+func (kf *Kungfu) Close() error {
+	if !kf.single {
+		if kc.EnableMonitoring {
+			monitor.StopServer()
+		}
+		kf.server.Close() // TODO: check error
 	}
-	kf.server.Close() // TODO: check error
-	return 0
+	return nil
 }
 
 var errSelfNotInCluster = errors.New("self not in cluster")

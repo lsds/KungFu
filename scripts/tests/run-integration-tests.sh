@@ -18,6 +18,7 @@ run_fake_cluster() {
 
     echo "running test with graph strategy $STRATEGY"
     ./bin/kungfu-run \
+        -q \
         -np=$np \
         -strategy="${STRATEGY}" \
         -H $H \
