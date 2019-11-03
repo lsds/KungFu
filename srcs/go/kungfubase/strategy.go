@@ -43,6 +43,16 @@ func (s Strategy) String() string {
 	return strategyNames[s]
 }
 
+// Set implements flags.Value::Set
+func (s *Strategy) Set(val string) error {
+	value, err := ParseStrategy(val)
+	if err != nil {
+		return err
+	}
+	*s = *value
+	return nil
+}
+
 var errInvalidStrategy = errors.New("invalid strategy")
 
 func ParseStrategy(s string) (*Strategy, error) {
