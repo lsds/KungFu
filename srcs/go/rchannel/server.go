@@ -40,11 +40,9 @@ type composedServer struct {
 func (s *composedServer) Start() error {
 	for _, srv := range []*server{s.tcpServer, s.unixServer} {
 		if srv != nil {
-			listener, err := srv.listen()
-			if err != nil {
+			if err := srv.Listen(); err != nil {
 				return err
 			}
-			srv.listener = listener
 		}
 	}
 	go s.serve()
@@ -125,6 +123,12 @@ func newUnixServer(endpoint Endpoint) *server {
 		endpoint: endpoint,
 		unix:     true,
 	}
+}
+
+func (s *server) Listen() error {
+	var err error
+	s.listener, err = s.listen()
+	return err
 }
 
 func (s *server) Serve() {
