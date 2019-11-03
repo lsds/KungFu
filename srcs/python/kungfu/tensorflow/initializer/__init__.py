@@ -3,8 +3,10 @@ from kungfu.tensorflow.compat import _tf_assign, _tf_hook, _tf_major_version
 from kungfu.tensorflow.ops import broadcast
 
 __all__ = [
-    'BroadcastGlobalVariablesHook', 'BroadcastGlobalVariablesOp',
-    'BroadcastGlobalVariablesCallback', 'broadcast_variables'
+    'broadcast_variables',
+    'BroadcastGlobalVariablesCallback',
+    'BroadcastGlobalVariablesHook',
+    'BroadcastGlobalVariablesOp',
 ]
 
 
