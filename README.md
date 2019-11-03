@@ -16,7 +16,7 @@ communication-efficient ``PairAveragingOptimizer`` and hyper-parameter-robust ``
 KungFu further provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
 * Fast and scalable: KungFu adopts a decentralized architecture and exploits a high-performance implementation of communication, monitoring and control operators. Check out the performance of KungFu in the [Benchmark](https://github.com/lsds/KungFu#benchmark).
 
-We have been using KungFu for accelerating many kinds of deep neural networks including ResNet, OpenPose, BERT, CycleGAN and many others. Check the [Examples]((https://github.com/lsds/KungFu#examples)) section.
+We have been using KungFu for accelerating many kinds of deep learning models including ResNet, OpenPose, BERT, CycleGAN and many others. Check out their [examples](https://github.com/lsds/KungFu#examples).
 
 ## Usage
 
