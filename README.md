@@ -153,7 +153,10 @@ In the asynchronous training case, we compare KungFu (``PairAveragingOptimizer``
 
 ![async](benchmarks/system/result/async-scalability.svg)
 
-All benchmark scripts are available [here](benchmarks/system/).
+All benchmark scripts are available [here](benchmarks/system/). We have also run the same benchmark in a 16-server cluster
+where each server has a P100 GPU. Thanks to the decentralized architecture and non-blocking
+runtime, KungFu exhibits better scalability in this communication-challenging environment,
+and we thus only report the 16 V100 result here.
 
 ## Optimizers
 
