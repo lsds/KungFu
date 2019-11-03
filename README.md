@@ -113,7 +113,7 @@ You can add your own KungFu distributed optimizer to the ImageNet example by add
 
 ### BERT
 
-We are working on a BERT distributed training example and will release it soon.
+We have an example that shows how you can use a very few lines to enable distributed training for Google BERT using KungFu. See the example [here](https://github.com/luomai/bert).
 
 ### Alpha Zero
 

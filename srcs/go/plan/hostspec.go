@@ -131,6 +131,16 @@ func (pr PortRange) String() string {
 	return fmt.Sprintf("%d-%d", pr.Begin, pr.End)
 }
 
+// Set implements flags.Value::Set
+func (pr *PortRange) Set(val string) error {
+	value, err := ParsePortRange(val)
+	if err != nil {
+		return err
+	}
+	*pr = *value
+	return nil
+}
+
 func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	var pl PeerList
 	if np == 0 {
