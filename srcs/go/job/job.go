@@ -23,7 +23,7 @@ type Job struct {
 func (j Job) NewProc(peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
 	envs := Envs{
 		kb.SelfSpecEnvKey:          peer.String(),
-		`CUDA_VISIBLE_DEVICES`:     strconv.Itoa(localRank),
+		cudaVisibleDevicesKey:      strconv.Itoa(getCudaIndex(localRank)),
 		kb.HostListEnvKey:          j.HostList.String(),
 		kb.PortRangeEnvKey:         j.PortRange.String(),
 		kb.ParentIDEnvKey:          j.Parent.String(),
