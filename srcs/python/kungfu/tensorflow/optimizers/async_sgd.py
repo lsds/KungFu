@@ -1,11 +1,12 @@
 import tensorflow as tf
-from kungfu.tensorflow import _tf_assign, _tf_mod, _tf_optimizer
-from kungfu.tensorflow.v1.ops import (barrier, counter, current_cluster_size,
-                                      current_rank, request_variable,
-                                      request_variable_with_template,
-                                      save_variable)
+from kungfu.tensorflow.compat import _tf_assign, _tf_mod
+from kungfu.tensorflow.ops import (barrier, counter, current_cluster_size,
+                                   current_rank, defuse, fuse,
+                                   request_variable,
+                                   request_variable_with_template,
+                                   save_variable)
 
-from .core import _create_kungfu_optimizer, _KungFuAlgorithm, defuse, fuse
+from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
 
 def PairAveragingOptimizer(optimizer,
@@ -28,15 +29,15 @@ def PairAveragingOptimizer(optimizer,
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- Optimizer to use for computing gradients and applying updates.
 
     Keyword Arguments:
-        fuse_requests {bool} -- Fusing requests to amortise communication cost at the cost of extra GPU memory and cycles. (default: {True})
-        name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
-        use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+        - fuse_requests {bool} -- Fusing requests to amortise communication cost at the cost of extra GPU memory and cycles. (default: {True})
+        - name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
+        - use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
 
     Raises:
         TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
 
     Returns:
-        optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
+        optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
     opt_type_name = type(optimizer).__name__
     pair_avg = _PairAveraging(fuse_requests, fused_model_name=opt_type_name)

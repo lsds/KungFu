@@ -6,16 +6,15 @@ https://github.com/uber/horovod/blob/master/examples/tensorflow2_synthetic_bench
 from __future__ import absolute_import, division, print_function
 
 import argparse
-import os
-import numpy as np
 import timeit
 
+import numpy as np
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from tensorflow.keras import applications
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
+from tensorflow.keras import applications
 
 # Benchmark settings
 parser = argparse.ArgumentParser(
@@ -91,7 +90,7 @@ def benchmark_step(first_batch):
     opt.apply_gradients(zip(gradients, model.trainable_variables))
 
     if first_batch:
-        from kungfu.tensorflow.v2.initializer import broadcast_variables
+        from kungfu.tensorflow.initializer import broadcast_variables
         broadcast_variables(model.variables)
         broadcast_variables(opt.variables())
 

@@ -152,7 +152,7 @@ def train_mnist(sess,
     sess.run(tf.global_variables_initializer())
 
     # KungFu: broadcast the global variable
-    from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+    from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
     sess.run(BroadcastGlobalVariablesOp())
 
     print('training')

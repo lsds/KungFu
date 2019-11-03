@@ -1,9 +1,9 @@
 import sys
 
 import tensorflow as tf
+from kungfu.tensorflow.ops import (all_reduce, current_cluster_size,
+                                   current_rank)
 from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
-from kungfu.tensorflow.v1.ops import (all_reduce, current_cluster_size,
-                                      current_rank)
 
 
 def show_info_example():

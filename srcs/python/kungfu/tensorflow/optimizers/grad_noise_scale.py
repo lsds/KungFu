@@ -1,10 +1,9 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow import _tf_optimizer
-from kungfu.tensorflow.v1.ops import (counter, current_cluster_size,
-                                      global_noise_scale, group_all_reduce)
+from kungfu.tensorflow.ops import (counter, current_cluster_size, fuse,
+                                   global_noise_scale, group_all_reduce)
 
-from .core import _create_kungfu_optimizer, _KungFuAlgorithm, fuse
+from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
 
 def MonitorGradientNoiseScaleOptimizer(optimizer,
@@ -20,16 +19,16 @@ def MonitorGradientNoiseScaleOptimizer(optimizer,
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- Optimizer to use for computing gradients and applying updates.
 
     Keyword Arguments:
-        device_batch_size {int} -- the training batch size of the local device.
-        monitor_interval {int} -- monitoring interval. (default: {1})
-        name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
-        use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+        - device_batch_size {int} -- the training batch size of the local device.
+        - monitor_interval {int} -- monitoring interval. (default: {1})
+        - name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
+        - use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
 
     Raises:
         TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
 
     Returns:
-        optimizer {KungFuTFOptimizer, KungFuKerasOptimizer} -- KungFu distributed training optimizer
+        optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
     mon_gns_algo = _GradientNoiseScale(device_batch_size, monitor_interval)
     return _create_kungfu_optimizer(optimizer, mon_gns_algo, name, use_locking)
