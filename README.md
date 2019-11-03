@@ -111,6 +111,15 @@ kungfu-run -np $NUM_GPUS \
 KungFu also has a ImageNet [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) which is slightly modified from the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
 You can add your own KungFu distributed optimizer to the ImageNet example by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
 
+### OpenPose
+
+[OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose) and other object detection models are important training workloads.
+These models are often batch-size sensitive.
+We found it difficult to train them using
+Horovod which couples batch size with the number of GPUs. We have thus switched to use KungFu in
+a popular [OpenPose implementation](https://github.com/tensorlayer/openpose-plus) and achieved robust speed up in time-to-accuracy after
+using the model averaging optimizers enabled by KungFu. You can find more details from [here](https://github.com/tensorlayer/openpose-plus#distributed-training).
+
 ### BERT
 
 We have an example that shows how you can use a very few lines to enable distributed training for Google BERT using KungFu. See the example [here](https://github.com/luomai/bert).
