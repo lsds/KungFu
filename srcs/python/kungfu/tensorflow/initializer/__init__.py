@@ -1,7 +1,6 @@
 import tensorflow as tf
 from kungfu.tensorflow.compat import _tf_assign, _tf_hook, _tf_major_version
 from kungfu.tensorflow.ops import broadcast
-from tensorflow import keras
 
 __all__ = [
     'BroadcastGlobalVariablesHook', 'BroadcastGlobalVariablesOp',
@@ -10,16 +9,28 @@ __all__ = [
 
 
 def broadcast_variables(variables):
+    """A TensorFlow function that broadcasts global variables.
+
+    This function is often used with ``tf.GradientTape`` or embedded as part of a training program.
+    """
     for v in variables:
         _tf_assign(v, broadcast(v))
 
 
 def BroadcastGlobalVariablesOp():
+    """A TensorFlow operator that broadcasts global variables.
+
+    This operator if often used with the low-level tf.Session
+    """
     ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
     return tf.group(ops)
 
 
 class BroadcastGlobalVariablesHook(_tf_hook):
+    """A TensorFlow hook that broadcasts global variables at the begining of training.
+
+    This hook is often used with ``tf.session.MonitoredSession`` and ``tf.train.Estimator``.
+    """
     def __init__(self):
         super(BroadcastGlobalVariablesHook, self).__init__()
         self.bcast_op = None
@@ -32,6 +43,7 @@ class BroadcastGlobalVariablesHook(_tf_hook):
 
 
 class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
+    """A Keras callback that broadcasts global variables at the begining of training."""
     def __init__(self, *args):
         super(BroadcastGlobalVariablesCallback, self).__init__(*args)
         self.broadcast_done = False
