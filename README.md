@@ -186,6 +186,7 @@ reach the target 75%.
 All these convergence tests are using the same [hyper-parameter setup](https://github.com/tensorflow/benchmarks/tree/master/scripts/tf_cnn_benchmarks#getting-started)
 along with a per-GPU batch size as 64, suggested by the TensorFlow benchmark authors.
 
-## Contribute
+## Development
 
-[Guideline](CONTRIBUTING.md)
+KungFu is highly extensible. It has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
+Check the developer [guideline](CONTRIBUTING.md) for more information.
