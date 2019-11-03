@@ -3,12 +3,12 @@
 import argparse
 import time
 
+t0 = time.time()  # before import tensorflow
+
 import tensorflow as tf
 from kungfu.tensorflow.ops import (all_reduce, barrier, current_cluster_size,
                                    get_init_checkpoint, resize_cluster)
 from tensorflow.python.util import deprecation
-
-t0 = time.time()  # before import tensorflow
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 

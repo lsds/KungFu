@@ -11,7 +11,11 @@ from .p2p import request_variable, request_variable_with_template
 from .state import counter
 from .topology import peer_info
 
-__all__ = ['barrier', 'group_all_reduce', 'broadcast']
+__all__ = [
+    'barrier',
+    'broadcast',
+    'group_all_reduce',
+]
 
 
 def fuse(ts):
