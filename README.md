@@ -106,12 +106,12 @@ kungfu-run -np $NUM_GPUS \
 
 ``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the cluster.
 
-### ImageNet
+### ResNet, DenseNet, Inception, MobileNet for ImageNet
 
-KungFu also has a ImageNet [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) which is slightly modified from the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
+KungFu also has rich ImageNet [examples](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) which is extended from the official [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
 You can add your own KungFu distributed optimizer to the ImageNet example by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
 
-### OpenPose
+### Pose estimation - OpenPose
 
 [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose) and other object detection models are important training workloads.
 These models are often batch-size sensitive.
@@ -120,13 +120,21 @@ Horovod which couples batch size with the number of GPUs. We have thus switched 
 a popular [OpenPose implementation](https://github.com/tensorlayer/openpose-plus) and achieved robust speed up in time-to-accuracy after
 using the model averaging optimizers enabled by KungFu. You can find more details from [here](https://github.com/tensorlayer/openpose-plus#distributed-training).
 
-### BERT
+### Natural language processing - BERT
 
 We have an example that shows how you can use a very few lines to enable distributed training for Google BERT using KungFu. See the example [here](https://github.com/luomai/bert).
 
-### Alpha Zero
+### Reinforcement learning - Alpha Zero
 
 We are working on an Alpha Zero distributed training example and will release it soon.
+
+### Generative adversarial networks - CycleGAN
+
+Generative adversarial networks (GAN) are challenging training workloads given that they often use multiple optimizers in parallel.
+In addition, GANs also consume large amounts of GPU memory, and they are limited to only converge with
+small batch sizes. KungFu thus become an attractive option for GANs, because of its required minimal changes to complex GAN training programs
+as well as its new model averaging algorithms which decouple batch size and the number of GPUs.
+You can check out how easy this can be done in a [CycleGAN example](https://github.com/tensorlayer/cyclegan).
 
 ## Benchmark
 
