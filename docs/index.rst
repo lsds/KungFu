@@ -6,10 +6,10 @@ KungFu aims to make distributed machine learning easy, adaptive and scalable.
 Getting started
 ===============
 
-KungFu is designed for simple deployment of a distributed training cluster.
+KungFu is simple to install, deploy and run.
 It does not require extra deployments like parameter servers
 or heavy dependencies like OpenMPI and NCCL as in Horovod.
-KungFu can can be very easily deployed and run on your laptop, your desktop
+KungFu can be very easily deployed and run on your laptop, your desktop
 and your server with minimal efforts.
 Please follow the simple instruction in the README to install KungFu.
 
