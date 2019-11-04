@@ -146,7 +146,7 @@ Keras
 -----
 
 Keras has become the high-level training API for
-TensorFlow since 1.11 and has become the de-facto interface in TensorFlow 2.
+TensorFlow since 1.11 and has become the default interface in TensorFlow 2.
 To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in a KungFu
 distributed optimizer, and use ``BroadcastGlobalVariablesCallback``
 as a callback for Keras model.
@@ -189,7 +189,7 @@ KungFu has the high-level optimizer APIs that
 allows you to transparently scale out training.
 It also has a low-level API that allows an easy implementation
 of distributed training strategies.
-The following is the public API we released by far.
+The following is the public API we released so far.
 
 Distributed optimizers
 ----------------------
