@@ -21,7 +21,7 @@ from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
         
 
 def load_dataset():
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path="mnist.npz")
     # preprocess the mnist dataset
     x_train = x_train.reshape(60000, 784).astype('float32') / 255
     x_test = x_test.reshape(10000, 784).astype('float32') / 255
@@ -128,7 +128,7 @@ def main():
     # parse arguements from the command line
     args = parse_args()
     # build the KungFu optimizer
-    optimizer = build_optimizer(args.optimizer)
+    optimizer = build_optimizer(args.kf_optimizer)
     # build the Tensorflow model
     model = build_model(optimizer)
     # load mnist dataset
