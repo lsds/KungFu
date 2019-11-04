@@ -1,13 +1,13 @@
 # KungFu
 
-Easy, adaptive and fast distributed machine learning.
+Easy, fast and adaptive distributed machine learning.
 
 [![Build Status](https://travis-ci.com/lsds/KungFu.svg?branch=master)](https://travis-ci.com/lsds/KungFu)
 [![Documentation Status](https://readthedocs.org/projects/kungfu/badge/?version=latest)](https://kungfu.readthedocs.io/en/latest/?badge=latest)
 
 ## Features
 
-KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
+KungFu aims to help users achieve *fast* and *adaptive* distributed machine learning with minimal efforts. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
 * Simplicity: KungFu permits distributed training by adding minimal code in your training program. KungFu is easy to deploy and run, because it does not require extra deployment like parameter servers and heavy dependencies like MPI in Horovod.
 * Adaptable distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py) such as
@@ -56,12 +56,13 @@ Check the documentation for more details regarding how you can enable KungFu for
 
 ## Install
 
-KungFu is implemented in Go and C++. It exposes a C interface so that it can be easily integrated within existing machine learning systems.
-Currently, it has a Python binding for TensorFlow.
+KungFu is implemented in Go and C++. It exposes a C interface in order to
+allow an easy integration with existing machine learning systems.
+Currently, it has a Python binding for TensorFlow 1/2.
 
 KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), and [Golang 1.13+](https://golang.org/dl/).
 KungFu has been tested with [TensorFlow 1.12, 1.13, 1.15 and 2.0.0](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
-It should support all TensorFlow 1.x versions, except an known issue with 1.14.
+KungFu has a known installation issue with TensorFlow 1.14.
 Assuming you have the above pre-requites, you can install KungFu as follows:
 
 ```bash
