@@ -1,18 +1,18 @@
 # KungFu
 
-Easy, adaptive and fast distributed machine learning.
+Easy, fast and adaptive distributed machine learning.
 
 [![Build Status](https://travis-ci.com/lsds/KungFu.svg?branch=master)](https://travis-ci.com/lsds/KungFu)
 [![Documentation Status](https://readthedocs.org/projects/kungfu/badge/?version=latest)](https://kungfu.readthedocs.io/en/latest/?badge=latest)
 
 ## Features
 
-KungFu enables users to achieve *fast* and *adaptive* distributed machine learning. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
+KungFu aims to help users achieve *fast* and *adaptive* distributed machine learning with minimal efforts. This is important because machine learning systems must cope with growing complex models and increasingly complicated deployment environments. KungFu has the following unique features:
 
 * Simplicity: KungFu permits distributed training by adding minimal code in your training program. KungFu is easy to deploy and run, because it does not require extra deployment like parameter servers and heavy dependencies like MPI in Horovod.
-* Adaptable distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py) such as
+* Adaptable distributed training: KungFu provides many advanced [distributed optimizers](srcs/python/kungfu/tensorflow/optimizers/__init__.py) such as
 communication-efficient ``PairAveragingOptimizer`` and hyper-parameter-robust ``SynchronousAveragingOptimizer`` to help you address the cases in which conventional Synchronous SGD does not scale. See [Optimizers](https://github.com/lsds/KungFu#optimizers) for how to choose the right KungFu optimizer for your training scenario.
-* Online monitoring and control: KungFu supports [distributed SGD metrics](srcs/python/kungfu/tensorflow/v1/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
+* Online monitoring and control: KungFu supports [distributed SGD metrics](srcs/python/kungfu/tensorflow/optimizers/sync_sgd.py) such as [gradient variance](https://en.wikipedia.org/wiki/Variance) and [gradient noise scale](https://openai.com/blog/science-of-ai/) to help understand the training process with low overhead.
 KungFu further provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
 * Fast and scalable: KungFu adopts a decentralized architecture and exploits a high-performance implementation of communication, monitoring and control operators. Check out the performance of KungFu in the [Benchmark](https://github.com/lsds/KungFu#benchmark).
 
@@ -22,7 +22,7 @@ We have been using KungFu for accelerating different kinds of deep learning mode
 
 To scale out your TensorFlow training program, you simply need to make two changes:
 
-1. Wrap your ``tf.train.optimizer`` in KungFu's ``SynchronousSGDOptimizer``, ``SynchronousAveragingOptimizer``, ``PairAveragingOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/v1/optimizers/__init__.py).
+1. Wrap your ``tf.train.optimizer`` in KungFu's ``SynchronousSGDOptimizer``, ``SynchronousAveragingOptimizer``, ``PairAveragingOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/optimizers/__init__.py).
 
 2. Ensure all distributed workers start with consistent states by broadcasting a worker's global variables.
 
@@ -52,33 +52,32 @@ with tf.Session() as sess:
         sess.run(train_op)
 ```
 
-See TensorFlow full training examples that use [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py) and [Estimator](examples/tf1_mnist_estimator.py), respectively.
+Check the documentation for more details regarding how to use KungFu with [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py), [Estimator](examples/tf1_mnist_estimator.py), and [GradientTape](examples/tf2_mnist_gradient_tape.py) in TensorFlow 1 and 2.
 
 ## Install
 
-KungFu is implemented in Go and C++. It exposes a C interface so that it can be easily integrated within existing machine learning systems.
-Currently, it has a Python binding for TensorFlow.
+KungFu is implemented in Go and C++. It exposes a C interface in order to
+allow an easy integration with existing machine learning systems.
+Currently, it has a Python binding for TensorFlow 1/2.
 
-KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
-It can be installed with the following few lines, assuming you have the above pre-requites.
+KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), and [Golang 1.13+](https://golang.org/dl/).
+KungFu has been tested with [TensorFlow 1.12, 1.13, 1.15 and 2.0.0](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
+KungFu has a known installation issue with TensorFlow 1.14.
+Assuming you have the above pre-requites, you can install KungFu as follows:
 
 ```bash
-# Download the KungFu source code
 git clone https://github.com/lsds/KungFu.git
-
-# Install KungFu
-# export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) # Parallel build.
-pip3 install .
+pip3 install KungFu/.
 ```
 
 KungFu provides ``kungfu-run`` to launch a training program on a multi-GPU server.
 
 ```bash
 # Build and install kungfu-run in the given GOBIN directory.
-GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
+GOBIN=$(pwd)/KungFu/bin go install -v ./KungFu/srcs/go/cmd/kungfu-run
 
-# Check if kungfu-run is built
-./bin/kungfu-run -help
+# Check if kungfu-run is built. You can export kungfu-run to your PATH in .bashrc
+./KungFu/bin/kungfu-run -help
 ```
 
 You can use KungFu with Docker. Check out the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) machines.
