@@ -1,5 +1,5 @@
 # FIXME: make sure it runs without tensorflow
-from kungfu import run_barrier, current_cluster_size, current_rank
+from kungfu import current_cluster_size, current_rank, run_barrier
 
 
 def test_barrier():

@@ -49,7 +49,7 @@ func (s *VersionedStore) getOrCreateVersion(version string) *Store {
 	defer s.Unlock()
 	store, ok := s.versions[version]
 	if !ok {
-		store = newStore()
+		store = NewStore()
 		s.versions[version] = store
 		s.window = append(s.window, version)
 		s.gc()
@@ -57,19 +57,22 @@ func (s *VersionedStore) getOrCreateVersion(version string) *Store {
 	return store
 }
 
-func (s *VersionedStore) Create(version, name string, blob *Blob) error {
+func (s *VersionedStore) Create(version, name string, size int) (*Blob, error) {
 	store := s.getOrCreateVersion(version)
-	return store.Create(name, blob)
+	return store.Create(name, size)
 }
 
-// Get retrives the data with given version and name, if blob is not nil,
-// the length of blob.Data is used to validate the stored data
-func (s *VersionedStore) Get(version, name string, blob **Blob) error {
+func (s *VersionedStore) Get(version, name string) (*Blob, error) {
 	store, err := s.getVersion(version)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return store.Get(name, blob)
+	return store.Get(name)
+}
+
+func (s *VersionedStore) GetOrCreate(version, name string, size int) (*Blob, error) {
+	store := s.getOrCreateVersion(version)
+	return store.GetOrCreate(name, size)
 }
 
 func (s *VersionedStore) GetNextVersion(prev string) string {

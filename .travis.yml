@@ -8,7 +8,15 @@ go:
 - 1.11.x
 
 script:
-- go test -v ./...
+- go test ./...
 - ./configure --build-tests --build-gtest
 - make
 - make test
+- GOBIN=$PWD/bin go install -v ./...
+- ./scripts/tests/run-integration-tests.sh
+- |
+  env \
+    KUNGFU_CONFIG_ENABLE_MONITORING=true \
+    KUNGFU_CONFIG_MONITORING_PERIOD=10ms \
+    ./bin/kungfu-test-monitor -p 10ms -d 100ms
+- ./bin/kungfu-run -H 127.0.0.1:4 -np 4 ./bin/kungfu-test-public-apis

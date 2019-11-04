@@ -56,6 +56,10 @@ parser.add_argument('--optimizer',
                     type=str,
                     default='sgd',
                     help='Optimizer: sgd, adam')
+parser.add_argument('--fuse',
+                    type=bool,
+                    default=True,
+                    help='Apply fuse if possible')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -86,17 +90,17 @@ else:
 barrier_op = None
 
 if args.kf_optimizer:
-    from kungfu.tensorflow.v1.ops import barrier
+    from kungfu.tensorflow.ops import barrier
     barrier_op = barrier()
     if args.kf_optimizer == 'sync-sgd':
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt)
     elif args.kf_optimizer == 'async-sgd':
         from kungfu.tensorflow.optimizers import PairAveragingOptimizer
-        opt = PairAveragingOptimizer(opt)
+        opt = PairAveragingOptimizer(opt, fuse_requests=args.fuse)
     elif args.kf_optimizer == 'sync-sgd-nccl':
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
-        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=True)
+        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=args.fuse)
     elif args.kf_optimizer == 'sma':
         from kungfu.tensorflow.optimizers import SynchronousAveragingOptimizer
         opt = SynchronousAveragingOptimizer(opt)
@@ -156,7 +160,7 @@ else:
     with tf.Session(config=config) as session:
         session.run(init)
         if args.kf_optimizer:
-            from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+            from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
             session.run(BroadcastGlobalVariablesOp())
         run(lambda: session.run(train_opt))
         if barrier_op is not None:

@@ -1,12 +1,17 @@
+import argparse
+
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
 
-flags = tf.compat.v1.flags
-flags.DEFINE_string('kf-optimizer', 'sync-sgd', 'KungFu optimizer')
-FLAGS = flags.FLAGS
+parser = argparse.ArgumentParser(description='KungFu mnist example.')
+parser.add_argument('--kf-optimizer',
+                    type=str,
+                    default='sync-sgd',
+                    help='available options: sync-sgd, async-sgd, sma')
+args = parser.parse_args()
 
 (mnist_images, mnist_labels), _ = \
     tf.keras.datasets.mnist.load_data(path='mnist-%d.npz' % current_rank())
@@ -29,14 +34,15 @@ mnist_model = tf.keras.Sequential([
 loss = tf.losses.SparseCategoricalCrossentropy()
 
 # KungFu: adjust learning rate based on number of GPUs.
+# opt = tf.keras.optimizers.SGD(0.001 * current_cluster_size())
 opt = tf.compat.v1.train.AdamOptimizer(0.001 * current_cluster_size())
 
 # KungFu: wrap tf.compat.v1.train.Optimizer.
-if FLAGS.kf_optimizer == 'sync-sgd':
+if args.kf_optimizer == 'sync-sgd':
     opt = SynchronousSGDOptimizer(opt)
-elif FLAGS.kf_optimizer == 'async-sgd':
+elif args.kf_optimizer == 'async-sgd':
     opt = PairAveragingOptimizer(opt)
-elif FLAGS.kf_optimizer == 'sma':
+elif args.kf_optimizer == 'sma':
     opt = SynchronousAveragingOptimizer(opt)
 else:
     raise RuntimeError('Unknown KungFu optimizer')
@@ -53,7 +59,7 @@ def training_step(images, labels, first_batch):
 
     # KungFu: broadcast is done after the first gradient step to ensure optimizer initialization.
     if first_batch:
-        from kungfu.tensorflow.v2.initializer import broadcast_variables
+        from kungfu.tensorflow.initializer import broadcast_variables
         broadcast_variables(mnist_model.variables)
         broadcast_variables(opt.variables())
 

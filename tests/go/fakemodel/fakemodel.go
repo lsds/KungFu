@@ -37,7 +37,7 @@ type DoubleBuffer struct {
 	RecvBuf *kb.Vector
 }
 
-func newDoubleBuffer(dtype kb.DataType, count int) DoubleBuffer {
+func NewDoubleBuffer(dtype kb.DataType, count int) DoubleBuffer {
 	return DoubleBuffer{
 		SendBuf: kb.NewVector(count, dtype),
 		RecvBuf: kb.NewVector(count, dtype),
@@ -57,7 +57,7 @@ func New(sizes []int, dtype kb.DataType, fuse bool) *FakeModel {
 	buffers := make(map[string]DoubleBuffer)
 	for i, size := range sizes {
 		name := fmt.Sprintf("NegotiatedGrad_%d/AllReduce", i)
-		buffers[name] = newDoubleBuffer(dtype, size)
+		buffers[name] = NewDoubleBuffer(dtype, size)
 		names = append(names, name)
 	}
 	return &FakeModel{

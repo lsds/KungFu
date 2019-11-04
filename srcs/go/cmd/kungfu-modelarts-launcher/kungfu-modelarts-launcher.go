@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/job"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/platforms/modelarts"
 	runner "github.com/lsds/KungFu/srcs/go/runner/local"
-	sch "github.com/lsds/KungFu/srcs/go/scheduler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -23,21 +23,22 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	jc := sch.JobConfig{
+	j := job.Job{
 		Strategy:  f.Strategy,
 		PortRange: f.PortRange,
 		Prog:      f.Prog,
 		Args:      f.Args,
+		LogDir:    f.LogDir,
 	}
-	procs := []sch.Proc{
-		jc.NewProc(env.Self, 0, "", env.PeerList),
+	procs := []job.Proc{
+		j.NewProc(env.Self, 0, "", env.PeerList),
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	if f.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
-	if err := runner.LocalRunAll(ctx, procs, f.VerboseLog); err != nil {
+	if err := runner.RunAll(ctx, procs, f.VerboseLog); err != nil {
 		utils.ExitErr(err)
 	}
 }

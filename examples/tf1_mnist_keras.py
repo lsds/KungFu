@@ -15,7 +15,7 @@ import argparse
 import kungfu as kf
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
-from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesCallback
+from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
 
 
 def load_dataset():
@@ -121,7 +121,7 @@ def parse_args():
 
 
 def main():
-    # parse arguements from the command line
+    # parse arguments from the command line
     args = parse_args()
     # build the KungFu optimizer
     optimizer = build_optimizer(args.kf_optimizer)

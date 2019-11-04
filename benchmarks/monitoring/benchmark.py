@@ -74,12 +74,12 @@ opt = tf.train.GradientDescentOptimizer(0.01)
 
 if args.kf_optimizer:
     if args.kf_optimizer == 'variance':
-        from kungfu.tensorflow.optimizers import SyncSGDWithGradVarianceOptimizer
-        opt = SyncSGDWithGradVarianceOptimizer(opt,
+        from kungfu.tensorflow.optimizers import MonitorGradientVarianceOptimizer
+        opt = MonitorGradientVarianceOptimizer(opt,
                                                monitor_interval=args.interval)
     elif args.kf_optimizer == 'noise-scale':
-        from kungfu.tensorflow.optimizers import SyncSGDWithGradNoiseScaleOptimizer
-        opt = SyncSGDWithGradNoiseScaleOptimizer(
+        from kungfu.tensorflow.optimizers import MonitorGradientNoiseScaleOptimizer
+        opt = MonitorGradientNoiseScaleOptimizer(
             opt,
             device_batch_size=args.batch_size,
             monitor_interval=args.interval)
@@ -139,6 +139,6 @@ else:
     with tf.Session(config=config) as session:
         session.run(init)
         if args.kf_optimizer:
-            from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+            from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
             session.run(BroadcastGlobalVariablesOp())
         run(lambda: session.run(train_opt))

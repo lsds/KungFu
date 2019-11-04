@@ -211,7 +211,7 @@ def model_function(features, labels, mode):
 
 
 def main(_):
-    from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesHook
+    from kungfu.tensorflow.initializer import BroadcastGlobalVariablesHook
     hooks = [
         BroadcastGlobalVariablesHook(),
         tf.train.LoggingTensorHook(['train_accuracy', 'train_loss'],

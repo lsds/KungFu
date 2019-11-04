@@ -1,6 +1,6 @@
 import argparse
-import sys
 import os
+import sys
 import timeit
 
 import numpy as np

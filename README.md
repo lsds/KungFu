@@ -16,7 +16,7 @@ communication-efficient ``PairAveragingOptimizer`` and hyper-parameter-robust ``
 KungFu further provides control operators such as ``barrier`` and ``resize_cluster`` to seamlessly reconfigure training, even in response to monitored metrics.
 * Fast and scalable: KungFu adopts a decentralized architecture and exploits a high-performance implementation of communication, monitoring and control operators. Check out the performance of KungFu in the [Benchmark](https://github.com/lsds/KungFu#benchmark).
 
-KungFu is extensible. It has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
+We have been using KungFu for accelerating different kinds of deep learning models such as ResNet, OpenPose, BERT, and CycleGAN. Check out their [examples](https://github.com/lsds/KungFu#examples).
 
 ## Usage
 
@@ -34,7 +34,7 @@ loss = ...
 opt = tf.train.AdamOptimizer(0.01)
 
 # KungFu Step 1: Wrap tf.optimizer in KungFu optimizers
-from kungfu.tensorflow.v1.optimizers import SynchronousSGDOptimizer
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 opt = SynchronousSGDOptimizer(opt)
 
 # Make training operation
@@ -45,7 +45,7 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     # KungFu Step 2: ensure distributed workers start with consistent states
-    from kungfu.tensorflow.v1.initializer import BroadcastGlobalVariablesOp
+    from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
     sess.run(BroadcastGlobalVariablesOp())
 
     for step in range(10):
@@ -106,16 +106,31 @@ kungfu-run -np $NUM_GPUS \
 
 ``kungfu-run`` use the ``nic`` option to infer its IP and thus its role in the cluster.
 
-### ImageNet
+### ImageNet - ResNet and other DNNs
 
-KungFu also has a ImageNet [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) which is slightly modified from the [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
-You can add your own KungFu distributed optimizer to the ImageNet example by adding one line of code, see [here](https://github.com/luomai/benchmarks/blob/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks/benchmark_cnn.py#L1198).
+KungFu can speed up the training
+of ResNet, VGG, DenseNet and others for ImageNet.
+We show this in an [example](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu/scripts/tf_cnn_benchmarks#running-kungfu) extended from the official [TensorFlow benchmark](https://github.com/luomai/benchmarks/tree/cnn_tf_v1.12_compatible_kungfu).
 
-### BERT
+### Pose estimation - OpenPose
 
-We are working on a BERT distributed training example and will release it soon.
+Pose estimation models such as [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose) are often batch-size sensitive.
+We used KungFu in
+a popular [OpenPose implementation](https://github.com/tensorlayer/openpose-plus) and achieved robust speed up in time-to-accuracy after
+using the model averaging optimizers which preserves small batch training during scaling.
 
-### Alpha Zero
+### Natural language processing - BERT
+
+BERT is an emerging NLP training workload. We have an example that shows how you can use few lines to enable distributed training for BERT. See the example [here](https://github.com/luomai/bert).
+
+### Generative adversarial networks - CycleGAN
+
+Generative adversarial networks (GAN) train multiple networks in parallel and are often limited to use
+small batches for convergence. KungFu thus become an attractive option for GANs, because of its minimal changes to complex GAN programs
+and new distributed optimizers that decouple batch size and system parallelism.
+Check out the simple [CycleGAN example](https://github.com/tensorlayer/cyclegan).
+
+### Reinforcement learning - Alpha Zero
 
 We are working on an Alpha Zero distributed training example and will release it soon.
 
@@ -135,7 +150,9 @@ In the asynchronous training case, we compare KungFu (``PairAveragingOptimizer``
 
 ![async](benchmarks/system/result/async-scalability.svg)
 
-All benchmark scripts are available [here](benchmarks/system/).
+We have also run the same benchmark in a 16-server cluster (each has a P100).
+KungFu exhibits better scalability in this communication-challenging environment,
+and we thus only report the 16 V100 result here. You can find the benchmark scripts [here](benchmarks/system/).
 
 ## Optimizers
 
@@ -168,6 +185,7 @@ reach the target 75%.
 All these convergence tests are using the same [hyper-parameter setup](https://github.com/tensorflow/benchmarks/tree/master/scripts/tf_cnn_benchmarks#getting-started)
 along with a per-GPU batch size as 64, suggested by the TensorFlow benchmark authors.
 
-## Contribute
+## Development
 
-[Guideline](CONTRIBUTING.md)
+KungFu is highly extensible. It has a clean low-level API that allows an easy implementation of new distributed training, monitoring and control algorithms.
+Check the developer [guideline](CONTRIBUTING.md) for more information.

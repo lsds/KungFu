@@ -52,13 +52,16 @@ func (h *connectionHeader) ReadFrom(r io.Reader) error {
 const NoFlag uint32 = 0
 
 const (
-	WaitRecvBuf = 1 << iota // The recevier should wait receive buffer
+	// TODO: meaning of flags should be based on conn Type
+	WaitRecvBuf   uint32 = 1 << iota // The recevier should wait receive buffer
+	IsResponse    uint32 = 1 << iota // This is a response message for ConnPeerToPeer
+	RequestFailed uint32 = 1 << iota // This is a response meesage for failed request
 )
 
 type messageHeader struct {
 	NameLength uint32
 	Name       []byte
-	Flags      uint32
+	Flags      uint32 // TODO: meaning of flags should be based on conn Type
 }
 
 func (h *messageHeader) HasFlag(flag uint32) bool {
@@ -124,10 +127,15 @@ func (h messageHeader) String() string {
 type Message struct {
 	Length uint32
 	Data   []byte
+	flags  uint32 // copied from Header, shouldn't be used during Read or Write
 }
 
 func (m *Message) same(pm *Message) bool {
 	return &m.Data[0] == &pm.Data[0]
+}
+
+func (m *Message) hasFlag(flag uint32) bool {
+	return m.flags&flag == flag
 }
 
 func (m Message) WriteTo(w io.Writer) error {
@@ -152,6 +160,8 @@ func (m *Message) ReadFrom(r io.Reader) error {
 	return nil
 }
 
+var errUnexpectedMessageLength = errors.New("Unexpected message length")
+
 // ReadInto reads the message from a reader into existing buffer.
 // The message length obtained from the reader should be checked.
 func (m *Message) ReadInto(r io.Reader) error {
@@ -160,7 +170,7 @@ func (m *Message) ReadInto(r io.Reader) error {
 		return err
 	}
 	if length != m.Length {
-		return errors.New("Unexpected message length")
+		return errUnexpectedMessageLength
 	}
 	if err := readN(r, m.Data, int(m.Length)); err != nil {
 		return err

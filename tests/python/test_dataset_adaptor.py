@@ -2,7 +2,6 @@
 
 import numpy as np
 import tensorflow as tf
-
 from kungfu.datasets.adaptor import ExampleDatasetAdaptor
 from kungfu.helpers.cifar import Cifar10Loader, Cifar100Loader
 

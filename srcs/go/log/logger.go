@@ -12,12 +12,17 @@ import (
 
 var std = New()
 
+const (
+	ShowTimestamp = 1 << iota
+)
+
 type Logger struct {
 	sync.Mutex
 	w     io.Writer
 	buf   []byte
 	t0    time.Time
 	debug bool
+	flags uint32
 }
 
 func New() *Logger {
@@ -52,9 +57,13 @@ func (l *Logger) output(prefix, format string, v ...interface{}) {
 	d := time.Since(l.t0)
 	l.buf = l.buf[:0]
 	l.buf = append(l.buf, prefix...)
-	l.buf = append(l.buf, ' ', '[')
-	l.buf = append(l.buf, fmtDuration(d)...)
-	l.buf = append(l.buf, ']', ' ')
+	if l.flags&ShowTimestamp != 0 {
+		l.buf = append(l.buf, ' ', '[')
+		l.buf = append(l.buf, fmtDuration(d)...)
+		l.buf = append(l.buf, ']', ' ')
+	} else {
+		l.buf = append(l.buf, ' ')
+	}
 	s := fmt.Sprintf(format, v...)
 	l.buf = append(l.buf, s...)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
@@ -69,24 +78,24 @@ func (l *Logger) logf(level, format string, v ...interface{}) {
 
 func (l *Logger) Debugf(format string, v ...interface{}) {
 	if l.debug {
-		l.logf("[D] ", format, v...)
+		l.logf("[D]", format, v...)
 	}
 }
 
 func (l *Logger) Infof(format string, v ...interface{}) {
-	l.logf("[I] ", format, v...)
+	l.logf("[I]", format, v...)
 }
 
 func (l *Logger) Warnf(format string, v ...interface{}) {
-	l.logf("[W] ", format, v...)
+	l.logf("[W]", format, v...)
 }
 
 func (l *Logger) Errorf(format string, v ...interface{}) {
-	l.logf("[E] ", format, v...)
+	l.logf("[E]", format, v...)
 }
 
 func (l *Logger) Exitf(format string, v ...interface{}) {
-	l.logf("[E] ", format, v...)
+	l.logf("[E]", format, v...)
 	os.Exit(1)
 }
 
@@ -96,11 +105,22 @@ func (l *Logger) SetOutput(w io.Writer) {
 	l.w = w
 }
 
+func (l *Logger) SetFlags(fs ...uint32) {
+	var flags uint32
+	for _, f := range fs {
+		flags |= f
+	}
+	l.Lock()
+	defer l.Unlock()
+	l.flags = flags
+}
+
 var (
 	Debugf    = std.Debugf
 	Infof     = std.Infof
 	Warnf     = std.Warnf
 	Errorf    = std.Errorf
 	Exitf     = std.Exitf
+	SetFlags  = std.SetFlags
 	SetOutput = std.SetOutput
 )

@@ -24,9 +24,11 @@ def cmake_flag(k, v):
 
 def cmake_tf_ext_flags():
     import tensorflow as tf
+    tf_compile_flags = ' '.join(tf.sysconfig.get_compile_flags())
+    tf_link_flags = ' '.join(tf.sysconfig.get_link_flags())
     return [
-        cmake_flag('TF_INCLUDE', '%s' % tf.sysconfig.get_include()),
-        cmake_flag('TF_LIB', '%s' % tf.sysconfig.get_lib()),
+        cmake_flag('TF_COMPILE_FLAGS', tf_compile_flags),
+        cmake_flag('TF_LINK_FLAGS', tf_link_flags),
         # sysconfig.get_config_var('EXT_SUFFIX')  does't work for python2
         cmake_flag('PY_EXT_SUFFIX', '%s' % sysconfig.get_config_var('SO')),
     ]
