@@ -6,26 +6,26 @@ KungFu aims to make distributed machine learning easy, adaptive and scalable.
 Getting started
 ===============
 
-KungFu is simple to install, deploy and run.
-It does not require extra deployments like parameter servers
+We try to keep it as simple as possible to install, deploy and run KungFu.
+KungFu does not require extra deployments like parameter servers
 or heavy dependencies like OpenMPI and NCCL as in Horovod.
-KungFu can be very easily deployed and run on your laptop, your desktop
-and your server with minimal efforts.
-Please follow the simple instruction in the README to install KungFu.
+KungFu can run on your laptop, your desktop
+and your server, with and without GPUs.
+Please follow the instruction in the README to install KungFu.
 
 Examples
 ========
 
-We provide various full training examples
-to help you handle different TensorFlow training abstractions.
+We provide various training examples
+that shows how to enable KungFu for different kinds of TensorFlow programs.
 
 Session
 -------
 
-TensorFlow Session is a low-level but very powerful training API that
+TensorFlow Session is a low-level but powerful interface that
 allows you to compile a static graph for iterative training.
-Session is the core API for TensorFlow 1 programs. To enable KungFu,
-you need to wrap your ``tf.train.Optimizer`` in any KungFu
+Session is the core for TensorFlow 1 programs. To enable KungFu,
+you need to wrap your ``tf.train.Optimizer`` in a KungFu
 distributed optimizer, and
 use ``BroadcastGlobalVariablesOp`` to broadcast global variables
 at the first step of your training.
@@ -61,8 +61,8 @@ You can find the full training example: `TensorFlow 1 Session <https://github.co
 Estimator
 ---------
 
-TensorFlow Estimator is the high-level API for TensorFlow 1 training programs.
-To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in any KungFu
+TensorFlow Estimator is the high-level API for TensorFlow 1 programs.
+To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in a KungFu
 distributed optimizer, and
 register ``BroadcastGlobalVariablesHook`` as a hook for the estimator.
 
@@ -100,7 +100,7 @@ GradientTape
 
 TensorFlow 2 supports eager execution for the ease of building dynamic models.
 The core of the eager execution is the ``tf.GradientTape``.
-To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in any KungFu
+To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in a KungFu
 distributed optimizer, and use ``broadcast_variables`` to broadcast global
 variables at the end of the first step of training.
 
@@ -145,11 +145,11 @@ You can find the full training example: `TensorFlow 2 GradientTape <https://gith
 Keras
 -----
 
-Keras has become the high-level training API since
-TensorFlow 1.12 and has become the de-facto in TensorFlow 2.
-To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in any KungFu
+Keras has become the high-level training API for
+TensorFlow since 1.11 and has become the de-facto interface in TensorFlow 2.
+To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in a KungFu
 distributed optimizer, and use ``BroadcastGlobalVariablesCallback``
-as a callback to broadcast global variables in ``keras_model.fit()``.
+as a callback for Keras model.
 
 .. code-block:: python
 
@@ -186,10 +186,9 @@ KungFu APIs
 ===========
 
 KungFu has the high-level optimizer APIs that
-allows you transparently scale out training
-with minimal efforts. It also has
-the low-level APIs that allows an easy implementation
-of new distributed training strategies.
+allows you to transparently scale out training.
+It also has a low-level API that allows an easy implementation
+of distributed training strategies.
 The following is the public API we released by far.
 
 Distributed optimizers
@@ -207,8 +206,9 @@ Global variable initializers
 ----------------------------
 
 KungFu provide various initializers to help you synchronize
-the global variables of distributed training workers at the beginning of training.
-These initializers are used with ``tf.session``, ``tf.estimator``, ``tf.GradientTape``
+the global variables of distributed training workers at
+the beginning of training. These initializers are used
+with ``tf.session``, ``tf.estimator``, ``tf.GradientTape``
 and ``tf.keras``, respectively.
 
 .. automodule:: kungfu.tensorflow.initializer
@@ -217,9 +217,11 @@ and ``tf.keras``, respectively.
 Cluster management
 ------------------
 
-When scaling out training, you often want to adjust the parameters of your
-training program, for example, sharding the training dataset or scaling the learning rate
-of the optimizer. This can be achieved using the following cluster management APIs.
+When scaling out training, you often want to adjust
+the parameters of your training program, for example,
+sharding the training dataset or scaling the learning rate
+of the optimizer. This can be achieved using the following
+cluster management APIs.
 
 .. automodule:: kungfu
    :members:
