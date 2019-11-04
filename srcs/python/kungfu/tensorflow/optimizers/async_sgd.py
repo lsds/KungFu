@@ -39,8 +39,11 @@ def PairAveragingOptimizer(optimizer,
     Returns:
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
-    opt_type_name = type(optimizer).__name__
-    pair_avg = _PairAveraging(fuse_requests, fused_model_name=opt_type_name)
+    if hasattr(optimizer, 'get_name'):
+        fused_model_name = optimizer.get_name()
+    else:
+        fused_model_name = optimizer.get_config()['name']
+    pair_avg = _PairAveraging(fuse_requests, fused_model_name=fused_model_name)
     return _create_kungfu_optimizer(optimizer, pair_avg, name, use_locking)
 
 
