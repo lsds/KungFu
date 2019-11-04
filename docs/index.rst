@@ -1,8 +1,196 @@
 KungFu documentation
 ====================
 
-KungFu aims to enable users to achieve easy, adaptive and fast distributed machine learning.
-The following are the APIs we released by far.
+KungFu aims to make distributed machine learning easy, adaptive and scalable.
+
+Getting started
+===============
+
+KungFu is designed for simple deployment of a distributed training cluster.
+It does not require extra deployments like parameter servers
+or heavy dependencies like OpenMPI and NCCL as in Horovod.
+KungFu can can be very easily deployed and run on your laptop, your desktop
+and your server with minimal efforts.
+Please follow the simple instruction in the README to install KungFu.
+
+Examples
+========
+
+We provide various full training examples
+to help you handle different TensorFlow training abstractions.
+
+Session
+-------
+
+TensorFlow Session is a low-level but very powerful training API that
+allows you to compile a static graph for iterative training.
+Session is the core API for TensorFlow 1 programs. To enable KungFu,
+you need to wrap your ``tf.train.Optimizer`` in any KungFu
+distributed optimizer, and
+use ``BroadcastGlobalVariablesOp`` to broadcast global variables
+at the first step of your training.
+
+.. code-block:: python
+
+    import tensorflow as tf
+
+    # Build model...
+    loss = ...
+    opt = tf.train.AdamOptimizer(0.01)
+
+    # KungFu Step 1: Wrap tf.optimizer in KungFu optimizers
+    from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+    opt = SynchronousSGDOptimizer(opt)
+
+    # Make training operation
+    train_op = opt.minimize(loss)
+
+    # Train your model
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+
+        # KungFu Step 2: ensure distributed workers start with consistent states
+        from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
+        sess.run(BroadcastGlobalVariablesOp())
+
+        for step in range(10):
+            sess.run(train_op)
+
+You can find the full training example: `TensorFlow 1 Session <https://github.com/lsds/KungFu/blob/master/examples/tf1_mnist_session.py>`_
+
+Estimator
+---------
+
+TensorFlow Estimator is the high-level API for TensorFlow 1 training programs.
+To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in any KungFu
+distributed optimizer, and
+register ``BroadcastGlobalVariablesHook`` as a hook for the estimator.
+
+.. code-block:: python
+
+    import tensorflow as tf
+
+    def model_func():
+        loss = ...
+        opt = tf.train.AdamOptimizer(0.01)
+
+        # KungFu Step 1: Wrap tf.optimizer in KungFu optimizers
+        from kungfu.tensorflow.optimizers import SynchronousAveragingOptimizer
+        opt = SynchronousAveragingOptimizer(opt)
+
+        return tf.estimator.EstimatorSpec(
+            mode=tf.estimator.ModeKeys.TRAIN,
+            loss=loss,
+            train_op=opt.minimize(loss))
+
+    # KungFu Step 2: register the broadcast global variables hook
+    from kungfu.tensorflow.initializer import BroadcastGlobalVariablesHook
+    hooks = [BroadcastGlobalVariablesHook()]
+
+    estimator = tf.estimator.Estimator(model_fn=model_func,
+                                       model_dir=FLAGS.model_dir)
+
+    for _ in range(10):
+        estimator.train(input_fn=train_data, hooks=hooks)
+
+You can find the full training example: `TensorFlow 1 Estimator <https://github.com/lsds/KungFu/blob/master/examples/tf1_mnist_estimator.py>`_
+
+GradientTape
+------------
+
+TensorFlow 2 supports eager execution for the ease of building dynamic models.
+The core of the eager execution is the ``tf.GradientTape``.
+To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in any KungFu
+distributed optimizer, and use ``broadcast_variables`` to broadcast global
+variables at the end of the first step of training.
+
+
+.. code-block:: python
+
+    import tensorflow as tf
+
+    # Build the dataset...
+    dataset = ...
+
+    # Build model...
+    loss = ...
+    opt = tf.keras.optimizers.SGD(0.01)
+
+    # KungFu Step 1: Wrap tf.optimizer in KungFu optimizers
+    from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+    opt = SynchronousSGDOptimizer(opt)
+
+    @tf.function
+    def training_step(images, labels, first_batch):
+        with tf.GradientTape() as tape:
+            probs = mnist_model(images, training=True)
+            loss_value = loss(labels, probs)
+
+        grads = tape.gradient(loss_value, mnist_model.trainable_variables)
+        opt.apply_gradients(zip(grads, mnist_model.trainable_variables))
+
+        # KungFu Step 2: broadcast global variables
+        if first_batch:
+            from kungfu.tensorflow.initializer import broadcast_variables
+            broadcast_variables(mnist_model.variables)
+            broadcast_variables(opt.variables())
+
+        return loss_value
+
+    for batch, (images, labels) in enumerate(dataset.take(10000)):
+        loss_value = training_step(images, labels, batch == 0)
+
+You can find the full training example: `TensorFlow 2 GradientTape <https://github.com/lsds/KungFu/blob/master/examples/tf2_mnist_gradient_tape.py>`_
+
+Keras
+-----
+
+Keras has become the high-level training API since
+TensorFlow 1.12 and has become the de-facto in TensorFlow 2.
+To enable KungFu, you need to wrap your ``tf.train.Optimizer`` in any KungFu
+distributed optimizer, and use ``BroadcastGlobalVariablesCallback``
+as a callback to broadcast global variables in ``keras_model.fit()``.
+
+.. code-block:: python
+
+    import tensorflow as tf
+
+    # Build dataset...
+    dataset = ....
+
+    # Build model...
+    model = tf.keras.Sequential(...)
+    opt = tf.keras.optimizers.SGD(0.01)
+
+    # KungFu Step 1: Wrap tf.optimizer in KungFu optimizers
+    from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+    opt = SynchronousSGDOptimizer(opt)
+
+    model.compile(loss=tf.losses.SparseCategoricalCrossentropy(),
+                  optimizer=opt,
+                  metrics=['accuracy'])
+
+    # KungFu Step 2: Register a broadcast callback
+    from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
+    model.fit(dataset,
+              steps_per_epoch=500,
+              epochs=1,
+              callbacks=[BroadcastGlobalVariablesCallback()])
+
+You can find the full training examples:
+`TensorFlow 1 Keras <https://github.com/lsds/KungFu/blob/master/examples/tf1_mnist_keras.py>`_
+and  `TensorFlow 2 Keras <https://github.com/lsds/KungFu/blob/master/examples/tf2_mnist_keras.py>`_
+
+
+KungFu APIs
+===========
+
+KungFu has the high-level optimizer APIs that
+allows you transparently scale out training
+with minimal efforts. It also has
+the low-level APIs that allows an easy implementation
+of new distributed training strategies.
+The following is the public API we released by far.
 
 Distributed optimizers
 ----------------------

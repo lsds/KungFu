@@ -52,33 +52,31 @@ with tf.Session() as sess:
         sess.run(train_op)
 ```
 
-See TensorFlow full training examples that use [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py) and [Estimator](examples/tf1_mnist_estimator.py), respectively.
+Check the documentation for more details regarding how you can enable KungFu for [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py), [Estimator](examples/tf1_mnist_estimator.py), and [GradientTape](examples/tf2_mnist_gradient_tape.py) in TensorFlow 1 and 2.
 
 ## Install
 
 KungFu is implemented in Go and C++. It exposes a C interface so that it can be easily integrated within existing machine learning systems.
 Currently, it has a Python binding for TensorFlow.
 
-KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), [Golang 1.13+](https://golang.org/dl/) and [TensorFlow <=1.13.2](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
-It can be installed with the following few lines, assuming you have the above pre-requites.
+KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), and [Golang 1.13+](https://golang.org/dl/).
+KungFu has been tested with [TensorFlow 1.12, 1.13, 1.15 and 2.0.0](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
+It should support all TensorFlow 1.x versions, except an known issue with 1.14.
+Assuming you have the above pre-requites, you can install KungFu as follows:
 
 ```bash
-# Download the KungFu source code
 git clone https://github.com/lsds/KungFu.git
-
-# Install KungFu
-# export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) # Parallel build.
-pip3 install .
+pip3 install KungFu/.
 ```
 
 KungFu provides ``kungfu-run`` to launch a training program on a multi-GPU server.
 
 ```bash
 # Build and install kungfu-run in the given GOBIN directory.
-GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
+GOBIN=$(pwd)/KungFu/bin go install -v ./KungFu/srcs/go/cmd/kungfu-run
 
-# Check if kungfu-run is built
-./bin/kungfu-run -help
+# Check if kungfu-run is built. You can export kungfu-run to your PATH in .bashrc
+./KungFu/bin/kungfu-run -help
 ```
 
 You can use KungFu with Docker. Check out the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) machines.
