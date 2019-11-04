@@ -104,7 +104,7 @@ def test_model(model, dataset):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='KungFu mnist example.')
-    parser.add_argument('--optimizer',
+    parser.add_argument('--kf-optimizer',
                         type=str,
                         default='sync-sgd',
                         help='available options: sync-sgd, async-sgd, sma')
