@@ -52,7 +52,7 @@ with tf.Session() as sess:
         sess.run(train_op)
 ```
 
-Check the documentation for more details regarding how you can enable KungFu for [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py), [Estimator](examples/tf1_mnist_estimator.py), and [GradientTape](examples/tf2_mnist_gradient_tape.py) in TensorFlow 1 and 2.
+Check the documentation for more details regarding how to use KungFu with [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py), [Estimator](examples/tf1_mnist_estimator.py), and [GradientTape](examples/tf2_mnist_gradient_tape.py) in TensorFlow 1 and 2.
 
 ## Install
 
