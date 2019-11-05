@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import counter
+from kungfu.tensorflow.ops import counter
 
 
 def fuse(ts):

@@ -12,16 +12,26 @@
 
 import argparse
 import logging
+import os
 import kungfu as kf
 import tensorflow as tf
-from kungfu.tensorflow.v1.ops import broadcast
+from kungfu.tensorflow.ops import barrier
 from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.keras.optimizers import SynchronousSGDOptimizer, PairAveragingOptimizer, SynchronousAveragingOptimizer
 from kungfu.tensorflow.v2.initializer import BroadcastGlobalVariablesCallback
         
 
 def load_dataset():
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path="mnist.npz")
+    if not os.path.isfile("~/.keras/datasets/mnist.npz"):
+        if current_rank() == 0: # FIXME: use local rank
+            (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path="mnist.npz")
+            barrier()
+        else:
+            barrier()
+            (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path="mnist.npz")
+    else:
+        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path="mnist.npz")
+
     # preprocess the mnist dataset
     x_train = x_train.reshape(60000, 784).astype('float32') / 255
     x_test = x_test.reshape(10000, 784).astype('float32') / 255

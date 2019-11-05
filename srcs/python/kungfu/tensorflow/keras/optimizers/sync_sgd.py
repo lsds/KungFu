@@ -1,7 +1,7 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.v1.ops import (broadcast, current_cluster_size,
-                                      current_rank, group_all_reduce)
+from kungfu.tensorflow.ops import (broadcast, current_cluster_size,
+                                   current_rank, group_all_reduce)
 
 
 class SynchronousSGDOptimizer(tf.keras.optimizers.Optimizer):
