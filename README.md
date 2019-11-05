@@ -131,8 +131,28 @@ Check out the simple [CycleGAN example](https://github.com/tensorlayer/cyclegan)
 
 ### Reinforcement learning - Alpha Zero
 
-We are working on an Alpha Zero distributed training example and will release it soon.
+Alpha Zero uses reinforcement learning to train agents using self-play, without any previous dataset required. Learning combines a Monte Carlo Tree Search with a Deep Neural Network to evaluate the game state and to determine the most promising future states. The Deep Neural Network is used to determine the policy (by which state transitions are made) and the value (or expected reward in a state) given a state. The aim is to take actions using the probabilistic policy such that the expected reward is maximised.
 
+To illustrate how KungFu works with reinforcement learning, we choose the [Open Alpha Zero project](https://github.com/andrei3131/open_alpha_zero), which is able to learn how to play Checkers, Durak and Tic-Tac-Toe. The project uses a CNN to determine the policy and the value for states in Checkers.
+
+In order to train a CNN Checkers Agent using KungFu distributed optimizer, use the following command:
+```bash
+python3 alpha_zero_trainer.py --agent "checkers_agent_train_rcnn_kungfu_distributed" --workspace "games/checkers/training" --max_steps 400 --games_num 100 --iterations 100 --verbose --exploration_decay_steps 15
+```
+
+You can verify how your KunFu Checkers Agent performs against another agent using:
+```bash
+python3 pit.py \
+--agent_new "checkers_agent_train_rcnn_kungfu_default" \
+--agent_old <OTHER_AGENT> \
+--agent_new_path "games/checkers/training/best.h5" \
+--verbose \
+--debug \
+--max_steps 400 \
+--games_num 100
+```
+
+where OTHER_AGENT="checkers_agent_random"|"checkers_agent_alpha_beta"|"checkers_agent_human" 
 ## Benchmark
 
 We benchmark KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
