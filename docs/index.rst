@@ -177,7 +177,7 @@ as a callback for Keras model.
               epochs=1,
               callbacks=[BroadcastGlobalVariablesCallback()])
 
-You can find the full training examples:
+Here are two full training examples:
 `TensorFlow 1 Keras <https://github.com/lsds/KungFu/blob/master/examples/tf1_mnist_keras.py>`_
 and  `TensorFlow 2 Keras <https://github.com/lsds/KungFu/blob/master/examples/tf2_mnist_keras.py>`_
 
@@ -185,8 +185,10 @@ and  `TensorFlow 2 Keras <https://github.com/lsds/KungFu/blob/master/examples/tf
 Keras
 -----
 
-KungFu can be used with Keras in the same way as the above TensorFlow Keras.
-You can find the full Keras training example: `Keras <https://github.com/lsds/KungFu/blob/master/examples/keras_mnist.py>`_
+KungFu can be used with Keras in the same way as the above TensorFlow Keras example.
+You simply pass an extra `with_keras` flag to both KungFu optimizers and
+Keras callback to tell KungFu you are using Keras not TensorFlow.
+Here is a full Keras training example: `Keras <https://github.com/lsds/KungFu/blob/master/examples/keras_mnist.py>`_
 
 KungFu APIs
 ===========

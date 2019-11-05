@@ -58,12 +58,15 @@ def _create_kungfu_optimizer(optimizer, kungfu_algo, name, use_locking):
     elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
         return KungFuTFKerasOptimizer(optimizer, kungfu_algo, name)
     else:
-        print(
-            'INFO: Optimizer does not belong to TensorFlow. Lazily importing Kera ...'
+        raise TypeError(
+            'Given optimizer must be tf.train.Optimizer or tf.keras.optimizers.Optimizer'
         )
-        import keras
-        if isinstance(optimizer, keras.optimizers.Optimizer):
-            from .keras import KungFuKerasOptimizer
-            return KungFuKerasOptimizer(optimizer, kungfu_algo)
-        else:
-            raise TypeError('Cannot wrap type %s' % type(optimizer).__name__)
+
+
+def _create_kungfu_keras_optimizer(optimizer, kungfu_algo):
+    import keras
+    if isinstance(optimizer, keras.optimizers.Optimizer):
+        from .keras import KungFuKerasOptimizer
+        return KungFuKerasOptimizer(optimizer, kungfu_algo)
+    else:
+        raise TypeError('Given optimizer must be keras.optimizers.Optimizer')

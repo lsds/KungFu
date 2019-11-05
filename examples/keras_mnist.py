@@ -74,11 +74,11 @@ opt = keras.optimizers.Adadelta(1.0 * current_cluster_size())
 
 # KungFu: wrap distributed optimizers.
 if args.kf_optimizer == 'sync-sgd':
-    opt = SynchronousSGDOptimizer(opt)
+    opt = SynchronousSGDOptimizer(opt, with_keras=True)
 elif args.kf_optimizer == 'async-sgd':
-    opt = PairAveragingOptimizer(opt)
+    opt = PairAveragingOptimizer(opt, with_keras=True)
 elif args.kf_optimizer == 'sma':
-    opt = SynchronousAveragingOptimizer(opt)
+    opt = SynchronousAveragingOptimizer(opt, with_keras=True)
 else:
     raise RuntimeError('unknown optimizer: %s' % name)
 
@@ -86,7 +86,7 @@ model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=opt,
               metrics=['accuracy'])
 
-callbacks = [BroadcastGlobalVariablesCallback(with_pure_keras=True)]
+callbacks = [BroadcastGlobalVariablesCallback(with_keras=True)]
 
 # KungFu: save checkpoints only on worker 0 to prevent other workers from corrupting them.
 if current_rank() == 0:
