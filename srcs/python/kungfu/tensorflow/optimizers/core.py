@@ -27,9 +27,9 @@ class KungFuTFOptimizer(_tf_optimizer):
         return self._optimizer.variables(*args, **kwargs)
 
 
-class KungFuKerasOptimizer(tf.keras.optimizers.Optimizer):
+class KungFuTFKerasOptimizer(tf.keras.optimizers.Optimizer):
     def __init__(self, optimizer, algo, name):
-        super(KungFuKerasOptimizer, self).__init__(name=name)
+        super(KungFuTFKerasOptimizer, self).__init__(name=name)
         self._optimizer = optimizer
         self._algo = algo
 
@@ -56,6 +56,17 @@ def _create_kungfu_optimizer(optimizer, kungfu_algo, name, use_locking):
                                  name,
                                  use_locking=use_locking)
     elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
-        return KungFuKerasOptimizer(optimizer, kungfu_algo, name)
+        return KungFuTFKerasOptimizer(optimizer, kungfu_algo, name)
     else:
-        raise TypeError('Cannot wrap type %s' % type(optimizer).__name__)
+        raise TypeError(
+            'Given optimizer must be tf.train.Optimizer or tf.keras.optimizers.Optimizer'
+        )
+
+
+def _create_kungfu_keras_optimizer(optimizer, kungfu_algo):
+    import keras
+    if isinstance(optimizer, keras.optimizers.Optimizer):
+        from .keras import KungFuKerasOptimizer
+        return KungFuKerasOptimizer(optimizer, kungfu_algo)
+    else:
+        raise TypeError('Given optimizer must be keras.optimizers.Optimizer')
