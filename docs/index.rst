@@ -16,8 +16,8 @@ Please follow the instruction in the README to install KungFu.
 Examples
 ========
 
-We provide various training examples
-that shows how to enable KungFu for different kinds of TensorFlow programs.
+We provide various examples
+to show how to use KungFu with various TensorFlow objects and Keras models.
 
 Session
 -------
@@ -142,8 +142,8 @@ variables at the end of the first step of training.
 
 You can find the full training example: `TensorFlow 2 GradientTape <https://github.com/lsds/KungFu/blob/master/examples/tf2_mnist_gradient_tape.py>`_
 
-Keras
------
+TensorFlow Keras
+----------------
 
 Keras has become the high-level training API for
 TensorFlow since 1.11 and has become the default interface in TensorFlow 2.
@@ -181,6 +181,12 @@ You can find the full training examples:
 `TensorFlow 1 Keras <https://github.com/lsds/KungFu/blob/master/examples/tf1_mnist_keras.py>`_
 and  `TensorFlow 2 Keras <https://github.com/lsds/KungFu/blob/master/examples/tf2_mnist_keras.py>`_
 
+
+Keras
+-----
+
+KungFu can be used with Keras in the same way as the above TensorFlow Keras.
+You can find the full Keras training example: `Keras <https://github.com/lsds/KungFu/blob/master/examples/keras_mnist.py>`_
 
 KungFu APIs
 ===========

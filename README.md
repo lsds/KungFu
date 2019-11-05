@@ -20,7 +20,7 @@ We have been using KungFu for accelerating different kinds of deep learning mode
 
 ## Usage
 
-To scale out your TensorFlow training program, you simply need to make two changes:
+KungFu can be used with TensorFlow and Keras. To scale out your TensorFlow training program, for example, you simply need to make two changes:
 
 1. Wrap your ``tf.train.optimizer`` in KungFu's ``SynchronousSGDOptimizer``, ``SynchronousAveragingOptimizer``, ``PairAveragingOptimizer`` or another [distributed optimizer](srcs/python/kungfu/tensorflow/optimizers/__init__.py).
 
@@ -52,13 +52,14 @@ with tf.Session() as sess:
         sess.run(train_op)
 ```
 
-Check the documentation for more details regarding how to use KungFu with [Session](examples/tf1_mnist_session.py), [Keras](examples/tf1_mnist_keras.py), [Estimator](examples/tf1_mnist_estimator.py), and [GradientTape](examples/tf2_mnist_gradient_tape.py) in TensorFlow 1 and 2.
+Check the documentation for more details regarding how to use KungFu with [Session](examples/tf1_mnist_session.py), [TensorFlow Keras](examples/tf1_mnist_keras.py), [Estimator](examples/tf1_mnist_estimator.py), and [GradientTape](examples/tf2_mnist_gradient_tape.py) in TensorFlow 1 and 2.
+You can also fine a full training example for [Keras]((examples/keras_mnist.py)).
 
 ## Install
 
 KungFu is implemented in Go and C++. It exposes a C interface in order to
 allow an easy integration with existing machine learning systems.
-Currently, it has a Python binding for TensorFlow 1/2.
+Currently, it has Python binding for TensorFlow (including v1 and v2) and Keras (assuming you use TensorFlow as the backend).
 
 KungFu for TensorFlow requires [Python 3](https://www.python.org/downloads/), [CMake 3.5+](https://cmake.org/install/), and [Golang 1.13+](https://golang.org/dl/).
 KungFu has been tested with [TensorFlow 1.12, 1.13, 1.15 and 2.0.0](https://www.tensorflow.org/install/pip#older-versions-of-tensorflow).
