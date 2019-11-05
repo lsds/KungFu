@@ -143,7 +143,7 @@ python3 alpha_zero_trainer.py --agent "checkers_agent_train_rcnn_kungfu_distribu
 You can verify how your KunFu Checkers Agent performs against another agent using:
 ```bash
 python3 pit.py \
---agent_new "checkers_agent_train_rcnn_kungfu_default" \
+--agent_new "checkers_agent_train_rcnn_kungfu_distributed" \
 --agent_old <OTHER_AGENT> \
 --agent_new_path "games/checkers/training/best.h5" \
 --verbose \
