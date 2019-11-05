@@ -46,10 +46,18 @@ class BroadcastGlobalVariablesHook(_tf_hook):
         session.run(self.bcast_op)
 
 
-class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
+def BroadcastGlobalVariablesCallback(with_pure_keras=False):
+    if not with_pure_keras:
+        return TFKerasBroadcastGlobalVariablesCallback()
+    else:
+        from .keras import KerasBroadcastGlobalVariablesCallback
+        return KerasBroadcastGlobalVariablesCallback()
+
+
+class TFKerasBroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
     """A Keras callback that broadcasts global variables at the begining of training."""
     def __init__(self, *args):
-        super(BroadcastGlobalVariablesCallback, self).__init__(*args)
+        super(TFKerasBroadcastGlobalVariablesCallback, self).__init__(*args)
         self.broadcast_done = False
 
     def on_batch_end(self, batch, logs=None):
@@ -75,6 +83,7 @@ class BroadcastGlobalVariablesCallback(tf.keras.callbacks.Callback):
                 raise RuntimeError('No variables() in %s', self.model)
 
         if _tf_major_version == 1:
+            print(tf.global_variables())
             tf.keras.backend.get_session().run(BroadcastGlobalVariablesOp())
 
         self.broadcast_done = True

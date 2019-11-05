@@ -59,11 +59,10 @@ def _create_kungfu_optimizer(optimizer, kungfu_algo, name, use_locking):
         return KungFuTFKerasOptimizer(optimizer, kungfu_algo, name)
     else:
         print(
-            'INFO: Optimizer is neither tf.train.Optimizer not tf.keras.optimizers.Optimizer. Try keras.optimizers.Optimizer.'
+            'INFO: Optimizer does not belong to TensorFlow. Lazily importing Kera ...'
         )
         import keras
         if isinstance(optimizer, keras.optimizers.Optimizer):
-            print('WARNING: keras.optimizers.Optimizer does not take name')
             from .keras import KungFuKerasOptimizer
             return KungFuKerasOptimizer(optimizer, kungfu_algo)
         else:

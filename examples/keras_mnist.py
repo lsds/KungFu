@@ -29,7 +29,7 @@ batch_size = 128
 num_classes = 10
 
 # KungFu: adjust number of epochs based on number of GPUs.
-epochs = int(math.ceil(12.0 / current_cluster_size()))
+epochs = int(math.ceil(4.0 / current_cluster_size()))
 
 # Input image dimensions
 img_rows, img_cols = 28, 28
@@ -86,7 +86,7 @@ model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=opt,
               metrics=['accuracy'])
 
-callbacks = [BroadcastGlobalVariablesCallback()]
+callbacks = [BroadcastGlobalVariablesCallback(with_pure_keras=True)]
 
 # KungFu: save checkpoints only on worker 0 to prevent other workers from corrupting them.
 if current_rank() == 0:
