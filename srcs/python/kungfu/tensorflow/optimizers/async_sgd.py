@@ -55,9 +55,9 @@ def PairAveragingOptimizer(optimizer,
                 fused_model_name = optimizer.get_config()['name']
             except:
                 # keras optimizer does not have name
-                fused_model_name = 'fused_model'
+                fused_model_name = 'PairAveragingOptimizer'
                 print(
-                    'WARNING: You must give a unique fused_mode_name when using parallel PairAveragingOptimizers.'
+                    'WARNING: You must give a unique name if using parallel PairAveragingOptimizers.'
                 )
 
     pair_avg = _PairAveraging(fuse_requests, fused_model_name=fused_model_name)
