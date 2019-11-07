@@ -44,7 +44,8 @@ class _SynchronousAveraging(_KungFuAlgorithm):
         # TODO: Apply momentum to the averaged model [2]
         alpha = 1 / current_cluster_size()
         assign_ops = [
-            tf.assign(v, (1-alpha) * v + alpha * avg_v) for v, avg_v in zip(variables, avg_vars)
+            tf.assign(v, (1 - alpha) * v + alpha * avg_v)
+            for v, avg_v in zip(variables, avg_vars)
         ]
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
