@@ -1,10 +1,15 @@
 import tensorflow as tf
+from kungfu.tensorflow.compat import _tf_assign
 from kungfu.tensorflow.ops import current_cluster_size, group_all_reduce
 
-from .core import _create_kungfu_optimizer, _KungFuAlgorithm
+from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
+                   _KungFuAlgorithm)
 
 
-def SynchronousAveragingOptimizer(optimizer, name=None, use_locking=False):
+def SynchronousAveragingOptimizer(optimizer,
+                                  name=None,
+                                  use_locking=False,
+                                  with_keras=False):
     """SynchronousAveragingOptimizer implements the [SMA]_ algorithm.
 
     [EA-SGD]_ proposed to use model averaging to train deep learning models and prove its convergence.
@@ -20,6 +25,7 @@ def SynchronousAveragingOptimizer(optimizer, name=None, use_locking=False):
     Keyword Arguments:
         - name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
         - use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+        - with_keras {bool} -- Runs with pure Keras or not (default: {False})
 
     Raises:
         TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
@@ -28,7 +34,10 @@ def SynchronousAveragingOptimizer(optimizer, name=None, use_locking=False):
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
     sma_algo = _SynchronousAveraging()
-    return _create_kungfu_optimizer(optimizer, sma_algo, name, use_locking)
+    if not with_keras:
+        return _create_kungfu_optimizer(optimizer, sma_algo, name, use_locking)
+    else:
+        return _create_kungfu_keras_optimizer(optimizer, sma_algo)
 
 
 class _SynchronousAveraging(_KungFuAlgorithm):
@@ -44,8 +53,7 @@ class _SynchronousAveraging(_KungFuAlgorithm):
         # TODO: Apply momentum to the averaged model [2]
         alpha = 1 / current_cluster_size()
         assign_ops = [
-            tf.assign(v, (1 - alpha) * v + alpha * avg_v)
-            for v, avg_v in zip(variables, avg_vars)
+            _tf_assign(v, (1 - alpha) * v + alpha * avg_v) for v, avg_v in zip(variables, avg_vars)
         ]
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
