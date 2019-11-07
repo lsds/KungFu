@@ -3,14 +3,16 @@ from kungfu._utils import map_maybe
 from kungfu.tensorflow.ops import (current_cluster_size, defuse, fuse,
                                    group_all_reduce, group_nccl_all_reduce)
 
-from .core import _create_kungfu_optimizer, _KungFuAlgorithm
+from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
+                   _KungFuAlgorithm)
 
 
 def SynchronousSGDOptimizer(optimizer,
                             nccl=False,
                             nccl_fusion=True,
                             name=None,
-                            use_locking=False):
+                            use_locking=False,
+                            with_keras=False):
     """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
 
     This optimizer is equivalent to the DistributedOptimizer in Horovod.
@@ -27,6 +29,7 @@ def SynchronousSGDOptimizer(optimizer,
         - nccl_fusion {bool} -- fusing all gradients to amortise NCCL operation launch cost. (default: {True})
         - name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
         - use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+        - with_keras {bool} -- Runs with pure Keras or not (default: {False})
 
     Raises:
         TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
@@ -35,8 +38,11 @@ def SynchronousSGDOptimizer(optimizer,
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
     sync_sgd_algo = _SynchronousSGD(nccl, nccl_fusion)
-    return _create_kungfu_optimizer(optimizer, sync_sgd_algo, name,
-                                    use_locking)
+    if not with_keras:
+        return _create_kungfu_optimizer(optimizer, sync_sgd_algo, name,
+                                        use_locking)
+    else:
+        return _create_kungfu_keras_optimizer(optimizer, sync_sgd_algo)
 
 
 class _SynchronousSGD(_KungFuAlgorithm):

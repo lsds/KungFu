@@ -6,13 +6,16 @@ from kungfu.tensorflow.ops import (barrier, counter, current_cluster_size,
                                    request_variable_with_template,
                                    save_variable)
 
-from .core import _create_kungfu_optimizer, _KungFuAlgorithm
+from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
+                   _KungFuAlgorithm)
 
 
 def PairAveragingOptimizer(optimizer,
                            fuse_requests=True,
+                           fused_model_name=None,
                            name=None,
-                           use_locking=False):
+                           use_locking=False,
+                           with_keras=False):
     """PairAveragingOptimizer implements the [AD-PSGD]_ algorithm.
 
     Every iteration of training, this optimizer:
@@ -30,8 +33,10 @@ def PairAveragingOptimizer(optimizer,
 
     Keyword Arguments:
         - fuse_requests {bool} -- Fusing requests to amortise communication cost at the cost of extra GPU memory and cycles. (default: {True})
+        - fused_model_name {str} -- The unique name for the fused model kept in a local store. (default: {None})
         - name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
         - use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+        - with_keras {bool} -- Runs with pure Keras or not (default: {False})
 
     Raises:
         TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
@@ -39,9 +44,28 @@ def PairAveragingOptimizer(optimizer,
     Returns:
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
-    opt_type_name = type(optimizer).__name__
-    pair_avg = _PairAveraging(fuse_requests, fused_model_name=opt_type_name)
-    return _create_kungfu_optimizer(optimizer, pair_avg, name, use_locking)
+
+    if fused_model_name is None:
+        if hasattr(optimizer, 'get_name'):
+            # tf.train.Optimizer
+            fused_model_name = optimizer.get_name()
+        else:
+            try:
+                # tf.keras.optimizers.Optimizer has name since tf1.15
+                fused_model_name = optimizer.get_config()['name']
+            except:
+                # keras optimizer does not have name
+                fused_model_name = 'PairAveragingOptimizer'
+                print(
+                    'WARNING: You must give a unique name if using parallel PairAveragingOptimizers.'
+                )
+
+    pair_avg = _PairAveraging(fuse_requests, fused_model_name=fused_model_name)
+
+    if not with_keras:
+        return _create_kungfu_optimizer(optimizer, pair_avg, name, use_locking)
+    else:
+        return _create_kungfu_keras_optimizer(optimizer, pair_avg)
 
 
 def get_random_peer(cluster_size, self_rank):
