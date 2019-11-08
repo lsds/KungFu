@@ -1,14 +1,27 @@
-language: go
+# https://docs.travis-ci.com/user/languages/python/
+language: python
 
 # https://docs.travis-ci.com/user/reference/bionic/#using-ubuntu-1804-bionic-beaver
 dist: bionic
 
-# https://docs.travis-ci.com/user/languages/go/#specifying-a-go-version-to-use
-go:
-- 1.11.x
+python:
+- 3.6
+
+env:
+# https://docs.travis-ci.com/user/environment-variables/#defining-multiple-variables-per-item
+- TF_VERSION='1.13.2' TF_CPP_MIN_LOG_LEVEL='2'
+
+install:
+- pip --version
+- python --version
+- pip install numpy==1.16 tensorflow==${TF_VERSION}
+- python -c "import tensorflow as tf; print(tf.__version__)"
+- go version
 
 script:
 - go test ./...
+
+# C++ tests
 - ./configure --build-tests --build-gtest
 - make
 - make test
@@ -19,4 +32,13 @@ script:
     KUNGFU_CONFIG_ENABLE_MONITORING=true \
     KUNGFU_CONFIG_MONITORING_PERIOD=10ms \
     ./bin/kungfu-test-monitor -p 10ms -d 100ms
-- ./bin/kungfu-run -H 127.0.0.1:4 -np 4 ./bin/kungfu-test-public-apis
+- ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 ./bin/kungfu-test-public-apis
+
+# python test
+- pip install --no-index .
+- python -m kungfu.tensorflow.v1.examples
+- ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 python -m kungfu.tensorflow.v1.examples
+
+# doc test
+- pip install -r docs/requirements.txt
+- make -C docs
