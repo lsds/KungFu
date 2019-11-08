@@ -43,6 +43,7 @@ def SynchronousAveragingOptimizer(optimizer,
 class _SynchronousAveraging(_KungFuAlgorithm):
     def __init__(self):
         self._num_workers = current_cluster_size()
+        self._alpha = 1.0 / current_cluster_size()
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         # It is important to apply model averaging every iteration [2]
@@ -52,7 +53,8 @@ class _SynchronousAveraging(_KungFuAlgorithm):
 
         # TODO: Apply momentum to the averaged model [2]
         assign_ops = [
-            _tf_assign(v, avg_v) for v, avg_v in zip(variables, avg_vars)
+            _tf_assign(v, (1 - self._alpha) * v + self._alpha * avg_v)
+            for v, avg_v in zip(variables, avg_vars)
         ]
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
