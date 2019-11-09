@@ -43,7 +43,8 @@ def SynchronousAveragingOptimizer(optimizer,
 class _SynchronousAveraging(_KungFuAlgorithm):
     def __init__(self):
         self._num_workers = current_cluster_size()
-        self._alpha = 1.0 / current_cluster_size()
+        # self._alpha = 1.0 / current_cluster_size()
+        self._alpha = 0.1  # Suggested by [2]
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         # It is important to apply model averaging every iteration [2]
