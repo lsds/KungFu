@@ -118,40 +118,20 @@ Check out this in an [ImageNet benchmark suite](https://github.com/luomai/benchm
 
 * ***Pose estimation***: Pose estimation models such as [OpenPose](https://github.com/CMU-Perceptual-Computing-Lab/openpose) are often batch-size sensitive.
 We used KungFu in
-a popular [OpenPose implementation](https://github.com/tensorlayer/openpose-plus) and achieved robust speed up in time-to-accuracy after
-using the model averaging optimizers which preserves the merits of small batch training.
+a popular [OpenPose implementation](https://github.com/tensorlayer/openpose-plus) and improved time-to-accuracy
+using the model averaging optimizer which preserves the merits of small batch size.
 
 * ***Natural language processing***:
 We have an [example](https://github.com/luomai/bert) that shows how you can use few lines to enable distributed training for the Google BERT model.
 
 * ***Adversarial learning***:
-Generative adversarial networks (GANs) train multiple networks in parallel and often prefer using small batches for training.
-KungFu thus become an attractive option, because of its minimal changes to complex GAN programs
-and new optimizers that decouple batch size and system parallelism.
+Adversarial learning trains multiple networks in parallel and prefer using small batches for training.
+KungFu thus become an attractive option, because of its minimal changes to GAN programs
+and its optimizers that decouple batch size and system parallelism.
 See the [CycleGAN example](https://github.com/tensorlayer/cyclegan).
 
 * ***Reinforcement learning***:
 We are working on an Alpha Zero distributed training example and will release it soon.
-
-## Benchmark
-
-We benchmark KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
-The machines are interconnected by a 100 Gbps network. We measure the training throughput of ResNet-50, VGG16 and InceptionV3. These models represent different kinds of training workloads.
-
-In the synchronous training case, we compare KungFu (``SynchronousSGDOptimizer``) with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0. We evaluate the spectrum of batch size (from 256 to 4096) commonly used by SGD users.
-This batch size is evenly shared by the 16 GPUs.
-KungFu outperforms Horovod on all tested models, in particular with small batch sizes which significantly raise the
-frequency of synchronization.
-
-![sync](benchmarks/system/result/sync-scalability.svg)
-
-In the asynchronous training case, we compare KungFu (``PairAveragingOptimizer``) with TensorFlow parameter servers (1.13.1). We uses the same range of batch sizes as above. KungFu exhibits better scalability as well.
-
-![async](benchmarks/system/result/async-scalability.svg)
-
-We have also run the same benchmark in a 16-server cluster (each has a P100).
-KungFu exhibits better scalability in this communication-challenging environment,
-and we thus only report the 16 V100 result here. You can find the benchmark scripts [here](benchmarks/system/).
 
 ## Choosing the right optimizer
 
@@ -173,27 +153,27 @@ Scalability-wise, all S-SGD workers must exchange all gradients per iteration, m
 them hard to deal with limited bandwidth and stragglers;
 (ii) accuracy-wise, S-SGD *couples* training batch size with the number of workers,
 enforcing users to use large batch sizes, which can adversely
-affect the generality of a trained model (see [paper](https://arxiv.org/abs/1609.04836).
+affect the generality of a trained model (see [paper](https://arxiv.org/abs/1609.04836)).
 To compensate the loss in generality, users must explore various [methods](https://research.fb.com/wp-content/uploads/2017/06/imagenet1kin1h5.pdf)
 for tuning hyper-parameters.
 
 ***Model averaging***:
 Model averaging is implemented as ``SynchronousAveragingOptimizer`` and
 ``PairAveragingOptimizer`` in KungFu.
-The former realizes the small-batch-efficient [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf)
+The former realizes the hyper-parameter-robust [SMA](http://www.vldb.org/pvldb/vol12/p1399-koliousis.pdf)
 algorithm; while the latter implements the [AD-PSGD](https://arxiv.org/abs/1710.06952) algorithm
 which reduces bandwidth consumption and tolerates stragglers.
-In model averaging, each worker updates its local
-model using small batch size, and exchange
-models to speed up the search for minima.
-Model averaging algorithms has a proven convergence guarantee (see [EA-SGD paper](https://arxiv.org/abs/1412.6651))
-and often converge quickly (see [Lookahead paper](https://arxiv.org/abs/1907.08610)) with DL models.
-A key property of model averaging is that: it decouples
-batch size with system parallelism, making
-itself *hyper-parameter robust*. We find
-this property useful
-as AI users often find it hard and expensive to
-tune synchronous SGD.
+In model averaging, each worker trains its local
+model using SGD, and average
+its model with peers to speed up the search for minima.
+Model averaging algorithms have a convergence guarantee (see [EA-SGD paper](https://arxiv.org/abs/1412.6651))
+and can converge fast with DL models (see [Lookahead paper](https://arxiv.org/abs/1907.08610)).
+A useful property of model averaging is: it decouples
+batch size with system parallelism, often making
+it *hyper-parameter robust*. We find
+this property valuable
+as DL users often find it hard and expensive to
+tune synchronous SGD at scale.
 
 ***Convergence evaluation***:
 We have tested KungFu optimizers using ResNet-50 and ResNet-101 for ImageNet.
@@ -206,9 +186,29 @@ reach the target 75%.
 All these tests use a per-GPU batch size as 64 and [hyper-parameters](https://github.com/tensorflow/benchmarks/tree/master/scripts/tf_cnn_benchmarks#getting-started)
 suggested by the TensorFlow benchmark authors.
 
+## Benchmark
+
+We benchmark KungFu in a cluster that has 16 V100 GPUs hosted by 2 DGX-1 machines.
+The machines are interconnected by a 100 Gbps network. We measure the training throughput of ResNet-50, VGG16 and InceptionV3. These models represent different kinds of training workloads.
+
+In the ***synchronous training*** case, we compare KungFu (``SynchronousSGDOptimizer``) with [Horovod](https://github.com/horovod/horovod) (0.16.1). Horovod uses OpenMPI 4.0.0. We evaluate the spectrum of batch size (from 256 to 4096) commonly used by S-SGD users.
+This batch size is evenly shared by the 16 GPUs.
+KungFu outperforms Horovod on all tested models, in particular with small batch sizes which significantly raise the
+frequency of synchronization.
+
+![sync](benchmarks/system/result/sync-scalability.svg)
+
+In the ***asynchronous training*** case, we compare KungFu (``PairAveragingOptimizer``) with TensorFlow parameter servers (1.13.1). We uses the same range of batch sizes as above. KungFu exhibits better scalability as well.
+
+![async](benchmarks/system/result/async-scalability.svg)
+
+We have also run the same benchmark in a 16-server cluster (each has a P100).
+KungFu exhibits better scalability in this communication-challenging environment,
+and we thus only report the 16 V100 result here. You can find the benchmark scripts [here](benchmarks/system/).
+
 ## Development
 
 KungFu is designed with extensibility in mind.
 It has a low-level API and a modular architecture, making
-it suitable for implementing new distributed optimizers and monitoring/control algorithms.
+it suitable for implementing new distributed training algorithms.
 Check out the developer [guideline](CONTRIBUTING.md) for more information.
