@@ -18,6 +18,10 @@ stages:
   - python3 --version
   - python3 -c "import tensorflow as tf; print(tf.__version__)"
 
+  only:
+    changes:
+    - srcs/**/*
+
 .tensorflow1:
   extends: .tensorflow
 
@@ -103,6 +107,11 @@ TF2 python3 test:
 
   - kungfu-run -H 127.0.0.1:4 -np 4 python3 tests/python/test_optimizers_tf2.py
 
+  only:
+    changes:
+    - srcs/**/*
+    - tests/**/*
+
 go format test:
   stage: lint
   image: alpine:3.9
@@ -114,6 +123,10 @@ go format test:
   script:
   - gofmt -w .
   - git diff --exit-code
+
+  only:
+    changes:
+    - srcs/**/*.go
 
 python format test:
   stage: lint
@@ -131,6 +144,10 @@ python format test:
   - ./scripts/clean-code.sh --fmt-py
   - git diff --exit-code
 
+  only:
+    changes:
+    - srcs/**/*.py
+
 clang format test:
   stage: lint
   image: registry.gitlab.com/lsds-kungfu/image/builder:ubuntu18
@@ -144,6 +161,12 @@ clang format test:
   - clang-format -version
   - ./scripts/clean-code.sh --fmt-cpp
   - git diff --exit-code
+
+  only:
+    changes:
+    - srcs/**/*.h
+    - srcs/**/*.hpp
+    - srcs/**/*.cpp
 
 clang tidy:
   stage: lint
@@ -160,3 +183,9 @@ clang tidy:
   - clang-tidy -version
   - ./scripts/clean-code.sh --check
   # - git diff
+
+  only:
+    changes:
+    - srcs/**/*.h
+    - srcs/**/*.hpp
+    - srcs/**/*.cpp
