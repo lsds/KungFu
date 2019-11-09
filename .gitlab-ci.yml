@@ -80,6 +80,11 @@ TF1 python3 test:
   - pip3 install --no-index -U .
   - GOBIN=$PWD/bin go install -v ./srcs/go/cmd/kungfu-run
 
+  only:
+    changes:
+    - srcs/**/*
+    - tests/**/*
+
 TF2 python3 test:
   extends: .tensorflow2
   variables:
