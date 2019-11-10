@@ -8,6 +8,7 @@ from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
 
 def SynchronousAveragingOptimizer(optimizer,
                                   name=None,
+                                  alpha=0.1,
                                   use_locking=False,
                                   with_keras=False):
     """SynchronousAveragingOptimizer implements the [SMA]_ algorithm.
@@ -24,6 +25,7 @@ def SynchronousAveragingOptimizer(optimizer,
 
     Keyword Arguments:
         - name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
+        - alpha {float} -- the ratio of a central model during averaging (Check the SMA and EA-SGD papers for its intuition). (default: {0.1})
         - use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
         - with_keras {bool} -- Runs with pure Keras or not (default: {False})
 
@@ -33,7 +35,7 @@ def SynchronousAveragingOptimizer(optimizer,
     Returns:
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
-    sma_algo = _SynchronousAveraging()
+    sma_algo = _SynchronousAveraging(alpha)
     if not with_keras:
         return _create_kungfu_optimizer(optimizer, sma_algo, name, use_locking)
     else:
@@ -41,10 +43,9 @@ def SynchronousAveragingOptimizer(optimizer,
 
 
 class _SynchronousAveraging(_KungFuAlgorithm):
-    def __init__(self):
+    def __init__(self, alpha):
         self._num_workers = current_cluster_size()
-        # self._alpha = 1.0 / current_cluster_size()
-        self._alpha = 0.1  # Suggested by [2]
+        self._alpha = alpha
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         # It is important to apply model averaging every iteration [2]
