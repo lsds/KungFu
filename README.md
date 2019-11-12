@@ -69,17 +69,21 @@ Assuming you have the above pre-requites, you can install KungFu as follows:
 
 ```bash
 git clone https://github.com/lsds/KungFu.git
-pip3 install --no-index KungFu/.
+cd KungFu
+pip3 install --no-index .
 ```
 
 KungFu provides ``kungfu-run`` to launch a training program on a multi-GPU server.
 
 ```bash
-# Build and install kungfu-run in the given GOBIN directory.
-GOBIN=$(pwd)/KungFu/bin go install -v ./KungFu/srcs/go/cmd/kungfu-run
+# Build and install kungfu-run in a given GOBIN directory.
+GOBIN=$(pwd)/bin go install -v ./srcs/go/cmd/kungfu-run
 
-# Check if kungfu-run is built. You can export kungfu-run to your PATH in .bashrc
-./KungFu/bin/kungfu-run -help
+# Check if kungfu-run is built.
+./bin/kungfu-run -help
+
+# Optional: Add kungfu-run to PATH (or .bashrc if you want to load kungfu-run by default)
+export PATH=$PATH:$(pwd)/bin
 ```
 
 You can use KungFu with Docker. Check out the docker files for [GPU](docker/Dockerfile.tf-gpu) and [CPU](docker/Dockerfile.tf-cpu) machines.
