@@ -39,7 +39,9 @@ def sgd_example():
 
             u = (1 - 2 * lr)**(step + 1)
             if abs(u - v) > 1e-6:
-                print('unexpected result: %f, want: %f' % (v, u))
+                msg = 'unexpected result: %f, want: %f' % (v, u)
+                print(msg)
+                raise RuntimeError(msg)
 
 
 def main(args):
