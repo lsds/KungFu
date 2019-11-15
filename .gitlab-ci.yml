@@ -10,6 +10,7 @@ stages:
   image: python:3.6
   variables:
     KUNGFU_DOWNLOAD_GO: 'ON'
+    KUNGFU_BUILD_TOOLS: 'ON'
 
   before_script:
   - pip3 install --upgrade pip
@@ -28,6 +29,8 @@ stages:
   script:
   - pip3 install --no-index -U .
   - python3 -m kungfu.tensorflow.v1.examples
+  - kungfu-run -H 127.0.0.1:1 -np 1 python3 -m kungfu.tensorflow.v1.examples
+  - kungfu-run -H 127.0.0.1:4 -np 4 python3 -m kungfu.tensorflow.v1.examples
 
 .tensorflow2:
   extends: .tensorflow
@@ -35,6 +38,8 @@ stages:
   script:
   - pip3 install --no-index -U .
   - python3 -m kungfu.tensorflow.v2.examples
+  - kungfu-run -H 127.0.0.1:1 -np 1 python3 -m kungfu.tensorflow.v2.examples
+  - kungfu-run -H 127.0.0.1:4 -np 4 python3 -m kungfu.tensorflow.v2.examples
 
 tensorflow 1.12.3:
   extends: .tensorflow1
