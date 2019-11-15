@@ -29,10 +29,11 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    # - run: pip3 install -U pip
-    # - run: hash -r
-    - run: pip3 install -U --user setuptools
-    - run: pip3 install tensorflow==${{ matrix.tf_version }}
+    - run: |
+      pip3 install -U pip
+      hash -r
+      pip3 install -U setuptools
+      pip3 install tensorflow==${{ matrix.tf_version }}
 
     - run: pip3 install --no-index -U .
     - run: python3 -m kungfu.tensorflow.v1.examples
