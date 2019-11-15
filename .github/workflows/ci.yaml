@@ -14,7 +14,7 @@ jobs:
     - run: ./configure
     - run: make
 
-  compatiability test:
+  compatiability-test:
     name: Test on node ${{ matrix.tf_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
