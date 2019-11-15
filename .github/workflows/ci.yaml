@@ -29,7 +29,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - run: |
+    - run:|
       pip3 install -U pip
       hash -r
       pip3 install -U setuptools
