@@ -19,9 +19,9 @@ stages:
   - python3 --version
   - python3 -c "import tensorflow as tf; print(tf.__version__)"
 
-  only:
-    changes:
-    - srcs/**/*
+  # only:
+  #   changes:
+  #   - srcs/**/*
 
 .tensorflow1:
   extends: .tensorflow
