@@ -15,7 +15,7 @@ jobs:
     - run: make
 
   compatiability-test:
-    name: Test on node ${{ matrix.tf_version }} and ${{ matrix.os }}
+    name: TF ${{ matrix.tf_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -29,10 +29,10 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: install TF
-      run: pip3 install tensorflow==${{ matrix.tf_version }}
-    - name: install
-      run: pip3 install --no-index -U .
-    - name: test
-      run: python3 -m kungfu.tensorflow.v1.examples
+    - run: pip3 install -U pip
+    - run: pip3 install -U --user setuptools
+    - run: pip3 install tensorflow==${{ matrix.tf_version }}
+
+    - run: pip3 install --no-index -U .
+    - run: python3 -m kungfu.tensorflow.v1.examples
     # FIXME: more tests
