@@ -29,8 +29,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - run: pip3 install -U pip
-    - run: hash -r
+    # - run: pip3 install -U pip
+    # - run: hash -r
     - run: pip3 install -U --user setuptools
     - run: pip3 install tensorflow==${{ matrix.tf_version }}
 
