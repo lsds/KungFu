@@ -35,12 +35,14 @@ jobs:
     - run: pip install --no-index .
     - run: python -m kungfu.tensorflow.v1.examples
     - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 python -m kungfu.tensorflow.v1.examples
-
     - run: ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow
     - run: ./scripts/tests/run-op-tests.sh
-    - run: ./scripts/tests/run-train-tests.sh
     - run: ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
     - run: ./scripts/tests/run-optimizer-tests.sh
+    - run: |
+        DATA_DIR=$HOME/var/data \
+        ./scripts/download-mnist.sh
+    - run: ./scripts/tests/run-train-tests.sh
 
     # Doc test
     - run: pip install -r docs/requirements.txt

@@ -41,6 +41,9 @@ script:
 
 - ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow
 - ./scripts/tests/run-op-tests.sh
+- |
+  DATA_DIR=$HOME/var/data \
+  ./scripts/download-mnist.sh
 - ./scripts/tests/run-train-tests.sh
 - ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
 - ./scripts/tests/run-optimizer-tests.sh
