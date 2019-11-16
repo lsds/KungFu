@@ -1,0 +1,53 @@
+name: Compatiability
+
+on: [push]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os:
+        - ubuntu-18.04
+
+        python:
+        - '3.6'
+
+        tensorflow:
+        - '1.12.3'
+        - '1.13.2'
+        - '1.15.0'
+        - '2.0.0'
+
+    name: py-${{ matrix.python }} tf-${{ matrix.tensorflow }}
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install numpy==1.16 tensorflow==${{ matrix.tensorflow }}
+
+    - run: pip install --no-index -U .
+
+    - run: |
+        export TF_MAJOR=$(echo ${{ matrix.tensorflow }} | awk -F '.' '{print $1}')
+        echo kungfu.tensorflow.v${TF_MAJOR}.examples > example
+
+    - run: python -m $(cat example)
+
+    - run: GOBIN=$PWD/bin go install -v ./srcs/go/cmd/...
+
+    - run: ./bin/kungfu-run -q -H 127.0.0.1:1 -np 1 python -m $(cat example)
+    - run: ./bin/kungfu-run -q -H 127.0.0.1:2 -np 2 python -m $(cat example)
+    - run: ./bin/kungfu-run -q -H 127.0.0.1:3 -np 3 python -m $(cat example)
+    - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 python -m $(cat example)
+
+    # TODO: more tests
