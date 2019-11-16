@@ -34,12 +34,16 @@ def sgd_example():
     with tf.Session() as sess:
         sess.run(init)
         for step in range(5):
-            v, _ = sess.run([x, train_step])
+            # v, _ = sess.run([x, train_step]) # result is not deterministic!
+            sess.run(train_step)
+            v = sess.run(x)
             print('step %d, result: %f' % (step, v))
 
             u = (1 - 2 * lr)**(step + 1)
             if abs(u - v) > 1e-6:
-                print('unexpected result: %f, want: %f' % (v, u))
+                msg = 'unexpected result: %f, want: %f' % (v, u)
+                print(msg)
+                raise RuntimeError(msg)
 
 
 def main(args):
