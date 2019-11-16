@@ -31,6 +31,7 @@ jobs:
     - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 ./bin/kungfu-test-public-apis
 
     # Python tests
+    - run: pip install numpy==1.16 tensorflow==1.13.2
     - run: pip install --no-index .
     - run: python -m kungfu.tensorflow.v1.examples
     - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 python -m kungfu.tensorflow.v1.examples
