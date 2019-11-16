@@ -3,13 +3,44 @@ name: CI
 on: [push]
 
 jobs:
-  build:
-
+  test:
     # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
     runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
     - run: nproc
-    - run: ./configure
+
+    # C++ tests
+    - run: ./configure --build-tests
     - run: make
+    - run: make test
+
+    # Go tests
+    - run: GOBIN=$PWD/bin go install -v ./...
+    - run: ./scripts/tests/run-integration-tests.sh
+    - run: |
+        env \
+          KUNGFU_CONFIG_ENABLE_MONITORING=true \
+          KUNGFU_CONFIG_MONITORING_PERIOD=10ms \
+          ./bin/kungfu-test-monitor -p 10ms -d 100ms
+    - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 ./bin/kungfu-test-public-apis
+
+    # Python tests
+    - run: pip install --no-index .
+    - run: python -m kungfu.tensorflow.v1.examples
+    - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 python -m kungfu.tensorflow.v1.examples
+
+    - run: ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow
+    - run: ./scripts/tests/run-op-tests.sh
+    - run: ./scripts/tests/run-train-tests.sh
+    - run: ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
+    - run: ./scripts/tests/run-optimizer-tests.sh
+
+    # Doc test
+    - run: pip install -r docs/requirements.txt
+    - run: make -C docs

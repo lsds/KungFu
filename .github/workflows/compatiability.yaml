@@ -18,6 +18,8 @@ jobs:
         - '1.15.0'
         - '2.0.0'
 
+    name: py-${{ matrix.python }} tf-${{ matrix.tensorflow }}
+
     runs-on: ${{ matrix.os }}
 
     steps:
