@@ -20,7 +20,8 @@ def save_variable(t, version=None, name=None):
 
 
 def save_variables(variables):
-    return _op_lib.save_variables(variables, names=[v.name for v in variables])
+    return _op_lib.kungfu_save_variables(variables,
+                                         names=[v.name for v in variables])
 
 
 def save_model(variables):

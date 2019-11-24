@@ -3,7 +3,7 @@
 
 namespace tensorflow
 {
-REGISTER_OP("KungfuGetPeerInfo")
+REGISTER_KUNGFU_OP(GetPeerInfo)
     .Output("rank: int32")
     .Output("cluster_size: int32")
     .SetIsStateful()
@@ -35,11 +35,9 @@ class GetPeerInfo : public AsyncOpKernel
     }
 };
 
-// TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuGetPeerInfo").Device(DEVICE_CPU),
-                        GetPeerInfo);
+REGISTER_KUNGFU_KERNEL_BUILDER(GetPeerInfo, DEVICE_CPU);
 
-REGISTER_OP("KungfuGetPeerLatencies")
+REGISTER_KUNGFU_OP(GetPeerLatencies)
     .Attr("cluster_size: int")
     .SetIsStateful()
     .Output("latencies: float32");
@@ -71,11 +69,9 @@ class GetPeerLatencies : public AsyncOpKernel
     }
 };
 
-// TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuGetPeerLatencies").Device(DEVICE_CPU),
-                        GetPeerLatencies);
+REGISTER_KUNGFU_KERNEL_BUILDER(GetPeerLatencies, DEVICE_CPU);
 
-REGISTER_OP("KungfuMinimumSpanningTree")
+REGISTER_KUNGFU_OP(MinimumSpanningTree)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Input("weight: T")
     .Output("edges: int32");
@@ -109,11 +105,9 @@ class MinimumSpanningTree : public AsyncOpKernel
     }
 };
 
-// TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuMinimumSpanningTree").Device(DEVICE_CPU),
-                        MinimumSpanningTree);
+REGISTER_KUNGFU_KERNEL_BUILDER(MinimumSpanningTree, DEVICE_CPU);
 
-REGISTER_OP("KungfuGetNeighbourMask")
+REGISTER_KUNGFU_OP(GetNeighbour)
     .Attr("T: {int32}")
     .Attr("cluster_size: int")  // TODO: make it an Input
     .Attr("self_rank: int")     // TODO: make it an Input
@@ -153,11 +147,9 @@ class GetNeighbourMask : public OpKernel
     }
 };
 
-// TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuGetNeighbourMask").Device(DEVICE_CPU),
-                        GetNeighbourMask);
+REGISTER_KUNGFU_KERNEL_BUILDER(GetNeighbourMask, DEVICE_CPU);
 
-REGISTER_OP("KungfuRoundRobin").Input("mask: bool").Output("choice: int32");
+REGISTER_KUNGFU_OP(RoundRobin).Input("mask: bool").Output("choice: int32");
 
 class RoundRobin : public OpKernel
 {
@@ -191,8 +183,5 @@ class RoundRobin : public OpKernel
     }
 };
 
-// TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuRoundRobin").Device(DEVICE_CPU),
-                        RoundRobin);
-
+REGISTER_KUNGFU_KERNEL_BUILDER(RoundRobin, DEVICE_CPU);
 }  // namespace tensorflow
