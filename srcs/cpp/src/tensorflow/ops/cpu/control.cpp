@@ -2,13 +2,13 @@
 
 namespace tensorflow
 {
-REGISTER_OP("KungfuResizeCluster")
+REGISTER_KUNGFU_OP(ResizeCluster)
     .Input("checkpoint: string")
     .Input("new_cluster_size: int32")
     // indicats if self is still in the new cluster
     .Output("keep: bool");
 
-class KungfuResizeCluster : public AsyncOpKernel
+class ResizeCluster : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
 
@@ -26,6 +26,5 @@ class KungfuResizeCluster : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("KungfuResizeCluster").Device(DEVICE_CPU),
-                        KungfuResizeCluster);
+REGISTER_KUNGFU_KERNEL_BUILDER(ResizeCluster, DEVICE_CPU);
 }  // namespace tensorflow

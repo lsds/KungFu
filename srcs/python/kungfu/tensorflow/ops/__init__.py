@@ -38,17 +38,13 @@ def defuse(y, shapes):
     return ts
 
 
-def get_peer_latencies(local_step=None):
+def get_peer_latencies():
     """Returns the vector V of round-trip time from this peer to all other peers.
 
     For the peer of rank i, V[j] is the RTT from i to j (j != i), V[i] = 0.
     """
-    # FIXME: don't require input
-    if local_step is None:
-        import tensorflow as tf
-        local_step = tf.Variable(tf.zeros([], tf.int64), trainable=False)
     return _op_lib.kungfu_get_peer_latencies(
-        local_step, cluster_size=current_cluster_size())
+        cluster_size=current_cluster_size())
 
 
 def global_minimum_spanning_tree(self_weights):

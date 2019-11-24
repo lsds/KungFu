@@ -2,9 +2,9 @@
 
 namespace tensorflow
 {
-REGISTER_OP("KungfuBarrier");
+REGISTER_KUNGFU_OP(Barrier);
 
-class KungfuBarrier : public AsyncOpKernel
+class Barrier : public AsyncOpKernel
 {
     using AsyncOpKernel::AsyncOpKernel;
 
@@ -15,13 +15,12 @@ class KungfuBarrier : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("KungfuBarrier").Device(DEVICE_CPU),
-                        KungfuBarrier);
+REGISTER_KUNGFU_KERNEL_BUILDER(Barrier, DEVICE_CPU);
 
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
 // and reduce (by taking sum) with the peers, and finally returns a tensor with
 // exactly the same shape.
-REGISTER_OP("AllReduce")
+REGISTER_KUNGFU_OP(AllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Input("input: T")
@@ -57,9 +56,9 @@ class AllReduce : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("AllReduce").Device(DEVICE_CPU), AllReduce);
+REGISTER_KUNGFU_KERNEL_BUILDER(AllReduce, DEVICE_CPU);
 
-REGISTER_OP("Broadcast")
+REGISTER_KUNGFU_OP(Broadcast)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Input("input: T")
     .Output("output: T")
@@ -84,9 +83,9 @@ class Broadcast : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("Broadcast").Device(DEVICE_CPU), Broadcast);
+REGISTER_KUNGFU_KERNEL_BUILDER(Broadcast, DEVICE_CPU);
 
-REGISTER_OP("NoiseScale")
+REGISTER_KUNGFU_OP(NoiseScale)
     .Attr("alpha: float")
     .Input("g_biased: float32")
     .Input("s_biased: float32")
@@ -146,6 +145,5 @@ class NoiseScale : public OpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("NoiseScale").Device(DEVICE_CPU), NoiseScale);
-
+REGISTER_KUNGFU_KERNEL_BUILDER(NoiseScale, DEVICE_CPU);
 }  // namespace tensorflow

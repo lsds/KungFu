@@ -2,7 +2,7 @@
 
 namespace tensorflow
 {
-REGISTER_OP("KungfuRequestVariable")
+REGISTER_KUNGFU_OP(RequestVariable)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("tensor_name: string")
     .Attr("shape: shape")
@@ -57,6 +57,5 @@ class RequestVariable : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("KungfuRequestVariable").Device(DEVICE_CPU),
-                        RequestVariable);
+REGISTER_KUNGFU_KERNEL_BUILDER(RequestVariable, DEVICE_CPU);
 }  // namespace tensorflow

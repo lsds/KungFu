@@ -11,12 +11,12 @@ def barrier():
 
 def broadcast(t):
     """Create a new broadcast operator for given tensor."""
-    return _op_lib.broadcast(t)
+    return _op_lib.kungfu_broadcast(t)
 
 
 def all_reduce(t):
     """Create a new all_reduce operator for given tensor."""
-    return _op_lib.all_reduce(t, input_tensor_name=t.name)
+    return _op_lib.kungfu_all_reduce(t, input_tensor_name=t.name)
 
 
 def _maybe_group_all_reduce(ts, group_all_reduce_fn):
@@ -33,12 +33,12 @@ def group_all_reduce(ts):
 
 
 def _nccl_all_reduce(t):
-    return _op_lib.all_reduce_gpu(t, input_tensor_name=t.name)
+    return _op_lib.kungfu_nccl_all_reduce(t, input_tensor_name=t.name)
 
 
 def _start_nccl_scheduler(*args, **kwargs):
-    if hasattr(_op_lib, 'start_nccl_scheduler'):
-        return _op_lib.start_nccl_scheduler(*args, **kwargs)
+    if hasattr(_op_lib, 'kungfu_start_nccl_scheduler'):
+        return _op_lib.kungfu_start_nccl_scheduler(*args, **kwargs)
     else:
         raise RuntimeError("KungFu is not installed with NCCL.")
 

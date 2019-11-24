@@ -3,7 +3,7 @@
 
 namespace tensorflow
 {
-REGISTER_OP("StartNcclScheduler").Input("input: string");
+REGISTER_KUNGFU_OP(StartNcclScheduler).Input("input: string");
 
 class StartNcclScheduler : public OpKernel
 {
@@ -22,22 +22,21 @@ class StartNcclScheduler : public OpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("StartNcclScheduler").Device(DEVICE_CPU),
-                        StartNcclScheduler);
+REGISTER_KUNGFU_KERNEL_BUILDER(StartNcclScheduler, DEVICE_CPU);
 
-REGISTER_OP("AllReduceGpu")
+REGISTER_KUNGFU_OP(NcclAllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
 
-class AllReduceGpu : public AsyncOpKernel
+class NcclAllReduce : public AsyncOpKernel
 {
     std::string input_tensor_name_;
 
   public:
-    explicit AllReduceGpu(OpKernelConstruction *context)
+    explicit NcclAllReduce(OpKernelConstruction *context)
         : AsyncOpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
@@ -64,5 +63,5 @@ class AllReduceGpu : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("AllReduceGpu").Device(DEVICE_GPU), AllReduceGpu);
+REGISTER_KUNGFU_KERNEL_BUILDER(NcclAllReduce, DEVICE_GPU);
 }  // namespace tensorflow

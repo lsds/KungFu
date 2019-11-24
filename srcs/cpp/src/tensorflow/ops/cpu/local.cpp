@@ -2,7 +2,7 @@
 
 namespace tensorflow
 {
-REGISTER_OP("KungfuSaveVariable")
+REGISTER_KUNGFU_OP(SaveVariable)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
     .Attr("use_version: bool")
@@ -43,10 +43,9 @@ class SaveVariable : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("KungfuSaveVariable").Device(DEVICE_CPU),
-                        SaveVariable);
+REGISTER_KUNGFU_KERNEL_BUILDER(SaveVariable, DEVICE_CPU);
 
-REGISTER_OP("SaveVariables")
+REGISTER_KUNGFU_OP(SaveVariables)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("names: list(string)")
     .Attr("NumTensors: int")
@@ -79,7 +78,5 @@ class SaveVariables : public AsyncOpKernel
     }
 };
 
-REGISTER_KERNEL_BUILDER(Name("SaveVariables").Device(DEVICE_CPU),
-                        SaveVariables);
-
+REGISTER_KUNGFU_KERNEL_BUILDER(SaveVariables, DEVICE_CPU);
 }  // namespace tensorflow
