@@ -11,12 +11,12 @@ def barrier():
 
 def broadcast(t):
     """Create a new broadcast operator for given tensor."""
-    return _op_lib.broadcast(t)
+    return _op_lib.kungfu_broadcast(t)
 
 
 def all_reduce(t):
     """Create a new all_reduce operator for given tensor."""
-    return _op_lib.all_reduce(t, input_tensor_name=t.name)
+    return _op_lib.kungfu_all_reduce(t, input_tensor_name=t.name)
 
 
 def _maybe_group_all_reduce(ts, group_all_reduce_fn):

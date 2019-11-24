@@ -2,7 +2,7 @@
 
 namespace tensorflow
 {
-REGISTER_OP("KungfuCounter")
+REGISTER_KUNGFU_OP(Counter)
     .Output("count: int32")
     .SetIsStateful()
     .SetShapeFn([](shape_inference::InferenceContext *c) {
@@ -10,12 +10,12 @@ REGISTER_OP("KungfuCounter")
         return Status::OK();
     });
 
-class KungfuCounter : public OpKernel
+class Counter : public OpKernel
 {
     int32_t counter_;
 
   public:
-    explicit KungfuCounter(OpKernelConstruction *context)
+    explicit Counter(OpKernelConstruction *context)
         : OpKernel(context), counter_(0)
     {
     }
@@ -29,7 +29,5 @@ class KungfuCounter : public OpKernel
     }
 };
 
-// TODO: use macro to add name prefix
-REGISTER_KERNEL_BUILDER(Name("KungfuCounter").Device(DEVICE_CPU),
-                        KungfuCounter);
+REGISTER_KUNGFU_KERNEL_BUILDER(Counter, DEVICE_CPU);
 }  // namespace tensorflow
