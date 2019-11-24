@@ -1,6 +1,7 @@
 import os
 
 from ._tf_oplib import _op_lib
+from .state import counter
 
 
 def get_init_checkpoint():
@@ -24,3 +25,8 @@ def resize_cluster(checkpoint, new_size):
         the peer should quit if false.
     """
     return _op_lib.kungfu_resize_cluster(checkpoint, new_size)
+
+
+def step_based_schedule(config):
+    step = counter()
+    return _op_lib.kungfu_step_based_schedule(step, config=config)

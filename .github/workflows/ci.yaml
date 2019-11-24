@@ -30,9 +30,12 @@ jobs:
           ./bin/kungfu-test-monitor -p 10ms -d 100ms
     - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 ./bin/kungfu-test-public-apis
 
-    # Python tests
+    # Python unit tests
     - run: pip install -r tests/requirements.txt
     - run: pip install --no-index .
+    - run: pytest ./tests/python/unit
+
+    # Python system tests
     - run: python -m kungfu.tensorflow.v1.examples
     - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 python -m kungfu.tensorflow.v1.examples
     - run: ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow
