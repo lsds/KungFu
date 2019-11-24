@@ -30,7 +30,7 @@ python format test:
   #- apk add git python3
   - apt update
   - apt install -y git python3-pip
-  - pip3 install -U -r tests/lint.requirements.txt
+  - pip3 install -U -r tests/requirements.lint.txt
 
   script:
   - ./scripts/clean-code.sh --fmt-py

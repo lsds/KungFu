@@ -9,12 +9,12 @@ python:
 
 env:
 # https://docs.travis-ci.com/user/environment-variables/#defining-multiple-variables-per-item
-- TF_VERSION='1.13.2' TF_CPP_MIN_LOG_LEVEL='2'
+- TF_CPP_MIN_LOG_LEVEL='2'
 
 install:
 - pip --version
 - python --version
-- pip install numpy==1.16 tensorflow==${TF_VERSION}
+- pip install -r tests/requirements.txt
 - python -c "import tensorflow as tf; print(tf.__version__)"
 - go version
 

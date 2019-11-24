@@ -39,8 +39,7 @@ REGISTER_KUNGFU_KERNEL_BUILDER(GetPeerInfo, DEVICE_CPU);
 
 REGISTER_KUNGFU_OP(GetPeerLatencies)
     .Attr("cluster_size: int")
-    .Input("local_step: int64")  // FIXME: don't require input. Operator without
-                                 // input but with output will be cached by TF.
+    .SetIsStateful()
     .Output("latencies: float32");
 
 class GetPeerLatencies : public AsyncOpKernel
@@ -58,8 +57,6 @@ class GetPeerLatencies : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        // const int64_t local_step = context->input(0).scalar<int64_t>()();
-        // LOG(WARNING) << "GetPeerLatencies called with " << local_step;
         Tensor *latencies = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context,
