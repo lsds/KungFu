@@ -35,7 +35,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy==1.16 tensorflow==${{ matrix.tensorflow }}
 
-    - run: pip install --no-index -U .
+    - run: Install KungFu
+        export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)
+        pip install --no-index -U .
 
     - run: |
         export TF_MAJOR=$(echo ${{ matrix.tensorflow }} | awk -F '.' '{print $1}')
