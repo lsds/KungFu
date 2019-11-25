@@ -11,7 +11,7 @@ jobs:
     env:
       PYTHONWARNINGS: 'ignore'
       TF_CPP_MIN_LOG_LEVEL: '2'
-      PATH: $(go env GOPATH)/bin:$PATH
+      # PATH: $(go env GOPATH)/bin:$PATH # FIXME: make it work
 
     steps:
     - uses: actions/checkout@v1
