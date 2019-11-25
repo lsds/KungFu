@@ -41,6 +41,7 @@ jobs:
     - run: ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow
     - run: ./scripts/tests/run-op-tests.sh
     - run: ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
+    - run: ./kungfu-run -q -w -np 1 python ./tests/python/integration/test_step_based_schedule.py
     - run: ./scripts/tests/run-optimizer-tests.sh
     - run: |
         DATA_DIR=$HOME/var/data \
