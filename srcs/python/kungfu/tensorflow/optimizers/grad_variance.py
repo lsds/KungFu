@@ -38,7 +38,6 @@ class _GradVariance(_KungFuAlgorithm):
     def __init__(self, monitor_interval=1):
         self._num_workers = current_cluster_size()
         self._step = counter()
-        self._is_master = current_rank() == 0
 
         self._interval = monitor_interval
         self._summed_variance = None
@@ -47,23 +46,17 @@ class _GradVariance(_KungFuAlgorithm):
     def _monitor(self, grads, reduced_grads):
         square_grads = [tf.square(g) for g in grads]
         summed_square_grads = group_all_reduce(square_grads)
-
-        if self._is_master:
-            reduced_square_grads = map_maybe(lambda g: g / self._num_workers, summed_square_grads)
-            grad_variances = [
-                square_grad - tf.square(grad) for square_grad, grad in zip(
-                    reduced_square_grads, reduced_grads)
-            ]
-            variances = [
-                tf.norm(grad_variance) for grad_variance in grad_variances
-            ]
-            with tf.control_dependencies(variances):
-                summed_variance = tf.reduce_sum(variances)
-                print_op = tf.print('Sum of gradient variance:', summed_variance)
-                return print_op
-        else:
-            with tf.control_dependencies(summed_square_grads):
-                return tf.no_op()
+        reduced_square_grads = map_maybe(lambda g: g / self._num_workers,
+                                         summed_square_grads)
+        grad_variances = [
+            square_grad - tf.square(grad)
+            for square_grad, grad in zip(reduced_square_grads, reduced_grads)
+        ]
+        variances = [
+            tf.norm(grad_variance) for grad_variance in grad_variances
+        ]
+        summed_variance = tf.reduce_sum(variances)
+        return tf.print('Variance:', summed_variance)
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
