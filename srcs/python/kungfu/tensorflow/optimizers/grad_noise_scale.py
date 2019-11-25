@@ -1,7 +1,7 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.ops import (counter, current_cluster_size, fuse,
-                                   global_noise_scale, group_all_reduce)
+from kungfu.tensorflow.ops import (counter, current_cluster_size, current_rank,
+                                   fuse, global_noise_scale, group_all_reduce)
 
 from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
@@ -37,6 +37,7 @@ def MonitorGradientNoiseScaleOptimizer(optimizer,
 class _GradientNoiseScale(_KungFuAlgorithm):
     def __init__(self, device_batch_size, monitor_interval=1):
         self._num_workers = current_cluster_size()
+        self._is_master = current_rank() == 0
         self._step = counter()
 
         self._interval = monitor_interval
@@ -45,20 +46,16 @@ class _GradientNoiseScale(_KungFuAlgorithm):
         self._noise_op = None
 
     def _monitor(self, grads, reduced_grads):
-        self._noise_op = global_noise_scale(self._device_batch_size,
-                                            self._global_batch_size,
-                                            fuse(grads), fuse(reduced_grads))
+        if _is_master:
+            # Only the master node is doing the global monitoring.
+            noise_op = global_noise_scale(self._device_batch_size,
+                                          self._global_batch_size, fuse(grads),
+                                          fuse(reduced_grads))
 
-        print_op = tf.print('Gradient Noise Scale:', self._noise_op)
-
-        with tf.control_dependencies([print_op]):
+            print_op = tf.print('Gradient Noise Scale:', noise_op)
+            return print_op
+        else:
             return tf.no_op()
-
-    def get_grad_noise_scale(self):
-        if self._noise_op == None:
-            raise Exception(
-                'Must be called after minimize() or apply_gradients()')
-        return self._noise_op
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
