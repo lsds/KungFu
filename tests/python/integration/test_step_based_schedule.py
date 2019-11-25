@@ -1,6 +1,7 @@
 import tensorflow as tf
 from kungfu.tensorflow.ops import (counter, get_init_checkpoint, all_reduce,
-                                   resize_cluster, step_based_schedule)
+                                   broadcast, resize_cluster,
+                                   step_based_schedule)
 
 
 def get_config():
@@ -29,16 +30,22 @@ def build_ops():
 init_step, step_op = build_ops()
 x = tf.Variable(1, tf.int32)
 y = all_reduce(x)
+
+sync_op = tf.assign(x, broadcast(x))
 init_op = tf.global_variables_initializer()
 
 with tf.Session() as sess:
     sess.run(init_op)
+    need_sync = True
     for i in range(init_step, max_step):
+        if need_sync:
+            sess.run(sync_op)
+
         print(i)
         v = sess.run(y)
         print('step %d, np=%d' % (i, v))
 
         # must be called exactly once per step
-        _changed, keep = sess.run(step_op)
+        need_sync, keep = sess.run(step_op)
         if not keep:
             break
