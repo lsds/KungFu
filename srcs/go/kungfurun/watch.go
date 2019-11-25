@@ -33,10 +33,7 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 		a, b := current.Diff(s.Cluster)
 		del := a.On(parent.IPv4)
 		add := b.On(parent.IPv4)
-		log.Infof("arrived at %q, np=%d, will remove %s (%d locally), will add %s (%d locally)",
-			s.Checkpoint, len(s.Cluster),
-			utils.Pluralize(len(a), "peer", "peers"), len(del),
-			utils.Pluralize(len(b), "peer", "peers"), len(add))
+		log.Infof("arrived at %q, np=%d, +%d/%d, -%d/%d", s.Checkpoint, len(s.Cluster), len(b), len(add), len(a), len(del))
 		log.Debugf("waiting %d peers to stop", len(del))
 		for _, id := range del {
 			gs[id].Wait()

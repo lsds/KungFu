@@ -188,14 +188,14 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 	return true
 }
 
-func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
+func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
 	if peers.Eq(kf.currentPeers) {
 		log.Debugf("ingore unchanged proposal")
-		return true
+		return false, true
 	}
 	if digest := peers.Bytes(); !kf.consensus(digest) {
 		log.Errorf("diverge proposal detected! I proposed %s", peers)
-		return true
+		return false, true
 	}
 	{
 		stage := run.Stage{Checkpoint: ckpt, Cluster: peers}
@@ -213,17 +213,18 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 		kf.updated = false
 	}()
 	_, keep := peers.Lookup(kf.self)
-	return keep
+	return true, keep
 }
 
-func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, error) {
+func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, bool, error) {
 	log.Debugf("resize cluster to %d at %q", newSize, ckpt)
 	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
 	if err != nil {
-		return true, err
+		return false, true, err
 	}
-	if keep := kf.propose(ckpt, peers); !keep {
-		return false, nil
+	changed, keep := kf.propose(ckpt, peers)
+	if keep {
+		kf.Update()
 	}
-	return kf.Update(), nil
+	return changed, keep, nil
 }

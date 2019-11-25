@@ -38,6 +38,7 @@ with tf.Session() as sess:
         v = sess.run(y)
         print('step %d, np=%d' % (i, v))
 
-        keep = sess.run(step_op)  # must be called exactly once per step
+        # must be called exactly once per step
+        _changed, keep = sess.run(step_op)
         if not keep:
             break
