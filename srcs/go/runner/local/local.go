@@ -44,7 +44,7 @@ func (r *Runner) SetVerbose(verbose bool) {
 	r.verboseLog = verbose
 }
 
-func (r *Runner) SetLogPrefix(prefix string) {
+func (r *Runner) SetLogFilePrefix(prefix string) {
 	r.logFilePrefix = prefix
 }
 

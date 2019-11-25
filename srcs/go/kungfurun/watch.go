@@ -2,6 +2,7 @@ package kungfurun
 
 import (
 	"context"
+	"path"
 	"sync"
 	"sync/atomic"
 
@@ -50,7 +51,7 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 				localRank, _ := s.Cluster.LocalRank(id)
 				proc := j.NewProc(id, localRank, s.Checkpoint, s.Cluster)
 				atomic.AddInt32(&running, 1)
-				runProc(ctx, cancel, proc, s.Checkpoint)
+				runProc(ctx, cancel, proc, s.Checkpoint, j.LogDir)
 				n := atomic.AddInt32(&running, -1)
 				log.Debugf("%s is still running on this host", utils.Pluralize(int(n), "peer", "peers"))
 				g.Done()
@@ -89,10 +90,10 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 	log.Infof("stop watching")
 }
 
-func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version string) {
+func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version string, logDir string) {
 	r := &runner.Runner{}
 	r.SetName(proc.Name)
-	r.SetLogPrefix(proc.Name + "@" + version)
+	r.SetLogFilePrefix(path.Join(logDir, proc.Name+"@"+version))
 	r.SetVerbose(true)
 	err := r.Run(ctx, proc.Cmd())
 	if err != nil {

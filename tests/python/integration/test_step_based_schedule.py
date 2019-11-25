@@ -4,7 +4,7 @@ from kungfu.tensorflow.ops import (counter, get_init_checkpoint, all_reduce,
 
 
 def get_config():
-    stage_sizes = [1, 2, 4, 8, 4, 2, 1]
+    stage_sizes = [1, 2, 4, 8, 4, 2, 1, 2, 4, 8, 4, 2, 1]
     step_per_stage = 3
 
     config = ','.join('%d:%d' % (size, step_per_stage) for size in stage_sizes)
