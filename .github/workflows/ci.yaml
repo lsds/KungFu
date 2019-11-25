@@ -7,13 +7,22 @@ jobs:
     # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
     runs-on: ubuntu-18.04
 
+    # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/using-environment-variables
+    env:
+      PYTHONWARNINGS: 'ignore'
+      TF_CPP_MIN_LOG_LEVEL: '2'
+      PATH: $(go env GOPATH)/bin:$PATH
+
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
         python-version: 3.6
-    - run: nproc
+
+    - run: |
+        nproc
+        echo $PATH
 
     # C++ tests
     - run: ./configure --build-tests --build-gtest
