@@ -3,6 +3,7 @@
 namespace tensorflow
 {
 REGISTER_KUNGFU_OP(Counter)
+    .Attr("init: int")
     .Output("count: int32")
     .SetIsStateful()
     .SetShapeFn([](shape_inference::InferenceContext *c) {
@@ -18,6 +19,7 @@ class Counter : public OpKernel
     explicit Counter(OpKernelConstruction *context)
         : OpKernel(context), counter_(0)
     {
+        OP_REQUIRES_OK(context, context->GetAttr("init", &counter_));
     }
 
     void Compute(OpKernelContext *context) override

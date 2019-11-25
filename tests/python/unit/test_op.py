@@ -11,6 +11,14 @@ def test_counter():
             assert (n == i)
 
 
+def test_counter_init():
+    c = counter(init=1)
+    with tf.Session() as sess:
+        for i in range(10):
+            n = sess.run(c)
+            assert (n == i + 1)
+
+
 def test_step_based_scheduler():
     sizes = [1, 2, 4, 8]
     n_step = 3

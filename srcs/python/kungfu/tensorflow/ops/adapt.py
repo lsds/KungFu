@@ -27,8 +27,9 @@ def resize_cluster(checkpoint, new_size):
     return _op_lib.kungfu_resize_cluster(checkpoint, new_size)
 
 
-def step_based_schedule(config):
-    step = counter()
+def step_based_schedule(config, step=None):
+    if step is None:
+        step = counter()
     return _op_lib.kungfu_step_based_schedule(step,
                                               config=config,
                                               default=1,
