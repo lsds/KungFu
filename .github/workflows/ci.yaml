@@ -51,6 +51,7 @@ jobs:
     - run: ./scripts/tests/run-op-tests.sh
     - run: ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
     - run: ./bin/kungfu-run -q -w -np 1 python ./tests/python/integration/test_step_based_schedule.py
+    - run: ./bin/kungfu-run -q -w -np 1 python ./tests/python/integration/test_elastic_optimizer.py
     - run: ./scripts/tests/run-optimizer-tests.sh
     - run: |
         DATA_DIR=$HOME/var/data \
