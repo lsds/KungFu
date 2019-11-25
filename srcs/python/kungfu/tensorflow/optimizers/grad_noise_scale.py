@@ -46,7 +46,7 @@ class _GradientNoiseScale(_KungFuAlgorithm):
         self._noise_op = None
 
     def _monitor(self, grads, reduced_grads):
-        if _is_master:
+        if self._is_master:
             # Only the master node is doing the global monitoring.
             noise_op = global_noise_scale(self._device_batch_size,
                                           self._global_batch_size, fuse(grads),
@@ -62,8 +62,8 @@ class _GradientNoiseScale(_KungFuAlgorithm):
 
         # Synchronization logic
         summed_grads = group_all_reduce(grads)
-        reduced_grads = map_maybe(
-            [g / self._num_workers for g in summed_grads])
+        reduced_grads = map_maybe(lambda g: g / self._num_workers,
+                                  summed_grads)
 
         # Monitoring logic
         monitor_grads_op = tf.cond(

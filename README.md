@@ -70,7 +70,7 @@ Assuming you have the above pre-requites, you can install KungFu as follows:
 ```bash
 git clone https://github.com/lsds/KungFu.git
 cd KungFu
-pip3 install --no-index .
+pip3 install --no-index -U .
 ```
 
 KungFu provides ``kungfu-run`` to launch a training program on a multi-GPU server.

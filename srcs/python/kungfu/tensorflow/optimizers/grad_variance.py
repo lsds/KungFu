@@ -47,11 +47,9 @@ class _GradVariance(_KungFuAlgorithm):
     def _monitor(self, grads, reduced_grads):
         square_grads = [tf.square(g) for g in grads]
         summed_square_grads = group_all_reduce(square_grads)
-        reduced_square_grads = [
-            g / self._num_workers for g in summed_square_grads
-        ]
 
         if self._is_master:
+            reduced_square_grads = map_maybe(lambda g: g / self._num_workers, summed_square_grads)
             grad_variances = [
                 square_grad - tf.square(grad) for square_grad, grad in zip(
                     reduced_square_grads, reduced_grads)
@@ -59,11 +57,12 @@ class _GradVariance(_KungFuAlgorithm):
             variances = [
                 tf.norm(grad_variance) for grad_variance in grad_variances
             ]
-            summed_variance = tf.reduce_sum(variances)
-            print_op = tf.print('Sum of gradient variance:', summed_variance)
-            return print_op
+            with tf.control_dependencies(variances):
+                summed_variance = tf.reduce_sum(variances)
+                print_op = tf.print('Sum of gradient variance:', summed_variance)
+                return print_op
         else:
-            with tf.control_dependencies(reduced_square_grads):
+            with tf.control_dependencies(summed_square_grads):
                 return tf.no_op()
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
@@ -71,8 +70,8 @@ class _GradVariance(_KungFuAlgorithm):
 
         # Synchronization logic
         summed_grads = group_all_reduce(grads)
-        reduced_grads = map_maybe(
-            [g / self._num_workers for g in summed_grads])
+        reduced_grads = map_maybe(lambda g: g / self._num_workers,
+                                  summed_grads)
 
         # Monitoring logic
         monitor_grads_op = tf.cond(
