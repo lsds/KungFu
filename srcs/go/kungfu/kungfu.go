@@ -194,7 +194,7 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 		return true
 	}
 	if digest := peers.Bytes(); !kf.consensus(digest) {
-		log.Errorf("diverge proposal detected!")
+		log.Errorf("diverge proposal detected! I proposed %s", peers)
 		return true
 	}
 	{

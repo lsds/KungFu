@@ -32,7 +32,7 @@ ensure_kungfu_run() {
 ensure_kungfu_run
 export KUNGFU_CONFIG_LOG_CONFIG_VARS=true
 
-SCRIPT=${ROOT}/tests/python/test_mnist_slp.py
+SCRIPT=${ROOT}/tests/python/integration/test_mnist_slp.py
 
 epochs=2
 

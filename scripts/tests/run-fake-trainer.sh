@@ -85,7 +85,7 @@ run_fake_tf_trainer() {
         -H $H \
         -timeout=120s \
         python3 \
-        ./tests/python/fake_tf_trainer.py
+        ./tests/python/integration/fake_tf_trainer.py
 }
 
 run_in_proc_trainer() {

@@ -13,4 +13,4 @@ fi
 
 . ./scripts/tests/common.sh
 
-measure run_tests 4 ${PYTHON} ${ROOT}/tests/python/test_python_apis.py
+measure run_tests 4 ${PYTHON} ${ROOT}/tests/python/integration/test_python_apis.py
