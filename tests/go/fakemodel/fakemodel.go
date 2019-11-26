@@ -13,6 +13,7 @@ var Models = map[string][]int{
 	"resnet50-imagenet": resnet50Imagenet,
 	"vgg16-imagenet":    vgg16Imagenet,
 	"slp-mnist":         slpMNIST,
+	"bert":              bert,
 }
 
 var Names = func(m map[string][]int) []string {
