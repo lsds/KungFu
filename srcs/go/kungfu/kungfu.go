@@ -217,7 +217,7 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
 }
 
 func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, bool, error) {
-	log.Debugf("resize cluster to %d at %q", newSize, ckpt)
+	log.Debugf("resize cluster to %d with checkpoint %q", newSize, ckpt)
 	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
 	if err != nil {
 		return false, true, err

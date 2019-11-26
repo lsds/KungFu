@@ -51,6 +51,7 @@ func (r *Runner) SetLogFilePrefix(prefix string) {
 func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 	var wg sync.WaitGroup
 	if stdout, err := cmd.StdoutPipe(); err == nil {
+		defer stdout.Close()
 		if r.verboseLog {
 			wg.Add(1)
 			go func() { r.streamPipe("stdout", stdout); wg.Done() }()
@@ -59,6 +60,7 @@ func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 		return err
 	}
 	if stderr, err := cmd.StderrPipe(); err == nil {
+		defer stderr.Close()
 		if r.verboseLog {
 			wg.Add(1)
 			go func() { r.streamPipe("stderr", stderr); wg.Done() }()
