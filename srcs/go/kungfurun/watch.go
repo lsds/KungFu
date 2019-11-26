@@ -15,8 +15,10 @@ import (
 )
 
 type watcher struct {
-	parent plan.PeerID
-	job    job.Job
+	parent  plan.PeerID
+	parents plan.PeerList
+
+	job job.Job
 
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -50,7 +52,7 @@ func (w *watcher) update(s Stage) {
 	a, b := w.current.Diff(s.Cluster)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
-	log.Infof("arrived at %q, np=%d, +%d/%d, -%d/%d", s.Checkpoint, len(s.Cluster), len(b), len(add), len(a), len(del))
+	log.Infof("arrived at %q, np=%d, +%d/%d, -%d/%d", s.Checkpoint, len(s.Cluster), len(add), len(b), len(del), len(a))
 	log.Debugf("waiting %d peers to stop", len(del))
 	for _, id := range del {
 		w.delete(id)
@@ -63,8 +65,9 @@ func (w *watcher) update(s Stage) {
 	w.current = s.Cluster
 }
 
-func (w *watcher) watchRun() {
-	var stop bool
+func (w *watcher) watchRun(globalCtx context.Context) {
+	hostRank, _ := w.parents.Lookup(w.parent)
+	var globalStopped, stop bool
 	for {
 		select {
 		case s := <-w.ch:
@@ -74,9 +77,22 @@ func (w *watcher) watchRun() {
 			log.Debugf("%s is still running on this host", utils.Pluralize(int(n), "peer", "peers"))
 			if n == 0 {
 				stop = true
+				if hostRank == 0 {
+					globalStopped = true
+					if len(w.parents) > 0 {
+						router := rch.NewRouter(w.parent)
+						for i, p := range w.parents {
+							if i != hostRank {
+								router.Send(p.WithName("exit"), nil, rch.ConnControl, 0)
+							}
+						}
+					}
+				}
 			}
+		case <-globalCtx.Done():
+			globalStopped = true
 		}
-		if stop {
+		if globalStopped && stop {
 			break
 		}
 	}
@@ -86,6 +102,8 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 	ctx, cancel := context.WithCancel(ctx)
 	watcher := &watcher{
 		parent:  parent,
+		parents: parents,
+
 		job:     job,
 		ctx:     ctx,
 		cancel:  cancel,
@@ -94,13 +112,14 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 		gs:      make(map[plan.PeerID]*sync.WaitGroup),
 	}
 
-	server := rch.NewServer(NewHandler(parent, ch, cancel))
+	globalCtx, globalCancel := context.WithCancel(ctx)
+	server := rch.NewServer(NewHandler(parent, ch, globalCancel))
 	if err := server.Start(); err != nil {
 		utils.ExitErr(err)
 	}
 	defer server.Close()
 	log.Infof("watching config server")
-	watcher.watchRun()
+	watcher.watchRun(globalCtx)
 	log.Infof("stop watching")
 }
 

@@ -1,13 +1,13 @@
 FROM ubuntu:bionic
 
-ADD docker/sources.list.aliyun /etc/apt/sources.list
+# ADD docker/sources.list.aliyun /etc/apt/sources.list
 RUN apt update && apt install -y software-properties-common
 
 # https://github.com/golang/go/wiki/Ubuntu
 # RUN add-apt-repository ppa:longsleep/golang-backports # TOO SLOW
 
 RUN apt update \
-    && apt install -y build-essential cmake python3 python3-pip wget
+    && apt install -y build-essential cmake python3 python3-pip wget git
 
 RUN wget -q https://dl.google.com/go/go1.11.linux-amd64.tar.gz \
     && tar -C /usr/local -xf go1.11.linux-amd64.tar.gz \
@@ -22,5 +22,5 @@ ENV TF_CPP_MIN_LOG_LEVEL 2
 
 ADD . .
 
-RUN pip3 install --no-index -U -v .
+RUN pip3 install --no-index -U .
 RUN go install -v ./srcs/go/cmd/kungfu-run

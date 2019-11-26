@@ -13,6 +13,7 @@ kungfu_run() {
     local init_np=$1
     shift
     ${KUNGFU_ROOT}/bin/kungfu-run \
+        -q \
         -H ${H} \
         -np $init_np \
         -timeout ${timeout} \
