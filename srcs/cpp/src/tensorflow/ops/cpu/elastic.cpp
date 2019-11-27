@@ -22,8 +22,6 @@ REGISTER_KUNGFU_OP(StepBasedSchedule)
 
 class StepBasedSchedule : public OpKernel
 {
-    using OpKernel::OpKernel;
-
     using range_t = std::pair<int, int>;
 
     std::vector<std::pair<range_t, int>> schedule_;
