@@ -58,5 +58,5 @@ class _SSGD_SMA(_KungFuAlgorithm):
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         num_training_steps_switch = 800
         return tf.cond(tf.math.less(kwargs["global_step"], num_training_steps_switch),
-                            _ssgd_apply_gradients(apply_grads_func, grads_and_vars, **kwargs),
-                            _sma_apply_gradients(apply_grads_func, grads_and_vars, **kwargs))
+                            self._ssgd_apply_gradients(apply_grads_func, grads_and_vars, **kwargs),
+                            self._sma_apply_gradients(apply_grads_func, grads_and_vars, **kwargs))
