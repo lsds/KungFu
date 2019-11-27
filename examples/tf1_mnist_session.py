@@ -79,10 +79,9 @@ def build_optimizer(name, batch_size):
     elif name == 'sma':
         from kungfu.tensorflow.optimizers import SynchronousAveragingOptimizer
         return SynchronousAveragingOptimizer(optimizer)
-    elif name == 'noise-scale':
-        from kungfu.tensorflow.optimizers import SyncSGDWithGradNoiseScaleOptimizer
-        return SyncSGDWithGradNoiseScaleOptimizer(optimizer,
-                                                  device_batch_size=batch_size)
+    elif name == 'ada-sgd':
+        from kungfu.tensorflow.optimizers import AdaptiveSGDOptimizer
+        return AdaptiveSGDOptimizer(optimizer, change_step=2)
     else:
         raise RuntimeError('unknown optimizer: %s' % name)
 
