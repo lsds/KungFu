@@ -4,6 +4,7 @@ from .grad_noise_scale import MonitorGradientNoiseScaleOptimizer
 from .grad_variance import MonitorGradientVarianceOptimizer
 from .sma_sgd import SynchronousAveragingOptimizer
 from .sync_sgd import SynchronousSGDOptimizer
+from .ssgd_sma import SSGD_SMA
 
 __all__ = [
     'PairAveragingOptimizer',
