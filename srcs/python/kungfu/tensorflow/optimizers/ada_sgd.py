@@ -3,6 +3,7 @@ from kungfu._utils import map_maybe
 from kungfu.tensorflow.compat import _tf_assign
 from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
                                    counter)
+from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
                    _KungFuAlgorithm)
 
@@ -26,7 +27,8 @@ class _AdaptiveSGD(_KungFuAlgorithm):
         self._num_workers = current_cluster_size()
         self._alpha = alpha
         self._change_step = change_step
-        self._step = counter()
+        self._global_step = counter()
+        self._global_step2 = counter()
 
     def _ssgd(self, apply_grads_func, gradients, variables, **kwargs):
         sum_grads = group_all_reduce(gradients)
@@ -58,8 +60,11 @@ class _AdaptiveSGD(_KungFuAlgorithm):
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         g, v = list(zip(*grads_and_vars))
 
-        cond_op = tf.cond(tf.math.less(self._step, self._change_step),
-                          lambda: self._sma(apply_grads_func, g, v, **kwargs),
-                          lambda: self._ssgd(apply_grads_func, g, v, **kwargs))
+        re_init_op = tf.cond(tf.equal(self._global_step2, self._change_step),
+                             BroadcastGlobalVariablesOp, tf.no_op)
 
-        return cond_op
+        with tf.control_dependencies([re_init_op]):
+            return tf.cond(
+                tf.math.less(self._global_step, self._change_step),
+                lambda: self._sma(apply_grads_func, g, v, **kwargs),
+                lambda: self._ssgd(apply_grads_func, g, v, **kwargs))

@@ -81,7 +81,7 @@ def build_optimizer(name, batch_size):
         return SynchronousAveragingOptimizer(optimizer)
     elif name == 'ada-sgd':
         from kungfu.tensorflow.optimizers import AdaptiveSGDOptimizer
-        return AdaptiveSGDOptimizer(optimizer, change_step=2)
+        return AdaptiveSGDOptimizer(optimizer, change_step=300)
     else:
         raise RuntimeError('unknown optimizer: %s' % name)
 
