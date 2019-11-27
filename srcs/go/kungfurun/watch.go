@@ -67,16 +67,19 @@ func (w *watcher) update(s Stage) {
 
 func (w *watcher) watchRun(globalCtx context.Context) {
 	hostRank, _ := w.parents.Lookup(w.parent)
-	var globalStopped, stop bool
+	var globalStopped, inactive bool
 	for {
 		select {
 		case s := <-w.ch:
 			w.update(s)
+			if n := atomic.LoadInt32(&w.running); n > 0 {
+				inactive = false
+			}
 		case <-w.stopped:
 			n := atomic.AddInt32(&w.running, -1)
 			log.Debugf("%s is still running on this host", utils.Pluralize(int(n), "peer", "peers"))
 			if n == 0 {
-				stop = true
+				inactive = true
 				if hostRank == 0 {
 					globalStopped = true
 					if len(w.parents) > 0 {
@@ -92,7 +95,7 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 		case <-globalCtx.Done():
 			globalStopped = true
 		}
-		if globalStopped && stop {
+		if globalStopped && inactive {
 			break
 		}
 	}
