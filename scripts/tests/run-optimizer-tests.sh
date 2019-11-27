@@ -20,10 +20,10 @@ run_adaptation_tests() {
         -np 1 \
         -w \
         ${PYTHON} \
-        tests/python/test_optimizers.py \
+        tests/python/integration/test_optimizers.py \
         --test elastic-sgd \
         --schedule $schedule
 }
 
-measure run_tests 4 ${PYTHON} ${ROOT}/tests/python/test_optimizers.py
+measure run_tests 4 ${PYTHON} ${ROOT}/tests/python/integration/test_optimizers.py
 # measure run_adaptation_tests

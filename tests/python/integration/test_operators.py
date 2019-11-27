@@ -8,16 +8,6 @@ def test_barrier():
         sess.run(barrier())
 
 
-def test_counter():
-    c = counter()
-    with tf.Session() as sess:
-        for i in range(10):
-            n = sess.run(c)
-            print(n)
-            if n != i:
-                raise RuntimeError('counter failed!')
-
-
 def test_group_all_reduce():
     sizes = [i % 5 for i in range(10)]
     xs = [tf.Variable(tf.ones([n], tf.int32)) if n else None for n in sizes]
@@ -63,7 +53,6 @@ def test_save_and_request():
 
 def test_all():
     test_barrier()
-    test_counter()
     test_group_all_reduce()
     test_peer_info()
     test_save_and_request()

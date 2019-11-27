@@ -83,11 +83,14 @@ func resize(kungfu *kf.Kungfu, nextStep int) bool {
 	np := sess.ClusterSize()
 	newSize := np + 1
 	t0 := time.Now()
-	keep, err := kungfu.ResizeCluster(strconv.Itoa(nextStep), newSize)
+	changed, keep, err := kungfu.ResizeCluster(strconv.Itoa(nextStep), newSize)
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	if np != newSize {
+	if reallyChanged := np != newSize; reallyChanged != changed {
+		utils.ExitErr(fmt.Errorf("changed should be %v", reallyChanged))
+	}
+	if changed {
 		log.Infof("resize %d -> %d took %s", np, newSize, time.Since(t0))
 	}
 	return keep

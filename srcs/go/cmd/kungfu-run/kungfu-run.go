@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path"
+	"syscall"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/job"
@@ -77,6 +79,7 @@ func main() {
 		LogDir:    f.LogDir,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+	trap(cancel)
 	if f.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
@@ -88,4 +91,14 @@ func main() {
 	} else {
 		run.SimpleRun(ctx, localhostIPv4, peers, j, f.VerboseLog)
 	}
+}
+
+func trap(cancel context.CancelFunc) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		cancel()
+		os.Exit(1)
+	}()
 }

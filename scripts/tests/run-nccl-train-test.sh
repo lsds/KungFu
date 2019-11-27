@@ -40,5 +40,5 @@ run_nccl_experiment_all() {
     done
 }
 
-run_nccl_experiment_all ./tests/python/fake_tf_trainer.py
+run_nccl_experiment_all ./tests/python/integration/fake_tf_trainer.py
 run_nccl_experiment_all ./experiments/kungfu/kf_tensorflow_synthetic_benchmark.py

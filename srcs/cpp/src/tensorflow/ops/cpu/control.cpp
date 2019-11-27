@@ -5,6 +5,8 @@ namespace tensorflow
 REGISTER_KUNGFU_OP(ResizeCluster)
     .Input("checkpoint: string")
     .Input("new_cluster_size: int32")
+    // indicats if cluster is changed
+    .Output("changed: bool")
     // indicats if self is still in the new cluster
     .Output("keep: bool");
 
@@ -17,10 +19,14 @@ class ResizeCluster : public AsyncOpKernel
     {
         const std::string &chpt = context->input(0).scalar<std::string>()();
         const int32_t new_size  = context->input(1).scalar<int32_t>()();
-        Tensor *keep            = nullptr;
+        Tensor *changed         = nullptr;
+        OP_REQUIRES_OK(
+            context, context->allocate_output(0, MakeTensorShape(), &changed));
+        Tensor *keep = nullptr;
         OP_REQUIRES_OK(context,
-                       context->allocate_output(0, MakeTensorShape(), &keep));
+                       context->allocate_output(1, MakeTensorShape(), &keep));
         _kungfu_world->ResizeCluster(chpt.c_str(), new_size,
+                                     changed->scalar<bool>().data(),
                                      keep->scalar<bool>().data());
         done();
     }
