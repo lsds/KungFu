@@ -1,9 +1,10 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
 from kungfu.tensorflow.compat import _tf_assign
-from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
-                                   counter)
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
+from kungfu.tensorflow.ops import (counter, current_cluster_size,
+                                   group_all_reduce)
+
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
                    _KungFuAlgorithm)
 
