@@ -37,25 +37,20 @@ def MonitorGradientNoiseScaleOptimizer(optimizer,
 class _GradientNoiseScale(_KungFuAlgorithm):
     def __init__(self, device_batch_size, monitor_interval=1):
         self._num_workers = current_cluster_size()
-        self._is_master = current_rank() == 0
         self._step = counter()
 
         self._interval = monitor_interval
         self._device_batch_size = tf.cast(device_batch_size, dtype=tf.float32)
         self._global_batch_size = self._device_batch_size * self._num_workers
-        self._noise_op = None
 
     def _monitor(self, grads, reduced_grads):
-        if self._is_master:
-            # Only the master node is doing the global monitoring.
-            noise_op = global_noise_scale(self._device_batch_size,
-                                          self._global_batch_size, fuse(grads),
-                                          fuse(reduced_grads))
+        # Only the master node is doing the global monitoring.
+        noise_op = global_noise_scale(self._device_batch_size,
+                                      self._global_batch_size, fuse(grads),
+                                      fuse(reduced_grads))
 
-            print_op = tf.print('Gradient Noise Scale:', noise_op)
-            return print_op
-        else:
-            return tf.no_op()
+        print_op = tf.print('Gradient Noise Scale:', noise_op)
+        return print_op
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
