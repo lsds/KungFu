@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.ops import (counter, current_cluster_size,
+from kungfu.tensorflow.ops import (counter, current_cluster_size, current_rank,
                                    group_all_reduce)
 
 from .core import _create_kungfu_optimizer, _KungFuAlgorithm
@@ -46,35 +46,25 @@ class _GradVariance(_KungFuAlgorithm):
     def _monitor(self, grads, reduced_grads):
         square_grads = [tf.square(g) for g in grads]
         summed_square_grads = group_all_reduce(square_grads)
-        reduced_square_grads = [
-            g / self._num_workers for g in summed_square_grads
-        ]
+        reduced_square_grads = map_maybe(lambda g: g / self._num_workers,
+                                         summed_square_grads)
         grad_variances = [
             square_grad - tf.square(grad)
             for square_grad, grad in zip(reduced_square_grads, reduced_grads)
         ]
-        self._variances = [
+        variances = [
             tf.norm(grad_variance) for grad_variance in grad_variances
         ]
-        self._summed_variance = tf.reduce_sum(self._variances)
-        print_op = tf.print('Sum of gradient variance:', self._summed_variance)
-
-        with tf.control_dependencies([print_op]):
-            return tf.no_op()
-
-    def get_grad_variance(self):
-        if self._variances == None or self._summed_variance == None:
-            raise Exception(
-                'Must be called after minimize() or apply_gradients()')
-        return self._variances, self._summed_variance
+        summed_variance = tf.reduce_sum(variances)
+        return tf.print('Variance:', summed_variance)
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
 
         # Synchronization logic
         summed_grads = group_all_reduce(grads)
-        reduced_grads = map_maybe(
-            [g / self._num_workers for g in summed_grads])
+        reduced_grads = map_maybe(lambda g: g / self._num_workers,
+                                  summed_grads)
 
         # Monitoring logic
         monitor_grads_op = tf.cond(

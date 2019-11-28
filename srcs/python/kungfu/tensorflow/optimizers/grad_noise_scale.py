@@ -1,7 +1,7 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.ops import (counter, current_cluster_size, fuse,
-                                   global_noise_scale, group_all_reduce)
+from kungfu.tensorflow.ops import (counter, current_cluster_size, current_rank,
+                                   fuse, global_noise_scale, group_all_reduce)
 
 from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
@@ -42,31 +42,23 @@ class _GradientNoiseScale(_KungFuAlgorithm):
         self._interval = monitor_interval
         self._device_batch_size = tf.cast(device_batch_size, dtype=tf.float32)
         self._global_batch_size = self._device_batch_size * self._num_workers
-        self._noise_op = None
 
     def _monitor(self, grads, reduced_grads):
-        self._noise_op = global_noise_scale(self._device_batch_size,
-                                            self._global_batch_size,
-                                            fuse(grads), fuse(reduced_grads))
+        # Only the master node is doing the global monitoring.
+        noise_op = global_noise_scale(self._device_batch_size,
+                                      self._global_batch_size, fuse(grads),
+                                      fuse(reduced_grads))
 
-        print_op = tf.print('Gradient Noise Scale:', self._noise_op)
-
-        with tf.control_dependencies([print_op]):
-            return tf.no_op()
-
-    def get_grad_noise_scale(self):
-        if self._noise_op == None:
-            raise Exception(
-                'Must be called after minimize() or apply_gradients()')
-        return self._noise_op
+        print_op = tf.print('Gradient Noise Scale:', noise_op)
+        return print_op
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         grads, variables = list(zip(*grads_and_vars))
 
         # Synchronization logic
         summed_grads = group_all_reduce(grads)
-        reduced_grads = map_maybe(
-            [g / self._num_workers for g in summed_grads])
+        reduced_grads = map_maybe(lambda g: g / self._num_workers,
+                                  summed_grads)
 
         # Monitoring logic
         monitor_grads_op = tf.cond(
