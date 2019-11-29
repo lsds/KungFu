@@ -8,7 +8,12 @@ REGISTER_KUNGFU_OP(ResizeCluster)
     // indicats if cluster is changed
     .Output("changed: bool")
     // indicats if self is still in the new cluster
-    .Output("keep: bool");
+    .Output("keep: bool")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->Scalar());
+        c->set_output(1, c->Scalar());
+        return Status::OK();
+    });
 
 class ResizeCluster : public OpKernel
 {
@@ -25,8 +30,8 @@ class ResizeCluster : public OpKernel
         const std::string &chpt = context->input(0).scalar<std::string>()();
         const int32_t new_size  = context->input(1).scalar<int32_t>()();
         if (debug_) {
-            LOG(WARNING) << "ResizeCluster::Compute called with " << chpt << " "
-                         << new_size;
+            LOG(WARNING) << "ResizeCluster::Compute called with chpt: " << chpt
+                         << " new size: " << new_size;
         }
         Tensor *changed = nullptr;
         OP_REQUIRES_OK(
