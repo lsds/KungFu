@@ -13,17 +13,22 @@ REGISTER_KUNGFU_OP(Counter)
 
 class Counter : public OpKernel
 {
+    bool debug_;
     int32_t counter_;
 
   public:
     explicit Counter(OpKernelConstruction *context)
         : OpKernel(context), counter_(0)
     {
+        context->GetAttr("debug", &debug_);
         OP_REQUIRES_OK(context, context->GetAttr("init", &counter_));
     }
 
     void Compute(OpKernelContext *context) override
     {
+        if (debug_) {
+            LOG(WARNING) << "Counter::Compute, counter= " << counter_;
+        }
         Tensor *count = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &count));
