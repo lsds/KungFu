@@ -13,10 +13,14 @@ REGISTER_KUNGFU_OP(FPGAAllreduce)
 
 class FPGAAllreduce : public OpKernel
 {
+    using OpKernel::OpKernel;
+
     std::string input_tensor_name_;
 
   public:
-    explicit AllReduce(OpKernelConstruction *context) : OpKernel(context)
+ 
+
+   explicit FPGAAllReduce(OpKernelConstruction *context) : OpKernel(context)
     {
         OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
                                                  &input_tensor_name_));
@@ -26,17 +30,17 @@ class FPGAAllreduce : public OpKernel
     }
 
   public:
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    void Compute(OpKernelContext *context) override
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        OP_REQUIRES_OK_ASYNC(
-            context, context->allocate_output(0, input.shape(), &output), done);
-        _kungfu_world->AllReduce(
+        OP_REQUIRES_OK(
+            context, context->allocate_output(0, input.shape(), &output));
+        _kungfu_world->FPGAAllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            input_tensor_name_.c_str(), done);
+            input_tensor_name_.c_str());
     }
 };
 
