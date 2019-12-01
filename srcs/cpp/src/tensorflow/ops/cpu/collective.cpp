@@ -1,6 +1,46 @@
 #include <kungfu/tensorflow/ops.h>
+#include <iostream>
 
 namespace tensorflow
+
+{
+REGISTER_KUNGFU_OP(FPGAAllreduce)
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("input_tensor_name: string")
+    .Input("input: T")
+    .Output("output: T")
+    .SetShapeFn(shape_inference::UnchangedShape);
+
+class FPGAAllreduce : public OpKernel
+{
+    std::string input_tensor_name_;
+
+  public:
+    explicit AllReduce(OpKernelConstruction *context) : OpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
+                                                 &input_tensor_name_));
+        OP_REQUIRES(
+            context, input_tensor_name_.size() >= 0,
+            errors::InvalidArgument("input_tensor_name must not be empty"));
+    }
+
+  public:
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        const Tensor &input = context->input(0);
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, input.shape(), &output), done);
+        _kungfu_world->AllReduce(
+            input.tensor_data().data(),
+            const_cast<char *>(output->tensor_data().data()),
+            input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
+            input_tensor_name_.c_str(), done);
+    }
+};
+
+
 {
 REGISTER_KUNGFU_OP(Barrier);
 
@@ -43,7 +83,8 @@ class AllReduce : public AsyncOpKernel
 
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
-    {
+    {   
+	std::cout << "Inside ComputeAsync fn AllReduce" << "\n";
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(

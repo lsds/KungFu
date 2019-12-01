@@ -14,6 +14,8 @@ import os
 import kungfu as kf
 import numpy as np
 import tensorflow as tf
+#import tensorflow.compat.v1 as tf
+#tf.disable_v2_behavior()
 from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.v1.helpers.mnist import load_datasets
 
