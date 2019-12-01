@@ -125,13 +125,11 @@ int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
                              dtype, op, const_cast<char *>(name), nullptr);
 }
 
-int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
+int kungfu_world::FPGAAllReduce(const void *sendbuf, void *recvbuf, int count,
                             KungFu_Datatype dtype, KungFu_Op op,
-                            const char *name, const DoneCallback &done)
+                            const char *name)
 {
-    return GoKungfuAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             dtype, op, const_cast<char *>(name),
-                             new CallbackWrapper(done));
+/*FPGA FUNCTION CALL GOES IN HERE*/
 }
 
 int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
