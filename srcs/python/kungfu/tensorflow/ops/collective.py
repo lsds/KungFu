@@ -14,13 +14,18 @@ def broadcast(t):
     return _op_lib.kungfu_broadcast(t)
 
 
+def fpga_all_reduce(t):
+    """Create a new FPGA all_reduce operator for given tensor. """
+    return _op_lib.kungfu_fpga_all_reduce(t, input_tensor_name=t.name)
+
+def group_fpga_all_reduce(ts):
+    """Create a list of FPGA_all_reduce operators for given tensor list."""
+    return map_maybe(fpga_all_reduce, ts)
+
 def all_reduce(t):
     """Create a new all_reduce operator for given tensor."""
     return _op_lib.kungfu_all_reduce(t, input_tensor_name=t.name)
 
-def FPGA_all_reduce(t):
-    """Create a new FPGA all_reduce operator for given tensor. """
-    return _op_lib.kungfu_FPGA_all_reduce(t, input_tensor_name=t.name)
 
 def _maybe_group_all_reduce(ts, group_all_reduce_fn):
     # a helper function to bypass all_reduce for np = 1
@@ -34,9 +39,6 @@ def group_all_reduce(ts):
     """Create a list of all_reduce operators for given tensor list."""
     return map_maybe(all_reduce, ts)
 
-def group_all_reduce(ts):
-    """Create a list of FPGA_all_reduce operators for given tensor list."""
-    return map_maybe(FPGA_all_reduce, ts)
 
 def _nccl_all_reduce(t):
     return _op_lib.kungfu_nccl_all_reduce(t, input_tensor_name=t.name)

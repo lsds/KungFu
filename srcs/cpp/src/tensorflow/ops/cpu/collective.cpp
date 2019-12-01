@@ -43,7 +43,7 @@ class FPGAAllreduce : public OpKernel
             input_tensor_name_.c_str());
     }
 };
-
+REGISTER_KUNGFU_KERNEL_BUILDER(FPGAAllReduce, DEVICE_CPU);
 
 {
 REGISTER_KUNGFU_OP(Barrier);

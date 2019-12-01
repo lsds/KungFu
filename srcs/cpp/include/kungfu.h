@@ -81,10 +81,6 @@ class kungfu_world
      
     int FPGAAllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name);
-    int FPGAAllReduce(const void *sendbuf, void *recvbuf, int count,
-                  KungFu_Datatype dtype, KungFu_Op op, const char *name,
-                  const DoneCallback &done);
-		      )
 
     // https://www.open-mpi.org/doc/v4.0/man3/MPI_Bcast.3.php
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
