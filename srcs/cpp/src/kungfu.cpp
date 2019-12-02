@@ -131,7 +131,7 @@ int kungfu_world::FPGAAllReduce(const void *sendbuf, void *recvbuf, int count,
 {
 /*FPGA FUNCTION CALL GOES IN HERE*/
     return GoKungfuFPGAAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-				dtype, op, const_cast<char *>(name), nullptr);
+				dtype, op, const_cast<char *>(name));
 }
 
 int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
