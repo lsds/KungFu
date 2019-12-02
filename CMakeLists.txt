@@ -11,6 +11,7 @@ OPTION(KUNGFU_BUILD_TESTS "Build tests." OFF)
 OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
 OPTION(KUNGFU_BUILD_TOOLS "Build kungfu tools." OFF)
 OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
+OPTION(KUNGFU_ENABLE_FPGA "Enable FPGA-based In-network All-reduce" ON)
 
 INCLUDE(cmake/go.cmake)
 
@@ -43,6 +44,8 @@ IF(KUNGFU_BUILD_TF_OPS)
          ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/cpu/*.cpp)
     FILE(GLOB GPU_OP_SRCS
          ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/gpu/*.cpp)
+    FILE(GLOB FPGA_OP_SRCS
+        ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/fpga/*.cpp)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops ${CPU_OP_SRCS})
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
@@ -54,6 +57,11 @@ IF(KUNGFU_BUILD_TF_OPS)
                        srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
         USE_NCCL(kungfu_python)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${GPU_OP_SRCS})
+    ENDIF()
+
+    IF(KUNGFU_ENABLE_FPGA)
+        INCLUDE(cmake/fpga.cmake)
+        TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${FPGA_OP_SRCS})
     ENDIF()
 
     SET_TF_COMPILE_OPTION(kungfu_python)

@@ -1,0 +1,62 @@
+import tensorflow as tf
+from kungfu._utils import map_maybe
+from kungfu.tensorflow.ops import (current_cluster_size, defuse, fuse)
+from kungfu.tensorflow.ops.fpga_collective import fpga_all_reduce
+
+from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
+                   _KungFuAlgorithm)
+
+
+def FPGASynchronousSGDOptimizer(optimizer,
+                                name=None,
+                                use_locking=False,
+                                with_keras=False):
+    """SynchronousSGDOptimizer implements the [S-SGD]_ algorithm.
+
+    This optimizer is equivalent to the DistributedOptimizer in Horovod.
+    Every iteration of training, this optimizer computes the averaged gradients
+    to correct diverged model replicas.
+
+    .. [S-SGD] Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour, 2017, `S-SGD Paper <https://arxiv.org/pdf/1706.02677>`_
+
+    Arguments:
+        optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- Optimizer to use for computing gradients and applying updates.
+
+    Keyword Arguments:
+        - name {str} -- name prefix for the operations created when applying gradients. Defaults to "KungFu" followed by the provided optimizer type. (default: {None})
+        - use_locking {bool} -- Whether to use locking when updating variables. (default: {False})
+        - with_keras {bool} -- Runs with pure Keras or not (default: {False})
+
+    Raises:
+        TypeError: Wrapped optimizer is not a subclass of tf.train.Optimizer or tf.keras.optimizers.Optimizer
+
+    Returns:
+        optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
+    """
+    sync_sgd_algo = _FPGASynchronousSGD()
+    if not with_keras:
+        return _create_kungfu_optimizer(optimizer, sync_sgd_algo, name,
+                                        use_locking)
+    else:
+        return _create_kungfu_keras_optimizer(optimizer, sync_sgd_algo)
+
+
+class _FPGASynchronousSGD(_KungFuAlgorithm):
+    def __init__(self):
+        self._num_workers = current_cluster_size()
+
+    def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
+        gradients, variables = list(zip(*grads_and_vars))
+
+        fused_grad = fuse(gradients)
+        summed_fused_gradients = fpga_all_reduce(fused_grad)
+        summed_gradients = defuse(summed_fused_gradients[0],
+                                  [g.shape for g in gradients])
+
+        reduced_grads = map_maybe(lambda g: g / self._num_workers,
+                                  summed_gradients)
+
+        # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
+        reduced_grads_and_vars = zip(reduced_grads, variables)
+
+        return apply_grads_func(reduced_grads_and_vars, **kwargs)
