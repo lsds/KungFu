@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.ops import (current_cluster_size, defuse, fuse)
+from kungfu.tensorflow.ops import current_cluster_size, defuse, fuse
 from kungfu.tensorflow.ops.fpga_collective import fpga_all_reduce
 
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
