@@ -41,6 +41,7 @@ class FPGAAllreduce : public OpKernel
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
             input_tensor_name_.c_str());
+            
     }
 };
 REGISTER_KUNGFU_KERNEL_BUILDER(FPGAAllReduce, DEVICE_CPU);
