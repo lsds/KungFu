@@ -22,24 +22,13 @@ REGISTER_KUNGFU_KERNEL_BUILDER(Barrier, DEVICE_CPU);
 // exactly the same shape.
 REGISTER_KUNGFU_OP(AllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
-    .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
 
 class AllReduce : public AsyncOpKernel
 {
-    std::string input_tensor_name_;
-
-  public:
-    explicit AllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
-    {
-        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
-                                                 &input_tensor_name_));
-        OP_REQUIRES(
-            context, input_tensor_name_.size() >= 0,
-            errors::InvalidArgument("input_tensor_name must not be empty"));
-    }
+    using AsyncOpKernel::AsyncOpKernel;
 
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -52,7 +41,7 @@ class AllReduce : public AsyncOpKernel
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            input_tensor_name_.c_str(), done);
+            name().c_str(), done);
     }
 };
 
