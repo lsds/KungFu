@@ -76,6 +76,10 @@ func (sess *session) AllReduce(w Workspace) error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
+func (sess *session) FPGAAllReduce(w Workspace) error {
+	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
+}
+
 func (sess *session) Reduce(w Workspace) error {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
 	return sess.runGraphs(w, strategy.reduceGraph)
