@@ -33,7 +33,7 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 }
 
 //export GoKungfuFPGAAllReduce
-func GoKungfuFPGAAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
+func GoKungfuFPGAAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char) int {
 	w := kf.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
@@ -41,7 +41,9 @@ func GoKungfuFPGAAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.K
 		Name:    C.GoString(name),
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveOP("FPGAAllReduce", sess.FPGAAllReduce, w, done)
+	//call a function here that is blocking
+	return 0;
+//	return callCollectiveOP("FPGAAllReduce", sess.FPGAAllReduce, w, done)
 }
 
 //export GoKungfuReduce
