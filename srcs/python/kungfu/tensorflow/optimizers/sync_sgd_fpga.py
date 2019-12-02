@@ -34,11 +34,11 @@ def FPGASynchronousSGDOptimizer(optimizer,
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
     sync_sgd_algo = _FPGASynchronousSGD()
-    if not with_keras:
+    if with_keras:
+        return _create_kungfu_keras_optimizer(optimizer, sync_sgd_algo)
+    else:
         return _create_kungfu_optimizer(optimizer, sync_sgd_algo, name,
                                         use_locking)
-    else:
-        return _create_kungfu_keras_optimizer(optimizer, sync_sgd_algo)
 
 
 class _FPGASynchronousSGD(_KungFuAlgorithm):
@@ -49,8 +49,8 @@ class _FPGASynchronousSGD(_KungFuAlgorithm):
         gradients, variables = list(zip(*grads_and_vars))
 
         fused_grad = fuse(gradients)
-        summed_fused_gradients = fpga_all_reduce(fused_grad)
-        summed_gradients = defuse(summed_fused_gradients[0],
+        summed_fused_gradient = fpga_all_reduce(fused_grad)
+        summed_gradients = defuse(summed_fused_gradient,
                                   [g.shape for g in gradients])
 
         reduced_grads = map_maybe(lambda g: g / self._num_workers,
