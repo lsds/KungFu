@@ -21,53 +21,55 @@ func GoKungfuBarrier(done *C.callback_t) int {
 }
 
 //export GoKungfuAllReduce
-func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
+func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
+	name := C.GoString(pName)
 	w := kf.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
 		OP:      kb.OP(op),
-		Name:    C.GoString(name),
+		Name:    name,
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveOP("AllReduce", sess.AllReduce, w, done)
+	return callCollectiveOP("AllReduce", name, sess.AllReduce, w, done)
 }
 
 //export GoKungfuReduce
-func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, name *C.char, done *C.callback_t) int {
+func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
+	name := C.GoString(pName)
 	w := kf.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
 		OP:      kb.OP(op),
-		Name:    C.GoString(name),
+		Name:    name,
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveOP("Reduce", sess.Reduce, w, done)
+	return callCollectiveOP("Reduce", name, sess.Reduce, w, done)
 }
 
 //export GoKungfuBroadcast
-func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, name *C.char, done *C.callback_t) int {
+func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
+	name := C.GoString(pName)
 	w := kf.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
-		Name:    C.GoString(name),
+		Name:    name,
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveOP("Broadcast", sess.Broadcast, w, done)
+	return callCollectiveOP("Broadcast", name, sess.Broadcast, w, done)
 }
 
 //export GoKungfuGather
-func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype,
-	recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype,
-	name *C.char, done *C.callback_t) int {
+func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype, recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
+	name := C.GoString(pName)
 	w := kf.Workspace{
 		SendBuf: toVector(sendBuf, sendCount, sendDtype),
 		RecvBuf: toVector(recvBuf, recvCount, recvDtype),
-		Name:    C.GoString(name),
+		Name:    name,
 	}
 	sess := kungfu.CurrentSession()
-	return callCollectiveOP("Gather", sess.Gather, w, done)
+	return callCollectiveOP("Gather", name, sess.Gather, w, done)
 }
 
-func callCollectiveOP(name string, op func(kf.Workspace) error, w kf.Workspace, done *C.callback_t) int {
-	return callOP(name, func() error { return op(w) }, done)
+func callCollectiveOP(opName, name string, op func(kf.Workspace) error, w kf.Workspace, done *C.callback_t) int {
+	return callOP(opName+"("+name+")", func() error { return op(w) }, done)
 }

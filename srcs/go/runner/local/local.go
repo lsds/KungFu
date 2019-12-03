@@ -133,11 +133,11 @@ func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
 				logDir:        proc.LogDir,
 			}
 			if err := r.Run(ctx, proc.Cmd()); err != nil {
-				log.Errorf("%s #%s exited with error: %v", xterm.Red.S("[E]"), proc.Name, err)
+				log.Errorf("#%s exited with error: %v", proc.Name, err)
 				atomic.AddInt32(&fail, 1)
 				cancel()
 			} else {
-				log.Infof("%s #%s finished successfully", xterm.Green.S("[I]"), proc.Name)
+				log.Infof("#%s finished successfully", proc.Name)
 			}
 			wg.Done()
 		}(i, proc)
