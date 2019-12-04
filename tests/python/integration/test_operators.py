@@ -48,6 +48,21 @@ def test_save_and_request():
         sess.run(barrier())
 
 
+def test_consensus():
+    from kungfu import current_rank
+    from kungfu.tensorflow.ops import consensus
+
+    rank = current_rank()
+
+    x = tf.Variable(rank, dtype=tf.int32)
+    consensus_check = consensus(x)
+
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+        sess.run(consensus_check)  # should fail
+
+
 # TODO: more tests
 
 
@@ -56,6 +71,7 @@ def test_all():
     test_group_all_reduce()
     test_peer_info()
     test_save_and_request()
+    test_consensus()
 
 
 test_all()

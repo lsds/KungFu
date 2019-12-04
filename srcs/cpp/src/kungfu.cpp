@@ -77,6 +77,24 @@ int kungfu_world::Barrier(const DoneCallback &done)
     return GoKungfuBarrier(new CallbackWrapper(done));
 }
 
+int kungfu_world::Consensus(const void *buf, int count, KungFu_Datatype dtype,
+                            bool *ok, const char *name)
+{
+    return GoKungfuConsensus(const_cast<void *>(buf), GoInt(dtype), dtype,
+                             reinterpret_cast<char *>(ok),
+                             const_cast<char *>(name), nullptr);
+}
+
+int kungfu_world::Consensus(const void *buf, int count, KungFu_Datatype dtype,
+                            bool *ok, const char *name,
+                            const DoneCallback &done)
+{
+    return GoKungfuConsensus(const_cast<void *>(buf), GoInt(dtype), dtype,
+                             reinterpret_cast<char *>(ok),
+                             const_cast<char *>(name),
+                             new CallbackWrapper(done));
+}
+
 int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
                           KungFu_Datatype dtype)
 {

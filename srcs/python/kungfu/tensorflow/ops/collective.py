@@ -9,6 +9,10 @@ def barrier():
     return _op_lib.kungfu_barrier()
 
 
+def consensus(t):
+    return _op_lib.kungfu_consensus(t, tensor_name=t.name, strong=True)
+
+
 def broadcast(t):
     """Create a new broadcast operator for given tensor."""
     return _op_lib.kungfu_broadcast(t)
