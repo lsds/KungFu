@@ -28,8 +28,7 @@ class _AdaptiveSGD(_KungFuAlgorithm):
         self._num_workers = current_cluster_size()
         self._alpha = alpha
         self._change_step = change_step
-        self._global_step = counter()
-        self._global_step2 = counter()
+        self._global_step = tf.train.get_or_create_global_step()
 
     def _ssgd(self, apply_grads_func, gradients, variables, **kwargs):
         sum_grads = group_all_reduce(gradients)
@@ -61,11 +60,25 @@ class _AdaptiveSGD(_KungFuAlgorithm):
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         g, v = list(zip(*grads_and_vars))
 
-        re_init_op = tf.cond(tf.equal(self._global_step2, self._change_step),
-                             BroadcastGlobalVariablesOp, tf.no_op)
-
-        with tf.control_dependencies([re_init_op]):
-            return tf.cond(
+        return tf.cond(
                 tf.math.less(self._global_step, self._change_step),
                 lambda: self._sma(apply_grads_func, g, v, **kwargs),
                 lambda: self._ssgd(apply_grads_func, g, v, **kwargs))
+
+
+class AdaSGDHook(tf.estimator.SessionRunHook):
+    def __init__(self, change_step):
+        super(AdaSGDHook, self).__init__()
+        self._change_step = change_step
+    
+    def begin(self):
+        from kungfu.tensorflow.ops import broadcast
+        self._ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]
+
+    def after_create_session(self, session, coord):
+        self._global_step = tf.train.get_global_step()
+
+    def after_run(self, run_context, run_values):
+        global_step = run_context.session.run(self._global_step)
+        if self._change_step == global_step:
+            run_context.session.run(self._ops)

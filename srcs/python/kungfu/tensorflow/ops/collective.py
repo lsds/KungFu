@@ -3,6 +3,8 @@ from kungfu._utils import map_maybe
 from ._tf_oplib import _op_lib
 from .topology import peer_info
 
+import tensorflow as tf
+
 
 def barrier():
     """Create a new barrier operator."""
@@ -11,11 +13,17 @@ def barrier():
 
 def broadcast(t):
     """Create a new broadcast operator for given tensor."""
+    # if t.name == "global_step:0":
+    #     return t
+    # else:
     return _op_lib.kungfu_broadcast(t)
 
 
 def all_reduce(t):
     """Create a new all_reduce operator for given tensor."""
+    # if t.name == "global_step:0":
+    #     return t
+    # else:
     return _op_lib.kungfu_all_reduce(t, input_tensor_name=t.name)
 
 
