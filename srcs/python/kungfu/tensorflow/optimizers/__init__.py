@@ -1,4 +1,3 @@
-# from .ada_sgd import AdaptiveSGDOptimizer
 from .ada_sgd import AdaptiveSGDOptimizer
 from .async_sgd import PairAveragingOptimizer
 from .grad_noise_scale import MonitorGradientNoiseScaleOptimizer
