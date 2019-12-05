@@ -14,7 +14,7 @@ def get_init_checkpoint():
     return os.getenv('KUNGFU_INIT_CKPT')
 
 
-def resize_cluster(checkpoint, new_size):
+def resize_cluster(checkpoint, new_size, debug=False):
     """Resize cluster to given size.
 
     Inputs:
@@ -26,7 +26,7 @@ def resize_cluster(checkpoint, new_size):
         {keep} indicates if the current peer is still in the new cluster,
         the peer should quit if it is not in the new cluster.
     """
-    return _op_lib.kungfu_resize_cluster(checkpoint, new_size)
+    return _op_lib.kungfu_resize_cluster(checkpoint, new_size, debug=debug)
 
 
 def step_based_schedule(config, step=None):
