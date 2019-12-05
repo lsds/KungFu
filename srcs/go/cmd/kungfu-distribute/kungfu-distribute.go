@@ -14,9 +14,9 @@ import (
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	runner "github.com/lsds/KungFu/srcs/go/runner/remote"
+	runner "github.com/lsds/KungFu/srcs/go/utils/runner/remote"
 	"github.com/lsds/KungFu/srcs/go/utils"
-	"github.com/lsds/KungFu/srcs/go/xterm"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 var (

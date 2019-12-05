@@ -6,7 +6,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	runner "github.com/lsds/KungFu/srcs/go/runner/local"
+	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 

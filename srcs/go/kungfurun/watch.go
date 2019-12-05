@@ -10,7 +10,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
-	runner "github.com/lsds/KungFu/srcs/go/runner/local"
+	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 

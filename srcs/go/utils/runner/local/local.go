@@ -11,10 +11,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lsds/KungFu/srcs/go/iostream"
+	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
-	"github.com/lsds/KungFu/srcs/go/xterm"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 var (
