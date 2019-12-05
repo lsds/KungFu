@@ -39,12 +39,12 @@ def test_save_and_request():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        for _ in range(3):
+        for i in range(3):
             sess.run([inc_op, update_op])
             sess.run(save_op)
             sess.run(barrier())
             v = sess.run(y)
-            print(v)
+            assert v[0] == i + 1
         sess.run(barrier())
 
 
@@ -60,7 +60,8 @@ def test_consensus():
     init = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init)
-        sess.run(consensus_check)  # should fail
+        v = sess.run(consensus_check)
+        assert v == False
 
 
 # TODO: more tests
