@@ -8,8 +8,8 @@ import (
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/platforms/modelarts"
-	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
 )
 
 var f run.FlagSet

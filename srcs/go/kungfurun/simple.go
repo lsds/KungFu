@@ -6,8 +6,8 @@ import (
 	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
 )
 
 func SimpleRun(ctx context.Context, selfIPv4 uint32, pl plan.PeerList, j job.Job, verboseLog bool) {
