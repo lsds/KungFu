@@ -20,6 +20,18 @@ func GoKungfuBarrier(done *C.callback_t) int {
 	return callOP("Barrier", sess.Barrier, done)
 }
 
+//export GoKungfuConsensus
+func GoKungfuConsensus(buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pOK *C.char, pName *C.char, done *C.callback_t) int {
+	name := C.GoString(pName)
+	w := kf.Workspace{
+		SendBuf: toVector(buf, count, dtype),
+		RecvBuf: toVector(unsafe.Pointer(pOK), 1, C.KungFu_Datatype(kb.I8)),
+		Name:    name,
+	}
+	sess := kungfu.CurrentSession()
+	return callCollectiveOP("Consensus", name, sess.Consensus, w, done)
+}
+
 //export GoKungfuAllReduce
 func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)

@@ -3,8 +3,8 @@ from kungfu.ext import (_get_other_ranks, _has_gpu, current_cluster_size,
 
 from ._tf_oplib import _op_lib
 from .adapt import get_init_checkpoint, resize_cluster, step_based_schedule
-from .collective import (all_reduce, barrier, broadcast, group_all_reduce,
-                         group_nccl_all_reduce)
+from .collective import (all_reduce, barrier, broadcast, consensus,
+                         group_all_reduce, group_nccl_all_reduce)
 from .local import save_variable, save_variables
 from .monitor import global_noise_scale
 from .p2p import request_variable, request_variable_with_template

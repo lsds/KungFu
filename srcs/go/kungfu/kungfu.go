@@ -155,37 +155,12 @@ func par(ps plan.PeerList, f func(plan.PeerID) error) error {
 }
 
 func (kf *Kungfu) consensus(bs []byte) bool {
-	n := len(bs)
 	sess := kf.CurrentSession()
-	{
-		x := kb.NewVector(1, kb.I32)
-		y := kb.NewVector(1, kb.I32)
-		z := kb.NewVector(1, kb.I32)
-		x.AsI32()[0] = int32(n)
-		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:len:min"}
-		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max"}
-		sess.AllReduce(w1)
-		sess.AllReduce(w2)
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
-			return false
-		}
+	ok, err := sess.BytesConsensus(bs, "")
+	if err != nil {
+		utils.ExitErr(err)
 	}
-	if n == 0 {
-		return true
-	}
-	{
-		x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
-		y := kb.NewVector(n, kb.U8)
-		z := kb.NewVector(n, kb.U8)
-		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min"}
-		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max"}
-		sess.AllReduce(w1)
-		sess.AllReduce(w2)
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
-			return false
-		}
-	}
-	return true
+	return ok
 }
 
 func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {

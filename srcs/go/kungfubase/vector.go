@@ -68,6 +68,13 @@ func (b *Vector) AsF32() []float32 {
 	return *(*[]float32)(b.sliceHeader())
 }
 
+func (b *Vector) AsI8() []int8 {
+	if b.Type != I8 {
+		utils.ExitErr(errInvalidDataType)
+	}
+	return *(*[]int8)(b.sliceHeader())
+}
+
 func (b *Vector) AsI32() []int32 {
 	if b.Type != I32 {
 		utils.ExitErr(errInvalidDataType)

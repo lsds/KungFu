@@ -97,7 +97,8 @@ func trap(cancel context.CancelFunc) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-c
+		sig := <-c
+		log.Warnf("%s trapped", sig)
 		cancel()
 		os.Exit(1)
 	}()
