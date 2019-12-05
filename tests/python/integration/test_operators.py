@@ -49,9 +49,10 @@ def test_save_and_request():
 
 
 def test_consensus():
-    from kungfu import current_rank
+    from kungfu import current_cluster_size, current_rank
     from kungfu.tensorflow.ops import consensus
 
+    np = current_cluster_size()
     rank = current_rank()
 
     x = tf.Variable(rank, dtype=tf.int32)
@@ -61,7 +62,8 @@ def test_consensus():
     with tf.Session() as sess:
         sess.run(init)
         v = sess.run(consensus_check)
-        assert v == False
+
+        assert v == (np == 1)
 
 
 # TODO: more tests
