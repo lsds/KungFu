@@ -21,7 +21,8 @@ REGISTER_KUNGFU_OP(Consensus)
     .Attr("strong: bool = true")  // TODO: support weak check
     .Attr("tensor_name: string")
     .Attr("T: {int32, int64, float16, float32, float64}")
-    .Input("input: T");
+    .Input("input: T")
+    .Output("output: bool");
 
 class Consensus : public AsyncOpKernel
 {
@@ -38,19 +39,15 @@ class Consensus : public AsyncOpKernel
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
-        bool *ok            = new bool;
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, MakeTensorShape(), &output),
+            done);
         _kungfu_world->Consensus(
             input.tensor_data().data(), input.NumElements(),
-            to_kungfu_type(input.dtype()), ok, tensor_name_.c_str(),
-            [ok = ok, done = done, tensor_name_ = tensor_name_]() {
-                if (*ok) {
-                    LOG(ERROR) << "Consensus check OK for " << tensor_name_;
-                } else {
-                    LOG(ERROR) << "Consensus check FAILED for " << tensor_name_;
-                }
-                done();
-                delete ok;
-            });
+            to_kungfu_type(input.dtype()),
+            reinterpret_cast<bool *>(output->scalar<bool>().data()),
+            tensor_name_.c_str(), done);
     }
 };
 
