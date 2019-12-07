@@ -5,6 +5,7 @@ from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
+from kungfu.tensorflow.initializer import broadcast_variables
 
 parser = argparse.ArgumentParser(description='KungFu mnist example.')
 parser.add_argument('--kf-optimizer',
@@ -59,7 +60,6 @@ def training_step(images, labels, first_batch):
 
     # KungFu: broadcast is done after the first gradient step to ensure optimizer initialization.
     if first_batch:
-        from kungfu.tensorflow.initializer import broadcast_variables
         broadcast_variables(mnist_model.variables)
         broadcast_variables(opt.variables())
 
