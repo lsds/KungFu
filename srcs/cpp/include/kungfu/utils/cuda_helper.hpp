@@ -4,7 +4,7 @@
 
 #include <cuda_runtime.h>
 
-#include "error_checker.hpp"
+#include <kungfu/utils/error_checker.hpp>
 
 struct show_cuda_error {
     std::string operator()(cudaError_t err) const

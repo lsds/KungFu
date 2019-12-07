@@ -1,6 +1,16 @@
 #pragma once
 #include <kungfu.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern void kungfu_show_nccl_version();
+
+#ifdef __cplusplus
+}
+#endif
+
 namespace kungfu
 {
 class gpu_collective

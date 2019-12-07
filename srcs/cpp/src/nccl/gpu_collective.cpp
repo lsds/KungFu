@@ -1,9 +1,9 @@
-#include <kungfu/gpu_collective.hpp>
+#include <cstdio>
+
+#include <kungfu/nccl/gpu_collective.hpp>
+#include <kungfu/utils/cuda_helper.hpp>
 
 #include <nccl.h>
-
-#include <cuda_helper.hpp>
-#include <error_checker.hpp>
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
@@ -13,6 +13,13 @@ struct show_nccl_error {
 };
 
 using nccl_checker = error_checker<ncclResult_t, ncclSuccess, show_nccl_error>;
+
+void kungfu_show_nccl_version()
+{
+    int version;
+    KUNGFU_CHECK(nccl_checker) << ncclGetVersion(&version);
+    printf("NCCL Version: %d\n", version);
+}
 
 template <typename T> struct nccl_type;
 template <> struct nccl_type<int32_t> {

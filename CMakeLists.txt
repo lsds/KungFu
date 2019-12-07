@@ -51,7 +51,7 @@ IF(KUNGFU_BUILD_TF_OPS)
         TARGET_SOURCES(kungfu_python
                        PRIVATE
                        srcs/cpp/src/python/init_gpu.cpp
-                       srcs/cpp/src/kungfu_gpu_collective_nccl.cpp)
+                       srcs/cpp/src/nccl/gpu_collective.cpp)
         USE_NCCL(kungfu_python)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${GPU_OP_SRCS})
     ENDIF()
