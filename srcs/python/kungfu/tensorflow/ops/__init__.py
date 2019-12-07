@@ -2,7 +2,7 @@ from kungfu.ext import (_get_other_ranks, current_cluster_size,
                         current_local_rank, current_rank, run_barrier)
 
 from ._tf_oplib import _op_lib
-from .adapt import (_get_init_cluster_version_id, resize_cluster,
+from .adapt import (_resize_cluster, _get_init_cluster_version_id, resize_cluster,
                     step_based_schedule)
 from .collective import (all_reduce, barrier, broadcast, consensus,
                          group_all_reduce, group_nccl_all_reduce)
