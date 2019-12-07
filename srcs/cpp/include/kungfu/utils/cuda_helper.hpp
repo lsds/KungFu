@@ -26,8 +26,8 @@ class cuda_stream
     ~cuda_stream()
     {
         const cudaError_t err = cudaStreamDestroy(_stream);
-        if (err == 29) {
-            // ignore: 29: driver shutting down
+        if (err == cudaErrorCudartUnloading ||
+            err == 29 /* driver shutting down */) {
             return;
         }
         KUNGFU_CHECK(cuda_checker) << err;
