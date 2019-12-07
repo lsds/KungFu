@@ -8,11 +8,10 @@ import argparse
 import sys
 import time
 
+import tensorflow as tf
 from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
                                    group_nccl_all_reduce)
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
-
-import tensorflow as tf
 
 
 def _tensor_size(t):

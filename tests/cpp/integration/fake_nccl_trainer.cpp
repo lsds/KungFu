@@ -66,7 +66,9 @@ template <typename Collective> int main1(int argc, char *argv[])
     Collective bootstrap(argc, argv);
 
     ncclUniqueId id;
-    if (bootstrap.is_root()) { CHECK(nccl_checker) << ncclGetUniqueId(&id); }
+    if (bootstrap.is_root()) {
+        KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id);
+    }
     bootstrap.template bcast<uint8_t>((uint8_t *)&id, sizeof(id), "nccl id");
 
     nccl_collective nccl(id, bootstrap.cluster_size(), bootstrap.rank());
