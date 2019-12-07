@@ -14,6 +14,17 @@ struct show_nccl_error {
 
 using nccl_checker = error_checker<ncclResult_t, ncclSuccess, show_nccl_error>;
 
+void kungfu_show_cuda_version()
+{
+    int driverVersion;
+    KUNGFU_CHECK(cuda_checker) << cudaDriverGetVersion(&driverVersion);
+    printf("CUDA Driver Veresion: %d\n", driverVersion);
+
+    int runtimeVersion;
+    KUNGFU_CHECK(cuda_checker) << cudaRuntimeGetVersion(&runtimeVersion);
+    printf("CUDA Runtime Veresion: %d\n", runtimeVersion);
+}
+
 void kungfu_show_nccl_version()
 {
     int version;

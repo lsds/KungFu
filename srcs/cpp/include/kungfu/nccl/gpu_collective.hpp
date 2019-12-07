@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+extern void kungfu_show_cuda_version();
 extern void kungfu_show_nccl_version();
 
 #ifdef __cplusplus

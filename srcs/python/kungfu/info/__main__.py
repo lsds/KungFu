@@ -6,10 +6,11 @@ Usage:
 
 import sys
 
-from kungfu.ext import show_nccl_version
+from kungfu.ext import show_cuda_version, show_nccl_version
 
 
 def main(_):
+    show_cuda_version()
     show_nccl_version()
 
 

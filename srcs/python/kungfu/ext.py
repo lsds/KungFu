@@ -33,11 +33,15 @@ def _get_other_ranks():
     return [r for r in ranks if r != self_rank]
 
 
+def show_cuda_version():
+    if _has_gpu:
+        _call_method(_python_lib, 'kungfu_show_cuda_version', force=True)
+    else:
+        print('NCCL is NOT enabled')
+
+
 def show_nccl_version():
     if _has_gpu:
-        method = 'kungfu_show_nccl_version'
-        ok = _call_method(_python_lib, method)
-        if not ok:
-            raise RuntimeError('failed to call %s' % method)
+        _call_method(_python_lib, 'kungfu_show_nccl_version', force=True)
     else:
         print('NCCL is NOT enabled')

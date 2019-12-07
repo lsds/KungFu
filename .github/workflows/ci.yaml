@@ -44,7 +44,8 @@ jobs:
     - run: pip install --no-index .
     - run: pytest ./tests/python/unit
 
-    # Python system tests
+    # Python integration tests
+    - run: python -m kungfu.info
     - run: python -m kungfu.tensorflow.v1.examples
     - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 python -m kungfu.tensorflow.v1.examples
     - run: ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow
