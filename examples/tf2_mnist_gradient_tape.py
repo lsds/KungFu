@@ -2,10 +2,10 @@ import argparse
 
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
+from kungfu.tensorflow.initializer import broadcast_variables
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
-from kungfu.tensorflow.initializer import broadcast_variables
 
 parser = argparse.ArgumentParser(description='KungFu mnist example.')
 parser.add_argument('--kf-optimizer',

@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu.tensorflow.ops import (all_reduce, broadcast, counter,
-                                   get_init_checkpoint, resize_cluster,
+                                   _get_init_cluster_version_id,
                                    step_based_schedule)
 from kungfu.tensorflow.optimizers import ElasticSyncSGDOptimizer
 
@@ -15,7 +15,7 @@ def get_config():
 
 
 config, max_step = get_config()
-init_step = int(get_init_checkpoint())
+init_step = int(_get_init_cluster_version_id())
 
 
 def build_optimizer():

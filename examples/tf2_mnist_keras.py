@@ -16,11 +16,11 @@ import logging
 import kungfu as kf
 import tensorflow as tf
 from kungfu import current_cluster_size, current_rank
+from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
 from kungfu.tensorflow.ops import broadcast
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
-from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
 
 
 def load_dataset():

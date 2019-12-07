@@ -1,18 +1,19 @@
 from __future__ import print_function
+
 import argparse
-import keras
-from keras.datasets import mnist
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D
-from keras import backend as K
 import math
+
+import keras
 import tensorflow as tf
+from keras import backend as K
+from keras.datasets import mnist
+from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
+from keras.models import Sequential
 from kungfu import current_cluster_size, current_rank
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
-from kungfu.tensorflow.optimizers import (SynchronousAveragingOptimizer,
-                                          SynchronousSGDOptimizer,
-                                          PairAveragingOptimizer)
+from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
+                                          SynchronousAveragingOptimizer,
+                                          SynchronousSGDOptimizer)
 
 parser = argparse.ArgumentParser(description='Keras MNIST example.')
 parser.add_argument('--kf-optimizer',

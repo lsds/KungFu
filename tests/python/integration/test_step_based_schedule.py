@@ -1,6 +1,6 @@
 import tensorflow as tf
-from kungfu.tensorflow.ops import (counter, get_init_checkpoint, all_reduce,
-                                   broadcast, resize_cluster,
+from kungfu.tensorflow.ops import (counter, _get_init_cluster_version_id, all_reduce,
+                                   broadcast, _resize_cluster,
                                    step_based_schedule)
 
 
@@ -17,13 +17,13 @@ config, max_step = get_config()
 
 
 def build_ops():
-    init_step = int(get_init_checkpoint())
+    init_step = int(_get_init_cluster_version_id())
     print('init_step is %d' % (init_step))
 
     step = counter(init_step)
     schedule = step_based_schedule(config, step)
     ckpt_tensor = tf.as_string(step + 1)
-    resize_op = resize_cluster(ckpt_tensor, schedule)
+    resize_op = _resize_cluster(ckpt_tensor, schedule)
     return init_step, resize_op
 
 

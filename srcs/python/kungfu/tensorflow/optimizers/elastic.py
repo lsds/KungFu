@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.tensorflow.ops import counter, resize_cluster, step_based_schedule
+from kungfu.tensorflow.ops import _resize_cluster, counter, step_based_schedule
 
 from .core import _create_kungfu_optimizer
 from .sync_sgd import _SynchronousSGD
@@ -15,7 +15,7 @@ class _ElasticSynchronousSGD(_SynchronousSGD):
         step = counter(init_step)
         new_size = step_based_schedule(config, step)
         ckpt_tensor = tf.as_string(step + 1)
-        resize_op = resize_cluster(ckpt_tensor, new_size)
+        resize_op = _resize_cluster(ckpt_tensor, new_size)
         return resize_op
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
