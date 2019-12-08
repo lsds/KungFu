@@ -52,6 +52,16 @@ _model_sizes = {
 }
 
 
+def _config(method):
+    if method == 'HOROVOD':
+        config = tf.ConfigProto()
+        import horovod.tensorflow as hvd
+        config.gpu_options.allow_growth = True
+        config.gpu_options.visible_device_list = str(hvd.local_rank())
+        return config
+    return None
+
+
 def parse_args():
     p = argparse.ArgumentParser(description='Perf Benchmarks.')
     p.add_argument('--model',
@@ -82,7 +92,7 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
     warmup_steps = 5
     bench_steps = 10
 
-    with tf.Session() as sess:
+    with tf.Session(config=_config(method)) as sess:
         sess.run(init)
         for step in range(warmup_steps):
             sess.run(ys)
