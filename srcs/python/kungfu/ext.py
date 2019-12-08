@@ -31,3 +31,17 @@ def _get_other_ranks():
     self_rank = current_rank()
     ranks = list(range(current_cluster_size()))
     return [r for r in ranks if r != self_rank]
+
+
+def show_cuda_version():
+    if _has_gpu:
+        _call_method(_python_lib, 'kungfu_show_cuda_version', force=True)
+    else:
+        print('NCCL is NOT enabled')
+
+
+def show_nccl_version():
+    if _has_gpu:
+        _call_method(_python_lib, 'kungfu_show_nccl_version', force=True)
+    else:
+        print('NCCL is NOT enabled')
