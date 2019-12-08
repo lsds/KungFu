@@ -14,6 +14,8 @@ from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
                                    group_nccl_all_reduce)
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
 
+from . import model_sizes
+
 
 def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
@@ -43,9 +45,20 @@ _group_all_reduce_func = {
     'HOROVOD': hvd_group_all_reduce,
 }
 
+_model_sizes = {
+    'ResNet50': model_sizes.resnet50_imagenet,
+    'VGG16': model_sizes.vgg16_imagenet,
+    'BERT': model_sizes.bert,
+}
+
 
 def parse_args():
     p = argparse.ArgumentParser(description='Perf Benchmarks.')
+    p.add_argument('--model',
+                   type=str,
+                   default='ResNet50',
+                   help='ResNet50 | VGG16 | BERT')
+
     p.add_argument('--method',
                    type=str,
                    default='CPU',
@@ -91,13 +104,10 @@ def main(_):
 
     dtype = tf.float32
 
-    single_length = 3 * Mi // dtype.size
-    n = 200
+    sizes = _model_sizes[args.model]
 
     if args.fuse:
-        sizes = [single_length * n]
-    else:
-        sizes = [single_length] * n
+        sizes = [sum(sizes)]
 
     all_reduce_benchmark(sizes, dtype, args.method)
 
