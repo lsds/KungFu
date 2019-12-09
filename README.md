@@ -73,7 +73,8 @@ cd KungFu
 pip3 install --no-index -U .
 ```
 
-KungFu provides ``kungfu-run`` to launch a training program on a multi-GPU server.
+KungFu provides ``kungfu-run`` to launch a KungFu process on a multi-GPU server.
+In a cluster, we need to launch ``kungfu-run`` on each node.
 
 ```bash
 # Build and install kungfu-run in a given GOBIN directory.
@@ -98,7 +99,7 @@ Download the MNIST dataset ([script](scripts/download-mnist.sh)) first and then 
 kungfu-run -np 4 python3 examples/tf1_mnist_session.py --data-dir=./mnist
 ```
 
-You can run this example on two machines (each with 8 GPUs):
+You can run this example on two machines (assuming each with 8 GPUs) using the below command (NOTE: this command must be called on each machine):
 
 ```bash
 # Assume the machines have NIC eth0 and their IPs are 192.168.0.1 and 192.168.0.2.

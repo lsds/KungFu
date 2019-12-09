@@ -1,3 +1,4 @@
+import tensorflow as tf
 from kungfu._utils import map_maybe
 
 from ._tf_oplib import _op_lib
