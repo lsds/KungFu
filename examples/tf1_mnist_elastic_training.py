@@ -13,17 +13,37 @@ from tensorflow import keras
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
+flags = tf.app.flags
+flags.DEFINE_integer('batch_size', 500, 'Device batch size.')
+flags.DEFINE_string('epoch_schedule', '0:2,1:4,2:2,3:0', 'Piecewise epoch schedule for number of devices.')
+FLAGS = flags.FLAGS
 
 class ElasticTrainingHook(tf.train.SessionRunHook):
     def __init__(self, epoch_schedule, epoch_size, device_batch_size):
+        self._epoch_schedule = epoch_schedule
+        self._next_stage = 1
+
+        parsed_schedule = []
+        for stage in epoch_schedule.split(','):
+            items = stage.split(':')
+            parsed_schedule.append((int(items[0]), int(items[1])))
+
+        if len(parsed_schedule) > 1:
+            raise RuntimeError('Initial number of workers is not consistent')
+
+        initial_num_workers = parsed_schedule[0][1]
+        if initial_num_workers != current_cluster_size():
+            raise RuntimeError('Initial number of workers is not consistent')
+
         self._last_step, self._resize_step_schedule = self._parse_epoch_schedule(
-            epoch_schedule, epoch_size, device_batch_size)
+            parsed_schedule, epoch_size, device_batch_size)
         print(self._last_step)
         print(self._resize_step_schedule)
+        exit()
 
     def _parse_epoch_schedule(self, epoch_schedule, epoch_size,
                               device_batch_size):
-        """Translate the epoch schedule into a step schedule
+        """Translate an epoch schedule into a step schedule
 
         Example:
         epoch_size = 20
@@ -47,28 +67,15 @@ class ElasticTrainingHook(tf.train.SessionRunHook):
 
         return resize_step, resize_step_schedule[:-1]
 
-        def begin(self):
-            self._global_step_tensor = tf.train.get_or_create_global_step()
-            if self._global_step_tensor is None:
-                raise RuntimeError(
-                    "Global step should be created to use ElasticTrainingHook."
-                )
-
         def before_run(self, run_context):
-            return tf.estimator.SessionRunArgs(self._global_step_tensor)
+            if self._global_step
 
         def after_run(self, run_context, run_values):
-            global_step = run_values.results + 1
-            if global_step >= self._last_step:
+            self._global_step += 1
+            if self._global_step >= self._last_step:
                 print("ElasticTrainingHook: global step = %s" %
-                      str(global_step))
+                      str(self._global_step))
                 run_context.request_stop()
-
-
-flags = tf.app.flags
-flags.DEFINE_integer('batch_size', 512, 'Batch size.')
-flags.DEFINE_float('num_epochs', 1.0, 'Num of batches to train (epochs).')
-FLAGS = flags.FLAGS
 
 
 def cnn_model_fn(features, labels, mode):
@@ -218,8 +225,7 @@ def main(unused_argv):
     # initialization of all workers when training is started with random weights or
     # restored from a checkpoint.
     bcast_hook = BroadcastGlobalVariablesHook()
-    elastic_hook = ElasticTrainingHook(
-        FLAGS.num_epochs, FLAGS.batch_size * current_cluster_size())
+    elastic_hook = ElasticTrainingHook(FLAGS.epoch_schedule, 60000, FLAGS.batch_size)
 
     # Train the model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
