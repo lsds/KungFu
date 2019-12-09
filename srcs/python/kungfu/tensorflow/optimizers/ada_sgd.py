@@ -4,9 +4,9 @@ from kungfu.tensorflow.compat import _tf_assign, _tf_hook
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (counter, current_cluster_size,
                                    group_all_reduce)
-
-from kungfu.tensorflow.optimizers.core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
-                   _KungFuAlgorithm)
+from kungfu.tensorflow.optimizers.core import (_create_kungfu_keras_optimizer,
+                                               _create_kungfu_optimizer,
+                                               _KungFuAlgorithm)
 
 
 def AdaptiveSGDOptimizer(optimizer,
@@ -60,17 +60,16 @@ class _AdaptiveSGD(_KungFuAlgorithm):
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         g, v = list(zip(*grads_and_vars))
 
-        return tf.cond(
-                tf.math.less(self._global_step, self._change_step),
-                lambda: self._sma(apply_grads_func, g, v, **kwargs),
-                lambda: self._ssgd(apply_grads_func, g, v, **kwargs))
+        return tf.cond(tf.math.less(self._global_step, self._change_step),
+                       lambda: self._sma(apply_grads_func, g, v, **kwargs),
+                       lambda: self._ssgd(apply_grads_func, g, v, **kwargs))
 
 
 class AdaSGDHook(_tf_hook):
     def __init__(self, change_step):
         super(AdaSGDHook, self).__init__()
         self._change_step = change_step
-    
+
     def begin(self):
         from kungfu.tensorflow.ops import broadcast
         self._ops = [tf.assign(v, broadcast(v)) for v in tf.global_variables()]

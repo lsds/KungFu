@@ -1,5 +1,6 @@
-import keras
 from kungfu.tensorflow.initializer import _keras_callback_on_batch_end
+
+import keras
 
 
 class _KerasBroadcastGlobalVariablesCallback(keras.callbacks.Callback):
