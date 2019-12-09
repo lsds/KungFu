@@ -77,6 +77,24 @@ int kungfu_world::Barrier(const DoneCallback &done)
     return GoKungfuBarrier(new CallbackWrapper(done));
 }
 
+int kungfu_world::Consensus(const void *buf, int count, KungFu_Datatype dtype,
+                            bool *ok, const char *name)
+{
+    return GoKungfuConsensus(const_cast<void *>(buf), GoInt(count), dtype,
+                             reinterpret_cast<char *>(ok),
+                             const_cast<char *>(name), nullptr);
+}
+
+int kungfu_world::Consensus(const void *buf, int count, KungFu_Datatype dtype,
+                            bool *ok, const char *name,
+                            const DoneCallback &done)
+{
+    return GoKungfuConsensus(const_cast<void *>(buf), GoInt(count), dtype,
+                             reinterpret_cast<char *>(ok),
+                             const_cast<char *>(name),
+                             new CallbackWrapper(done));
+}
+
 int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
                           KungFu_Datatype dtype)
 {
@@ -198,9 +216,11 @@ int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
 }
 
 // control APIs
-int kungfu_world::ResizeCluster(const char *ckpt, int new_size, bool *keep)
+int kungfu_world::ResizeCluster(const char *ckpt, int new_size, bool *changed,
+                                bool *keep)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
     return GoKungfuResizeCluster(const_cast<char *>(ckpt), GoInt(new_size),
+                                 reinterpret_cast<char *>(changed),
                                  reinterpret_cast<char *>(keep));
 }

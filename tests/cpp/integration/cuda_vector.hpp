@@ -4,21 +4,21 @@
 
 #include <cuda_runtime.h>
 
-#include "cuda_helper.hpp"
+#include <kungfu/utils/cuda_helper.hpp>
 
 template <typename T> struct cuda_mem_allocator {
     T *operator()(int count)
     {
         T *deviceMem;
         // FIXME: make it work
-        // CHECK(cuda_checker) << cudaMalloc<T>(&deviceMem, count);
-        CHECK(cuda_checker) << cudaMalloc(&deviceMem, count * sizeof(T));
+        // KUNGFU_CHECK(cuda_checker) << cudaMalloc<T>(&deviceMem, count);
+        KUNGFU_CHECK(cuda_checker) << cudaMalloc(&deviceMem, count * sizeof(T));
         return deviceMem;
     }
 };
 
 struct cuda_mem_deleter {
-    void operator()(void *ptr) { CHECK(cuda_checker) << cudaFree(ptr); }
+    void operator()(void *ptr) { KUNGFU_CHECK(cuda_checker) << cudaFree(ptr); }
 };
 
 template <typename T> class cuda_vector
@@ -36,13 +36,13 @@ template <typename T> class cuda_vector
 
     void from_host(const T *buffer)
     {
-        cudaMemcpy(data_.get(), buffer, count * sizeof(T),
-                   cudaMemcpyHostToDevice);
+        KUNGFU_CHECK(cuda_checker) << cudaMemcpy(
+            data_.get(), buffer, count * sizeof(T), cudaMemcpyHostToDevice);
     }
 
     void to_host(T *buffer)
     {
-        cudaMemcpy(buffer, data_.get(), count * sizeof(T),
-                   cudaMemcpyDeviceToHost);
+        KUNGFU_CHECK(cuda_checker) << cudaMemcpy(
+            buffer, data_.get(), count * sizeof(T), cudaMemcpyDeviceToHost);
     }
 };

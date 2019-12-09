@@ -7,13 +7,22 @@ jobs:
     # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
     runs-on: ubuntu-18.04
 
+    # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/using-environment-variables
+    env:
+      PYTHONWARNINGS: 'ignore'
+      TF_CPP_MIN_LOG_LEVEL: '2'
+      # PATH: $(go env GOPATH)/bin:$PATH # FIXME: make it work
+
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
         python-version: 3.6
-    - run: nproc
+
+    - run: |
+        nproc
+        echo $PATH
 
     # C++ tests
     - run: ./configure --build-tests --build-gtest
@@ -30,14 +39,20 @@ jobs:
           ./bin/kungfu-test-monitor -p 10ms -d 100ms
     - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 ./bin/kungfu-test-public-apis
 
-    # Python tests
+    # Python unit tests
     - run: pip install -r tests/requirements.txt
     - run: pip install --no-index .
+    - run: pytest ./tests/python/unit
+
+    # Python integration tests
+    - run: python -m kungfu.info
     - run: python -m kungfu.tensorflow.v1.examples
     - run: ./bin/kungfu-run -q -H 127.0.0.1:4 -np 4 python -m kungfu.tensorflow.v1.examples
     - run: ./scripts/tests/run-python-tests.sh # FIXME: test it without tensorflow
     - run: ./scripts/tests/run-op-tests.sh
     - run: ./benchmarks/adaptation/bench-adaptation.sh # FIXME: make it a test
+    - run: ./bin/kungfu-run -q -H 127.0.0.1:8 -w -np 1 python ./tests/python/integration/test_step_based_schedule.py
+    - run: ./bin/kungfu-run -q -H 127.0.0.1:8 -w -np 1 python ./tests/python/integration/test_elastic_optimizer.py
     - run: ./scripts/tests/run-optimizer-tests.sh
     - run: |
         DATA_DIR=$HOME/var/data \

@@ -11,10 +11,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lsds/KungFu/srcs/go/iostream"
 	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
-	"github.com/lsds/KungFu/srcs/go/xterm"
+	"github.com/lsds/KungFu/srcs/go/utils/iostream"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 var (
@@ -44,13 +44,14 @@ func (r *Runner) SetVerbose(verbose bool) {
 	r.verboseLog = verbose
 }
 
-func (r *Runner) SetLogPrefix(prefix string) {
+func (r *Runner) SetLogFilePrefix(prefix string) {
 	r.logFilePrefix = prefix
 }
 
 func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 	var wg sync.WaitGroup
 	if stdout, err := cmd.StdoutPipe(); err == nil {
+		defer stdout.Close()
 		if r.verboseLog {
 			wg.Add(1)
 			go func() { r.streamPipe("stdout", stdout); wg.Done() }()
@@ -59,6 +60,7 @@ func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 		return err
 	}
 	if stderr, err := cmd.StderrPipe(); err == nil {
+		defer stderr.Close()
 		if r.verboseLog {
 			wg.Add(1)
 			go func() { r.streamPipe("stderr", stderr); wg.Done() }()
@@ -131,11 +133,11 @@ func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
 				logDir:        proc.LogDir,
 			}
 			if err := r.Run(ctx, proc.Cmd()); err != nil {
-				log.Errorf("%s #%s exited with error: %v", xterm.Red.S("[E]"), proc.Name, err)
+				log.Errorf("#%s exited with error: %v", proc.Name, err)
 				atomic.AddInt32(&fail, 1)
 				cancel()
 			} else {
-				log.Infof("%s #%s finished successfully", xterm.Green.S("[I]"), proc.Name)
+				log.Infof("#%s finished successfully", proc.Name)
 			}
 			wg.Done()
 		}(i, proc)

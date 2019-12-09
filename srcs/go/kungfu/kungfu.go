@@ -155,47 +155,22 @@ func par(ps plan.PeerList, f func(plan.PeerID) error) error {
 }
 
 func (kf *Kungfu) consensus(bs []byte) bool {
-	n := len(bs)
 	sess := kf.CurrentSession()
-	{
-		x := kb.NewVector(1, kb.I32)
-		y := kb.NewVector(1, kb.I32)
-		z := kb.NewVector(1, kb.I32)
-		x.AsI32()[0] = int32(n)
-		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:len:min"}
-		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max"}
-		sess.AllReduce(w1)
-		sess.AllReduce(w2)
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
-			return false
-		}
+	ok, err := sess.BytesConsensus(bs, "")
+	if err != nil {
+		utils.ExitErr(err)
 	}
-	if n == 0 {
-		return true
-	}
-	{
-		x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
-		y := kb.NewVector(n, kb.U8)
-		z := kb.NewVector(n, kb.U8)
-		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min"}
-		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max"}
-		sess.AllReduce(w1)
-		sess.AllReduce(w2)
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
-			return false
-		}
-	}
-	return true
+	return ok
 }
 
-func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
+func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
 	if peers.Eq(kf.currentPeers) {
 		log.Debugf("ingore unchanged proposal")
-		return true
+		return false, true
 	}
 	if digest := peers.Bytes(); !kf.consensus(digest) {
-		log.Errorf("diverge proposal detected!")
-		return true
+		log.Errorf("diverge proposal detected! I proposed %s", peers)
+		return false, true
 	}
 	{
 		stage := run.Stage{Checkpoint: ckpt, Cluster: peers}
@@ -213,17 +188,18 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) bool {
 		kf.updated = false
 	}()
 	_, keep := peers.Lookup(kf.self)
-	return keep
+	return true, keep
 }
 
-func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, error) {
-	log.Debugf("resize cluster to %d at %q", newSize, ckpt)
+func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, bool, error) {
+	log.Debugf("resize cluster to %d with checkpoint %q", newSize, ckpt)
 	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
 	if err != nil {
-		return true, err
+		return false, true, err
 	}
-	if keep := kf.propose(ckpt, peers); !keep {
-		return false, nil
+	changed, keep := kf.propose(ckpt, peers)
+	if keep {
+		kf.Update()
 	}
-	return kf.Update(), nil
+	return changed, keep, nil
 }

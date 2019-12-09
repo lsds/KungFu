@@ -72,6 +72,48 @@ func (sess *session) barrier() error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
+func (sess *session) Consensus(w Workspace) error {
+	ok, err := sess.BytesConsensus(w.SendBuf.Data, w.Name)
+	if err != nil {
+		return err
+	}
+	w.RecvBuf.AsI8()[0] = boolToInt8(ok)
+	return nil
+}
+
+func (sess *session) BytesConsensus(bs []byte, name string) (bool, error) {
+	n := len(bs)
+	{
+		x := kb.NewVector(1, kb.I32)
+		y := kb.NewVector(1, kb.I32)
+		z := kb.NewVector(1, kb.I32)
+		x.AsI32()[0] = int32(n)
+		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:len:min:" + name}
+		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max:" + name}
+		sess.AllReduce(w1)
+		sess.AllReduce(w2)
+		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
+			return false, nil
+		}
+	}
+	if n == 0 {
+		return true, nil
+	}
+	{
+		x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
+		y := kb.NewVector(n, kb.U8)
+		z := kb.NewVector(n, kb.U8)
+		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min:" + name}
+		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max:" + name}
+		sess.AllReduce(w1)
+		sess.AllReduce(w2)
+		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func (sess *session) AllReduce(w Workspace) error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
@@ -264,4 +306,11 @@ func mergeErrors(errs []error, hint string) error {
 		return nil
 	}
 	return fmt.Errorf("%s failed with %s: %s", hint, utils.Pluralize(failed, "error", "errors"), msg)
+}
+
+func boolToInt8(v bool) int8 {
+	if v {
+		return 1
+	}
+	return 0
 }

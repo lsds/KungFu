@@ -5,24 +5,43 @@ namespace tensorflow
 REGISTER_KUNGFU_OP(ResizeCluster)
     .Input("checkpoint: string")
     .Input("new_cluster_size: int32")
+    // indicats if cluster is changed
+    .Output("changed: bool")
     // indicats if self is still in the new cluster
-    .Output("keep: bool");
+    .Output("keep: bool")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->Scalar());
+        c->set_output(1, c->Scalar());
+        return Status::OK();
+    });
 
-class ResizeCluster : public AsyncOpKernel
+class ResizeCluster : public OpKernel
 {
-    using AsyncOpKernel::AsyncOpKernel;
+    bool debug_;
 
   public:
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    ResizeCluster(OpKernelConstruction *context) : OpKernel(context)
+    {
+        context->GetAttr("debug", &debug_);
+    }
+
+    void Compute(OpKernelContext *context) override
     {
         const std::string &chpt = context->input(0).scalar<std::string>()();
         const int32_t new_size  = context->input(1).scalar<int32_t>()();
-        Tensor *keep            = nullptr;
+        if (debug_) {
+            LOG(WARNING) << "ResizeCluster::Compute called with chpt: " << chpt
+                         << " new size: " << new_size;
+        }
+        Tensor *changed = nullptr;
+        OP_REQUIRES_OK(
+            context, context->allocate_output(0, MakeTensorShape(), &changed));
+        Tensor *keep = nullptr;
         OP_REQUIRES_OK(context,
-                       context->allocate_output(0, MakeTensorShape(), &keep));
+                       context->allocate_output(1, MakeTensorShape(), &keep));
         _kungfu_world->ResizeCluster(chpt.c_str(), new_size,
+                                     changed->scalar<bool>().data(),
                                      keep->scalar<bool>().data());
-        done();
     }
 };
 

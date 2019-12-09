@@ -10,11 +10,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lsds/KungFu/srcs/go/iostream"
 	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
-	"github.com/lsds/KungFu/srcs/go/ssh"
-	"github.com/lsds/KungFu/srcs/go/xterm"
+	"github.com/lsds/KungFu/srcs/go/utils/iostream"
+	"github.com/lsds/KungFu/srcs/go/utils/ssh"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bool) ([]*Outputs, error) {

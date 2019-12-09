@@ -14,8 +14,10 @@ def _load_clib(name):
     return cdll.LoadLibrary(filename)
 
 
-def _call_method(lib, name):
+def _call_method(lib, name, force=False):
     if hasattr(lib, name):
         getattr(lib, name)()
         return True
+    if force:
+        raise RuntimeError('failed to call %s' % name)
     return False

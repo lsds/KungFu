@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <kungfu.h>
-#include <kungfu/gpu_collective.hpp>
+#include <kungfu/nccl/gpu_collective.hpp>
 
 extern "C" {
 extern void kungfu_python_init();

@@ -67,6 +67,11 @@ class kungfu_world
     int Barrier();
     int Barrier(const DoneCallback &done);
 
+    int Consensus(const void *buf, int count, KungFu_Datatype dtype, bool *ok,
+                  const char *name);
+    int Consensus(const void *buf, int count, KungFu_Datatype dtype, bool *ok,
+                  const char *name, const DoneCallback &done);
+
     // https://www.open-mpi.org/doc/v4.0/man3/MPI_Reduce.3.php
     int Reduce(const void *sendbuf, void *recvbuf, int count,
                KungFu_Datatype dtype, KungFu_Op op, const char *name,
@@ -121,7 +126,8 @@ class kungfu_world
     int GetPeerLatencies(float *recvbuf, int recv_count);
 
     // control APIs
-    int ResizeCluster(const char *ckpt, int new_size, bool *keep);
+    int ResizeCluster(const char *ckpt, int new_size, bool *changed,
+                      bool *keep);
 };
 
 #endif

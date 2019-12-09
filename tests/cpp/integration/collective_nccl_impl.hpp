@@ -7,9 +7,9 @@
 #include <cuda_runtime.h>
 #include <nccl.h>
 
-#include "cuda_helper.hpp"
-#include "error_checker.hpp"
 #include "testing.hpp"
+#include <kungfu/utils/cuda_helper.hpp>
+#include <kungfu/utils/error_checker.hpp>
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
@@ -40,13 +40,14 @@ class nccl_collective
     {
         bool using_kungfu = not safe_getenv("KUNGFU_TEST_CLUSTER_SIZE").empty();
         if (using_kungfu) {
-            CHECK(cuda_checker) << cudaSetDevice(0);
+            KUNGFU_CHECK(cuda_checker) << cudaSetDevice(0);
             printf("cuda device selected to %d\n", 0);
         } else {
-            CHECK(cuda_checker) << cudaSetDevice(rank);
+            KUNGFU_CHECK(cuda_checker) << cudaSetDevice(rank);
             printf("cuda device selected to %d\n", rank);
         }
-        CHECK(nccl_checker) << ncclCommInitRank(&comm, cluster_size, id, rank);
+        KUNGFU_CHECK(nccl_checker)
+            << ncclCommInitRank(&comm, cluster_size, id, rank);
         printf("nccl inited: %d/%d.\n", rank, cluster_size);
     }
 
@@ -67,12 +68,12 @@ class nccl_collective
                     const char * /* FIXME: ignored */)
     {
         cudaStream_t stream;
-        CHECK(cuda_checker) << cudaStreamCreate(&stream);
-        CHECK(nccl_checker)
+        KUNGFU_CHECK(cuda_checker) << cudaStreamCreate(&stream);
+        KUNGFU_CHECK(nccl_checker)
             << ncclAllReduce(send_buf, recv_buf, count, nccl_type<T>::value(),
                              ncclSum, comm, stream);
-        CHECK(cuda_checker) << cudaStreamSynchronize(stream);
-        CHECK(cuda_checker) << cudaStreamDestroy(stream);
+        KUNGFU_CHECK(cuda_checker) << cudaStreamSynchronize(stream);
+        KUNGFU_CHECK(cuda_checker) << cudaStreamDestroy(stream);
     }
 
     template <typename T>

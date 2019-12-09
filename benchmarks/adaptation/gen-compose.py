@@ -47,6 +47,7 @@ def gen_compose(np, n_nodes, node_cap, tag, user_command):
     command = [
         "kungfu-run",
         "-timeout=1m",
+        "-q",
         "-H",
         H,
         # "-self=127.0.0.1",
@@ -72,7 +73,7 @@ def main():
     tag = 'kungfu-adaptation-benchmark:snapshot'
     user_command = [
         'python3',
-        'benchmarks/adaptive/adaptive_trainer.py',
+        'benchmarks/adaptation/adaptive_trainer.py',
     ]
     gen_compose(np, n_nodes, node_cap, tag, user_command)
 

@@ -8,16 +8,6 @@ def test_barrier():
         sess.run(barrier())
 
 
-def test_counter():
-    c = counter()
-    with tf.Session() as sess:
-        for i in range(10):
-            n = sess.run(c)
-            print(n)
-            if n != i:
-                raise RuntimeError('counter failed!')
-
-
 def test_group_all_reduce():
     sizes = [i % 5 for i in range(10)]
     xs = [tf.Variable(tf.ones([n], tf.int32)) if n else None for n in sizes]
@@ -49,13 +39,31 @@ def test_save_and_request():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
-        for _ in range(3):
+        for i in range(3):
             sess.run([inc_op, update_op])
             sess.run(save_op)
             sess.run(barrier())
             v = sess.run(y)
-            print(v)
+            assert v[0] == i + 1
         sess.run(barrier())
+
+
+def test_consensus():
+    from kungfu import current_cluster_size, current_rank
+    from kungfu.tensorflow.ops import consensus
+
+    np = current_cluster_size()
+    rank = current_rank()
+
+    x = tf.Variable(rank, dtype=tf.int32)
+    consensus_check = consensus(x)
+
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+        v = sess.run(consensus_check)
+
+        assert v == (np == 1)
 
 
 # TODO: more tests
@@ -63,10 +71,10 @@ def test_save_and_request():
 
 def test_all():
     test_barrier()
-    test_counter()
     test_group_all_reduce()
     test_peer_info()
     test_save_and_request()
+    test_consensus()
 
 
 test_all()

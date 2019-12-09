@@ -17,29 +17,54 @@ class Barrier : public AsyncOpKernel
 
 REGISTER_KUNGFU_KERNEL_BUILDER(Barrier, DEVICE_CPU);
 
+REGISTER_KUNGFU_OP(Consensus)
+    .Attr("strong: bool = true")  // TODO: support weak check
+    .Attr("tensor_name: string")
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Input("input: T")
+    .Output("output: bool");
+
+class Consensus : public AsyncOpKernel
+{
+    std::string tensor_name_;
+
+  public:
+    explicit Consensus(OpKernelConstruction *context) : AsyncOpKernel(context)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("tensor_name", &tensor_name_));
+        OP_REQUIRES(context, !tensor_name_.empty(),
+                    errors::InvalidArgument("tensor_name is empty"));
+    }
+
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        const Tensor &input = context->input(0);
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, MakeTensorShape(), &output),
+            done);
+        _kungfu_world->Consensus(
+            input.tensor_data().data(), input.NumElements(),
+            to_kungfu_type(input.dtype()),
+            reinterpret_cast<bool *>(output->scalar<bool>().data()),
+            tensor_name_.c_str(), done);
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(Consensus, DEVICE_CPU);
+
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
 // and reduce (by taking sum) with the peers, and finally returns a tensor with
 // exactly the same shape.
 REGISTER_KUNGFU_OP(AllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
-    .Attr("input_tensor_name: string")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
 
 class AllReduce : public AsyncOpKernel
 {
-    std::string input_tensor_name_;
-
-  public:
-    explicit AllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
-    {
-        OP_REQUIRES_OK(context, context->GetAttr("input_tensor_name",
-                                                 &input_tensor_name_));
-        OP_REQUIRES(
-            context, input_tensor_name_.size() >= 0,
-            errors::InvalidArgument("input_tensor_name must not be empty"));
-    }
+    using AsyncOpKernel::AsyncOpKernel;
 
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -52,7 +77,7 @@ class AllReduce : public AsyncOpKernel
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            input_tensor_name_.c_str(), done);
+            name().c_str(), done);
     }
 };
 
