@@ -6,6 +6,7 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import time
 
@@ -62,12 +63,17 @@ _model_sizes = {
 
 
 def _config(method):
-    # if method != 'HOROVOD':
-    #     return None
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     local_rank = get_local_rank(method)
-    config.gpu_options.visible_device_list = str(local_rank)
+    if method == 'HOROVOD':
+        config.gpu_options.visible_device_list = str(local_rank)
+    else:
+        cuda_visible_devices = os.getenv('CUDA_VISIBLE_DEVICES')
+        if cuda_visible_devices:
+            config.gpu_options.visible_device_list = str(0)
+        else:
+            config.gpu_options.visible_device_list = str(local_rank)
     return config
 
 
