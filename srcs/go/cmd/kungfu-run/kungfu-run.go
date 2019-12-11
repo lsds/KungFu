@@ -70,13 +70,14 @@ func main() {
 		log.Infof("-P resolved as %s", peers)
 	}
 	j := job.Job{
-		Strategy:  f.Strategy,
-		Parent:    parent,
-		HostList:  hl,
-		PortRange: f.PortRange,
-		Prog:      f.Prog,
-		Args:      f.Args,
-		LogDir:    f.LogDir,
+		Strategy:    f.Strategy,
+		Parent:      parent,
+		HostList:    hl,
+		PortRange:   f.PortRange,
+		Prog:        f.Prog,
+		Args:        f.Args,
+		LogDir:      f.LogDir,
+		AllowNVLink: f.AllowNVLink,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	trap(cancel)

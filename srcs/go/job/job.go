@@ -37,7 +37,7 @@ func (j Job) NewProc(peer plan.PeerID, localRank int, checkpoint string, pl plan
 	cudaIdx := strconv.Itoa(getCudaIndex(localRank))
 	envs[`KUNGFU_`+cudaVisibleDevicesKey] = cudaIdx
 	if j.AllowNVLink {
-		log.Warnf("Please set `config.gpu_options.visible_device_list = str(rank)`")
+		log.Warnf("Please set `config.gpu_options.visible_device_list = str(local_rank)`")
 	} else {
 		envs[cudaVisibleDevicesKey] = cudaIdx
 	}

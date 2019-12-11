@@ -1,6 +1,7 @@
 package job
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -30,18 +31,27 @@ func getCudaIndex(localRank int) int {
 	return ids[localRank]
 }
 
+var errInvalidCudaVisibleDevices = errors.New("invalid " + cudaVisibleDevicesKey)
+
 func parseCudaVisibleDevices(val string) ([]int, error) {
 	if len(val) == 0 {
 		return nil, nil
 	}
 	parts := strings.Split(val, ",")
+	set := make(map[int]struct{})
 	var ids []int
 	for _, p := range parts {
 		n, err := strconv.Atoi(p)
 		if err != nil {
 			return nil, err
 		}
-		// FIXME: check duplication, check range
+		if n < 0 {
+			continue
+		}
+		if _, ok := set[n]; ok {
+			return nil, errInvalidCudaVisibleDevices
+		}
+		set[n] = struct{}{}
 		ids = append(ids, n)
 	}
 	return ids, nil

@@ -94,20 +94,52 @@ class gpu_collective_nccl : public gpu_collective
     }
 };
 
+std::vector<std::string> split(const std::string &s, char sep)
+{
+    std::vector<std::string> parts;
+    std::string part;
+    std::istringstream ss(s);
+    while (std::getline(ss, part, sep)) {
+        if (!part.empty()) { parts.push_back(part); }
+    }
+    return parts;
+}
+
+std::vector<int> parse_cuda_visible_devices(const std::string &val)
+{
+    const auto parts = split(val, ',');
+    std::vector<int> devs;
+    for (const auto &p : parts) {
+        const int idx = std::stoi(p);
+        if (idx >= 0) { dev.push_back(idx); }
+    }
+    return devs;
+}
+
+void setDevice()
+{
+    int dev = 0;
+    if (const char *ptr = std::getenv("KUNGFU_CUDA_VISIBLE_DEVICES");
+        ptr != nullptr) {
+        dev = std::stoi(ptr);
+    }
+    if (const char *ptr = std::getenv("CUDA_VISIBLE_DEVICES"); ptr != nullptr) {
+        const auto devs = parse_cuda_visible_devices(ptr);
+        int idx         = std::find(devs.begin(), devs.end());
+        if (idx == devs.size()) { idx = -1; }
+        KUNGFU_CHECK(cuda_checker) << cudaSetDevice(idx);
+    } else {
+        KUNGFU_CHECK(cuda_checker) << cudaSetDevice(dev);
+    }
+}
+
 gpu_collective *new_gpu_collective(kungfu_world &world)
 {
     ncclUniqueId id;
     const int root = 0;
     const int rank = world.Rank();
 
-    {
-        int dev = 0;
-        if (const char *ptr = std::getenv("KUNGFU_CUDA_VISIBLE_DEVICES");
-            ptr != nullptr) {
-            dev = std::stoi(ptr);
-        }
-        KUNGFU_CHECK(cuda_checker) << cudaSetDevice(dev);
-    }
+    setDevice();
 
     if (rank == root) { KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id); }
     world.Broadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
