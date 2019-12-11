@@ -7,12 +7,19 @@ ADD_DEFINITIONS(-Wfatal-errors)
 ADD_DEFINITIONS(-Wall)
 ADD_COMPILE_OPTIONS(-fPIC)
 
+SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+
 OPTION(KUNGFU_BUILD_TESTS "Build tests." OFF)
 OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
 OPTION(KUNGFU_BUILD_TOOLS "Build kungfu tools." OFF)
 OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
+OPTION(KUNGFU_ENABLE_TRACE "Enable trace." OFF)
 
 INCLUDE(cmake/go.cmake)
+IF(KUNGFU_ENABLE_TRACE)
+    ADD_DEFINITIONS(-DKUNGFU_ENABLE_TRACE)
+    FIND_PACKAGE(stdtracer REQUIRED)
+ENDIF()
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/srcs/cpp/include)
 LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH})
@@ -48,12 +55,13 @@ IF(KUNGFU_BUILD_TF_OPS)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
 
     IF(KUNGFU_ENABLE_NCCL)
-        TARGET_SOURCES(kungfu_python
-                       PRIVATE
-                       srcs/cpp/src/python/init_gpu.cpp
+        TARGET_SOURCES(kungfu_python PRIVATE srcs/cpp/src/python/init_gpu.cpp
                        srcs/cpp/src/nccl/gpu_collective.cpp)
         USE_NCCL(kungfu_python)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${GPU_OP_SRCS})
+    ENDIF()
+    IF(KUNGFU_ENABLE_TRACE)
+        USE_STDTRACER(kungfu_python)
     ENDIF()
 
     SET_TF_COMPILE_OPTION(kungfu_python)
@@ -62,16 +70,13 @@ ENDIF()
 IF(KUNGFU_BUILD_TOOLS)
     FUNCTION(ADD_GO_BINARY target)
         FILE(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-        ADD_CUSTOM_TARGET(${target} ALL
-                          COMMAND env #
-                                  GOBIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-                                  CGO_CFLAGS=${CGO_CFLAGS}
-                                  CGO_LDFLAGS=${CGO_LDFLAGS}
-                                  CGO_CXXFLAGS=${CGO_CXXFLAGS}
-                                  ${GO}
-                                  install
-                                  -v
-                                  ${ARGN})
+        ADD_CUSTOM_TARGET(
+            ${target} ALL
+            COMMAND
+                env #
+                GOBIN=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+                CGO_CFLAGS=${CGO_CFLAGS} CGO_LDFLAGS=${CGO_LDFLAGS}
+                CGO_CXXFLAGS=${CGO_CXXFLAGS} ${GO} install -v ${ARGN})
     ENDFUNCTION()
 
     FUNCTION(ADD_KUNGFU_GO_BINARY target)

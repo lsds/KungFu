@@ -5,9 +5,8 @@
 #include <mutex>
 #include <string>
 
-#include "trace.hpp"
-
 #include <kungfu.h>
+#include <kungfu/utils/trace.hpp>
 
 class Waiter
 {

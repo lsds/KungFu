@@ -100,6 +100,6 @@ func trap(cancel context.CancelFunc) {
 		sig := <-c
 		log.Warnf("%s trapped", sig)
 		cancel()
-		os.Exit(1)
+		log.Debugf("cancelled")
 	}()
 }
