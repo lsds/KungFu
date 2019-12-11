@@ -45,7 +45,8 @@ ENDIF()
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(cmake/tf-op.cmake)
 
-    ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/python/init.cpp)
+    ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/python/init.cpp
+                                     srcs/cpp/src/python/cuda.cpp)
     TARGET_LINK_LIBRARIES(kungfu_python kungfu)
 
     FILE(GLOB CPU_OP_SRCS

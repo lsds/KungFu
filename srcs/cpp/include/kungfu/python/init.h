@@ -14,6 +14,8 @@ extern void kungfu_python_init_gpu();
 extern void kungfu_python_finialize();
 extern void kungfu_python_finialize_gpu();
 
+extern int kungfu_get_cuda_index();
+
 // helpers APIs to access kungfu without tensorflow operators
 // FIXME: don't mix with tensorflow binding
 extern int kungfu_rank();          // get current rank
