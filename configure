@@ -25,6 +25,9 @@ fi
 parse_args() {
     for i in "$@"; do
         case $i in
+        --prefix=*)
+            PREFIX="${i#*=}"
+            ;;
         --build-tensorflow-ops)
             BUILD_TENSORFLOW_OPS=1
             ;;
@@ -95,6 +98,9 @@ add_cmake_flags() {
     add_cmake_flag KUNGFU_BUILD_TF_OPS ${BUILD_TENSORFLOW_OPS}
     add_cmake_flag KUNGFU_BUILD_TOOLS ${BUILD_TOOLS}
 
+    if [ ! -z ${PREFIX} ]; then
+        add_cmake_flag CMAKE_INSTALL_PREFIX ${PREFIX}
+    fi
     if [ ! -z ${WITH_MPI} ]; then
         add_cmake_flag MPI_HOME ${WITH_MPI}
     fi

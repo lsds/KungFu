@@ -57,7 +57,8 @@ class NcclAllReduce : public AsyncOpKernel
             [stream = context->op_device_context()->stream()]() {
                 stream->BlockHostUntilDone();
             },
-            input.tensor_data().data(), (void *)(output->tensor_data().data()),
+            input.tensor_data().data(),
+            const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
             input_tensor_name_.c_str(), done);
     }

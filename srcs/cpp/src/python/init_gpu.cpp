@@ -7,6 +7,11 @@ void kungfu_python_init_gpu()
         new kungfu::tensorflow::world<kungfu::tensorflow::gpu>);
 }
 
+void kungfu_python_finialize_gpu()
+{
+    kungfu::tensorflow::_world_gpu.reset(nullptr);
+}
+
 namespace kungfu
 {
 namespace tensorflow
@@ -36,6 +41,5 @@ int world<gpu>::AllReduce(DoneCallback ready, const void *sendbuf,
     });
     return 0;
 }
-
 }  // namespace tensorflow
 }  // namespace kungfu

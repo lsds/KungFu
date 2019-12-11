@@ -10,8 +10,9 @@ import sys
 import time
 
 import tensorflow as tf
-from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
-                                   group_nccl_all_reduce)
+from kungfu.ext import _finalize_python_lib
+from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
+                                   group_all_reduce, group_nccl_all_reduce)
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
 
 from . import model_sizes
@@ -39,6 +40,14 @@ def get_cluster_size(method):
         return current_cluster_size()
 
 
+def get_local_rank(method):
+    if method == 'HOROVOD':
+        import horovod.tensorflow as hvd
+        return hvd.local_rank()
+    else:
+        return current_rank()  #  FIXME: use add current_local_rank()
+
+
 _group_all_reduce_func = {
     'CPU': group_all_reduce,
     'NCCL': group_nccl_all_reduce,
@@ -53,13 +62,13 @@ _model_sizes = {
 
 
 def _config(method):
-    if method == 'HOROVOD':
-        config = tf.ConfigProto()
-        import horovod.tensorflow as hvd
-        config.gpu_options.allow_growth = True
-        config.gpu_options.visible_device_list = str(hvd.local_rank())
-        return config
-    return None
+    # if method != 'HOROVOD':
+    #     return None
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    local_rank = get_local_rank(method)
+    config.gpu_options.visible_device_list = str(local_rank)
+    return config
 
 
 def parse_args():
@@ -111,15 +120,12 @@ def main(_):
     args = parse_args()
     if args.method == 'HOROVOD':
         hvd_init()
-
     dtype = tf.float32
-
     sizes = _model_sizes[args.model]
-
     if args.fuse:
         sizes = [sum(sizes)]
-
     all_reduce_benchmark(sizes, dtype, args.method)
+    _finalize_python_lib()
 
 
 if __name__ == "__main__":

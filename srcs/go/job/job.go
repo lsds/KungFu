@@ -7,6 +7,7 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -18,12 +19,13 @@ type Job struct {
 	Prog      string
 	Args      []string
 	LogDir    string
+
+	AllowNVLink bool
 }
 
 func (j Job) NewProc(peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
 	envs := Envs{
 		kb.SelfSpecEnvKey:          peer.String(),
-		cudaVisibleDevicesKey:      strconv.Itoa(getCudaIndex(localRank)),
 		kb.HostListEnvKey:          j.HostList.String(),
 		kb.PortRangeEnvKey:         j.PortRange.String(),
 		kb.ParentIDEnvKey:          j.Parent.String(),
@@ -31,6 +33,15 @@ func (j Job) NewProc(peer plan.PeerID, localRank int, checkpoint string, pl plan
 		kb.CheckpointEnvKey:        checkpoint,
 		kb.AllReduceStrategyEnvKey: j.Strategy.String(),
 	}
+
+	cudaIdx := strconv.Itoa(getCudaIndex(localRank))
+	envs[`KUNGFU_`+cudaVisibleDevicesKey] = cudaIdx
+	if j.AllowNVLink {
+		log.Warnf("Please set `config.gpu_options.visible_device_list = str(rank)`")
+	} else {
+		envs[cudaVisibleDevicesKey] = cudaIdx
+	}
+
 	allEnvs := merge(getConfigEnvs(), envs)
 	allEnvs.addIfMissing(`PYTHONUNBUFFERED`, `1`)
 	var pubAddr string

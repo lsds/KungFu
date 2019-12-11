@@ -34,10 +34,11 @@ type FlagSet struct {
 
 	PortRange plan.PortRange
 
-	Self       string
-	Timeout    time.Duration
-	VerboseLog bool
-	NIC        string
+	Self        string
+	Timeout     time.Duration
+	VerboseLog  bool
+	NIC         string
+	AllowNVLink bool
 
 	Strategy kb.Strategy
 
@@ -67,6 +68,7 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.DurationVar(&f.Timeout, "timeout", 0, "timeout")
 	flag.BoolVar(&f.VerboseLog, "v", true, "show task log")
 	flag.StringVar(&f.NIC, "nic", "", "network interface name, for infer self IP")
+	flag.BoolVar(&f.AllowNVLink, "allow-nvlink", false, "allow NCCL to discover NVLink")
 
 	f.Strategy = kb.DefaultStrategy
 	flag.Var(&f.Strategy, "strategy", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))

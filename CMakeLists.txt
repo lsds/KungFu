@@ -36,6 +36,8 @@ TARGET_LINK_LIBRARIES(kungfu kungfu-comm)
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 ADD_CGO_DEPS(kungfu)
 
+INSTALL(DIRECTORY srcs/cpp/include DESTINATION .)
+
 IF(KUNGFU_ENABLE_NCCL)
     INCLUDE(cmake/nccl.cmake)
 ENDIF()
