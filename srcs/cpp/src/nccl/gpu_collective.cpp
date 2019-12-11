@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <vector>
 
 #include <kungfu/nccl/gpu_collective.hpp>
 #include <kungfu/utils/cuda_helper.hpp>
