@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cstdio>
+#include <sstream>
 #include <vector>
 
 #include <kungfu/nccl/gpu_collective.hpp>
@@ -112,7 +114,7 @@ std::vector<int> parse_cuda_visible_devices(const std::string &val)
     std::vector<int> devs;
     for (const auto &p : parts) {
         const int idx = std::stoi(p);
-        if (idx >= 0) { dev.push_back(idx); }
+        if (idx >= 0) { devs.push_back(idx); }
     }
     return devs;
 }
@@ -120,17 +122,20 @@ std::vector<int> parse_cuda_visible_devices(const std::string &val)
 void setDevice()
 {
     int dev = 0;
-    if (const char *ptr = std::getenv("KUNGFU_CUDA_VISIBLE_DEVICES");
-        ptr != nullptr) {
-        dev = std::stoi(ptr);
+    {
+        const char *ptr = std::getenv("KUNGFU_CUDA_VISIBLE_DEVICES");
+        if (ptr != nullptr) { dev = std::stoi(ptr); }
     }
-    if (const char *ptr = std::getenv("CUDA_VISIBLE_DEVICES"); ptr != nullptr) {
-        const auto devs = parse_cuda_visible_devices(ptr);
-        int idx         = std::find(devs.begin(), devs.end());
-        if (idx == devs.size()) { idx = -1; }
-        KUNGFU_CHECK(cuda_checker) << cudaSetDevice(idx);
-    } else {
-        KUNGFU_CHECK(cuda_checker) << cudaSetDevice(dev);
+    {
+        const char *ptr = std::getenv("CUDA_VISIBLE_DEVICES");
+        if (ptr != nullptr) {
+            const auto devs = parse_cuda_visible_devices(ptr);
+            int idx = std::find(devs.begin(), devs.end(), dev) - devs.begin();
+            if (idx == static_cast<int>(devs.size())) { idx = -1; }
+            KUNGFU_CHECK(cuda_checker) << cudaSetDevice(idx);
+        } else {
+            KUNGFU_CHECK(cuda_checker) << cudaSetDevice(dev);
+        }
     }
 }
 
