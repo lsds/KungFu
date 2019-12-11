@@ -13,7 +13,7 @@ func (sess *session) GetPeerLatencies() []time.Duration {
 	results := make([]time.Duration, len(sess.peers))
 	var wg sync.WaitGroup
 	for rank, peer := range sess.peers {
-		if rank != sess.myRank {
+		if rank != sess.rank {
 			wg.Add(1)
 			go func(rank int, peer plan.PeerID) {
 				results[rank] = getLatency(sess.self, peer)

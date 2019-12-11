@@ -39,6 +39,7 @@ class kungfu_world
 
     // metadata APIs
     int Rank() const;
+    int LocalRank() const;
     int ClusterSize() const;
 
     // local API

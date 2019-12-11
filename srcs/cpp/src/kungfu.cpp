@@ -36,6 +36,8 @@ kungfu_world::~kungfu_world() { GoKungfuFinalize(); }
 
 int kungfu_world::Rank() const { return GoKungfuRank(); }
 
+int kungfu_world::LocalRank() const { return GoKungfuLocalRank(); }
+
 int kungfu_world::ClusterSize() const { return GoKungfuClusterSize(); }
 
 int kungfu_world::Save(const char *name, const void *buf, int count,

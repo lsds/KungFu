@@ -23,6 +23,10 @@ def current_rank():
     return _python_lib.kungfu_rank()
 
 
+def current_local_rank():
+    return _python_lib.kungfu_local_rank()
+
+
 def current_cluster_size():
     """Get the number of peers in the current cluster."""
     return _python_lib.kungfu_cluster_size()

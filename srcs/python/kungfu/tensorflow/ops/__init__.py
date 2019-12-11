@@ -1,5 +1,5 @@
 from kungfu.ext import (_get_other_ranks, _has_gpu, current_cluster_size,
-                        current_rank, run_barrier)
+                        current_local_rank, current_rank, run_barrier)
 
 from ._tf_oplib import _op_lib
 from .adapt import get_init_checkpoint, resize_cluster, step_based_schedule

@@ -55,7 +55,7 @@ func main() {
 		for _, h := range hl {
 			parents = append(parents, plan.PeerID{IPv4: h.IPv4, Port: uint16(f.Port)})
 		}
-		if _, ok := parents.Lookup(parent); !ok {
+		if _, ok := parents.Rank(parent); !ok {
 			utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
 		}
 		peers, err = hl.GenPeerList(f.ClusterSize, f.PortRange)

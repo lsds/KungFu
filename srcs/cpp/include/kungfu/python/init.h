@@ -17,6 +17,7 @@ extern void kungfu_python_finialize_gpu();
 // helpers APIs to access kungfu without tensorflow operators
 // FIXME: don't mix with tensorflow binding
 extern int kungfu_rank();          // get current rank
+extern int kungfu_local_rank();    // get current local rank
 extern int kungfu_cluster_size();  // get current size
 extern void kungfu_barrier();
 }

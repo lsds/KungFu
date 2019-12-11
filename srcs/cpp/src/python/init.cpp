@@ -11,6 +11,8 @@ void kungfu_python_finialize() { _kungfu_world.reset(nullptr); }
 
 int kungfu_rank() { return _kungfu_world->Rank(); }
 
+int kungfu_local_rank() { return _kungfu_world->LocalRank(); }
+
 int kungfu_cluster_size() { return _kungfu_world->ClusterSize(); }
 
 void kungfu_barrier() { _kungfu_world->Barrier(); }

@@ -11,7 +11,7 @@ import time
 
 import tensorflow as tf
 from kungfu.ext import _finalize_python_lib
-from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
+from kungfu.tensorflow.ops import (current_cluster_size, current_local_rank,
                                    group_all_reduce, group_nccl_all_reduce)
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
 
@@ -45,7 +45,7 @@ def get_local_rank(method):
         import horovod.tensorflow as hvd
         return hvd.local_rank()
     else:
-        return current_rank()  #  FIXME: use add current_local_rank()
+        return current_local_rank()
 
 
 _group_all_reduce_func = {

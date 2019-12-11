@@ -48,6 +48,12 @@ func GoKungfuRank() int {
 	return sess.Rank()
 }
 
+//export GoKungfuLocalRank
+func GoKungfuLocalRank() int {
+	sess := kungfu.CurrentSession()
+	return sess.LocalRank()
+}
+
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	sess := kungfu.CurrentSession()
