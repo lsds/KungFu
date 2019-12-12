@@ -3,27 +3,6 @@
 
 namespace tensorflow
 {
-REGISTER_KUNGFU_OP(StartNcclScheduler).Input("input: string");
-
-class StartNcclScheduler : public OpKernel
-{
-    using OpKernel::OpKernel;
-
-  public:
-    void Compute(OpKernelContext *context) override
-    {
-        const Tensor &input = context->input(0);
-        const auto t_names  = input.vec<std::string>();
-        std::vector<std::string> names;
-        for (int i = 0; i < t_names.size(); ++i) {
-            names.push_back(t_names(i));
-        }
-        kungfu::tensorflow::_world_gpu->StartGroup(names);
-    }
-};
-
-REGISTER_KUNGFU_KERNEL_BUILDER(StartNcclScheduler, DEVICE_CPU);
-
 REGISTER_KUNGFU_OP(ScheduledNcclAllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
