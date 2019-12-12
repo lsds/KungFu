@@ -187,7 +187,7 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
 		kf.checkpoint = ckpt
 		kf.updated = false
 	}()
-	_, keep := peers.Lookup(kf.self)
+	_, keep := peers.Rank(kf.self)
 	return true, keep
 }
 

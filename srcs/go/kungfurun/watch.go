@@ -66,7 +66,7 @@ func (w *watcher) update(s Stage) {
 }
 
 func (w *watcher) watchRun(globalCtx context.Context) {
-	hostRank, _ := w.parents.Lookup(w.parent)
+	hostRank, _ := w.parents.Rank(w.parent)
 	var globalStopped, inactive bool
 	for {
 		select {

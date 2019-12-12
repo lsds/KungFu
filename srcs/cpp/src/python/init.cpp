@@ -7,7 +7,11 @@ std::unique_ptr<kungfu_world> _kungfu_world;
 
 void kungfu_python_init() { _kungfu_world.reset(new kungfu_world); }
 
+void kungfu_python_finialize() { _kungfu_world.reset(nullptr); }
+
 int kungfu_rank() { return _kungfu_world->Rank(); }
+
+int kungfu_local_rank() { return _kungfu_world->LocalRank(); }
 
 int kungfu_cluster_size() { return _kungfu_world->ClusterSize(); }
 

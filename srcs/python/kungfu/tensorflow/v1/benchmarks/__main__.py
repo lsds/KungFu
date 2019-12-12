@@ -10,6 +10,7 @@ import sys
 import time
 
 import tensorflow as tf
+from kungfu.ext import _finalize_python_lib, _get_cuda_index
 from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
                                    group_nccl_all_reduce)
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
@@ -53,13 +54,14 @@ _model_sizes = {
 
 
 def _config(method):
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
     if method == 'HOROVOD':
-        config = tf.ConfigProto()
         import horovod.tensorflow as hvd
-        config.gpu_options.allow_growth = True
         config.gpu_options.visible_device_list = str(hvd.local_rank())
-        return config
-    return None
+    else:
+        config.gpu_options.visible_device_list = str(_get_cuda_index())
+    return config
 
 
 def parse_args():
@@ -111,15 +113,12 @@ def main(_):
     args = parse_args()
     if args.method == 'HOROVOD':
         hvd_init()
-
     dtype = tf.float32
-
     sizes = _model_sizes[args.model]
-
     if args.fuse:
         sizes = [sum(sizes)]
-
     all_reduce_benchmark(sizes, dtype, args.method)
+    _finalize_python_lib()
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ func (pl PeerList) Bytes() []byte {
 	return b.Bytes()
 }
 
-func (pl PeerList) Lookup(ps PeerID) (int, bool) {
+func (pl PeerList) Rank(ps PeerID) (int, bool) {
 	for i, p := range pl {
 		if p == ps {
 			return i, true

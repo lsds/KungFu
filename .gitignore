@@ -1,4 +1,3 @@
-env*
 __pycache__
 .DS_Store
 .idea
@@ -36,14 +35,12 @@ cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/
 CTestTestfile.cmake
-env
+env*
 experiment-results.txt
 go.sum
 hosts.txt
+install_manifest.txt
 kungfu.cbp
 Makefile.auto
-src/tensorflow.cmake
-tensorflow-prefix
-tensorflow-repo-prefix
 Testing/
 venv

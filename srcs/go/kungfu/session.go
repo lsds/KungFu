@@ -25,12 +25,17 @@ type session struct {
 	strategies []strategy
 	self       plan.PeerID
 	peers      plan.PeerList
-	myRank     int
+	rank       int
+	localRank  int
 	router     *rch.Router
 }
 
 func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
-	myRank, ok := pl.Lookup(self)
+	rank, ok := pl.Rank(self)
+	if !ok {
+		return nil, false
+	}
+	localRank, ok := pl.LocalRank(self)
 	if !ok {
 		return nil, false
 	}
@@ -41,7 +46,8 @@ func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router
 		strategies: partitionStrategies[strategy](pl),
 		self:       self,
 		peers:      pl,
-		myRank:     myRank,
+		rank:       rank,
+		localRank:  localRank,
 		router:     router,
 	}
 	return sess, true
@@ -52,7 +58,11 @@ func (sess *session) ClusterSize() int {
 }
 
 func (sess *session) Rank() int {
-	return sess.myRank
+	return sess.rank
+}
+
+func (sess *session) LocalRank() int {
+	return sess.localRank
 }
 
 func (sess *session) Barrier() error {
@@ -149,7 +159,7 @@ func asMessage(b *kb.Vector) rch.Message {
 }
 
 func (sess *session) runGather(w Workspace) error {
-	if sess.myRank != defaultRoot {
+	if sess.rank != defaultRoot {
 		peer := sess.peers[defaultRoot]
 		return sess.router.Send(peer.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective, rch.NoFlag)
 	}
@@ -158,7 +168,7 @@ func (sess *session) runGather(w Workspace) error {
 	for rank, peer := range sess.peers {
 		wg.Add(1)
 		go func(rank int, peer plan.PeerID, recvBuf *kb.Vector) {
-			if rank == sess.myRank {
+			if rank == sess.rank {
 				recvBuf.CopyFrom(w.SendBuf)
 			} else {
 				m := sess.router.Collective.Recv(peer.WithName(w.Name))
@@ -234,24 +244,24 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	}
 
 	for _, g := range graphs {
-		prevs := g.Prevs(sess.myRank)
-		if g.IsSelfLoop(sess.myRank) {
+		prevs := g.Prevs(sess.rank)
+		if g.IsSelfLoop(sess.rank) {
 			if err := par(prevs, recvOnto); err != nil {
 				return err
 			}
-			if err := par(g.Nexts(sess.myRank), sendOnto); err != nil {
+			if err := par(g.Nexts(sess.rank), sendOnto); err != nil {
 				return err
 			}
 		} else {
 			if len(prevs) > 1 {
-				log.Errorf("more than once recvInto detected at node %d", sess.myRank)
+				log.Errorf("more than once recvInto detected at node %d", sess.rank)
 			}
 			if len(prevs) == 0 && recvCount == 0 {
 				w.RecvBuf.CopyFrom(w.SendBuf)
 			} else {
 				seq(prevs, recvInto) // len(prevs) == 1 is expected
 			}
-			if err := par(g.Nexts(sess.myRank), sendInto); err != nil {
+			if err := par(g.Nexts(sess.rank), sendInto); err != nil {
 				return err
 			}
 		}
