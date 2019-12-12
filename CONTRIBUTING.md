@@ -92,5 +92,6 @@ with tf.Session(config=config) as sess:
 and add `-allow-nvlink` flag to `kungfu-run` command
 
 ```bash
+# export NCCL_DEBUG=INFO # uncomment to enable
 kungfu-run -np 4 -allow-nvlink python3 benchmarks/system/benchmark_kungfu.py 
 ```
