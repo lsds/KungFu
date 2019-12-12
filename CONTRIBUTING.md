@@ -70,3 +70,27 @@ KungFu can use [NCCL](https://developer.nvidia.com/nccl) to leverage GPU-GPU dir
 
 KUNGFU_ENABLE_NCCL=1 pip3 install .
 ```
+
+To use NVLink, add the following to your Python code
+
+```python
+...
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+from kungfu.ext import _get_cuda_index
+config.gpu_options.visible_device_list = str(_get_cuda_index())
+
+...
+
+with tf.Session(config=config) as sess:
+
+...
+
+```
+
+and add `-allow-nvlink` flag to `kungfu-run` command
+
+```bash
+kungfu-run -np 4 -allow-nvlink python3 benchmarks/system/benchmark_kungfu.py 
+```
