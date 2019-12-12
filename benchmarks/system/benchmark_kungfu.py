@@ -67,6 +67,8 @@ args.cuda = not args.no_cuda
 config = tf.ConfigProto()
 if args.cuda:
     config.gpu_options.allow_growth = True
+    from kungfu.ext import _get_cuda_index
+    config.gpu_options.visible_device_list = str(_get_cuda_index())
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     config.gpu_options.allow_growth = False
@@ -94,7 +96,7 @@ if args.kf_optimizer:
     barrier_op = barrier()
     if args.kf_optimizer == 'sync-sgd':
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
-        opt = SynchronousSGDOptimizer(opt)
+        opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=args.fuse)
     elif args.kf_optimizer == 'async-sgd':
         from kungfu.tensorflow.optimizers import PairAveragingOptimizer
         opt = PairAveragingOptimizer(opt, fuse_requests=args.fuse)

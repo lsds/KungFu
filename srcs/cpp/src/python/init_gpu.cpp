@@ -30,15 +30,25 @@ void world<gpu>::StartGroup(const std::vector<std::string> &names)
     _gpu_all_reduce_group.reset(new order_group(names));
 }
 
-int world<gpu>::AllReduce(DoneCallback ready, const void *sendbuf,
-                          void *recvbuf, int count, KungFu_Datatype dtype,
-                          KungFu_Op op, const char *name, DoneCallback done)
+int world<gpu>::ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
+                                   void *recvbuf, int count,
+                                   KungFu_Datatype dtype, KungFu_Op op,
+                                   const char *name, DoneCallback done)
 {
     _gpu_all_reduce_group->Start(name, [=, comm = _gpu_collective.get()]() {
         ready();
         comm->all_reduce(sendbuf, recvbuf, count, dtype);
         done();
     });
+    return 0;
+}
+
+int world<gpu>::AllReduce(const void *sendbuf, void *recvbuf, int count,
+                          KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                          DoneCallback done)
+{
+    _gpu_collective.get()->all_reduce(sendbuf, recvbuf, count, dtype);
+    done();
     return 0;
 }
 }  // namespace tensorflow

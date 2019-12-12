@@ -48,7 +48,6 @@ class order_group
 
 namespace tensorflow
 {
-
 struct cpu;
 struct gpu;
 
@@ -67,12 +66,15 @@ template <> class world<gpu>
 
     void StartGroup(const std::vector<std::string> &name);
 
-    int AllReduce(DoneCallback ready, const void *sendbuf, void *recvbuf,
-                  int count, KungFu_Datatype dtype, KungFu_Op op,
-                  const char *name, DoneCallback done);
+    int ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
+                           void *recvbuf, int count, KungFu_Datatype dtype,
+                           KungFu_Op op, const char *name, DoneCallback done);
+
+    int AllReduce(const void *sendbuf, void *recvbuf, int count,
+                  KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                  DoneCallback done);
 };
 
 extern std::unique_ptr<world<gpu>> _world_gpu;
-
 }  // namespace tensorflow
 }  // namespace kungfu
