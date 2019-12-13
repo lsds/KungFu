@@ -6,8 +6,11 @@
 #include <kungfu/nccl/gpu_collective.hpp>
 #include <kungfu/python/init.h>
 #include <kungfu/utils/cuda_helper.hpp>
+#include <kungfu/utils/trace.hpp>
 
 #include <nccl.h>
+
+DEFINE_TRACE_CONTEXT;
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
@@ -83,18 +86,21 @@ class gpu_collective_nccl : public gpu_collective
 
     ~gpu_collective_nccl()
     {
-        // KUNGFU_CHECK(nccl_checker) <<
-        ncclCommDestroy(comm);
+        KUNGFU_CHECK(nccl_checker) << ncclCommDestroy(comm);
     }
 
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                     KungFu_Datatype dtype)
     {
+        TRACE_SCOPE(__func__);
         // https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/api/colls.html#ncclallreduce
         KUNGFU_CHECK(nccl_checker)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
                              ncclSum, comm, _stream);
-        _stream.sync();
+        {
+            TRACE_SCOPE("_stream.sync()");
+            _stream.sync();
+        }
     }
 };
 

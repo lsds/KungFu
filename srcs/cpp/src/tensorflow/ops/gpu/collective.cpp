@@ -1,4 +1,5 @@
 #include <kungfu/tensorflow/ops.h>
+#include <kungfu/utils/trace.hpp>
 #include <tensorflow/stream_executor/stream.h>
 
 namespace tensorflow
@@ -74,7 +75,10 @@ class NcclAllReduce : public AsyncOpKernel
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
 
-        context->op_device_context()->stream()->BlockHostUntilDone();
+        {
+            TRACE_SCOPE("BlockHostUntilDone");
+            context->op_device_context()->stream()->BlockHostUntilDone();
+        }
 
         kungfu::tensorflow::_world_gpu->AllReduce(
             input.tensor_data().data(),

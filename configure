@@ -10,6 +10,7 @@ fi
 BUILD_TESTS=0 # build unit tests
 BUILD_TENSORFLOW_OPS=0
 BUILD_TOOLS=0
+ENABLE_TRACE=0
 VERBOSE=0
 
 NCCL_HOME=$HOME/local/nccl
@@ -43,6 +44,9 @@ parse_args() {
         --no-tests)
             BUILD_TESTS=0
             ;;
+        --enable-trace)
+            ENABLE_TRACE=1
+            ;;
         --with-mpi)
             # FIXME: parse --with-mpi
             WITH_MPI=$MPI_HOME
@@ -74,8 +78,11 @@ add_cmake_flags() {
         add_cmake_flag GTEST_GIT_URL ${GTEST_GIT_URL}
     fi
 
-    if [ ! -z ${STDTRACER_GIT_URL} ]; then
-        add_cmake_flag STDTRACER_GIT_URL ${STDTRACER_GIT_URL}
+    if [ ! -z ${ENABLE_TRACE} ]; then
+        add_cmake_flag KUNGFU_ENABLE_TRACE ${ENABLE_TRACE}
+        if [ ! -z ${STDTRACER_GIT_URL} ]; then
+            add_cmake_flag STDTRACER_GIT_URL ${STDTRACER_GIT_URL}
+        fi
     fi
 
     if [ ${BUILD_TENSORFLOW_OPS} = 1 ]; then
