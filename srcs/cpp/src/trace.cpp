@@ -1,3 +1,3 @@
 #include <kungfu/utils/trace.hpp>
 
-// DEFINE_TRACE_CONTEXT;
+// DEFINE_TRACE_CONTEXTS;

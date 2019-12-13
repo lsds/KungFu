@@ -10,7 +10,7 @@
 
 #include <nccl.h>
 
-DEFINE_TRACE_CONTEXT;
+DEFINE_TRACE_CONTEXTS;
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
@@ -98,7 +98,7 @@ class gpu_collective_nccl : public gpu_collective
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
                              ncclSum, comm, _stream);
         {
-            TRACE_SCOPE("_stream.sync()");
+            TRACE_SCOPE("_stream.sync");
             _stream.sync();
         }
     }

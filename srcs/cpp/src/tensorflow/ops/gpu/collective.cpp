@@ -32,8 +32,7 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
-
-        kungfu::tensorflow::_world_gpu->ScheduledAllReduce(
+        kungfu::_nccl_controller->ScheduledAllReduce(
             [stream = context->op_device_context()->stream()]() {
                 stream->BlockHostUntilDone();
             },
@@ -74,13 +73,11 @@ class NcclAllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
-
         {
-            TRACE_SCOPE("BlockHostUntilDone");
+            TRACE_SCOPE("BlockHostUntilDone2");
             context->op_device_context()->stream()->BlockHostUntilDone();
         }
-
-        kungfu::tensorflow::_world_gpu->AllReduce(
+        kungfu::_nccl_controller->AllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,

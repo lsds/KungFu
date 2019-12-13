@@ -10,6 +10,8 @@
 
 #include <kungfu/mst.hpp>
 
+DEFINE_TRACE_CONTEXTS;
+
 void test_AllReduce(kungfu_world &world, int np)
 {
     TRACE_SCOPE(__func__);

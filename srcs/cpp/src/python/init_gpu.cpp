@@ -3,30 +3,24 @@
 
 void kungfu_python_init_gpu()
 {
-    kungfu::tensorflow::_world_gpu.reset(
-        new kungfu::tensorflow::world<kungfu::tensorflow::gpu>);
+    kungfu::_nccl_controller.reset(new kungfu::nccl_controller);
 }
 
-void kungfu_python_finialize_gpu()
-{
-    kungfu::tensorflow::_world_gpu.reset(nullptr);
-}
+void kungfu_python_finialize_gpu() { kungfu::_nccl_controller.reset(nullptr); }
 
 namespace kungfu
 {
-namespace tensorflow
-{
-std::unique_ptr<world<gpu>> _world_gpu;
+std::unique_ptr<nccl_controller> _nccl_controller;
 
-world<gpu>::world()
+nccl_controller::nccl_controller()
+    : _gpu_collective(new_gpu_collective(*_kungfu_world))
 {
-    _gpu_collective.reset(new_gpu_collective(*_kungfu_world));
 }
 
-int world<gpu>::ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
-                                   void *recvbuf, int count,
-                                   KungFu_Datatype dtype, KungFu_Op op,
-                                   const char *name, DoneCallback done)
+int nccl_controller::ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
+                                        void *recvbuf, int count,
+                                        KungFu_Datatype dtype, KungFu_Op op,
+                                        const char *name, DoneCallback done)
 {
     kungfu::_nccl_order_group->Start(name, [=, comm = _gpu_collective.get()]() {
         ready();
@@ -36,13 +30,12 @@ int world<gpu>::ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
     return 0;
 }
 
-int world<gpu>::AllReduce(const void *sendbuf, void *recvbuf, int count,
-                          KungFu_Datatype dtype, KungFu_Op op, const char *name,
-                          DoneCallback done)
+int nccl_controller::AllReduce(const void *sendbuf, void *recvbuf, int count,
+                               KungFu_Datatype dtype, KungFu_Op op,
+                               const char *name, DoneCallback done)
 {
     _gpu_collective.get()->all_reduce(sendbuf, recvbuf, count, dtype);
     done();
     return 0;
 }
-}  // namespace tensorflow
 }  // namespace kungfu

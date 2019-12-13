@@ -48,20 +48,14 @@ class order_group
 
 extern std::unique_ptr<order_group> _nccl_order_group;
 
-namespace tensorflow
-{
-struct cpu;
-struct gpu;
-
-template <class device> class world;
-template <> class world<gpu>
+class nccl_controller
 {
     std::unique_ptr<gpu_collective> _gpu_collective;
 
   public:
-    world();
+    nccl_controller();
 
-    ~world() = default;
+    ~nccl_controller() = default;
 
     int ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
                            void *recvbuf, int count, KungFu_Datatype dtype,
@@ -72,6 +66,5 @@ template <> class world<gpu>
                   DoneCallback done);
 };
 
-extern std::unique_ptr<world<gpu>> _world_gpu;
-}  // namespace tensorflow
+extern std::unique_ptr<nccl_controller> _nccl_controller;
 }  // namespace kungfu
