@@ -57,8 +57,8 @@ parser.add_argument('--optimizer',
                     default='sgd',
                     help='Optimizer: sgd, adam')
 parser.add_argument('--fuse',
-                    type=bool,
-                    default=True,
+                    action='store_true',
+                    default=False,
                     help='Apply fuse if possible')
 
 args = parser.parse_args()
