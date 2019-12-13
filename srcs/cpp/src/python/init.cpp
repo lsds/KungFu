@@ -38,4 +38,6 @@ void order_group::Start(const std::string &name, const Task &task)
 }
 
 void order_group::Wait() { order_group_wait(og_); }
+
+std::unique_ptr<order_group> _nccl_order_group;
 }  // namespace kungfu

@@ -23,19 +23,12 @@ world<gpu>::world()
     _gpu_collective.reset(new_gpu_collective(*_kungfu_world));
 }
 
-world<gpu>::~world() {}
-
-void world<gpu>::StartGroup(const std::vector<std::string> &names)
-{
-    _gpu_all_reduce_group.reset(new order_group(names));
-}
-
 int world<gpu>::ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
                                    void *recvbuf, int count,
                                    KungFu_Datatype dtype, KungFu_Op op,
                                    const char *name, DoneCallback done)
 {
-    _gpu_all_reduce_group->Start(name, [=, comm = _gpu_collective.get()]() {
+    kungfu::_nccl_order_group->Start(name, [=, comm = _gpu_collective.get()]() {
         ready();
         comm->all_reduce(sendbuf, recvbuf, count, dtype);
         done();

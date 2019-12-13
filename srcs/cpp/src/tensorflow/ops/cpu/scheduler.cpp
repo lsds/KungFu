@@ -17,7 +17,7 @@ class StartNcclScheduler : public OpKernel
         for (int i = 0; i < t_names.size(); ++i) {
             names.push_back(t_names(i));
         }
-        kungfu::tensorflow::_world_gpu->StartGroup(names);
+        kungfu::_nccl_order_group.reset(new kungfu::order_group(names));
     }
 };
 
