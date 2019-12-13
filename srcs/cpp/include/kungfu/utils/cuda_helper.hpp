@@ -9,7 +9,8 @@
 struct show_cuda_error {
     std::string operator()(cudaError_t err) const
     {
-        return std::to_string((int)err) + ": " + cudaGetErrorString(err);
+        return std::to_string(static_cast<int>(err)) + ": " +
+               cudaGetErrorString(err);
     }
 };
 
@@ -28,6 +29,8 @@ class cuda_stream
         const cudaError_t err = cudaStreamDestroy(_stream);
         if (err == cudaErrorCudartUnloading ||
             err == 29 /* driver shutting down */) {
+            fprintf(stderr, "ignore cudaStreamDestroy error: %s\n",
+                    show_cuda_error(err).c_str());
             return;
         }
         KUNGFU_CHECK(cuda_checker) << err;
