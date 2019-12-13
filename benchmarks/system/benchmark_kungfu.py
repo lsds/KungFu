@@ -57,9 +57,9 @@ parser.add_argument('--optimizer',
                     default='sgd',
                     help='Optimizer: sgd, adam')
 parser.add_argument('--fuse',
-                    type=bool,
-                    default=True,
-                    help='Apply fuse if possible')
+                    action='store_true',
+                    default=False,
+                    help='Fuse KungFu operations')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -67,9 +67,11 @@ args.cuda = not args.no_cuda
 config = tf.ConfigProto()
 if args.cuda:
     config.gpu_options.allow_growth = True
+    from kungfu.ext import _get_cuda_index
+    config.gpu_options.visible_device_list = str(_get_cuda_index())
 else:
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     config.gpu_options.allow_growth = False
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     config.gpu_options.visible_device_list = ''
 
 if args.eager:
@@ -95,12 +97,12 @@ if args.kf_optimizer:
     if args.kf_optimizer == 'sync-sgd':
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt)
-    elif args.kf_optimizer == 'async-sgd':
-        from kungfu.tensorflow.optimizers import PairAveragingOptimizer
-        opt = PairAveragingOptimizer(opt, fuse_requests=args.fuse)
     elif args.kf_optimizer == 'sync-sgd-nccl':
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=args.fuse)
+    elif args.kf_optimizer == 'async-sgd':
+        from kungfu.tensorflow.optimizers import PairAveragingOptimizer
+        opt = PairAveragingOptimizer(opt, fuse_requests=args.fuse)
     elif args.kf_optimizer == 'sma':
         from kungfu.tensorflow.optimizers import SynchronousAveragingOptimizer
         opt = SynchronousAveragingOptimizer(opt)

@@ -3,43 +3,39 @@
 
 void kungfu_python_init_gpu()
 {
-    kungfu::tensorflow::_world_gpu.reset(
-        new kungfu::tensorflow::world<kungfu::tensorflow::gpu>);
+    kungfu::_nccl_controller.reset(new kungfu::nccl_controller);
 }
 
-void kungfu_python_finialize_gpu()
-{
-    kungfu::tensorflow::_world_gpu.reset(nullptr);
-}
+void kungfu_python_finialize_gpu() { kungfu::_nccl_controller.reset(nullptr); }
 
 namespace kungfu
 {
-namespace tensorflow
-{
-std::unique_ptr<world<gpu>> _world_gpu;
+std::unique_ptr<nccl_controller> _nccl_controller;
 
-world<gpu>::world()
+nccl_controller::nccl_controller()
+    : _gpu_collective(new_gpu_collective(*_kungfu_world))
 {
-    _gpu_collective.reset(new_gpu_collective(*_kungfu_world));
 }
 
-world<gpu>::~world() {}
-
-void world<gpu>::StartGroup(const std::vector<std::string> &names)
+int nccl_controller::ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
+                                        void *recvbuf, int count,
+                                        KungFu_Datatype dtype, KungFu_Op op,
+                                        const char *name, DoneCallback done)
 {
-    _gpu_all_reduce_group.reset(new order_group(names));
-}
-
-int world<gpu>::AllReduce(DoneCallback ready, const void *sendbuf,
-                          void *recvbuf, int count, KungFu_Datatype dtype,
-                          KungFu_Op op, const char *name, DoneCallback done)
-{
-    _gpu_all_reduce_group->Start(name, [=, comm = _gpu_collective.get()]() {
+    kungfu::_nccl_order_group->Start(name, [=, comm = _gpu_collective.get()]() {
         ready();
         comm->all_reduce(sendbuf, recvbuf, count, dtype);
         done();
     });
     return 0;
 }
-}  // namespace tensorflow
+
+int nccl_controller::AllReduce(const void *sendbuf, void *recvbuf, int count,
+                               KungFu_Datatype dtype, KungFu_Op op,
+                               const char *name, DoneCallback done)
+{
+    _gpu_collective.get()->all_reduce(sendbuf, recvbuf, count, dtype);
+    done();
+    return 0;
+}
 }  // namespace kungfu

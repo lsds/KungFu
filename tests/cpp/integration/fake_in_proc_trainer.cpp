@@ -4,6 +4,8 @@
 #include "resnet50_info.hpp"
 #include "testing.hpp"
 
+DEFINE_TRACE_CONTEXTS;
+
 template <typename buffer_t>
 void in_proc_all_reduce(int np, std::vector<std::vector<buffer_t>> &node_grads,
                         int n_grads)

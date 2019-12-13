@@ -1,3 +1,5 @@
+import atexit
+
 from .loader import _call_method, _load_clib, _module_path
 
 
@@ -16,6 +18,9 @@ def _finalize_python_lib():
     _call_method(_python_lib, 'kungfu_python_finialize')
     if _has_gpu:
         _call_method(_python_lib, 'kungfu_python_finialize_gpu')
+
+
+atexit.register(_finalize_python_lib)
 
 
 def current_rank():
