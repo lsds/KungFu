@@ -30,7 +30,7 @@ class cuda_stream
         if (err == cudaErrorCudartUnloading ||
             err == 29 /* driver shutting down */) {
             fprintf(stderr, "ignore cudaStreamDestroy error: %s\n",
-                    show_cuda_error(err).c_str());
+                    show_cuda_error()(err).c_str());
             return;
         }
         KUNGFU_CHECK(cuda_checker) << err;
