@@ -65,6 +65,7 @@ IF(KUNGFU_BUILD_TF_OPS)
     ENDIF()
     IF(KUNGFU_ENABLE_TRACE)
         USE_STDTRACER(kungfu_python)
+        USE_STDTRACER(kungfu_tensorflow_ops)
     ENDIF()
 
     SET_TF_COMPILE_OPTION(kungfu_python)

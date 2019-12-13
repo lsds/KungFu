@@ -57,7 +57,7 @@ def group_nccl_all_reduce(ts):
     """Create a list of all_reduce operators for given tensor list, using NCCL."""
     names = [t.name for t in ts if t is not None]
     if len(names) == 1:
-        return [_nccl_all_reduce(ts[0])]
+        return map_maybe(_nccl_all_reduce, ts)  # exactly one of ts is not None
     else:
         print("WARNING: Please fuse %d tensors before using NCCL." %
               len(names))

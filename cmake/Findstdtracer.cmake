@@ -19,9 +19,9 @@ EXTERNALPROJECT_ADD(
 
 ADD_LIBRARY(trace srcs/cpp/src/trace.cpp)
 TARGET_INCLUDE_DIRECTORIES(trace PRIVATE ${PREFIX}/src/stdtracer-repo/include)
+ADD_DEPENDENCIES(trace stdtracer-repo)
 
 FUNCTION(USE_STDTRACER target)
-    ADD_DEPENDENCIES(${target} stdtracer-repo)
     TARGET_INCLUDE_DIRECTORIES(${target}
                                PRIVATE ${PREFIX}/src/stdtracer-repo/include)
     TARGET_LINK_LIBRARIES(${target} trace)
