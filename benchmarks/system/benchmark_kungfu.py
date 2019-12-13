@@ -44,10 +44,10 @@ parser.add_argument('--eager',
                     action='store_true',
                     default=False,
                     help='enables eager execution')
-parser.add_argument('--cuda',
-                    action='store_false',
-                    default=True,
-                    help='Enable CUDA training')
+parser.add_argument('--no-cuda',
+                    action='store_true',
+                    default=False,
+                    help='disables CUDA training')
 parser.add_argument('--kf-optimizer',
                     type=str,
                     default='sync-sgd',
@@ -62,6 +62,7 @@ parser.add_argument('--fuse',
                     help='Fuse KungFu operations')
 
 args = parser.parse_args()
+args.cuda = not args.no_cuda
 
 config = tf.ConfigProto()
 if args.cuda:
