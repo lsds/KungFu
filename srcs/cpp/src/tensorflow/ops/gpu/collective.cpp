@@ -74,7 +74,7 @@ class NcclAllReduce : public AsyncOpKernel
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
         {
-            TRACE_SCOPE("BlockHostUntilDone2");
+            TRACE_SCOPE("BlockHostUntilDone");
             context->op_device_context()->stream()->BlockHostUntilDone();
         }
         kungfu::_nccl_controller->AllReduce(
