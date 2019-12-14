@@ -3,6 +3,8 @@
 
 #include <stdtracer_thread>
 
+#define DEFINE_TRACE_CONTEXTS DEFINE_TRACE_CONTEXT(global)
+
 #else
 
 #define TRACE_SCOPE(name)
