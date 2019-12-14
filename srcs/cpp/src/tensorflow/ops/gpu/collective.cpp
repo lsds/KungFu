@@ -34,6 +34,7 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
             context, context->allocate_output(0, input.shape(), &output), done);
         kungfu::_nccl_controller->ScheduledAllReduce(
             [stream = context->op_device_context()->stream()]() {
+                TRACE_SCOPE("stream->BlockHostUntilDone");
                 stream->BlockHostUntilDone();
             },
             input.tensor_data().data(),
