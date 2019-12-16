@@ -3,11 +3,14 @@ package main
 import (
 	"unsafe"
 
+	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	og "github.com/lsds/KungFu/srcs/go/ordergroup"
 )
 
 /*
+#include <stdint.h>
 #include <kungfu/callback.h>
+#include <kungfu/dtype.h>
 
 struct order_group_s {
     void * _go_ptr;
@@ -38,9 +41,15 @@ func GoOrderGroupDoRank(cPtr *C.struct_order_group_s, rank int, task *C.callback
 }
 
 //export GoOrderGroupWait
-func GoOrderGroupWait(cPtr *C.struct_order_group_s) {
+func GoOrderGroupWait(cPtr *C.struct_order_group_s, pArriveOrder *C.int32_t) {
 	g := toOrderGroup(cPtr)
-	g.Wait()
+	arriveOrder := g.Wait()
+	if pArriveOrder != nil {
+		results := toVector(unsafe.Pointer(pArriveOrder), len(arriveOrder), C.KungFu_Datatype(kb.I32)).AsI32()
+		for i, k := range arriveOrder {
+			results[i] = int32(k)
+		}
+	}
 }
 
 func freeOrderGroup(g *og.OrderGroup) {

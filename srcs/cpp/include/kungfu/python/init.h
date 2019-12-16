@@ -36,13 +36,14 @@ class order_group
   public:
     using Task = DoneCallback;
 
-    order_group(const std::vector<std::string> &names);
+    order_group(const std::vector<std::string> &names,
+                const std::vector<int32_t> &permu);
 
     ~order_group();
 
     void Start(const std::string &name, const Task &task);
 
-    void Wait();
+    std::vector<int32_t> Wait();
 };
 
 extern std::unique_ptr<order_group> _nccl_order_group;
