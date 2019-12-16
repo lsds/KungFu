@@ -1,9 +1,19 @@
+#include <thread>
+
 #include <kungfu/tensorflow/ops.h>
 #include <kungfu/utils/trace.hpp>
 #include <tensorflow/stream_executor/stream.h>
 
 namespace tensorflow
 {
+void spin_wait(perftools::gputools::Event *event)
+{
+    while (event->PollForStatus() ==
+           perftools::gputools::Event::Status::kPending) {
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
+
 REGISTER_KUNGFU_OP(ScheduledNcclAllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("input_tensor_name: string")
@@ -32,14 +42,24 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
+        // {
+        auto device_context = context->op_device_context();
+        auto executor       = device_context->stream()->parent();
+        auto ready_event    = new perftools::gputools::Event(executor);
+        ready_event->Init();
+        device_context->stream()->ThenRecordEvent(ready_event);
+        // }
         kungfu::_nccl_controller->ScheduledAllReduce(
-            [stream = context->op_device_context()->stream(),
-             name   = input_tensor_name_]() {
+            [ready_event = ready_event,
+             //  stream      = context->op_device_context()->stream(),
+             name = input_tensor_name_]() {
                 TRACE_SCOPE("BlockHostUntilDone");
                 {
                     TRACE_SCOPE("BlockHostUntilDone::" + name);
-                    stream->BlockHostUntilDone();
+                    // stream->BlockHostUntilDone();
+                    spin_wait(ready_event);
                 }
+                delete ready_event;
             },
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
