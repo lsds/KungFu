@@ -20,13 +20,11 @@ void kungfu_barrier() { _kungfu_world->Barrier(); }
 namespace kungfu
 {
 order_group::order_group(const std::vector<std::string> &names,
-                         const std::vector<int32_t> &permu)
+                         const std::vector<int32_t> &order)
     : og_(new_ranked_order_group(names.size()))
 {
-    const int n = permu.size();
-    std::vector<int32_t> ranks(n);
-    for (int i = 0; i < n; ++i) { ranks[permu[i]] = i; }
-    for (int i = 0; i < n; ++i) { ranks_[names[i]] = ranks[i]; }
+    const int n = names.size();
+    for (int i = 0; i < n; ++i) { ranks_[names[order[i]]] = i; }
 }
 
 order_group::~order_group()

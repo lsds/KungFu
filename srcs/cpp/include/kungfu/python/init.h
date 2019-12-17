@@ -37,7 +37,7 @@ class order_group
     using Task = DoneCallback;
 
     order_group(const std::vector<std::string> &names,
-                const std::vector<int32_t> &permu);
+                const std::vector<int32_t> &order);
 
     ~order_group();
 
