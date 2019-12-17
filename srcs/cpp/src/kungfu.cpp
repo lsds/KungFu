@@ -21,7 +21,10 @@ void order_group_do_rank(order_group_t *og, int rank, callback_t *task)
     GoOrderGroupDoRank(og, rank, task);
 }
 
-void order_group_wait(order_group_t *og) { GoOrderGroupWait(og); }
+void order_group_wait(order_group_t *og, int32_t *arrive_order)
+{
+    GoOrderGroupWait(og, arrive_order);
+}
 
 kungfu_world::kungfu_world()
 {

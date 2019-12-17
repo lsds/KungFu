@@ -10,7 +10,7 @@
 
 #include <nccl.h>
 
-DEFINE_TRACE_CONTEXTS;
+DEFINE_TRACE_CONTEXT(nccl);
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
@@ -52,7 +52,6 @@ template <> struct nccl_type<float> {
 
 namespace kungfu
 {
-
 ncclDataType_t to_nccl_type(const KungFu_Datatype dtype)
 {
     switch (dtype) {

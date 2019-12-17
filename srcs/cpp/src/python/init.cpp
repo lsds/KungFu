@@ -19,11 +19,12 @@ void kungfu_barrier() { _kungfu_world->Barrier(); }
 
 namespace kungfu
 {
-order_group::order_group(const std::vector<std::string> &names)
+order_group::order_group(const std::vector<std::string> &names,
+                         const std::vector<int32_t> &order)
     : og_(new_ranked_order_group(names.size()))
 {
-    int idx = 0;
-    for (const auto &name : names) { ranks_[name] = idx++; }
+    const int n = names.size();
+    for (int i = 0; i < n; ++i) { ranks_[names[order[i]]] = i; }
 }
 
 order_group::~order_group()
@@ -37,7 +38,12 @@ void order_group::Start(const std::string &name, const Task &task)
     order_group_do_rank(og_, ranks_.at(name), new CallbackWrapper(task));
 }
 
-void order_group::Wait() { order_group_wait(og_); }
+std::vector<int32_t> order_group::Wait()
+{
+    std::vector<int32_t> arrive_order(ranks_.size());
+    order_group_wait(og_, arrive_order.data());
+    return arrive_order;
+}
 
 std::unique_ptr<order_group> _nccl_order_group;
 }  // namespace kungfu
