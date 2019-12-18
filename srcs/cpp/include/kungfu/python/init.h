@@ -9,10 +9,10 @@
 
 extern "C" {
 extern void kungfu_python_init();
-extern void kungfu_python_init_gpu();
+extern void kungfu_python_init_nccl();
 
 extern void kungfu_python_finialize();
-extern void kungfu_python_finialize_gpu();
+extern void kungfu_python_finialize_nccl();
 
 extern int kungfu_get_cuda_index();
 
@@ -53,9 +53,7 @@ class nccl_controller
     std::unique_ptr<gpu_collective> _gpu_collective;
 
   public:
-    nccl_controller();
-
-    ~nccl_controller() = default;
+    void InitOnce();
 
     int ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
                            void *recvbuf, int count, KungFu_Datatype dtype,

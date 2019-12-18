@@ -42,6 +42,7 @@ class StartNcclScheduler : public OpKernel
             }
         }
         kungfu::_nccl_order_group.reset(new kungfu::order_group(names, order_));
+        kungfu::_nccl_controller->InitOnce();
         ++counter_;
     }
 };

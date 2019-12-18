@@ -96,10 +96,7 @@ class gpu_collective_nccl : public gpu_collective
         KUNGFU_CHECK(nccl_checker)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
                              ncclSum, comm, _stream);
-        {
-            TRACE_SCOPE("_stream.sync");
-            _stream.sync();
-        }
+        _stream.sync();
     }
 };
 

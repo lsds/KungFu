@@ -2,7 +2,7 @@
 Usage:
     kungfu-run -q -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method CPU
     kungfu-run -q -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method NCCL
-    mpirun -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method CPU
+    mpirun -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method HOROVOD
 """
 
 import argparse
