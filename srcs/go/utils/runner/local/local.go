@@ -137,7 +137,7 @@ func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
 				atomic.AddInt32(&fail, 1)
 				cancel()
 			} else {
-				log.Infof("#%s finished successfully", proc.Name)
+				log.Debugf("#%s finished successfully", proc.Name)
 			}
 			wg.Done()
 		}(i, proc)
