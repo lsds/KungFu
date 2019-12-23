@@ -113,9 +113,6 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
                   (step, duration, show_rate(tot_size * multiplier, duration)))
 
 
-Mi = 1 << 20
-
-
 def main(_):
     args = parse_args()
     if args.method == 'HOROVOD':
@@ -125,7 +122,6 @@ def main(_):
     if args.fuse:
         sizes = [sum(sizes)]
     all_reduce_benchmark(sizes, dtype, args.method)
-    _finalize_python_lib()
 
 
 if __name__ == "__main__":
