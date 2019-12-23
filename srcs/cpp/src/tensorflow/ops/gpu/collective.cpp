@@ -82,6 +82,7 @@ class NcclAllReduce : public AsyncOpKernel
         OP_REQUIRES(
             context, input_tensor_name_.size() >= 0,
             errors::InvalidArgument("input_tensor_name must not be empty"));
+        kungfu::_nccl_controller->InitOnce();
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override

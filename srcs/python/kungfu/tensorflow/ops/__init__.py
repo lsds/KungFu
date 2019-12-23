@@ -1,4 +1,4 @@
-from kungfu.ext import (_get_other_ranks, _has_gpu, current_cluster_size,
+from kungfu.ext import (_get_other_ranks, current_cluster_size,
                         current_local_rank, current_rank, run_barrier)
 
 from ._tf_oplib import _op_lib
