@@ -15,7 +15,6 @@ def _show_tensorflow_info():
         print('Tensorflow Version: %s' % (tf.__version__))
     except:
         print('Tensorflow is NOT installed')
-    pass
 
 
 def main(_):
