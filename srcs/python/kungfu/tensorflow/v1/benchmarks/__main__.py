@@ -9,13 +9,17 @@ import argparse
 import sys
 import time
 
-import tensorflow as tf
+from kungfu._utils import measure, one_based_range
 from kungfu.ext import _finalize_python_lib, _get_cuda_index
 from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
                                    group_nccl_all_reduce)
+from kungfu.tensorflow.v1.benchmarks import model_sizes
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
 
-from . import model_sizes
+import tensorflow as tf
+from tensorflow.python.util import deprecation
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def _tensor_size(t):
@@ -95,15 +99,18 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
     bench_steps = 10
 
     with tf.Session(config=_config(method)) as sess:
-        sess.run(init)
-        for step in range(warmup_steps):
-            sess.run(ys)
-        for step in range(bench_steps):
-            t0 = time.time()
-            sess.run(ys)
-            d = time.time() - t0
+        duration, _ = measure(lambda: sess.run(init))
+        print('tensorflow init took %.fs' % (duration))
+
+        for step in one_based_range(warmup_steps):
+            duration, _ = measure(lambda: sess.run(ys))
+            print('warmup step %d, took %.2fs, equivalent data rate: %s' %
+                  (step, duration, show_rate(tot_size * multiplier, duration)))
+
+        for step in one_based_range(bench_steps):
+            duration, _ = measure(lambda: sess.run(ys))
             print('step %d, took %.2fs, equivalent data rate: %s' %
-                  (step, d, show_rate(tot_size * multiplier, d)))
+                  (step, duration, show_rate(tot_size * multiplier, duration)))
 
 
 Mi = 1 << 20

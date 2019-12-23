@@ -59,9 +59,7 @@ def group_nccl_all_reduce(ts):
     if len(names) == 1:
         return map_maybe(_nccl_all_reduce, ts)  # exactly one of ts is not None
     else:
-        print("WARNING: Please fuse %d tensors before using NCCL." %
-              len(names))
-        names = list(sorted(names))  # FIXME: use topsort
+        names = list(sorted(names))
         import tensorflow as tf
         with tf.control_dependencies([
                 _start_nccl_scheduler(names),
