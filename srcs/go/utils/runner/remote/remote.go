@@ -17,6 +17,8 @@ import (
 )
 
 func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bool) ([]*Outputs, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	outputs := make([]*Outputs, len(ps))
 	var wg sync.WaitGroup
 	var fail int32
@@ -48,6 +50,7 @@ func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bo
 				log.Errorf("#<%s> exited with error: %v, took %s", p.Name, err, time.Since(t0))
 				atomic.AddInt32(&fail, 1)
 				outputs[i] = getOutputs()
+				cancel()
 				return
 			}
 			outputs[i] = getOutputs()
