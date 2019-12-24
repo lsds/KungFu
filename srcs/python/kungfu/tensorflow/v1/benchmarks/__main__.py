@@ -11,8 +11,8 @@ import sys
 import tensorflow as tf
 from kungfu._utils import measure, one_based_range
 from kungfu.ext import _get_cuda_index
-from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
-                                   group_nccl_all_reduce)
+from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
+                                   group_all_reduce, group_nccl_all_reduce)
 from kungfu.tensorflow.v1.benchmarks import model_sizes
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
 from tensorflow.python.util import deprecation
@@ -66,6 +66,14 @@ def _config(method):
     return config
 
 
+def _rank(method):
+    if method == 'HOROVOD':
+        import horovod.tensorflow as hvd
+        return hvd.rank()
+    else:
+        return current_rank()
+
+
 def parse_args():
     p = argparse.ArgumentParser(description='Perf Benchmarks.')
     p.add_argument('--model',
@@ -82,12 +90,18 @@ def parse_args():
 
 
 def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
+    rank = _rank(method)
+
+    def log(msg):
+        if rank == 0:
+            print(msg)
+
     xs = [tf.Variable(tf.ones([n], dtype)) for n in sizes]
     tot_size = sum(_tensor_size(x) for x in xs)
     np = get_cluster_size(method)
     multiplier = 4 * (np - 1)
-    print('all reduce %d tensors of total size: %s among %d peers, using %s' %
-          (len(sizes), show_size(tot_size), np, method))
+    log('all reduce %d tensors of total size: %s among %d peers, using %s' %
+        (len(sizes), show_size(tot_size), np, method))
 
     ys = _group_all_reduce_func[method](xs)
 
@@ -98,17 +112,17 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
 
     with tf.Session(config=_config(method)) as sess:
         duration, _ = measure(lambda: sess.run(init))
-        print('tensorflow init took %.fs' % (duration))
+        log('tensorflow init took %.fs' % (duration))
 
         for step in one_based_range(warmup_steps):
             duration, _ = measure(lambda: sess.run(ys))
-            print('warmup step %d, took %.2fs, equivalent data rate: %s' %
-                  (step, duration, show_rate(tot_size * multiplier, duration)))
+            log('warmup step %d, took %.2fs, equivalent data rate: %s' %
+                (step, duration, show_rate(tot_size * multiplier, duration)))
 
         for step in one_based_range(bench_steps):
             duration, _ = measure(lambda: sess.run(ys))
-            print('step %d, took %.2fs, equivalent data rate: %s' %
-                  (step, duration, show_rate(tot_size * multiplier, duration)))
+            log('step %d, took %.2fs, equivalent data rate: %s' %
+                (step, duration, show_rate(tot_size * multiplier, duration)))
 
 
 def main(_):
