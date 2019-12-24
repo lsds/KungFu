@@ -37,7 +37,7 @@ func main() {
 		log.SetOutput(lf)
 	}
 	t0 := time.Now()
-	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(utils.ProgName())
+	defer func(prog string) { log.Debugf("%s finished, took %s", prog, time.Since(t0)) }(utils.ProgName())
 	localhostIPv4, err := run.InferSelfIPv4(f.Self, f.NIC)
 	if err != nil {
 		utils.ExitErr(err)
