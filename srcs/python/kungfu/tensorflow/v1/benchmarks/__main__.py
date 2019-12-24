@@ -7,7 +7,6 @@ Usage:
 
 import argparse
 import sys
-import time
 
 from kungfu._utils import measure, one_based_range
 from kungfu.ext import _finalize_python_lib, _get_cuda_index
