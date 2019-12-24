@@ -10,7 +10,7 @@ import sys
 
 import tensorflow as tf
 from kungfu._utils import measure, one_based_range
-from kungfu.ext import _finalize_python_lib, _get_cuda_index
+from kungfu.ext import _get_cuda_index
 from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
                                    group_nccl_all_reduce)
 from kungfu.tensorflow.v1.benchmarks import model_sizes
