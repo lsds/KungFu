@@ -172,10 +172,10 @@ else:
     with tf.Session(config=config) as session:
         from kungfu._utils import measure
         duration, _ = measure(lambda: session.run(init))
-        log('init took %.fs' % (duration))
+        log('init took %.3fs' % (duration))
         if bcast_op:
             duration, _ = measure(lambda: session.run(bcast_op))
-            log('bcast_op took %.fs' % (duration))
+            log('bcast_op took %.3fs' % (duration))
         run(lambda: session.run(train_opt))
         if barrier_op is not None:
             session.run(barrier_op)
