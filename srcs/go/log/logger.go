@@ -10,6 +10,15 @@ import (
 	"github.com/lsds/KungFu/srcs/go/kungfuconfig"
 )
 
+type Level uint32
+
+const (
+	Error Level = iota
+	Warn  Level = iota
+	Info  Level = iota
+	Debug Level = iota
+)
+
 var std = New()
 
 const (
@@ -21,15 +30,19 @@ type Logger struct {
 	w     io.Writer
 	buf   []byte
 	t0    time.Time
-	debug bool
+	level Level
 	flags uint32
 }
 
 func New() *Logger {
+	level := Error
+	if kungfuconfig.ShowDebugLog {
+		level = Debug
+	}
 	l := &Logger{
 		w:     os.Stdout,
 		t0:    time.Now(),
-		debug: kungfuconfig.ShowDebugLog,
+		level: level,
 	}
 	return l
 }
@@ -72,30 +85,30 @@ func (l *Logger) output(prefix, format string, v ...interface{}) {
 	l.w.Write(l.buf)
 }
 
-func (l *Logger) logf(level, format string, v ...interface{}) {
-	l.output(level, format, v...)
-}
-
-func (l *Logger) Debugf(format string, v ...interface{}) {
-	if l.debug {
-		l.logf("[D]", format, v...)
+func (l *Logger) logf(level Level, prefix, format string, v ...interface{}) {
+	if l.level >= level {
+		l.output(prefix, format, v...)
 	}
 }
 
+func (l *Logger) Debugf(format string, v ...interface{}) {
+	l.logf(Debug, "[D]", format, v...)
+}
+
 func (l *Logger) Infof(format string, v ...interface{}) {
-	l.logf("[I]", format, v...)
+	l.logf(Info, "[I]", format, v...)
 }
 
 func (l *Logger) Warnf(format string, v ...interface{}) {
-	l.logf("[W]", format, v...)
+	l.logf(Warn, "[W]", format, v...)
 }
 
 func (l *Logger) Errorf(format string, v ...interface{}) {
-	l.logf("[E]", format, v...)
+	l.logf(Error, "[E]", format, v...)
 }
 
 func (l *Logger) Exitf(format string, v ...interface{}) {
-	l.logf("[E]", format, v...)
+	l.logf(Error, "[E]", format, v...)
 	os.Exit(1)
 }
 
