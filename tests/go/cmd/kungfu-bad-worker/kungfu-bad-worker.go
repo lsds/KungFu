@@ -18,17 +18,18 @@ var (
 
 func main() {
 	flag.Parse()
-	fmt.Printf("OK.\n")
-	fmt.Fprintf(os.Stderr, "Err! \n")
 	kungfu, err := kf.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	kungfu.Start()
 	defer kungfu.Close()
+	rank := kungfu.CurrentSession().Rank()
+	fmt.Printf("OK, rank=%d.\n", rank)
+	fmt.Fprintf(os.Stderr, "Err, rank=%d!\n", rank)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if kungfu.CurrentSession().Rank() == 0 {
+	if rank == 0 {
 		ctx, cancel = context.WithTimeout(ctx, *errorAfter)
 	}
 	done := time.After(*runFor)
