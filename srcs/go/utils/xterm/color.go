@@ -5,6 +5,23 @@ import (
 	"fmt"
 )
 
+type ColorSet []Color
+
+func (cs ColorSet) Get(i int) Color {
+	return cs[i%len(cs)]
+}
+
+var (
+	BasicColors = ColorSet{
+		Green,
+		Blue,
+		Yellow,
+		LightBlue,
+	}
+
+	Warn = Red
+)
+
 type Color interface {
 	B(text string) []byte
 	S(text string) string
