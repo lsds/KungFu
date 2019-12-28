@@ -57,3 +57,15 @@ func (c color) B(text string) []byte {
 func (c color) S(text string) string {
 	return c.bs(text).String()
 }
+
+var NoColor = noColor{}
+
+type noColor struct{}
+
+func (c noColor) B(text string) []byte {
+	return []byte(text)
+}
+
+func (c noColor) S(text string) string {
+	return text
+}

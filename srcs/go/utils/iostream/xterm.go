@@ -19,6 +19,9 @@ func (x XtermWriter) Write(bs []byte) (int, error) {
 }
 
 func NewXTermRedirector(name string, c xterm.Color) *StdWriters {
+	if c == nil {
+		c = xterm.NoColor
+	}
 	return &StdWriters{
 		Stdout: &XtermWriter{
 			prefix: c.S(name) + "::stdout",
