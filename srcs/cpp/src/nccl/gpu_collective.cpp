@@ -10,8 +10,6 @@
 
 #include <nccl.h>
 
-DEFINE_TRACE_CONTEXT(nccl);
-
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
     {

@@ -2,6 +2,9 @@
 
 #include <kungfu.h>
 #include <kungfu/python/init.h>
+#include <kungfu/utils/trace.hpp>
+
+DEFINE_TRACE_CONTEXT(kungfu);
 
 std::unique_ptr<kungfu_world> _kungfu_world;
 
