@@ -76,15 +76,24 @@ class AllReduce : public AsyncOpKernel
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
 
+#ifdef KUNGFU_ENABLE_TRACE
         auto _ = new tracer_t("AllReduce", default_thread_tracer_ctx);
+#endif
+
         _kungfu_world->AllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
-            name().c_str(), [done = done, _ = _] {
+            name().c_str(),
+#ifdef KUNGFU_ENABLE_TRACE
+            [done = done, _ = _] {
                 delete _;
                 done();
-            });
+            }
+#else
+            done
+#endif
+        );
     }
 };
 
