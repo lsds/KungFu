@@ -9,6 +9,7 @@ namespace tensorflow
 {
 void spin_wait(perftools::gputools::Event *event, int ms = 100)
 {
+    TRACE_SCOPE(__func__);
     while (event->PollForStatus() ==
            perftools::gputools::Event::Status::kPending) {
         std::this_thread::sleep_for(std::chrono::microseconds(ms));

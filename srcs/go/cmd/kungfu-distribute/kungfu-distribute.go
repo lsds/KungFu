@@ -25,6 +25,7 @@ var (
 	verboseLog = flag.Bool("v", true, "show task log")
 	user       = flag.String("u", "", "user name for ssh")
 	quiet      = flag.Bool("q", false, "don't log debug info")
+	logDir     = flag.String("logdir", ".", "")
 )
 
 func init() {
@@ -60,13 +61,16 @@ func main() {
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
-	// log.Infof("Using %d hosts, total slots: %d", len(hl), hl.Cap())
+	log.Infof("Using %d hosts", len(hl))
 	ctx, cancel := context.WithCancel(context.Background())
 	if *timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, *timeout)
 		defer cancel()
 	}
-	distribute(ctx, hl, args[0], args[1:])
+	if err := distribute(ctx, hl, args[0], args[1:]); err != nil {
+		log.Errorf("%v", err)
+		utils.ExitErr(err)
+	}
 }
 
 func distribute(ctx context.Context, hl []run.HostSpec, prog string, args []string) error {
@@ -80,6 +84,5 @@ func distribute(ctx context.Context, hl []run.HostSpec, prog string, args []stri
 		}
 		ps = append(ps, proc)
 	}
-	_, err := runner.RemoteRunAll(ctx, *user, ps, *verboseLog)
-	return err
+	return runner.RemoteRunAll(ctx, *user, ps, *verboseLog, *logDir)
 }

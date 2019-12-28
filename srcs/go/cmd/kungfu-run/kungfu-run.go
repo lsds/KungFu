@@ -37,12 +37,12 @@ func main() {
 		log.SetOutput(lf)
 	}
 	t0 := time.Now()
-	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(utils.ProgName())
+	defer func(prog string) { log.Debugf("%s finished, took %s", prog, time.Since(t0)) }(utils.ProgName())
 	localhostIPv4, err := run.InferSelfIPv4(f.Self, f.NIC)
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Infof("Using self=%s", plan.FormatIPv4(localhostIPv4))
+	log.Debugf("Using self=%s", plan.FormatIPv4(localhostIPv4))
 	parent := plan.PeerID{IPv4: localhostIPv4, Port: uint16(f.Port)}
 	var parents plan.PeerList
 	var hl plan.HostList

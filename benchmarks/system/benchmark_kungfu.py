@@ -13,6 +13,9 @@ import timeit
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import applications
+from tensorflow.python.util import deprecation
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 # Benchmark settings
 parser = argparse.ArgumentParser(
@@ -122,6 +125,9 @@ def loss_function():
 
 
 def log(s, nl=True):
+    from kungfu.tensorflow.ops import current_rank
+    if current_rank() != 0:
+        return
     print(s, end='\n' if nl else '')
 
 
@@ -159,11 +165,17 @@ if tf.executing_eagerly():
                                  var_list=model.trainable_variables))
 else:
     init = tf.global_variables_initializer()
+    bcast_op = None
+    if args.kf_optimizer:
+        from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
+        bcast_op = BroadcastGlobalVariablesOp()
     with tf.Session(config=config) as session:
-        session.run(init)
-        if args.kf_optimizer:
-            from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-            session.run(BroadcastGlobalVariablesOp())
+        from kungfu._utils import measure
+        duration, _ = measure(lambda: session.run(init))
+        log('init took %.3fs' % (duration))
+        if bcast_op:
+            duration, _ = measure(lambda: session.run(bcast_op))
+            log('bcast_op took %.3fs' % (duration))
         run(lambda: session.run(train_opt))
         if barrier_op is not None:
             session.run(barrier_op)

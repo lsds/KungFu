@@ -9,7 +9,7 @@ from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
 
 def SynchronousSGDOptimizer(optimizer,
                             nccl=False,
-                            nccl_fusion=True,
+                            nccl_fusion=False,
                             name=None,
                             use_locking=False,
                             with_keras=False):

@@ -11,11 +11,13 @@ import argparse
 import os
 import timeit
 
+import horovod.tensorflow as hvd
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import applications
+from tensorflow.python.util import deprecation
 
-import horovod.tensorflow as hvd
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 # Benchmark settings
 parser = argparse.ArgumentParser(
