@@ -83,7 +83,8 @@ class CMakeBuild(build_ext):
             ['cmake', ext.sourcedir] + cmake_args,
             cwd=self.build_temp,
         )
-        if os.getenv('CMAKE_BUILD_PARALLEL_LEVEL') is None:
+        if (os.getenv('CMAKE_BUILD_PARALLEL_LEVEL') is None
+                and os.getenv('READTHEDOCS') is None):
             os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = str(
                 multiprocessing.cpu_count())
         subprocess.check_call(
