@@ -5,7 +5,7 @@ SET(STDTRACER_GIT_URL
     CACHE STRING "URL for clone stdtracer")
 
 SET(STDTRACER_GIT_TAG
-    ff009a4169abf11713bd23323c2cea35ea5ae8ac
+    8c42ecd7bba4c5039db50fedd3b3b190819f859d
     CACHE STRING "Tag for clone stdtracer")
 
 SET(PREFIX ${CMAKE_SOURCE_DIR}/3rdparty)
