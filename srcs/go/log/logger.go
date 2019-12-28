@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 type Level uint32
@@ -104,11 +105,11 @@ func (l *Logger) Warnf(format string, v ...interface{}) {
 }
 
 func (l *Logger) Errorf(format string, v ...interface{}) {
-	l.logf(Error, "[E]", format, v...)
+	l.logf(Error, xterm.Warn.S("[E]"), format, v...)
 }
 
 func (l *Logger) Exitf(format string, v ...interface{}) {
-	l.logf(Error, "[E]", format, v...)
+	l.logf(Error, xterm.Warn.S("[F]"), format, v...)
 	os.Exit(1)
 }
 

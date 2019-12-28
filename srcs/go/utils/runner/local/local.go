@@ -35,6 +35,7 @@ func (r *Runner) SetLogFilePrefix(prefix string) {
 	r.logFilePrefix = prefix
 }
 
+// Run a command with context
 func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -101,7 +102,7 @@ func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
 	}
 	wg.Wait()
 	if fail != 0 {
-		return fmt.Errorf("%d peers failed", fail)
+		return fmt.Errorf("%d tasks failed", fail)
 	}
 	return nil
 }

@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -156,37 +157,37 @@ func (c *Client) Stream(cmd string) error {
 
 type Watcher func(r io.Reader)
 
-func (c *Client) Watch(ctx context.Context, cmd string, outWatcher, errWatcher Watcher) error {
+func (c *Client) Watch(ctx context.Context, cmd string, redirectors []*iostream.StdWriters) error {
 	session, err := c.client.NewSession()
 	if err != nil {
 		return err
 	}
 	defer session.Close()
-	if stdout, err := session.StdoutPipe(); err == nil {
-		if outWatcher != nil {
-			go outWatcher(stdout)
-		}
-	} else {
+	stdout, err := session.StdoutPipe()
+	if err != nil {
 		return err
 	}
-	if stderr, err := session.StderrPipe(); err == nil {
-		if errWatcher != nil {
-			go errWatcher(stderr)
-		}
-	} else {
+	stderr, err := session.StderrPipe()
+	if err != nil {
 		return err
 	}
+	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr}
+	ioDone := results.Stream(redirectors...)
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
 	done := make(chan error)
 	go func() {
-		done <- session.Wait()
+		err := session.Wait()
+		ioDone.Wait()
+		done <- err
 	}()
 	select {
 	case err := <-done:
 		return err
 	case <-ctx.Done():
+		session.Close() // doesn't work!
+		// FIXME: force remote command terminate
 		return ctx.Err()
 	}
 }

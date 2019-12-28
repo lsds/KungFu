@@ -40,8 +40,7 @@ func main() {
 		defer cancel()
 	}
 	d, err := utils.Measure(func() error {
-		_, err := runner.RemoteRunAll(ctx, f.User, procs, f.VerboseLog)
-		return err
+		return runner.RemoteRunAll(ctx, f.User, procs, f.VerboseLog)
 	})
 	log.Infof("all %d peers finished, took %s", len(procs), d)
 	if err != nil {
