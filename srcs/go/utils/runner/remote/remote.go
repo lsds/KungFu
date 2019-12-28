@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"fmt"
+	"path"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,7 +15,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
-func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bool) error {
+func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bool, logDir string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
@@ -35,7 +36,10 @@ func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bo
 				return
 			}
 			var redirectors []*iostream.StdWriters
-			redirectors = append(redirectors, iostream.NewXTermRedirector(p.Name, xterm.BasicColors.Get(i)))
+			if verboseLog {
+				redirectors = append(redirectors, iostream.NewXTermRedirector(p.Name, xterm.BasicColors.Get(i)))
+			}
+			redirectors = append(redirectors, iostream.NewFileRedirector(path.Join(logDir, p.Name)))
 			if err := client.Watch(ctx, p.Script(), redirectors); err != nil {
 				log.Errorf("#<%s> exited with error: %v, took %s", p.Name, err, time.Since(t0))
 				atomic.AddInt32(&fail, 1)

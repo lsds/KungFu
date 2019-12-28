@@ -25,6 +25,7 @@ var (
 	verboseLog = flag.Bool("v", true, "show task log")
 	user       = flag.String("u", "", "user name for ssh")
 	quiet      = flag.Bool("q", false, "don't log debug info")
+	logDir     = flag.String("logdir", ".", "")
 )
 
 func init() {
@@ -83,5 +84,5 @@ func distribute(ctx context.Context, hl []run.HostSpec, prog string, args []stri
 		}
 		ps = append(ps, proc)
 	}
-	return runner.RemoteRunAll(ctx, *user, ps, *verboseLog)
+	return runner.RemoteRunAll(ctx, *user, ps, *verboseLog, *logDir)
 }
