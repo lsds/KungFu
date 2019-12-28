@@ -42,7 +42,7 @@ func main() {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Infof("Using self=%s", plan.FormatIPv4(localhostIPv4))
+	log.Debugf("Using self=%s", plan.FormatIPv4(localhostIPv4))
 	parent := plan.PeerID{IPv4: localhostIPv4, Port: uint16(f.Port)}
 	var parents plan.PeerList
 	var hl plan.HostList

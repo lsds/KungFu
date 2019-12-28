@@ -11,13 +11,13 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
-type Level uint32
+type Level int32
 
 const (
-	Error Level = iota
-	Warn  Level = iota
-	Info  Level = iota
 	Debug Level = iota
+	Info  Level = iota
+	Warn  Level = iota
+	Error Level = iota
 )
 
 var std = New()
@@ -36,7 +36,7 @@ type Logger struct {
 }
 
 func New() *Logger {
-	level := Error
+	level := Info
 	if kungfuconfig.ShowDebugLog {
 		level = Debug
 	}
@@ -87,7 +87,7 @@ func (l *Logger) output(prefix, format string, v ...interface{}) {
 }
 
 func (l *Logger) logf(level Level, prefix, format string, v ...interface{}) {
-	if l.level >= level {
+	if level >= l.level {
 		l.output(prefix, format, v...)
 	}
 }
