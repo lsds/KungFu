@@ -2,6 +2,7 @@ package kungfuconfig
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -19,23 +20,18 @@ const (
 const (
 	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
-	ShowDebugLogEnvKey     = `KUNGFU_CONFIG_SHOW_DEBUG_LOG`
-	ConfigServerEnvKey     = `KUNGFU_CONFIG_SERVER`
-	EnableAdaptiveEnvKey   = `KUNGFU_CONFIG_ENABLE_ADAPTIVE`
+	LogLevelEnvKey         = `KUNGFU_CONFIG_LOG_LEVEL`
 )
 
 var ConfigEnvKeys = []string{
 	EnableMonitoringEnvKey,
 	MonitoringPeriodEnvKey,
-	ShowDebugLogEnvKey,
-	ConfigServerEnvKey,
-	EnableAdaptiveEnvKey,
+	LogLevelEnvKey,
 }
 
 var (
 	EnableMonitoring = false
-	ShowDebugLog     = false
-	EnableAdaptive   = false
+	LogLevel         = `INFO`
 	MonitoringPeriod = 1 * time.Second
 )
 
@@ -46,11 +42,8 @@ func init() {
 	if val := os.Getenv(MonitoringPeriodEnvKey); len(val) > 0 {
 		MonitoringPeriod = parseDuration(val)
 	}
-	if val := os.Getenv(ShowDebugLogEnvKey); len(val) > 0 {
-		ShowDebugLog = isTrue(val)
-	}
-	if val := os.Getenv(EnableAdaptiveEnvKey); len(val) > 0 {
-		EnableAdaptive = isTrue(val)
+	if val := os.Getenv(LogLevelEnvKey); len(val) > 0 {
+		LogLevel = strings.ToUpper(val)
 	}
 }
 

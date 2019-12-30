@@ -20,6 +20,17 @@ const (
 	Error Level = iota
 )
 
+var logLevelMap = map[string]Level{
+	`DEBUG`: Debug,
+	`INFO`:  Info,
+	`WARN`:  Warn,
+	`ERROR`: Error,
+}
+
+func parseLogLevel(val string) Level {
+	return logLevelMap[val]
+}
+
 var std = New()
 
 const (
@@ -36,14 +47,10 @@ type Logger struct {
 }
 
 func New() *Logger {
-	level := Info
-	if kungfuconfig.ShowDebugLog {
-		level = Debug
-	}
 	l := &Logger{
 		w:     os.Stdout,
 		t0:    time.Now(),
-		level: level,
+		level: parseLogLevel(kungfuconfig.LogLevel),
 	}
 	return l
 }

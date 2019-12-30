@@ -1,5 +1,7 @@
 #include <kungfu/tensorflow/ops.h>
 
+#include <kungfu/utils/trace.hpp>
+
 namespace tensorflow
 {
 REGISTER_KUNGFU_OP(Barrier);

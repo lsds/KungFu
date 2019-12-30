@@ -21,12 +21,13 @@ EXTERNALPROJECT_ADD(
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_TESTS=0
                -DBUILD_EXAMPLES=0)
 
-ADD_LIBRARY(trace srcs/cpp/src/trace.cpp)
-TARGET_INCLUDE_DIRECTORIES(trace PRIVATE ${PREFIX}/src/stdtracer-repo/include)
-ADD_DEPENDENCIES(trace stdtracer-repo)
+ADD_LIBRARY(kungfu_trace srcs/cpp/src/trace.cpp)
+TARGET_INCLUDE_DIRECTORIES(kungfu_trace
+                           PRIVATE ${PREFIX}/src/stdtracer-repo/include)
+ADD_DEPENDENCIES(kungfu_trace stdtracer-repo)
 
 FUNCTION(USE_STDTRACER target)
     TARGET_INCLUDE_DIRECTORIES(${target}
                                PRIVATE ${PREFIX}/src/stdtracer-repo/include)
-    TARGET_LINK_LIBRARIES(${target} trace)
+    TARGET_LINK_LIBRARIES(${target} kungfu_trace)
 ENDFUNCTION()
