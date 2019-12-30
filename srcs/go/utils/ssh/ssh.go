@@ -3,19 +3,13 @@
 package ssh
 
 import (
-	"bufio"
-	"bytes"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
-	"os"
 	"os/user"
 	"path"
-	"sync"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
@@ -95,68 +89,6 @@ func (c *Client) String() string {
 	return fmt.Sprintf("%s@%s", c.config.User, c.config.Host)
 }
 
-// Run runs a command with no context.
-func (c *Client) Run(cmd string) ([]byte, []byte, error) {
-	return c.RunWith(context.TODO(), cmd)
-}
-
-// RunWith runs a command with context.
-func (c *Client) RunWith(ctx context.Context, cmd string) ([]byte, []byte, error) {
-	session, err := c.client.NewSession()
-	if err != nil {
-		return nil, nil, err
-	}
-	defer session.Close()
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	session.Stdout = &stdout
-	session.Stderr = &stderr
-	if err := session.Start(cmd); err != nil {
-		return nil, nil, err
-	}
-	done := make(chan struct{})
-	go func() {
-		err = session.Wait()
-		done <- struct{}{}
-	}()
-	select {
-	case <-done:
-		return stdout.Bytes(), stderr.Bytes(), err
-	case <-ctx.Done():
-		return stdout.Bytes(), stderr.Bytes(), ctx.Err()
-	}
-}
-
-// Stream streams STDOUT and STDERR of a command
-func (c *Client) Stream(cmd string) error {
-	session, err := c.client.NewSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-	var wg sync.WaitGroup
-	if stdout, err := session.StdoutPipe(); err == nil {
-		wg.Add(1)
-		go func() { streamPipe("stdout", stdout); wg.Done() }()
-	} else {
-		return err
-	}
-	if stderr, err := session.StderrPipe(); err == nil {
-		wg.Add(1)
-		go func() { streamPipe("stderr", stderr); wg.Done() }()
-	} else {
-		return err
-	}
-	if err := session.Start(cmd); err != nil {
-		return err
-	}
-	err = session.Wait()
-	wg.Wait()
-	return err
-}
-
-type Watcher func(r io.Reader)
-
 func (c *Client) Watch(ctx context.Context, cmd string, redirectors []*iostream.StdWriters) error {
 	session, err := c.client.NewSession()
 	if err != nil {
@@ -202,72 +134,7 @@ func defaultKeyFile() (ssh.Signer, error) {
 	return ssh.ParsePrivateKey(buf)
 }
 
-// Scp copies a file to remote host
-func (c *Client) Scp(file, target string) error {
-	info, err := os.Stat(file)
-	if err != nil {
-		return err
-	}
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
-	}
-	str := base64.StdEncoding.EncodeToString(data)
-	cmd := fmt.Sprintf("echo '%s' | base64 --decode > %s", str, target)
-	_, _, err = c.Run(cmd)
-	if err != nil {
-		return err
-	}
-	if _, _, err := c.Run(fmt.Sprintf("chmod %04o %s", info.Mode(), target)); err != nil {
-		return err
-	}
-	return nil
-}
-
 // Close closes the client
 func (c *Client) Close() error {
 	return c.client.Close()
-}
-
-func streamPipe(name string, r io.Reader) error {
-	reader := bufio.NewReader(r)
-	for {
-		line, _, err := reader.ReadLine()
-		if err != nil {
-			if err != io.EOF {
-				return err
-			}
-			break
-		}
-		fmt.Printf("[%s] %s\n", name, line)
-	}
-	return nil
-}
-
-// RunWith provides a convenient wrapper for running a command once.
-func RunWith(ctx context.Context, user, host, cmd string) ([]byte, []byte, error) {
-	config := Config{
-		User: user,
-		Host: host,
-	}
-	client, err := New(config)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer client.Close()
-	return client.RunWith(ctx, cmd)
-}
-
-func RunScript(user, host string, script string) error {
-	cfg := Config{User: user, Host: host}
-	cli, err := New(cfg)
-	if err != nil {
-		return err
-	}
-	cmd := fmt.Sprintf("echo %s | base64 --decode | sh", base64endode(script))
-	return cli.Stream(cmd)
-}
-
-func base64endode(src string) string {
-	return base64.StdEncoding.EncodeToString([]byte(src))
 }

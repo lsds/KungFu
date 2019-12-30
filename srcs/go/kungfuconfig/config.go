@@ -21,22 +21,17 @@ const (
 	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
 	LogLevelEnvKey         = `KUNGFU_CONFIG_LOG_LEVEL`
-	ConfigServerEnvKey     = `KUNGFU_CONFIG_SERVER`
-	EnableAdaptiveEnvKey   = `KUNGFU_CONFIG_ENABLE_ADAPTIVE`
 )
 
 var ConfigEnvKeys = []string{
 	EnableMonitoringEnvKey,
 	MonitoringPeriodEnvKey,
 	LogLevelEnvKey,
-	ConfigServerEnvKey,
-	EnableAdaptiveEnvKey,
 }
 
 var (
 	EnableMonitoring = false
 	LogLevel         = `INFO`
-	EnableAdaptive   = false
 	MonitoringPeriod = 1 * time.Second
 )
 
@@ -49,9 +44,6 @@ func init() {
 	}
 	if val := os.Getenv(LogLevelEnvKey); len(val) > 0 {
 		LogLevel = strings.ToUpper(val)
-	}
-	if val := os.Getenv(EnableAdaptiveEnvKey); len(val) > 0 {
-		EnableAdaptive = isTrue(val)
 	}
 }
 
