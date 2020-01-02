@@ -40,11 +40,11 @@ class ElasticTrainingHook(tf.train.SessionRunHook):
         if initial_num_workers != current_cluster_size():
             raise RuntimeError('Initial number of workers is not consistent')
 
+        self._global_step = 0
         self._last_step, self._resize_step_schedule = self._parse_epoch_schedule(
             parsed_schedule, epoch_size, device_batch_size)
-        print(self._last_step)
-        print(self._resize_step_schedule)
-        #exit()
+        print('last_step: %d, resize_step_schedule: %s' %
+              (self._last_step, self._resize_step_schedule))
 
     def _parse_epoch_schedule(self, epoch_schedule, epoch_size,
                               device_batch_size):
@@ -72,17 +72,17 @@ class ElasticTrainingHook(tf.train.SessionRunHook):
 
         return resize_step, resize_step_schedule[:-1]
 
-        def before_run(self, run_context):
-            if self._global_step:
-                # FIXME: resize
-                pass
+    def before_run(self, run_context):
+        if self._global_step:
+            # FIXME: resize
+            pass
 
-        def after_run(self, run_context, run_values):
-            self._global_step += 1
-            if self._global_step >= self._last_step:
-                print("ElasticTrainingHook: global step = %s" %
-                      str(self._global_step))
-                run_context.request_stop()
+    def after_run(self, run_context, run_values):
+        self._global_step += 1
+        if self._global_step >= self._last_step:
+            print("ElasticTrainingHook: global step = %s" %
+                  str(self._global_step))
+            run_context.request_stop()
 
 
 def cnn_model_fn(features, labels, mode):
