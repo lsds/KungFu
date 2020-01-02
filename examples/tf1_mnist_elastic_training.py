@@ -10,13 +10,18 @@ from kungfu.tensorflow.initializer import BroadcastGlobalVariablesHook
 from kungfu.tensorflow.ops import resize_cluster
 from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 from tensorflow import keras
+from tensorflow.python.util import deprecation
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
 flags = tf.app.flags
 flags.DEFINE_integer('batch_size', 500, 'Device batch size.')
-flags.DEFINE_string('epoch_schedule', '0:2,1:4,2:2,3:0', 'Piecewise epoch schedule for number of devices.')
+flags.DEFINE_string('epoch_schedule', '0:2,1:4,2:2,3:0',
+                    'Piecewise epoch schedule for number of devices.')
 FLAGS = flags.FLAGS
+
 
 class ElasticTrainingHook(tf.train.SessionRunHook):
     def __init__(self, epoch_schedule, epoch_size, device_batch_size):
@@ -28,8 +33,8 @@ class ElasticTrainingHook(tf.train.SessionRunHook):
             items = stage.split(':')
             parsed_schedule.append((int(items[0]), int(items[1])))
 
-        if len(parsed_schedule) > 1:
-            raise RuntimeError('Initial number of workers is not consistent')
+        if len(parsed_schedule) <= 0:
+            raise RuntimeError('Schedule can\'t be empty')
 
         initial_num_workers = parsed_schedule[0][1]
         if initial_num_workers != current_cluster_size():
@@ -39,7 +44,7 @@ class ElasticTrainingHook(tf.train.SessionRunHook):
             parsed_schedule, epoch_size, device_batch_size)
         print(self._last_step)
         print(self._resize_step_schedule)
-        exit()
+        #exit()
 
     def _parse_epoch_schedule(self, epoch_schedule, epoch_size,
                               device_batch_size):
@@ -68,7 +73,9 @@ class ElasticTrainingHook(tf.train.SessionRunHook):
         return resize_step, resize_step_schedule[:-1]
 
         def before_run(self, run_context):
-            if self._global_step
+            if self._global_step:
+                # FIXME: resize
+                pass
 
         def after_run(self, run_context, run_values):
             self._global_step += 1
@@ -225,7 +232,8 @@ def main(unused_argv):
     # initialization of all workers when training is started with random weights or
     # restored from a checkpoint.
     bcast_hook = BroadcastGlobalVariablesHook()
-    elastic_hook = ElasticTrainingHook(FLAGS.epoch_schedule, 60000, FLAGS.batch_size)
+    elastic_hook = ElasticTrainingHook(FLAGS.epoch_schedule, 60000,
+                                       FLAGS.batch_size)
 
     # Train the model
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
