@@ -22,13 +22,13 @@ type strategy struct {
 
 // session contains the immutable topology and strategies for a given period of logical duration
 type session struct {
-	strategies []strategy
-	self       plan.PeerID
-	peers      plan.PeerList
-	rank       int
-	localRank  int
-	router     *rch.Router
-	shardHash  shardHashFunc
+	strategies   []strategy
+	self         plan.PeerID
+	peers        plan.PeerList
+	rank         int
+	localRank    int
+	router       *rch.Router
+	strategyHash strategyHashFunc
 }
 
 func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
@@ -44,13 +44,13 @@ func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router
 		strategy = autoSelect(pl)
 	}
 	sess := &session{
-		strategies: partitionStrategies[strategy](pl),
-		self:       self,
-		peers:      pl,
-		rank:       rank,
-		localRank:  localRank,
-		router:     router,
-		shardHash:  getshardHash(),
+		strategies:   partitionStrategies[strategy](pl),
+		self:         self,
+		peers:        pl,
+		rank:         rank,
+		localRank:    localRank,
+		router:       router,
+		strategyHash: getStrategyHash(),
 	}
 	return sess, true
 }
@@ -283,7 +283,7 @@ func ceilDiv(a, b int) int {
 	return a/b + 1
 }
 
-func (sess *session) runStrategiesWithHash(w Workspace, p partitionFunc, strategies strategyList, shardHash shardHashFunc) error {
+func (sess *session) runStrategiesWithHash(w Workspace, p partitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
 	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
 	errs := make([]error, k)
 	var wg sync.WaitGroup
@@ -292,14 +292,14 @@ func (sess *session) runStrategiesWithHash(w Workspace, p partitionFunc, strateg
 		go func(i int, w Workspace, s strategy) {
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			wg.Done()
-		}(i, w, strategies.choose(int(shardHash(i, w.Name))))
+		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
 	}
 	wg.Wait()
 	return mergeErrors(errs, "runStrategies")
 }
 
 func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies strategyList) error {
-	return sess.runStrategiesWithHash(w, p, strategies, sess.shardHash)
+	return sess.runStrategiesWithHash(w, p, strategies, sess.strategyHash)
 }
 
 var (

@@ -42,7 +42,10 @@ func (w Workspace) split(p partitionFunc, k int) []Workspace {
 	return ws
 }
 
-type shardHashFunc func(int, string) uint64
+// A strategyHashFunc is to map a given Workspace to a communication strategy.
+// KungFu can create multiple communication strategies to balance the workload in the network core and edge links.
+// We support hash the Workspaces based on their names or their partition IDs if they are chunked.
+type strategyHashFunc func(int, string) uint64
 
 func simpleHash(i int, name string) uint64 {
 	return uint64(i)
@@ -56,8 +59,8 @@ func nameBasedHash(i int, name string) uint64 {
 	return h
 }
 
-func getshardHash() shardHashFunc {
-	if kc.ShardHashMethod == `NAME` {
+func getStrategyHash() strategyHashFunc {
+	if kc.StrategyHashMethod == `NAME` {
 		log.Debugf("using name based hash")
 		return nameBasedHash
 	}
