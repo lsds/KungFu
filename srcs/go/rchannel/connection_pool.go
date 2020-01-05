@@ -41,19 +41,18 @@ func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection
 	if conn, ok := p.conns[key]; ok {
 		return conn, nil
 	}
-
-	log.Debugf("New connection to %s", remote)
+	t0 := time.Now()
 	for i := 0; i <= p.connRetryCount; i++ {
 		// TODO: call newConnection with timeout.
 		conn, err := newConnection(remote, local, t)
 		if err == nil {
+			log.Debugf("got new connection to #<%s> after %d trials, took %s", remote, i+1, time.Since(t0))
 			p.conns[key] = conn
 			return conn, nil
 		}
-		log.Debugf("Retry connect to [%s] for [%d] times. Retry after %s. Error: %v. ", remote, i+1, p.connRetryPeriod, err)
+		log.Debugf("Retry connect to #<%s> for %d times. Retry after %s. Error: %v. ", remote, i+1, p.connRetryPeriod, err)
 		time.Sleep(p.connRetryPeriod)
 	}
-
 	return nil, errCantEstablishConnection
 }
 
