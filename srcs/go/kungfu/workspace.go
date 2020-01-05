@@ -42,16 +42,16 @@ func (w Workspace) split(p partitionFunc, k int) []Workspace {
 	return ws
 }
 
-type shardHashFunc func(int, string) int
+type shardHashFunc func(int, string) uint64
 
-func simpleHash(i int, name string) int {
-	return i
+func simpleHash(i int, name string) uint64 {
+	return uint64(i)
 }
 
-func nameBasedHash(i int, name string) int {
-	var h int
+func nameBasedHash(i int, name string) uint64 {
+	var h uint64
 	for _, c := range name {
-		h += int(c) * int(c)
+		h += uint64(c) * uint64(c)
 	}
 	return h
 }

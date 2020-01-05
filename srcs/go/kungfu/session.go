@@ -292,7 +292,7 @@ func (sess *session) runStrategiesWithHash(w Workspace, p partitionFunc, strateg
 		go func(i int, w Workspace, s strategy) {
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			wg.Done()
-		}(i, w, strategies.choose(shardHash(i, w.Name)))
+		}(i, w, strategies.choose(int(shardHash(i, w.Name))))
 	}
 	wg.Wait()
 	return mergeErrors(errs, "runStrategies")
