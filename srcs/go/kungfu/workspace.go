@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -38,4 +40,26 @@ func (w Workspace) split(p partitionFunc, k int) []Workspace {
 		ws = append(ws, w.slice(r.Begin, r.End))
 	}
 	return ws
+}
+
+type shardHashFunc func(int, string) int
+
+func simpleHash(i int, name string) int {
+	return i
+}
+
+func nameBasedHash(i int, name string) int {
+	var h int
+	for _, c := range name {
+		h += int(c) * int(c)
+	}
+	return h
+}
+
+func getshardHash() shardHashFunc {
+	if kc.ShardHashMethod == `NAME` {
+		log.Debugf("using name based hash")
+		return nameBasedHash
+	}
+	return simpleHash
 }

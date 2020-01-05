@@ -21,18 +21,21 @@ const (
 	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
 	LogLevelEnvKey         = `KUNGFU_CONFIG_LOG_LEVEL`
+	ShardHashMethodEnvKey  = `KUNGFU_CONFIG_SHARD_HASH_METHOD`
 )
 
 var ConfigEnvKeys = []string{
 	EnableMonitoringEnvKey,
 	MonitoringPeriodEnvKey,
 	LogLevelEnvKey,
+	ShardHashMethodEnvKey,
 }
 
 var (
 	EnableMonitoring = false
 	LogLevel         = `INFO`
 	MonitoringPeriod = 1 * time.Second
+	ShardHashMethod  = `ID`
 )
 
 func init() {
@@ -44,6 +47,9 @@ func init() {
 	}
 	if val := os.Getenv(LogLevelEnvKey); len(val) > 0 {
 		LogLevel = strings.ToUpper(val)
+	}
+	if val := os.Getenv(ShardHashMethodEnvKey); len(val) > 0 {
+		ShardHashMethod = strings.ToUpper(val)
 	}
 }
 
