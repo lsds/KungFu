@@ -19,11 +19,15 @@ type Connection interface {
 	Read(msgName string, m Message) error
 }
 
-func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
-	return newConnection(remote, local, ConnPing)
+func NewPingConnection(remote, local plan.NetAddr) Connection {
+	c := newConnection(remote, local, ConnPing)
+	if err := c.initOnce(); err != nil {
+		log.Errorf("ping connection initOnce failed: %v", err)
+	}
+	return c
 }
 
-func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
+func newConnection(remote, local plan.NetAddr, t ConnType) *tcpConnection {
 	init := func() (net.Conn, error) {
 		conn, err := func() (net.Conn, error) {
 			if kc.UseUnixSock && remote.ColocatedWith(local) {
@@ -45,7 +49,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
 		}
 		return conn, nil
 	}
-	return &tcpConnection{remote: remote, init: init}, nil
+	return &tcpConnection{remote: remote, init: init}
 }
 
 type tcpConnection struct {

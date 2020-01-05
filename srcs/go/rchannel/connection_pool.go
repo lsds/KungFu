@@ -22,19 +22,16 @@ func newConnectionPool() *ConnectionPool {
 	}
 }
 
-func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection, error) {
+func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) Connection {
 	p.Lock()
 	defer p.Unlock()
 	key := connKey{remote, t}
 	if conn, ok := p.conns[key]; ok {
-		return conn, nil
+		return conn
 	}
-	conn, err := newConnection(remote, local, t)
-	if err != nil {
-		return nil, err
-	}
+	conn := newConnection(remote, local, t)
 	p.conns[key] = conn
-	return conn, nil
+	return conn
 }
 
 func (p *ConnectionPool) reset(keeps plan.PeerList) {
