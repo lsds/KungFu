@@ -37,7 +37,7 @@ func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bo
 			}
 			var redirectors []*iostream.StdWriters
 			if verboseLog {
-				redirectors = append(redirectors, iostream.NewXTermRedirector(p.Name, xterm.BasicColors.Get(i)))
+				redirectors = append(redirectors, iostream.NewXTermRedirector(p.Name, xterm.BasicColors.Choose(i)))
 			}
 			redirectors = append(redirectors, iostream.NewFileRedirector(path.Join(logDir, p.Name)))
 			if err := client.Watch(ctx, p.Script(), redirectors); err != nil {

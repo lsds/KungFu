@@ -7,7 +7,7 @@ import (
 
 type ColorSet []Color
 
-func (cs ColorSet) Get(i int) Color {
+func (cs ColorSet) Choose(i int) Color {
 	return cs[i%len(cs)]
 }
 

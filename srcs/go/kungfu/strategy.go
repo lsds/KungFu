@@ -7,6 +7,12 @@ import (
 
 type partitionStrategy func(plan.PeerList) []strategy
 
+type strategyList []strategy
+
+func (sl strategyList) choose(i int) strategy {
+	return sl[i%len(sl)]
+}
+
 var partitionStrategies = map[kb.Strategy]partitionStrategy{
 	kb.Star:           createStarStrategies,
 	kb.Clique:         createCliqueStrategies,

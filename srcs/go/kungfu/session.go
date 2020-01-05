@@ -281,7 +281,7 @@ func ceilDiv(a, b int) int {
 	return a/b + 1
 }
 
-func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []strategy) error {
+func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies strategyList) error {
 	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
 	errs := make([]error, k)
 	var wg sync.WaitGroup
@@ -290,7 +290,7 @@ func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies []st
 		go func(i int, w Workspace, s strategy) {
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			wg.Done()
-		}(i, w, strategies[i%len(strategies)])
+		}(i, w, strategies.choose(i))
 	}
 	wg.Wait()
 	return mergeErrors(errs, "runStrategies")
