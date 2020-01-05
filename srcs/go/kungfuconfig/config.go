@@ -18,24 +18,24 @@ const (
 )
 
 const (
-	EnableMonitoringEnvKey = `KUNGFU_CONFIG_ENABLE_MONITORING`
-	MonitoringPeriodEnvKey = `KUNGFU_CONFIG_MONITORING_PERIOD`
-	LogLevelEnvKey         = `KUNGFU_CONFIG_LOG_LEVEL`
-	ShardHashMethodEnvKey  = `KUNGFU_CONFIG_SHARD_HASH_METHOD`
+	EnableMonitoringEnvKey   = `KUNGFU_CONFIG_ENABLE_MONITORING`
+	MonitoringPeriodEnvKey   = `KUNGFU_CONFIG_MONITORING_PERIOD`
+	LogLevelEnvKey           = `KUNGFU_CONFIG_LOG_LEVEL`
+	StrategyHashMethodEnvKey = `KUNGFU_CONFIG_STRATEGY_HASH_METHOD`
 )
 
 var ConfigEnvKeys = []string{
 	EnableMonitoringEnvKey,
 	MonitoringPeriodEnvKey,
 	LogLevelEnvKey,
-	ShardHashMethodEnvKey,
+	StrategyHashMethodEnvKey,
 }
 
 var (
-	EnableMonitoring = false
-	LogLevel         = `INFO`
-	MonitoringPeriod = 1 * time.Second
-	ShardHashMethod  = `ID`
+	EnableMonitoring   = false
+	LogLevel           = `INFO`
+	MonitoringPeriod   = 1 * time.Second
+	StrategyHashMethod = `NAME`
 )
 
 func init() {
@@ -46,10 +46,10 @@ func init() {
 		MonitoringPeriod = parseDuration(val)
 	}
 	if val := os.Getenv(LogLevelEnvKey); len(val) > 0 {
-		LogLevel = strings.ToUpper(val)
+		LogLevel = strings.ToUpper(val) // FIXME: check enum value
 	}
-	if val := os.Getenv(ShardHashMethodEnvKey); len(val) > 0 {
-		ShardHashMethod = strings.ToUpper(val)
+	if val := os.Getenv(StrategyHashMethodEnvKey); len(val) > 0 {
+		StrategyHashMethod = strings.ToUpper(val) // FIXME: check enum value
 	}
 }
 
