@@ -2,6 +2,7 @@ import argparse
 import os
 
 import tensorflow as tf
+from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, broadcast, counter,
                                    get_init_checkpoint, resize_cluster,
                                    step_based_schedule)
@@ -61,7 +62,7 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         self._max_step = max_step
         self._counter = 0
         self._verbose = False
-        self.log('SimpleHook created')
+        self._need_sync = True
 
     def log(self, msg):
         if self._verbose:
@@ -82,17 +83,20 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         print('%d global variables' % (len(vs)))
         # for v in vs:
         #     print('%s :: %s %s' % (v.name, str(v.dtype), v.shape))
+
+        self._sync_op = BroadcastGlobalVariablesOp()
+
         ckpt = os.getenv('KUNGFU_INIT_CKPT')
-        if ckpt is not None:
-            self._init_kungfu_step = tf.assign(self._kungfu_step, int(ckpt))
-            self._resize_op = self._build_resize_op(self._schedule, int(ckpt))
-        else:
-            self._init_kungfu_step = None
+        self._init_kungfu_step = tf.assign(self._kungfu_step, int(ckpt))
+        self._resize_op = self._build_resize_op(self._schedule, int(ckpt))
+        self._reset_global_step = tf.assign(tf.train.get_global_step(),
+                                            int(ckpt))
 
     def after_create_session(self, sess, coord):
         self.log('after_create_session')
-        if self._init_kungfu_step is not None:
-            sess.run(self._init_kungfu_step)
+        sess.run(self._init_kungfu_step)
+        sess.run(self._reset_global_step)
+
         global_step = sess.run(tf.train.get_global_step())
         kungfu_step = sess.run(self._kungfu_step)
         print('session created with global_step: %d, kungfu_step: %d' %
@@ -106,6 +110,10 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
             # run_context.request_stop()
             # FIXME: force quit
 
+        if self._need_sync:
+            run_context.session.run(self._sync_op)
+            self._need_sync = False
+
     def after_run(self, run_context, run_values):
         self.log('after_run: %d' % (self._counter))
         self._counter += 1
@@ -115,6 +123,7 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         changed, keep = run_context.session.run(self._resize_op)
         if changed:
             print('changed on %d' % (kungfu_step))
+            self._need_sync = True
             if not keep:
                 run_context.request_stop()
 
@@ -141,9 +150,7 @@ def get_model_dir(args):
 
 def main():
     args = parse_args()
-    init_step = int(os.getenv('KUNGFU_INIT_CKPT'))
-    print('using config: %s, max step=%d, init step: %d' %
-          (args.schedule, args.max_step, init_step))
+    print('using config: %s, max step=%d' % (args.schedule, args.max_step))
 
     data = load_datasets(args.data_dir, normalize=True)
     classifier = tf.estimator.Estimator(model_fn,
