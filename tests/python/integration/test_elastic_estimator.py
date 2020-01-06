@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import tensorflow as tf
@@ -10,13 +11,16 @@ from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
-def get_config():
-    stage_sizes = [1, 2, 4, 8]
-    step_per_stage = 3
-
-    config = ','.join('%d:%d' % (size, step_per_stage) for size in stage_sizes)
-    max_step = step_per_stage * len(stage_sizes)
-    return config, max_step
+def parse_args():
+    p = argparse.ArgumentParser(description='Example.')
+    p.add_argument('--schedule',
+                   type=str,
+                   default='3:2,3:4,3:16,3:1',
+                   help='cluster size schedule')
+    p.add_argument('--max-step', type=int, default=10, help='max train step')
+    p.add_argument('--data-dir', type=str, default='.')
+    p.add_argument('--model-dir-prefix', type=str, default='./checkpoints/')
+    return p.parse_args()
 
 
 def slp(x, logits):
@@ -128,18 +132,27 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         self.log('end')
 
 
+def get_model_dir(args):
+    self_id = os.getenv('KUNGFU_SELF_SPEC')
+    ckpt = os.getenv('KUNGFU_INIT_CKPT')
+    uid = '%s@%s' % (self_id, ckpt)  # FIXME: provide an API
+    return os.path.join(args.model_dir_prefix, uid)
+
+
 def main():
-    data_dir = os.path.join(os.getenv('HOME'), 'var/data/mnist')
-    data = load_datasets(data_dir, normalize=True)
-    model_dir = './checkpoints'
-    classifier = tf.estimator.Estimator(model_fn, model_dir=model_dir)
-    schedule, max_step = get_config()
+    args = parse_args()
     init_step = int(os.getenv('KUNGFU_INIT_CKPT'))
     print('using config: %s, max step=%d, init step: %d' %
-          (schedule, max_step, init_step))
-    classifier.train(input_fn(data.train, 1000),
-                     hooks=[KungFuElasticTrainHook(schedule, max_step)],
-                     max_steps=max_step)
+          (args.schedule, args.max_step, init_step))
+
+    data = load_datasets(args.data_dir, normalize=True)
+    classifier = tf.estimator.Estimator(model_fn,
+                                        model_dir=get_model_dir(args))
+
+    classifier.train(
+        input_fn(data.train, 1000),
+        hooks=[KungFuElasticTrainHook(args.schedule, args.max_step)],
+        max_steps=args.max_step)
     results = classifier.evaluate(input_fn(data.test, 1000), hooks=[], steps=1)
     print('results: %s' % (results, ))
 

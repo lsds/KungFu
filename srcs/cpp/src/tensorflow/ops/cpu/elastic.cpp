@@ -70,6 +70,9 @@ class StepBasedSchedule : public OpKernel
         if (strict_) {
             OP_REQUIRES(context, found,
                         errors::InvalidArgument("schedule not found"));
+        } else {
+            LOG(INFO) << "schedule not found for " << step << ", using default "
+                      << result;  // FIXME: infrequently
         }
         cluster_size->scalar<int32_t>()() = result;
     }
