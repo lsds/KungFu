@@ -139,7 +139,11 @@ device = '/gpu:0' if args.cuda else 'CPU'
 def run(benchmark_step):
     # Warm-up
     log('Running warmup...')
-    timeit.timeit(benchmark_step, number=args.num_warmup_batches)
+    for x in range(args.num_warmup_batches):
+        time = timeit.timeit(benchmark_step, number=1)
+        img_sec = args.batch_size / time
+        log('Warmup Step #%d: %.1f img/sec per %s, took %.3fs' %
+            (x, img_sec, device, time))
 
     # Benchmark
     log('Running benchmark...')

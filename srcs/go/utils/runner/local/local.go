@@ -85,7 +85,7 @@ func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
 		go func(i int, proc job.Proc) {
 			r := &Runner{
 				name:          proc.Name,
-				color:         xterm.BasicColors.Get(i),
+				color:         xterm.BasicColors.Choose(i),
 				verboseLog:    verboseLog,
 				logFilePrefix: strings.Replace(proc.Name, "/", "-", -1),
 				logDir:        proc.LogDir,

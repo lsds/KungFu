@@ -1,11 +1,14 @@
 package rchannel
 
 import (
+	"errors"
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -16,38 +19,69 @@ type Connection interface {
 	Read(msgName string, m Message) error
 }
 
-func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
-	return newConnection(remote, local, ConnPing)
+func NewPingConnection(remote, local plan.NetAddr) Connection {
+	c := newConnection(remote, local, ConnPing)
+	if err := c.initOnce(); err != nil {
+		log.Errorf("ping connection initOnce failed: %v", err)
+	}
+	return c
 }
 
-func newConnection(remote, local plan.NetAddr, t ConnType) (Connection, error) {
-	conn, err := func() (net.Conn, error) {
-		if kc.UseUnixSock && remote.ColocatedWith(local) {
-			addr := net.UnixAddr{remote.SockFile(), "unix"}
-			return net.DialUnix(addr.Net, nil, &addr)
+func newConnection(remote, local plan.NetAddr, t ConnType) *tcpConnection {
+	init := func() (net.Conn, error) {
+		conn, err := func() (net.Conn, error) {
+			if kc.UseUnixSock && remote.ColocatedWith(local) {
+				addr := net.UnixAddr{Name: remote.SockFile(), Net: "unix"}
+				return net.DialUnix(addr.Net, nil, &addr)
+			}
+			return net.Dial("tcp", remote.String())
+		}()
+		if err != nil {
+			return nil, err
 		}
-		return net.Dial("tcp", remote.String())
-	}()
-	if err != nil {
-		return nil, err
+		h := connectionHeader{
+			Type:    uint16(t),
+			SrcIPv4: local.IPv4,
+			SrcPort: local.Port,
+		}
+		if err := h.WriteTo(conn); err != nil {
+			return nil, err
+		}
+		return conn, nil
 	}
-	h := connectionHeader{
-		Type:    uint16(t),
-		SrcIPv4: local.IPv4,
-		SrcPort: local.Port,
-	}
-	if err := h.WriteTo(conn); err != nil {
-		return nil, err
-	}
-	return &tcpConnection{conn: conn}, nil
+	return &tcpConnection{remote: remote, init: init}
 }
 
 type tcpConnection struct {
 	sync.Mutex
-	conn net.Conn
+	remote plan.NetAddr
+	init   func() (net.Conn, error)
+	conn   net.Conn
+}
+
+var errCantEstablishConnection = errors.New("can't establish connection")
+
+func (c *tcpConnection) initOnce() error {
+	c.Lock()
+	defer c.Unlock()
+	if c.conn != nil {
+		return nil
+	}
+	t0 := time.Now()
+	for i := 0; i <= kc.ConnRetryCount; i++ {
+		var err error
+		if c.conn, err = c.init(); err == nil {
+			log.Debugf("connection to #<%s> established after %d trials, took %s", c.remote, i+1, time.Since(t0))
+			return nil
+		}
+		log.Debugf("failed to establish connection to #<%s> for %d times: %v", c.remote, i+1, err)
+		time.Sleep(kc.ConnRetryPeriod)
+	}
+	return errCantEstablishConnection
 }
 
 func (c *tcpConnection) Send(msgName string, m Message, flags uint32) error {
+	c.initOnce()
 	c.Lock()
 	defer c.Unlock()
 	bs := []byte(msgName)
@@ -63,6 +97,7 @@ func (c *tcpConnection) Send(msgName string, m Message, flags uint32) error {
 }
 
 func (c *tcpConnection) Read(msgName string, m Message) error {
+	c.initOnce()
 	c.Lock()
 	defer c.Unlock()
 	var mh messageHeader
@@ -73,5 +108,7 @@ func (c *tcpConnection) Read(msgName string, m Message) error {
 }
 
 func (c *tcpConnection) Close() error {
+	c.Lock()
+	defer c.Unlock()
 	return c.conn.Close()
 }

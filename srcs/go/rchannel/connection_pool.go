@@ -1,16 +1,10 @@
 package rchannel
 
 import (
-	"errors"
 	"sync"
-	"time"
 
-	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
-	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
-
-var errCantEstablishConnection = errors.New("can't establish connection")
 
 type connKey struct {
 	a plan.NetAddr
@@ -20,41 +14,24 @@ type connKey struct {
 type ConnectionPool struct {
 	sync.Mutex
 	conns map[connKey]Connection
-
-	connRetryCount  int
-	connRetryPeriod time.Duration
 }
 
 func newConnectionPool() *ConnectionPool {
 	return &ConnectionPool{
 		conns: make(map[connKey]Connection),
-
-		connRetryCount:  kc.ConnRetryCount,
-		connRetryPeriod: kc.ConnRetryPeriod,
 	}
 }
 
-func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) (Connection, error) {
+func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) Connection {
 	p.Lock()
 	defer p.Unlock()
 	key := connKey{remote, t}
 	if conn, ok := p.conns[key]; ok {
-		return conn, nil
+		return conn
 	}
-
-	log.Debugf("New connection to %s", remote)
-	for i := 0; i <= p.connRetryCount; i++ {
-		// TODO: call newConnection with timeout.
-		conn, err := newConnection(remote, local, t)
-		if err == nil {
-			p.conns[key] = conn
-			return conn, nil
-		}
-		log.Debugf("Retry connect to [%s] for [%d] times. Retry after %s. Error: %v. ", remote, i+1, p.connRetryPeriod, err)
-		time.Sleep(p.connRetryPeriod)
-	}
-
-	return nil, errCantEstablishConnection
+	conn := newConnection(remote, local, t)
+	p.conns[key] = conn
+	return conn
 }
 
 func (p *ConnectionPool) reset(keeps plan.PeerList) {

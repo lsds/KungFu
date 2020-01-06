@@ -7,13 +7,20 @@ import (
 
 type partitionStrategy func(plan.PeerList) []strategy
 
+type strategyList []strategy
+
+func (sl strategyList) choose(i int) strategy {
+	return sl[i%len(sl)]
+}
+
 var partitionStrategies = map[kb.Strategy]partitionStrategy{
-	kb.Star:           createStarStrategies,
-	kb.Clique:         createCliqueStrategies,
-	kb.Ring:           createRingStrategies,
-	kb.Tree:           createTreeStrategies,
-	kb.BinaryTree:     createBinaryTreeStrategies,
-	kb.BinaryTreeStar: createBinaryTreeStarStrategies,
+	kb.Star:                createStarStrategies,
+	kb.Clique:              createCliqueStrategies,
+	kb.Ring:                createRingStrategies,
+	kb.Tree:                createTreeStrategies,
+	kb.BinaryTree:          createBinaryTreeStrategies,
+	kb.BinaryTreeStar:      createBinaryTreeStarStrategies,
+	kb.MultiBinaryTreeStar: createMultiBinaryTreeStarStrategies,
 }
 
 func simpleSingleGraphStrategy(bcastGraph *plan.Graph) []strategy {
@@ -43,6 +50,17 @@ func createBinaryTreeStrategies(peers plan.PeerList) []strategy {
 func createBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
 	bcastGraph := plan.GenBinaryTreeStar(peers)
 	return simpleSingleGraphStrategy(bcastGraph)
+}
+
+func createMultiBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
+	var ss []strategy
+	for _, bcastGraph := range plan.GenMultiBinaryTreeStar(peers) {
+		ss = append(ss, strategy{
+			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
+			bcastGraph:  bcastGraph,
+		})
+	}
+	return ss
 }
 
 func createCliqueStrategies(peers plan.PeerList) []strategy {
