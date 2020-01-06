@@ -3,9 +3,8 @@ import os
 import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-from kungfu.tensorflow.ops import (all_reduce, broadcast, consensus, counter,
-                                   get_init_checkpoint, resize_cluster,
-                                   step_based_schedule)
+from kungfu.tensorflow.ops import (consensus, counter, get_init_checkpoint,
+                                   resize_cluster, step_based_schedule)
 
 
 class KungFuElasticTrainHook(tf.train.SessionRunHook):
@@ -26,7 +25,7 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         self._kungfu_step = tf.Variable(0, trainable=False, dtype=tf.int64)
         self._advance = tf.assign_add(self._kungfu_step, 1)
         self._sync_op = BroadcastGlobalVariablesOp()
-        ckpt = os.getenv('KUNGFU_INIT_CKPT')
+        ckpt = get_init_checkpoint()
         self._init_kungfu_step = tf.assign(self._kungfu_step, int(ckpt))
         self._resize_op = self._build_resize_op(self._schedule, int(ckpt))
         self._reset_global_step = tf.assign(tf.train.get_global_step(),

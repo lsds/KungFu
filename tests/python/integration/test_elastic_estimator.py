@@ -1,9 +1,7 @@
 import argparse
 import os
 
-import numpy as np
 import tensorflow as tf
-from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, broadcast, consensus, counter,
                                    get_init_checkpoint, resize_cluster,
                                    step_based_schedule)
