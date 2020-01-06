@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 cd $(dirname $0)/../..
@@ -27,8 +27,9 @@ flags() {
 
 main() {
     rm -fr checkpoints
-    # set -x
-    kungfu-run -w $(kungfu_flags) python3 tests/python/integration/test_elastic_estimator.py $(flags)
+    env \
+        PATH=$PWD/bin:$PATH \
+        kungfu-run -w $(kungfu_flags) python3 tests/python/integration/test_elastic_estimator.py $(flags)
 }
 
 measure main

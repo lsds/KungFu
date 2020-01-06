@@ -3,9 +3,10 @@ import os
 
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-from kungfu.tensorflow.ops import (all_reduce, broadcast, counter,
+from kungfu.tensorflow.ops import (all_reduce, broadcast, counter, consensus,
                                    get_init_checkpoint, resize_cluster,
                                    step_based_schedule)
+from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 from kungfu.tensorflow.v1.helpers.mnist import load_datasets
 from tensorflow.python.util import deprecation
 
@@ -36,11 +37,14 @@ def model_fn(features, labels, mode):
     output, predictions = slp(features['x'], 10)
     loss = tf.losses.sparse_softmax_cross_entropy(tf.cast(labels, tf.int32),
                                                   output)
-    optimizer = tf.train.GradientDescentOptimizer(0.1)
-    train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
     eval_metric_ops = {
         'accuracy': tf.metrics.accuracy(labels=labels, predictions=predictions)
     }
+
+    optimizer = tf.train.GradientDescentOptimizer(0.1)
+    optimizer = SynchronousSGDOptimizer(optimizer)
+    train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
+
     return tf.estimator.EstimatorSpec(mode=mode,
                                       loss=loss,
                                       train_op=train_op,
@@ -79,12 +83,16 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         self.log('begin')
         self._kungfu_step = tf.Variable(0, trainable=False, dtype=tf.int64)
         self._advance = tf.assign_add(self._kungfu_step, 1)
+
         vs = tf.global_variables()
         print('%d global variables' % (len(vs)))
-        # for v in vs:
-        #     print('%s :: %s %s' % (v.name, str(v.dtype), v.shape))
+        for v in vs:
+            print('%s :: %s %s' % (v.name, str(v.dtype), v.shape))
+
+        model_vs = [v for v in vs if 'dense' in v.name]
 
         self._sync_op = BroadcastGlobalVariablesOp()
+        self._consensus_ops = [consensus(v) for v in model_vs]
 
         ckpt = os.getenv('KUNGFU_INIT_CKPT')
         self._init_kungfu_step = tf.assign(self._kungfu_step, int(ckpt))
@@ -111,7 +119,11 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
             # FIXME: force quit
 
         if self._need_sync:
+            print('running sync op')
+            ps = run_context.session.run(self._consensus_ops)
             run_context.session.run(self._sync_op)
+            qs = run_context.session.run(self._consensus_ops)
+            print('before sync: %s, after sync: %s' % (ps, qs))
             self._need_sync = False
 
     def after_run(self, run_context, run_values):
@@ -160,6 +172,8 @@ def main():
         input_fn(data.train, 1000),
         hooks=[KungFuElasticTrainHook(args.schedule, args.max_step)],
         max_steps=args.max_step)
+
+    print('train finished')
     results = classifier.evaluate(input_fn(data.test, 1000), hooks=[], steps=1)
     print('results: %s' % (results, ))
 
