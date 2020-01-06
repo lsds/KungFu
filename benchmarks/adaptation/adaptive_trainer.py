@@ -7,7 +7,7 @@ t0 = time.time()  # before import tensorflow
 
 import tensorflow as tf
 from kungfu.tensorflow.ops import (all_reduce, barrier, current_cluster_size,
-                                   get_init_checkpoint, resize_cluster)
+                                   _get_init_step, resize_cluster)
 from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -77,7 +77,7 @@ init = tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
 
-    init_gs = restore(get_init_checkpoint())
+    init_gs = restore(_get_init_step())
     np = current_cluster_size()
     init_np = get_cluster_size(init_gs, cluster_size_schedule, np)
     if np != init_np:

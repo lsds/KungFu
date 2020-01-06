@@ -4,14 +4,9 @@ from ._tf_oplib import _op_lib
 from .state import counter
 
 
-def get_init_checkpoint():
-    """Get the initial checkpoint.
-
-    Returns:
-        A string represents the checkpoint.
-    """
+def _get_init_step():
     # FIXME: call C API
-    return os.getenv('KUNGFU_INIT_CKPT')
+    return os.getenv('KUNGFU_INIT_STEP')
 
 
 def resize_cluster(checkpoint, new_size, debug=False):

@@ -58,7 +58,7 @@ func ParseConfigFromEnv() (*Config, error) {
 		PortRange:      *portRange,
 		InitPeers:      initPeers,
 		Strategy:       *strategy,
-		InitCheckpoint: os.Getenv(kb.CheckpointEnvKey),
+		InitCheckpoint: os.Getenv(kb.InitStepEnvKey),
 	}, nil
 }
 

@@ -173,7 +173,7 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
 		return false, true
 	}
 	{
-		stage := run.Stage{Checkpoint: ckpt, Cluster: peers}
+		stage := run.Stage{InitStep: ckpt, Cluster: peers}
 		if err := par(kf.parents, func(parent plan.PeerID) error {
 			return kf.router.Send(parent.WithName("update"), stage.Encode(), rch.ConnControl, 0)
 		}); err != nil {

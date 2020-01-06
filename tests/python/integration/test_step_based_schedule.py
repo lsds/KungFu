@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.tensorflow.ops import (counter, get_init_checkpoint, all_reduce,
+from kungfu.tensorflow.ops import (counter, _get_init_step, all_reduce,
                                    broadcast, resize_cluster,
                                    step_based_schedule)
 
@@ -17,7 +17,7 @@ config, max_step = get_config()
 
 
 def build_ops():
-    init_step = int(get_init_checkpoint())
+    init_step = int(_get_init_step())
     print('init_step is %d' % (init_step))
 
     step = counter(init_step)

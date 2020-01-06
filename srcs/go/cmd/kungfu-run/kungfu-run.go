@@ -87,7 +87,7 @@ func main() {
 	}
 	if f.Watch {
 		ch := make(chan run.Stage, 1)
-		ch <- run.Stage{Cluster: peers, Checkpoint: f.Checkpoint}
+		ch <- run.Stage{Cluster: peers, InitStep: f.Checkpoint}
 		run.WatchRun(ctx, parent, parents, ch, j)
 	} else {
 		run.SimpleRun(ctx, localhostIPv4, peers, j, f.VerboseLog)
