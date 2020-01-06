@@ -68,13 +68,13 @@ func fakeTrain(kungfu *kf.Kungfu) {
 }
 
 func restore(kungfu *kf.Kungfu, step *int) error {
-	ckpt := kungfu.GetCheckpoint()
-	n, err := strconv.Atoi(ckpt)
+	initStep := kungfu.GetInitStep()
+	n, err := strconv.Atoi(initStep)
 	if err != nil {
 		return err
 	}
 	*step = n
-	log.Infof("restored from %q", ckpt)
+	log.Infof("restored from %q", initStep)
 	return nil
 }
 
