@@ -3,7 +3,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-from kungfu.tensorflow.ops import (consensus, counter, _get_init_step,
+from kungfu.tensorflow.ops import (_get_init_step, consensus, counter,
                                    resize_cluster, step_based_schedule)
 
 
