@@ -12,8 +12,8 @@ type Config struct {
 	Self     PeerID
 	Strategy kb.Strategy
 
-	InitCheckpoint string
-	InitPeers      PeerList
+	InitStep  string
+	InitPeers PeerList
 
 	// resources
 	HostList  HostList
@@ -51,14 +51,14 @@ func ParseConfigFromEnv() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
-		Self:           *self,
-		Parent:         *parent,
-		Parents:        getParentIDs(hostList, *parent),
-		HostList:       hostList,
-		PortRange:      *portRange,
-		InitPeers:      initPeers,
-		Strategy:       *strategy,
-		InitCheckpoint: os.Getenv(kb.CheckpointEnvKey),
+		Self:      *self,
+		Parent:    *parent,
+		Parents:   getParentIDs(hostList, *parent),
+		HostList:  hostList,
+		PortRange: *portRange,
+		InitPeers: initPeers,
+		Strategy:  *strategy,
+		InitStep:  os.Getenv(kb.InitStepEnvKey),
 	}, nil
 }
 

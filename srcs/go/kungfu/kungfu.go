@@ -33,7 +33,7 @@ type Kungfu struct {
 	// dynamic
 	currentSession *session
 	currentPeers   plan.PeerList
-	checkpoint     string
+	initStep       string
 	updated        bool
 }
 
@@ -56,7 +56,7 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 		hostList:     config.HostList,
 		portRange:    config.PortRange,
 		strategy:     config.Strategy,
-		checkpoint:   config.InitCheckpoint,
+		initStep:     config.InitStep,
 		single:       config.Single,
 		router:       router,
 		server:       server,
@@ -103,8 +103,8 @@ func (kf *Kungfu) CurrentSession() *session {
 	return kf.currentSession
 }
 
-func (kf *Kungfu) GetCheckpoint() string {
-	return kf.checkpoint
+func (kf *Kungfu) GetInitStep() string {
+	return kf.initStep
 }
 
 func (kf *Kungfu) Update() bool {
@@ -163,7 +163,7 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 	return ok
 }
 
-func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
+func (kf *Kungfu) propose(initStep string, peers plan.PeerList) (bool, bool) {
 	if peers.Eq(kf.currentPeers) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
@@ -173,7 +173,7 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
 		return false, true
 	}
 	{
-		stage := run.Stage{Checkpoint: ckpt, Cluster: peers}
+		stage := run.Stage{InitStep: initStep, Cluster: peers}
 		if err := par(kf.parents, func(parent plan.PeerID) error {
 			return kf.router.Send(parent.WithName("update"), stage.Encode(), rch.ConnControl, 0)
 		}); err != nil {
@@ -184,20 +184,20 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
 		kf.Lock()
 		defer kf.Unlock()
 		kf.currentPeers = peers
-		kf.checkpoint = ckpt
+		kf.initStep = initStep
 		kf.updated = false
 	}()
 	_, keep := peers.Rank(kf.self)
 	return true, keep
 }
 
-func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, bool, error) {
-	log.Debugf("resize cluster to %d with checkpoint %q", newSize, ckpt)
+func (kf *Kungfu) ResizeCluster(initStep string, newSize int) (bool, bool, error) {
+	log.Debugf("resize cluster to %d with checkpoint %q", newSize, initStep)
 	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
 	if err != nil {
 		return false, true, err
 	}
-	changed, keep := kf.propose(ckpt, peers)
+	changed, keep := kf.propose(initStep, peers)
 	if keep {
 		kf.Update()
 	}

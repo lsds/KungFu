@@ -35,9 +35,9 @@ func (w *watcher) create(id plan.PeerID, s Stage) {
 	w.gs[id].Add(1)
 	atomic.AddInt32(&w.running, 1)
 	localRank, _ := s.Cluster.LocalRank(id)
-	proc := w.job.NewProc(id, localRank, s.Checkpoint, s.Cluster)
+	proc := w.job.NewProc(id, localRank, s.InitStep, s.Cluster)
 	go func(g *sync.WaitGroup) {
-		runProc(w.ctx, w.cancel, proc, s.Checkpoint, w.job.LogDir)
+		runProc(w.ctx, w.cancel, proc, s.InitStep, w.job.LogDir)
 		g.Done()
 		w.stopped <- id
 	}(w.gs[id])
@@ -52,7 +52,7 @@ func (w *watcher) update(s Stage) {
 	a, b := w.current.Diff(s.Cluster)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
-	log.Infof("arrived at %q, np=%d, +%d/%d, -%d/%d", s.Checkpoint, len(s.Cluster), len(add), len(b), len(del), len(a))
+	log.Infof("arrived at %q, np=%d, +%d/%d, -%d/%d", s.InitStep, len(s.Cluster), len(add), len(b), len(del), len(a))
 	log.Debugf("waiting %d peers to stop", len(del))
 	for _, id := range del {
 		w.delete(id)

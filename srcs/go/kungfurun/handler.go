@@ -16,8 +16,8 @@ import (
 )
 
 type Stage struct {
-	Checkpoint string
-	Cluster    plan.PeerList
+	InitStep string
+	Cluster  plan.PeerList
 }
 
 func (s Stage) Encode() []byte {
@@ -32,7 +32,7 @@ func (s *Stage) Decode(bs []byte) error {
 }
 
 func (s Stage) Eq(t Stage) bool {
-	return s.Checkpoint == t.Checkpoint && s.Cluster.Eq(t.Cluster)
+	return s.InitStep == t.InitStep && s.Cluster.Eq(t.Cluster)
 }
 
 type Handler struct {
@@ -95,15 +95,15 @@ func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.C
 	func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		if val, ok := h.checkpoints[s.Checkpoint]; ok {
+		if val, ok := h.checkpoints[s.InitStep]; ok {
 			if !val.Eq(s) {
 				utils.ExitErr(errInconsistentUpdate)
 			}
 			return
 		}
-		h.checkpoints[s.Checkpoint] = s
+		h.checkpoints[s.InitStep] = s
 		h.ch <- s
-		log.Debugf("update to %q with %d peers", s.Checkpoint, len(s.Cluster))
+		log.Debugf("update to %q with %d peers", s.InitStep, len(s.Cluster))
 	}()
 }
 

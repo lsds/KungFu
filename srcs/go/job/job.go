@@ -23,14 +23,14 @@ type Job struct {
 	AllowNVLink bool
 }
 
-func (j Job) NewProc(peer plan.PeerID, localRank int, checkpoint string, pl plan.PeerList) Proc {
+func (j Job) NewProc(peer plan.PeerID, localRank int, initStep string, pl plan.PeerList) Proc {
 	envs := Envs{
 		kb.SelfSpecEnvKey:          peer.String(),
 		kb.HostListEnvKey:          j.HostList.String(),
 		kb.PortRangeEnvKey:         j.PortRange.String(),
 		kb.ParentIDEnvKey:          j.Parent.String(),
 		kb.PeerListEnvKey:          pl.String(),
-		kb.CheckpointEnvKey:        checkpoint,
+		kb.InitStepEnvKey:          initStep,
 		kb.AllReduceStrategyEnvKey: j.Strategy.String(),
 	}
 
