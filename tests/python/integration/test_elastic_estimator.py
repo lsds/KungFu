@@ -2,9 +2,6 @@ import argparse
 import os
 
 import tensorflow as tf
-from kungfu.tensorflow.ops import (all_reduce, broadcast, consensus, counter,
-                                   _get_init_step, resize_cluster,
-                                   step_based_schedule)
 from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 from kungfu.tensorflow.v1.helpers.mnist import load_datasets
 from tensorflow.python.util import deprecation
