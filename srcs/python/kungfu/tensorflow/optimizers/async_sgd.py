@@ -108,9 +108,15 @@ class _PairAveraging(_KungFuAlgorithm):
             return barrier()
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
+        # filter out grad == None
+        grads_vars = []
+        for grad, var in list(grads_and_vars):
+            if grad is not None:
+                grads_vars.append((grad, var))
+
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
-        gradients, variables = list(zip(*grads_and_vars))
+        gradients, variables = list(zip(*grads_vars))
 
         init_store_op = tf.cond(tf.equal(self._step, 0),
                                 lambda: self.init_store(variables), tf.no_op)

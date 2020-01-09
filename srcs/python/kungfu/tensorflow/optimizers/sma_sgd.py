@@ -48,8 +48,14 @@ class _SynchronousAveraging(_KungFuAlgorithm):
         self._alpha = alpha
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
+        # filter out grad == None
+        grads_vars = []
+        for grad, var in list(grads_and_vars):
+            if grad is not None:
+                grads_vars.append((grad, var))
+
         # It is important to apply model averaging every iteration [2]
-        gradients, variables = list(zip(*grads_and_vars))
+        gradients, variables = list(zip(*grads_vars))
         sum_vars = group_all_reduce(variables)
         avg_vars = [g / self._num_workers for g in sum_vars]
 
