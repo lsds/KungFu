@@ -108,26 +108,26 @@ class _PairAveraging(_KungFuAlgorithm):
             return barrier()
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
-        # filter out grad == None
-        grads_vars = []
-        for grad, var in list(grads_and_vars):
-            if grad is not None:
-                grads_vars.append((grad, var))
-
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
-        gradients, variables = list(zip(*grads_vars))
+        gradients, variables = list(zip(*grads_and_vars))
+
+        # filter out grad == None
+        filtered_variables = []
+        for grad, var in list(zip(gradients, variables)):
+            if grad is not None:
+                filtered_variables.append(var)
 
         init_store_op = tf.cond(tf.equal(self._step, 0),
-                                lambda: self.init_store(variables), tf.no_op)
+                                lambda: self.init_store(filtered_variables), tf.no_op)
         with tf.control_dependencies([init_store_op]):
-            other_peer_vars = self._build_request_ops(target, variables)
+            other_peer_vars = self._build_request_ops(target, filtered_variables)
 
-        save_model_op = self._build_save_op(variables)
+        save_model_op = self._build_save_op(filtered_variables)
 
         assign_ops = [
             _tf_assign(v, 0.5 * (v + other_v))
-            for v, other_v in zip(variables, other_peer_vars)
+            for v, other_v in zip(filtered_variables, other_peer_vars)
         ]
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
