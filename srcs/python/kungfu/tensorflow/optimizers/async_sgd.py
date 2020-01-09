@@ -113,12 +113,17 @@ class _PairAveraging(_KungFuAlgorithm):
         gradients, variables = list(zip(*grads_and_vars))
 
         # filter out grad == None
-        filtered_variables = [var for (grad, var) in list(zip(gradients, variables)) if grad is not None]
+        filtered_variables = [
+            var for (grad, var) in list(zip(gradients, variables))
+            if grad is not None
+        ]
 
         init_store_op = tf.cond(tf.equal(self._step, 0),
-                                lambda: self.init_store(filtered_variables), tf.no_op)
+                                lambda: self.init_store(filtered_variables),
+                                tf.no_op)
         with tf.control_dependencies([init_store_op]):
-            other_peer_vars = self._build_request_ops(target, filtered_variables)
+            other_peer_vars = self._build_request_ops(target,
+                                                      filtered_variables)
 
         save_model_op = self._build_save_op(filtered_variables)
 

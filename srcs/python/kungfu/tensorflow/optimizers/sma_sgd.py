@@ -51,7 +51,10 @@ class _SynchronousAveraging(_KungFuAlgorithm):
         gradients, variables = list(zip(*grads_and_vars))
 
         # filter out grad == None
-        filtered_variables = [var for (grad, var) in list(zip(gradients, variables)) if grad is not None]
+        filtered_variables = [
+            var for (grad, var) in list(zip(gradients, variables))
+            if grad is not None
+        ]
 
         # It is important to apply model averaging every iteration [2]
         sum_vars = group_all_reduce(filtered_variables)
