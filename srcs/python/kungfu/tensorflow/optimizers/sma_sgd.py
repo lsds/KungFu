@@ -48,15 +48,22 @@ class _SynchronousAveraging(_KungFuAlgorithm):
         self._alpha = alpha
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
-        # It is important to apply model averaging every iteration [2]
         gradients, variables = list(zip(*grads_and_vars))
-        sum_vars = group_all_reduce(variables)
+
+        # filter out grad == None
+        filtered_variables = [
+            var for (grad, var) in list(zip(gradients, variables))
+            if grad is not None
+        ]
+
+        # It is important to apply model averaging every iteration [2]
+        sum_vars = group_all_reduce(filtered_variables)
         avg_vars = [g / self._num_workers for g in sum_vars]
 
         # TODO: Apply momentum to the averaged model [2]
         assign_ops = [
             _tf_assign(v, (1 - self._alpha) * v + self._alpha * avg_v)
-            for v, avg_v in zip(variables, avg_vars)
+            for v, avg_v in zip(filtered_variables, avg_vars)
         ]
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
