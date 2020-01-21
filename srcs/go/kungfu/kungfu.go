@@ -163,7 +163,7 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 	return ok
 }
 
-func (kf *Kungfu) propose(initStep string, peers plan.PeerList) (bool, bool) {
+func (kf *Kungfu) Propose(initStep string, peers plan.PeerList) (bool, bool) {
 	if peers.Eq(kf.currentPeers) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
@@ -197,7 +197,20 @@ func (kf *Kungfu) ResizeCluster(initStep string, newSize int) (bool, bool, error
 	if err != nil {
 		return false, true, err
 	}
-	changed, keep := kf.propose(initStep, peers)
+	changed, keep := kf.Propose(initStep, peers)
+	if keep {
+		kf.Update()
+	}
+	return changed, keep, nil
+}
+
+func (kf *Kungfu) ResizeClusterFromFile(initStep string, newSize int) (bool, bool, error) {
+	log.Debugf("resize cluster to %d with checkpoint %q", newSize, initStep)
+	peers, err := kf.hostList.GenPeerListFromFile(newSize, kf.portRange)
+	if err != nil {
+		return false, true, err
+	}
+	changed, keep := kf.Propose(initStep, peers)
 	if keep {
 		kf.Update()
 	}

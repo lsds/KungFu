@@ -59,6 +59,8 @@ func fakeTrain(kungfu *kf.Kungfu) {
 			train()
 		}
 
+		time.Sleep(100 * time.Millisecond)
+
 		if nextStep := step + 1; nextStep < *maxStep && !resize(kungfu, nextStep) {
 			log.Infof("should stop")
 			break
@@ -69,7 +71,7 @@ func fakeTrain(kungfu *kf.Kungfu) {
 
 func restore(kungfu *kf.Kungfu, step *int) error {
 	initStep := kungfu.GetInitStep()
-	n, err := strconv.Atoi(initStep)
+	n, err := strconv.Atoi(initStep) // error occurs here
 	if err != nil {
 		return err
 	}
@@ -83,13 +85,14 @@ func resize(kungfu *kf.Kungfu, nextStep int) bool {
 	np := sess.ClusterSize()
 	newSize := np + 1
 	t0 := time.Now()
-	changed, keep, err := kungfu.ResizeCluster(strconv.Itoa(nextStep), newSize)
+	changed, keep, err := kungfu.ResizeClusterFromFile(strconv.Itoa(nextStep), newSize)
+	// changed, keep, err := kungfu.ResizeCluster(strconv.Itoa(nextStep), newSize)
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	if reallyChanged := np != newSize; reallyChanged != changed {
-		utils.ExitErr(fmt.Errorf("changed should be %v", reallyChanged))
-	}
+	// if reallyChanged := np != newSize; reallyChanged != changed {
+	// 	utils.ExitErr(fmt.Errorf("changed should be %v", reallyChanged))
+	// }
 	if changed {
 		log.Infof("resize %d -> %d took %s", np, newSize, time.Since(t0))
 	}

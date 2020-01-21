@@ -1,8 +1,10 @@
 package plan
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"strconv"
@@ -181,4 +183,41 @@ func getHostListFromEnv() (HostList, error) {
 		return nil, fmt.Errorf("%s not set", kb.HostListEnvKey)
 	}
 	return ParseHostList(val)
+}
+
+type Peer struct {
+	ip   uint32
+	port uint16
+}
+
+func (hl HostList) genPeerListFromFile(np int, pr PortRange) PeerList {
+	var pl PeerList
+
+	file, err := ioutil.ReadFile("hostlist.json")
+	if err != nil {
+		fmt.Errorf("Failed reading file: %s", err)
+	}
+
+	err = json.Unmarshal(file, &pl)
+	if err != nil {
+		fmt.Errorf("Failed parsing json: %s", err)
+	}
+
+	if len(hl) < len(pl) {
+		fmt.Errorf("Length of hl shorter than length of peers")
+	}
+
+	return pl
+}
+
+func (hl HostList) GenPeerListFromFile(np int, pr PortRange) (PeerList, error) {
+	if hl.Cap() < np {
+		return nil, errNoEnoughCapacity
+	}
+	for _, h := range hl {
+		if pr.Cap() < h.Slots {
+			return nil, errNoEnoughCapacity
+		}
+	}
+	return hl.genPeerListFromFile(np, pr), nil
 }
