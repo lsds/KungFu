@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (_get_init_step, consensus, counter,
-                                   resize_cluster, step_based_schedule)
+                                   resize_cluster_from_url, step_based_schedule)
 
 
 class KungFuElasticTrainHook(tf.train.SessionRunHook):
@@ -16,9 +16,8 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
 
     def _build_resize_op(self, config, init_step):
         step = counter(init_step)
-        new_size = step_based_schedule(config, step)
         ckpt_tensor = tf.as_string(step + 1)
-        resize_op = resize_cluster(ckpt_tensor, new_size)
+        resize_op = resize_cluster_from_url(ckpt_tensor)
         return resize_op
 
     def begin(self):
@@ -67,7 +66,7 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         print('stopped at global_step: %d, kungfu_step: %d' %
               (global_step, kungfu_step))
 
-        self.save(sess, 'final')
+        # self.save(sess, 'final')
 
     def save(self, sess, idx):
         vs = tf.global_variables()

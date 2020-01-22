@@ -212,11 +212,11 @@ def model_function(features, labels, mode):
 
 def main(_):
     from kungfu.tensorflow.initializer import BroadcastGlobalVariablesHook
-    hooks = [
-        BroadcastGlobalVariablesHook(),
-        tf.train.LoggingTensorHook(['train_accuracy', 'train_loss'],
-                                   every_n_iter=10)
-    ]
+    # hooks = [
+    #     BroadcastGlobalVariablesHook(),
+    #     tf.train.LoggingTensorHook(['train_accuracy', 'train_loss'],
+    #                                every_n_iter=10)
+    # ]
 
     from kungfu import current_rank
     save_checkpoints_secs = None if current_rank() != 0 else 30
@@ -226,6 +226,9 @@ def main(_):
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
                                               model_dir=FLAGS.model_dir,
                                               config=config)
+
+    from kungfu.tensorflow.hooks import KungFuElasticTrainHook
+    hooks=[KungFuElasticTrainHook("8:500,7:500,6:500,5:500,4:500,3:500,2:500,1:500", 4000, FLAGS.model_dir)]
 
     for _ in range(FLAGS.num_epochs):
         mnist_classifier.train(

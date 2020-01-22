@@ -23,6 +23,19 @@ def resize_cluster(checkpoint, new_size, debug=False):
     """
     return _op_lib.kungfu_resize_cluster(checkpoint, new_size, debug=debug)
 
+def resize_cluster_from_url(checkpoint):
+    """Resize cluster to given size.
+
+    Inputs:
+        checkpoint: A scalar tensor of type string, new peers should be able to restore to this checkpoint.
+    Returns:
+        A pair of scalar tensors (changed, keep) of type bool,
+        {changed} indicates if the cluster has been changed,
+        {keep} indicates if the current peer is still in the new cluster,
+        the peer should quit if it is not in the new cluster.
+    """
+    return _op_lib.kungfu_resize_cluster_from_url(checkpoint)
+
 
 def step_based_schedule(config, step=None):
     if step is None:
