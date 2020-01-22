@@ -1,9 +1,13 @@
 package kungfu
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"sync"
+	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -31,10 +35,11 @@ type Kungfu struct {
 	server rch.Server
 
 	// dynamic
-	currentSession *session
-	currentPeers   plan.PeerList
-	initStep       string
-	updated        bool
+	currentSession  *session
+	currentPeers    plan.PeerList
+	initStep        string
+	updated         bool
+	configServerURL string
 }
 
 func New() (*Kungfu, error) {
@@ -49,17 +54,18 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
 	server := rch.NewServer(router)
 	return &Kungfu{
-		parent:       config.Parent,
-		parents:      config.Parents,
-		currentPeers: config.InitPeers,
-		self:         config.Self,
-		hostList:     config.HostList,
-		portRange:    config.PortRange,
-		strategy:     config.Strategy,
-		initStep:     config.InitStep,
-		single:       config.Single,
-		router:       router,
-		server:       server,
+		parent:          config.Parent,
+		parents:         config.Parents,
+		currentPeers:    config.InitPeers,
+		self:            config.Self,
+		hostList:        config.HostList,
+		portRange:       config.PortRange,
+		strategy:        config.Strategy,
+		initStep:        config.InitStep,
+		single:          config.Single,
+		router:          router,
+		server:          server,
+		configServerURL: "http://127.0.0.1:9100/get",
 	}, nil
 }
 
@@ -204,11 +210,22 @@ func (kf *Kungfu) ResizeCluster(initStep string, newSize int) (bool, bool, error
 	return changed, keep, nil
 }
 
-func (kf *Kungfu) ResizeClusterFromFile(initStep string) (bool, bool, error) {
+func (kf *Kungfu) ResizeClusterFromURL(initStep string) (bool, bool, error) {
 	log.Debugf("resize cluster with checkpoint %q", initStep)
-	peers, err := kf.hostList.GenPeerListFromFile("http://localhost:9100/get")
-	if err != nil {
-		fmt.Println("Error in kf.hostList.GenPeerListFromFile")
+	var peers plan.PeerList
+	for i := 0; ; i++ {
+		var err error
+		peers, err = kf.getPeerListFromURL(kf.configServerURL)
+		if err != nil {
+			utils.ExitErr(err)
+		}
+
+		if digest := peers.Bytes(); kf.consensus(digest) {
+			log.Debugf("New peer list is consistent after %d trails", i+1)
+			break
+		}
+		log.Warnf("diverge proposal detected! I proposed %s", peers)
+		time.Sleep(50 * time.Millisecond)
 	}
 
 	changed, keep := kf.Propose(initStep, peers)
@@ -216,4 +233,29 @@ func (kf *Kungfu) ResizeClusterFromFile(initStep string) (bool, bool, error) {
 		kf.Update()
 	}
 	return changed, keep, nil
+}
+
+func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
+	var pl plan.PeerList
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(body, &pl)
+	if err != nil {
+		return nil, err
+	}
+
+	if kf.hostList.Cap() < len(pl) {
+		return nil, plan.ErrNoEnoughCapacity
+	}
+
+	return pl, nil
 }

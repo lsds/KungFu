@@ -54,12 +54,15 @@ func fakeTrain(kungfu *kf.Kungfu) {
 			rank := sess.Rank()
 			sess.AllReduce(w)
 			fmt.Printf("step: %d, result: %d, rank=%d, np=%d, took %s\n", step, y.AsI32()[0], rank, np, time.Since(t0))
+			if sess.Rank() == 0 {
+				time.Sleep(2000 * time.Millisecond)
+			} else {
+				time.Sleep(100 * time.Millisecond)
+			}
 		}
 		if *runTrain {
 			train()
 		}
-
-		time.Sleep(100 * time.Millisecond)
 
 		if nextStep := step + 1; nextStep < *maxStep && !resize(kungfu, nextStep) {
 			log.Infof("should stop")
@@ -84,7 +87,7 @@ func resize(kungfu *kf.Kungfu, nextStep int) bool {
 	sess := kungfu.CurrentSession()
 	npBefore := sess.ClusterSize()
 	t0 := time.Now()
-	changed, keep, err := kungfu.ResizeClusterFromFile(strconv.Itoa(nextStep))
+	changed, keep, err := kungfu.ResizeClusterFromURL(strconv.Itoa(nextStep))
 	if err != nil {
 		utils.ExitErr(err)
 	}

@@ -47,13 +47,13 @@ func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
 }
 
 var port = flag.Int("port", 9100, "")
-var hostlistPath = flag.String("path", "./hostlists/hostlist.json", "")
+var peerlistPath = flag.String("path", "./hostlists/hostlist.json", "")
 
 func main() {
 	flag.Parse()
 	h := &configServer{}
 
-	content, err := ioutil.ReadFile(*hostlistPath)
+	content, err := ioutil.ReadFile(*peerlistPath)
 	if err != nil {
 		fmt.Println("Cannot read file")
 	}

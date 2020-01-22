@@ -1,18 +1,14 @@
 package plan
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
-	"github.com/lsds/KungFu/srcs/go/log"
 )
 
 var ErrInvalidHostSpec = errors.New("Invalid HostSpec")
@@ -165,15 +161,15 @@ func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	return pl
 }
 
-var errNoEnoughCapacity = errors.New("no enough capacity")
+var ErrNoEnoughCapacity = errors.New("no enough capacity")
 
 func (hl HostList) GenPeerList(np int, pr PortRange) (PeerList, error) {
 	if hl.Cap() < np {
-		return nil, errNoEnoughCapacity
+		return nil, ErrNoEnoughCapacity
 	}
 	for _, h := range hl {
 		if pr.Cap() < h.Slots {
-			return nil, errNoEnoughCapacity
+			return nil, ErrNoEnoughCapacity
 		}
 	}
 	return hl.genPeerList(np, pr), nil
@@ -185,33 +181,4 @@ func getHostListFromEnv() (HostList, error) {
 		return nil, fmt.Errorf("%s not set", kb.HostListEnvKey)
 	}
 	return ParseHostList(val)
-}
-
-func (hl HostList) GenPeerListFromFile(url string) (PeerList, error) {
-	var pl PeerList
-
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Warnf("Failed getting file: %s", err)
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Warnf("Failed reading file: %s", err)
-		return nil, err
-	}
-
-	err = json.Unmarshal(body, &pl)
-	if err != nil {
-		log.Warnf("Failed parsing json: %s", err)
-		return nil, err
-	}
-
-	if hl.Cap() < len(pl) {
-		log.Warnf("PeerList larger than capacity", err)
-		return nil, errNoEnoughCapacity
-	}
-
-	return pl, nil
 }
