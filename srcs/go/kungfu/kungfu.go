@@ -206,7 +206,7 @@ func (kf *Kungfu) ResizeCluster(initStep string, newSize int) (bool, bool, error
 
 func (kf *Kungfu) ResizeClusterFromFile(initStep string) (bool, bool, error) {
 	log.Debugf("resize cluster with checkpoint %q", initStep)
-	peers, err := kf.hostList.GenPeerListFromFile("http://localhost:9100/hostlist.json")
+	peers, err := kf.hostList.GenPeerListFromFile("http://localhost:9100/get")
 	if err != nil {
 		fmt.Println("Error in kf.hostList.GenPeerListFromFile")
 	}
