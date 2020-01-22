@@ -204,12 +204,13 @@ func (kf *Kungfu) ResizeCluster(initStep string, newSize int) (bool, bool, error
 	return changed, keep, nil
 }
 
-func (kf *Kungfu) ResizeClusterFromFile(initStep string, newSize int) (bool, bool, error) {
-	log.Debugf("resize cluster to %d with checkpoint %q", newSize, initStep)
-	peers, err := kf.hostList.GenPeerListFromFile(newSize, kf.portRange)
+func (kf *Kungfu) ResizeClusterFromFile(initStep string) (bool, bool, error) {
+	log.Debugf("resize cluster with checkpoint %q", initStep)
+	peers, err := kf.hostList.GenPeerListFromFile("http://localhost:9100/hostlist.json")
 	if err != nil {
-		return false, true, err
+		fmt.Println("Error in kf.hostList.GenPeerListFromFile")
 	}
+
 	changed, keep := kf.Propose(initStep, peers)
 	if keep {
 		kf.Update()

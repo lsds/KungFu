@@ -82,19 +82,15 @@ func restore(kungfu *kf.Kungfu, step *int) error {
 
 func resize(kungfu *kf.Kungfu, nextStep int) bool {
 	sess := kungfu.CurrentSession()
-	np := sess.ClusterSize()
-	newSize := np + 1
+	npBefore := sess.ClusterSize()
 	t0 := time.Now()
-	changed, keep, err := kungfu.ResizeClusterFromFile(strconv.Itoa(nextStep), newSize)
-	// changed, keep, err := kungfu.ResizeCluster(strconv.Itoa(nextStep), newSize)
+	changed, keep, err := kungfu.ResizeClusterFromFile(strconv.Itoa(nextStep))
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	// if reallyChanged := np != newSize; reallyChanged != changed {
-	// 	utils.ExitErr(fmt.Errorf("changed should be %v", reallyChanged))
-	// }
 	if changed {
-		log.Infof("resize %d -> %d took %s", np, newSize, time.Since(t0))
+		npAfter := sess.ClusterSize()
+		log.Infof("resize %d -> %d took %s", npBefore, npAfter, time.Since(t0))
 	}
 	return keep
 }
