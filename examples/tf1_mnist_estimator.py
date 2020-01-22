@@ -223,12 +223,14 @@ def main(_):
     config = tf.estimator.RunConfig(
         save_checkpoints_secs=save_checkpoints_secs)
 
+    model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
+
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-                                              model_dir=FLAGS.model_dir,
+                                              model_dir=model_dir,
                                               config=config)
 
     from kungfu.tensorflow.hooks import KungFuElasticTrainHook
-    hooks=[KungFuElasticTrainHook("8:500,7:500,6:500,5:500,4:500,3:500,2:500,1:500", 4000, FLAGS.model_dir)]
+    hooks=[KungFuElasticTrainHook("8:500,7:500,6:500,5:500,4:500,3:500,2:500,1:500", 4000, model_dir)]
 
     for _ in range(FLAGS.num_epochs):
         mnist_classifier.train(
