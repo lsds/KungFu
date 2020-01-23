@@ -28,17 +28,22 @@ type watcher struct {
 	current plan.PeerList
 	running int32
 	gs      map[plan.PeerID]*sync.WaitGroup
+	gpuPool *job.GPUPool
 }
 
 func (w *watcher) create(id plan.PeerID, s Stage) {
 	w.gs[id] = new(sync.WaitGroup)
 	w.gs[id].Add(1)
 	atomic.AddInt32(&w.running, 1)
-	localRank, _ := s.Cluster.LocalRank(id)
-	proc := w.job.NewProc(id, localRank, s.InitStep, s.Cluster)
+	gpuID := w.gpuPool.Get()
+	if gpuID < 0 {
+		log.Errorf("gpuID = %d", gpuID)
+	}
+	proc := w.job.NewProc(id, gpuID, s.InitStep, s.Cluster)
 	go func(g *sync.WaitGroup) {
 		runProc(w.ctx, w.cancel, proc, s.InitStep, w.job.LogDir)
 		g.Done()
+		w.gpuPool.Put(gpuID)
 		w.stopped <- id
 	}(w.gs[id])
 }
@@ -101,18 +106,19 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 	}
 }
 
-func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, job job.Job) {
+func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job) {
 	ctx, cancel := context.WithCancel(ctx)
 	watcher := &watcher{
 		parent:  parent,
 		parents: parents,
 
-		job:     job,
+		job:     j,
 		ctx:     ctx,
 		cancel:  cancel,
 		ch:      ch,
 		stopped: make(chan plan.PeerID, 1),
 		gs:      make(map[plan.PeerID]*sync.WaitGroup),
+		gpuPool: job.NewGPUPool(j.HostList.SlotOf(parent.IPv4)),
 	}
 
 	globalCtx, globalCancel := context.WithCancel(ctx)

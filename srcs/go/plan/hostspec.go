@@ -84,6 +84,15 @@ func ParseHostList(hostlist string) (HostList, error) {
 	return hl, nil
 }
 
+func (hl HostList) SlotOf(ipv4 uint32) int {
+	for _, h := range hl {
+		if h.IPv4 == ipv4 {
+			return h.Slots
+		}
+	}
+	return 0
+}
+
 func (hl HostList) Cap() int {
 	var cap int
 	for _, h := range hl {
