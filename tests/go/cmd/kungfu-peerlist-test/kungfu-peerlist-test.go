@@ -13,12 +13,14 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-var peerlistPath = flag.String("path", "./hostlists/hostlist.json", "")
-var frequency = flag.Int("freq", 30, "")
+var (
+	peerlistPath = flag.String("path", "./hostlists/hostlist.json", "")
+	period       = flag.Duration("period", 30*time.Second, "")
+)
 
 func main() {
-	var peerList plan.PeerList
 	flag.Parse()
+	var peerList plan.PeerList
 
 	content, err := ioutil.ReadFile(*peerlistPath)
 	if err != nil {
@@ -48,7 +50,6 @@ func main() {
 		if err != nil {
 			fmt.Println("Cannot post request ", err)
 		}
-
-		time.Sleep(time.Duration(*frequency) * time.Second)
+		time.Sleep(*period)
 	}
 }

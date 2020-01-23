@@ -23,7 +23,7 @@ type Job struct {
 	AllowNVLink bool
 }
 
-func (j Job) NewProc(peer plan.PeerID, localRank int, initStep string, pl plan.PeerList) Proc {
+func (j Job) NewProc(peer plan.PeerID, gpuID int, initStep string, pl plan.PeerList) Proc {
 	envs := Envs{
 		kb.SelfSpecEnvKey:          peer.String(),
 		kb.HostListEnvKey:          j.HostList.String(),
@@ -34,7 +34,7 @@ func (j Job) NewProc(peer plan.PeerID, localRank int, initStep string, pl plan.P
 		kb.AllReduceStrategyEnvKey: j.Strategy.String(),
 	}
 
-	cudaIdx := strconv.Itoa(getCudaIndex(localRank))
+	cudaIdx := strconv.Itoa(getCudaIndex(gpuID))
 	envs[`KUNGFU_`+cudaVisibleDevicesKey] = cudaIdx
 	if j.AllowNVLink {
 		log.Warnf("Please set `config.gpu_options.visible_device_list = str(local_rank)`")
