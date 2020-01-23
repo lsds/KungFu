@@ -4,21 +4,18 @@ import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (_get_init_step, consensus, counter,
-                                   resize_cluster, step_based_schedule)
+                                   resize_cluster_from_url, step_based_schedule)
 
 
-class KungFuElasticTrainHook(tf.train.SessionRunHook):
-    def __init__(self, schedule, max_step, model_dir):
-        self._schedule = schedule
+class ElasticHook(tf.train.SessionRunHook):
+    def __init__(self, max_step):
         self._max_step = max_step
-        self._model_dir = model_dir
         self._need_sync = True
 
     def _build_resize_op(self, config, init_step):
         step = counter(init_step)
-        new_size = step_based_schedule(config, step)
         ckpt_tensor = tf.as_string(step + 1)
-        resize_op = resize_cluster(ckpt_tensor, new_size)
+        resize_op = resize_cluster_from_url(ckpt_tensor)
         return resize_op
 
     def begin(self):
@@ -66,14 +63,3 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         kungfu_step = sess.run(self._kungfu_step)
         print('stopped at global_step: %d, kungfu_step: %d' %
               (global_step, kungfu_step))
-
-        self.save(sess, 'final')
-
-    def save(self, sess, idx):
-        vs = tf.global_variables()
-        d = dict()
-        for t in vs:
-            v = sess.run(t)
-            d[t.name] = v
-        np.savez(os.path.join(self._model_dir, 'variables-%s.npz' % (idx)),
-                 **d)
