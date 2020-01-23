@@ -14,6 +14,7 @@ import (
 )
 
 var peerlistPath = flag.String("path", "./hostlists/hostlist.json", "")
+var frequency = flag.Int("freq", 30, "")
 
 func main() {
 	var peerList plan.PeerList
@@ -47,6 +48,6 @@ func main() {
 			fmt.Println("Cannot post request ", err)
 		}
 
-		time.Sleep(30 * time.Second)
+		time.Sleep(time.Duration(*frequency) * time.Second)
 	}
 }
