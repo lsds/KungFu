@@ -31,8 +31,9 @@ func main() {
 	for i := 0; i < 10; i++ {
 		newPeerList := peerList
 
-		rand.Shuffle(len(newPeerList), func(i, j int) {
-			newPeerList[i], newPeerList[j] = newPeerList[j], newPeerList[i]
+		// the first entry stays as the first entry
+		rand.Shuffle(len(newPeerList)-1, func(i, j int) {
+			newPeerList[i+1], newPeerList[j+1] = newPeerList[j+1], newPeerList[i+1]
 		})
 
 		newNumberOfPeers := rand.Intn(len(newPeerList)-1) + 1
