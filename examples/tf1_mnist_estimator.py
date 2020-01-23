@@ -115,8 +115,8 @@ def test(directory):
 
 def train_data():
     data = train(FLAGS.data_dir)
-    data = data.cache()
     data = data.batch(FLAGS.batch_size)
+    data = data.repeat()
     return data
 
 
@@ -218,26 +218,24 @@ def main(_):
     #                                every_n_iter=10)
     # ]
 
-    from kungfu import current_rank
-    save_checkpoints_secs = None if current_rank() != 0 else 30
-    config = tf.estimator.RunConfig(
-        save_checkpoints_secs=save_checkpoints_secs)
-
     model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
+
+    save_checkpoints_steps = 1000
+    config = tf.estimator.RunConfig(
+        model_dir=model_dir,
+        save_checkpoints_steps=save_checkpoints_steps)
 
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
                                               model_dir=model_dir,
                                               config=config)
 
+    num_train_steps = 10000000
     from kungfu.tensorflow.hooks import KungFuElasticTrainHook
-    hooks=[KungFuElasticTrainHook("8:500,7:500,6:500,5:500,4:500,3:500,2:500,1:500", 4000, model_dir)]
+    hooks=[KungFuElasticTrainHook("8:500,7:500,6:500,5:500,4:500,3:500,2:500,1:500", num_train_steps, model_dir)]
 
-    for _ in range(FLAGS.num_epochs):
-        mnist_classifier.train(
-            input_fn=train_data,
-            hooks=hooks,
-        )
-        mnist_classifier.evaluate(input_fn=eval_data)
+    train_spec = tf.estimator.TrainSpec(input_fn=train_data, max_steps=num_train_steps, hooks=hooks)
+    eval_spec = tf.estimator.EvalSpec(input_fn=eval_data)
+    tf.estimator.train_and_evaluate(mnist_classifier, train_spec, eval_spec)
 
 
 if __name__ == '__main__':
