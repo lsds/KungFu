@@ -12,7 +12,7 @@ class ElasticHook(tf.train.SessionRunHook):
         self._max_step = max_step
         self._need_sync = True
 
-    def _build_resize_op(self, config, init_step):
+    def _build_resize_op(self, init_step):
         step = counter(init_step)
         ckpt_tensor = tf.as_string(step + 1)
         resize_op = resize_cluster_from_url(ckpt_tensor)
@@ -24,7 +24,7 @@ class ElasticHook(tf.train.SessionRunHook):
         self._sync_op = BroadcastGlobalVariablesOp()
         ckpt = _get_init_step()
         self._init_kungfu_step = tf.assign(self._kungfu_step, int(ckpt))
-        self._resize_op = self._build_resize_op(self._schedule, int(ckpt))
+        self._resize_op = self._build_resize_op(int(ckpt))
         self._reset_global_step = tf.assign(tf.train.get_global_step(),
                                             int(ckpt))
 
