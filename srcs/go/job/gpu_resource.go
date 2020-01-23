@@ -4,6 +4,7 @@ import "sync"
 
 type GPUPool struct {
 	sync.Mutex
+	cap int
 	ids []int
 }
 
@@ -12,7 +13,7 @@ func NewGPUPool(n int) *GPUPool {
 	for i := 0; i < n; i++ {
 		ids = append(ids, i)
 	}
-	return &GPUPool{ids: ids}
+	return &GPUPool{cap: n, ids: ids}
 }
 
 func (p *GPUPool) Get() int {
@@ -29,5 +30,7 @@ func (p *GPUPool) Get() int {
 func (p *GPUPool) Put(id int) {
 	p.Lock()
 	defer p.Unlock()
-	p.ids = append(p.ids, id)
+	if 0 <= id && id < p.cap {
+		p.ids = append(p.ids, id)
+	}
 }
