@@ -1,5 +1,6 @@
 import os
 
+
 import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
