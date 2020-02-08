@@ -14,8 +14,8 @@ class RunningSum(object):
             self._value = self._decay_rate * self._value + self._keep_rate * x
         return self._value
 
-    def rate(self):
-        return self._decay_rate
+    def percent(self):
+        return self._decay_rate * 100
 
     def get(self):
         return self._value
@@ -61,8 +61,9 @@ class DiffTrainer(object):
             dur = now - t1
             total_dur = now - t0
 
-            runnings = ', '.join('%s-running reward: %-8.2f' %
-                                 (r.rate(), r.get()) for r in running_rewards)
+            runnings = 'running rewards: ' + ', '.join(
+                '%.2f%%: %-8.2f' % (r.percent(), r.get())
+                for r in running_rewards)
 
             print(
                 'episode: %-3d end in %d steps, took %6.2fs (%6.2fms/step), reward: %8.2f; all took %8.2fs; %s'

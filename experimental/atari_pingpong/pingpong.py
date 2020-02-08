@@ -2,10 +2,13 @@
 
 import argparse
 
-import numpy as np
-
 import gym
+import numpy as np
+from tensorflow.python.util import deprecation
+
 from diff_trainer import DiffTrainer
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def parse_args():
