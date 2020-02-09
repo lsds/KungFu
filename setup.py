@@ -55,6 +55,10 @@ class CMakeBuild(build_ext):
         install_prefix = os.path.abspath(os.path.dirname(extdir))
         executable_dir = os.path.abspath(os.path.dirname(sys.executable))
 
+        # FIXME: do it in a more standard way
+        if '--user' in sys.argv:
+            executable_dir = os.path.join(os.getenv('HOME'), '.local/bin')
+
         cmake_args = [
             # FIXME: use CMAKE_LIBRARY_OUTPUT_DIRECTORY
             cmake_flag('LIBRARY_OUTPUT_PATH',
