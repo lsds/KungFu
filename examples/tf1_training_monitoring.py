@@ -4,6 +4,7 @@ import gzip
 import os
 import shutil
 import tempfile
+import importlib.util
 
 import numpy as np
 import tensorflow as tf
@@ -211,7 +212,8 @@ def model_function(features, labels, mode):
 
 
 def main(_):
-    model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
+    # model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
+    model_dir  = "/home/fertakis/KungFu/mnist"
 
     save_checkpoints_steps = 1000
     config = tf.estimator.RunConfig(
@@ -222,9 +224,17 @@ def main(_):
                                               model_dir=model_dir,
                                               config=config)
 
-    num_train_steps = 10000000
-    from kungfu.tensorflow.experimental.hook import ElasticHook
-    hooks=[ElasticHook(num_train_steps)]
+    num_train_steps = 1000
+    
+    #from ./experimental.net_monitoring.NetMonHook import NetMonHook
+    spec = importlib.util.spec_from_file_location("NetMonHook", "./experimental/net_monitoring/NetMonHook.py")
+    NetMon = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(NetMon)
+
+    # from tensorflow.python.training.basic_session_run_hooks import StepCounterHook
+
+    hooks=[NetMon.NetMonHook()]
+    # hooks=[StepCounterHook(8)]
 
     train_spec = tf.estimator.TrainSpec(input_fn=train_data, max_steps=num_train_steps, hooks=hooks)
     eval_spec = tf.estimator.EvalSpec(input_fn=eval_data)
