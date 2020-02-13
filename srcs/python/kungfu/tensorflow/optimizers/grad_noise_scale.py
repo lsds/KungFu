@@ -9,6 +9,7 @@ from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 def MonitorGradientNoiseScaleOptimizer(optimizer,
                                        device_batch_size,
                                        monitor_interval=1,
+                                       alpha=0.6,
                                        name=None,
                                        use_locking=False):
     """MonitorGradientNoiseScaleOptimizer monitors the Gradient Noise Scale [GNS]_ of synchronous SGD.
@@ -30,24 +31,26 @@ def MonitorGradientNoiseScaleOptimizer(optimizer,
     Returns:
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
-    mon_gns_algo = _GradientNoiseScale(device_batch_size, monitor_interval)
+    mon_gns_algo = _GradientNoiseScale(device_batch_size, monitor_interval,
+                                       alpha)
     return _create_kungfu_optimizer(optimizer, mon_gns_algo, name, use_locking)
 
 
 class _GradientNoiseScale(_KungFuAlgorithm):
-    def __init__(self, device_batch_size, monitor_interval=1):
+    def __init__(self, device_batch_size, monitor_interval, alpha):
         self._num_workers = current_cluster_size()
         self._step = counter()
 
         self._interval = monitor_interval
         self._device_batch_size = tf.cast(device_batch_size, dtype=tf.float32)
         self._global_batch_size = self._device_batch_size * self._num_workers
+        self._alpha = alpha
 
     def _monitor(self, grads, reduced_grads):
         # Only the master node is doing the global monitoring.
         noise_op = global_noise_scale(self._device_batch_size,
                                       self._global_batch_size, fuse(grads),
-                                      fuse(reduced_grads))
+                                      fuse(reduced_grads), self._alpha)
 
         print_op = tf.print('Gradient Noise Scale:', noise_op)
         return print_op
