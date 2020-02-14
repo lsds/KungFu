@@ -9,66 +9,46 @@ from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 class NetMonHook(tf.estimator.SessionRunHook):
     def __init__(self):
         self._cur_step = 0
-    # def _build_resize_op(self, init_step):
-    #     step = counter(init_step)
-    #     ckpt_tensor = tf.as_string(step + 1)
-    #     resize_op = resize_cluster_from_url(ckpt_tensor)
-    #     return resize_op
+        self._avg_step_dur = 0
+
 
     def begin(self):
-        print('Hello World. Training commencing')
-        time.sleep(2)
-        # self._kungfu_step = tf.Variable(0, trainable=False, dtype=tf.int64)
-        # self._advance = tf.assign_add(self._kungfu_step, 1)
-        # self._sync_op = BroadcastGlobalVariablesOp()
-        # ckpt = _get_init_step()
-        # self._init_kungfu_step = tf.assign(self._kungfu_step, int(ckpt))
-        # self._resize_op = self._build_resize_op(int(ckpt))
-        # self._reset_global_step = tf.assign(tf.train.get_global_step(),
-        #                                     int(ckpt))
+        self.__setup_summary_writer()
+        self._avg_step_dur_tensor = tf.Variable(0.)
+        tf.summary.scalar(name='CMA', tensor=self._avg_step_dur_tensor)
+        self._place = tf.placeholder(tf.float32)
+        self._assign_op = tf.assign(self._avg_step_dur_tensor, self._place)
 
     def after_create_session(self, sess, coord):
-        print('Session has been created. Sleeping 2 sec')
-        # print(self, sess, coord)
-        time.sleep(2)
+        pass
 
     def before_run(self, run_context):
-        print('!!!!!!!!!!!!!!!!!!! READY TO BEGIN !!!!!!!!!!!!!!!!!!!!!!!')
         self._cur_step +=1
         self._step_start_time = time.time()
-        #time.sleep(2)
-    #     kungfu_step = run_context.session.run(self._kungfu_step)
-    #     if kungfu_step >= self._max_step:
-    #         print('request_stop before kungfu_step: %d' % (kungfu_step))
-    #         # run_context.request_stop()
-    #         # FIXME: force quit
-
-    #     if self._need_sync:
-    #         run_context.session.run(self._sync_op)
-    #         self._need_sync = False
 
     def after_run(self, run_context, run_values):
-        print('!!!!!!!!!!!!!!!!!!! AFTER RUN !!!!!!!!!!!!!!!!!!!!!!!')
-        print('Step Time: ', time.time() - self._step_start_time,' sec')
-        #time.sleep(2)
-    #     kungfu_step = run_context.session.run(self._kungfu_step)
-    #     changed, keep = run_context.session.run(self._resize_op)
-    #     if changed:
-    #         print('changed on %d' % (kungfu_step))
-    #         self._need_sync = True
-    #         if not keep:
-    #             run_context.request_stop()
-    #             return
+        step_dur = time.time() - self._step_start_time
+        #print('Step Time: ', step_dur,' sec')
+        if self._cur_step == 1:
+            self._avg_step_dur = step_dur
 
-    #     kungfu_step = run_context.session.run(self._advance)
-    #     if kungfu_step >= self._max_step:
-    #         print('request_stop on kungfu_step: %d' % (kungfu_step))
-    #         run_context.request_stop()
+            # self._avg_step_dur_tensor.assign(step_dur)
+            run_context.session.run(self._assign_op, feed_dict={
+                self._place: 1,
+            })
+        else:
+            #Calculation of Cumulative Moving Average (CMA)
+            self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + step_dur) / self._cur_step
 
+            run_context.session.run(self._assign_op, feed_dict={
+                self._place: self._avg_step_dur,
+            })
+        #print('cur cma = ', self._avg_step_dur)
+        #print('cur cma tensor = ', run_context.session.run(self._avg_step_dur_tensor))
+    
     def end(self, sess):
-        print('############ SESS END ############')
-        time.sleep(2)
-    #     global_step = sess.run(tf.train.get_global_step())
-    #     kungfu_step = sess.run(self._kungfu_step)
-    #     print('stopped at global_step: %d, kungfu_step: %d' %
-    #           (global_step, kungfu_step))
+        pass
+
+    def __setup_summary_writer(self):
+        cma_log_dir = 'mnist/model'
+        self._cma_summary_writer = tf.summary.FileWriter(cma_log_dir)

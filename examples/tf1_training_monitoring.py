@@ -213,18 +213,21 @@ def model_function(features, labels, mode):
 
 def main(_):
     # model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
-    model_dir  = "/home/fertakis/KungFu/mnist"
+    model_dir  = "/home/fertakis/repos/KungFu/mnist/model"
 
-    save_checkpoints_steps = 1000
+    #TODO: check if estimator session necessary
+    save_checkpoints_steps = 100
+    save_summary_steps = 10 
     config = tf.estimator.RunConfig(
         model_dir=model_dir,
-        save_checkpoints_steps=save_checkpoints_steps)
+        save_checkpoints_steps=save_checkpoints_steps,
+        save_summary_steps=save_summary_steps)
 
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
                                               model_dir=model_dir,
                                               config=config)
 
-    num_train_steps = 1000
+    num_train_steps = 10000
     
     #from ./experimental.net_monitoring.NetMonHook import NetMonHook
     spec = importlib.util.spec_from_file_location("NetMonHook", "./experimental/net_monitoring/NetMonHook.py")
