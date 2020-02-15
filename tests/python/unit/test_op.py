@@ -1,9 +1,8 @@
 import tensorflow as tf
 
-from kungfu.tensorflow.ops import counter, step_based_schedule
-
 
 def test_counter():
+    from kungfu.tensorflow.ops import counter
     c = counter()
     with tf.Session() as sess:
         for i in range(10):
@@ -12,6 +11,7 @@ def test_counter():
 
 
 def test_counter_init():
+    from kungfu.tensorflow.ops import counter
     c = counter(init=1)
     with tf.Session() as sess:
         for i in range(10):
@@ -19,7 +19,24 @@ def test_counter_init():
             assert (n == i + 1)
 
 
+def test_exponential_moving_average():
+    from kungfu.tensorflow.ops import exponential_moving_average as ema
+    x = tf.Variable(1.0)
+    y = ema(x, alpha=0.9)
+    inc_x = tf.assign_add(x, 1)
+
+    expected_vy = [2.0, 2.1, 2.29, 2.561, 2.9049]
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+        for i in range(5):
+            sess.run(inc_x)
+            vy = sess.run(y)
+            assert (abs(vy - expected_vy[i]) < 1e-6)
+
+
 def test_step_based_scheduler():
+    from kungfu.tensorflow.ops import step_based_schedule
     sizes = [1, 2, 4, 8]
     n_step = 3
     config = ','.join('%d:%d' % (size, n_step) for size in sizes)
