@@ -4,7 +4,7 @@
 AllowShortBlocksOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
-AlwaysBreakTemplateDeclarations: true
+# AlwaysBreakTemplateDeclarations: true # TODO: enable
 
 IndentWidth: 4
 BreakBeforeBraces: Linux

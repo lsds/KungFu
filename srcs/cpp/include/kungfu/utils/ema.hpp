@@ -3,8 +3,7 @@
 
 namespace kungfu
 {
-template <typename T>
-class ExponentialMovingAverage
+template <typename T> class ExponentialMovingAverage
 {
     T alpha_;
     bool has_value_;
