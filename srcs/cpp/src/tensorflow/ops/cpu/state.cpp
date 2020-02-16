@@ -22,7 +22,7 @@ class Counter : public OpKernel
     explicit Counter(OpKernelConstruction *context)
         : OpKernel(context), counter_(0)
     {
-        context->GetAttr("debug", &debug_);
+        OP_REQUIRES_OK(context, context->GetAttr("debug", &debug_));
         OP_REQUIRES_OK(context, context->GetAttr("init", &counter_));
         OP_REQUIRES_OK(context, context->GetAttr("incr", &incr_));
     }
@@ -41,4 +41,41 @@ class Counter : public OpKernel
 };
 
 REGISTER_KUNGFU_KERNEL_BUILDER(Counter, DEVICE_CPU);
+
+REGISTER_KUNGFU_OP(ExponentialMovingAverage)
+    .Attr("alpha: float")
+    .Attr("T: {float32}")
+    .Input("input: T")
+    .Output("output: T")
+    .SetShapeFn(shape_inference::UnchangedShape);
+
+class ExponentialMovingAverage : public OpKernel
+{
+    float alpha_;
+    float count_;
+    float value_;
+
+  public:
+    explicit ExponentialMovingAverage(OpKernelConstruction *context)
+        : OpKernel(context), count_(0), value_(0)
+    {
+        OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha_));
+    }
+
+    void Compute(OpKernelContext *context) override
+    {
+        const float x  = context->input(0).scalar<float>()();
+        Tensor *output = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, MakeTensorShape(), &output));
+        if (count_++ == 0) {
+            value_ = x;
+        } else {
+            value_ = alpha_ * value_ + (1 - alpha_) * x;
+        }
+        output->scalar<float>()() = value_;
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(ExponentialMovingAverage, DEVICE_CPU);
 }  // namespace tensorflow
