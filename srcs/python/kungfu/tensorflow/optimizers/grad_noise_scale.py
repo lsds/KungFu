@@ -1,7 +1,8 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
 from kungfu.tensorflow.ops import (counter, current_cluster_size, current_rank,
-                                   fuse, global_noise_scale, group_all_reduce)
+                                   all_reduce, fuse, global_noise_scale,
+                                   group_all_reduce)
 
 from .core import _create_kungfu_optimizer, _KungFuAlgorithm
 
@@ -46,13 +47,34 @@ class _GradientNoiseScale(_KungFuAlgorithm):
         self._global_batch_size = self._device_batch_size * self._num_workers
         self._alpha = alpha
 
+        self._global_step = tf.train.get_or_create_global_step()
+        self._gradient_noise_moving_average = tf.get_variable(
+            "gradient_noise_moving_average", initializer=0.0, trainable=False)
+
     def _monitor(self, grads, reduced_grads):
         # Only the master node is doing the global monitoring.
         noise_op = global_noise_scale(self._device_batch_size,
                                       self._global_batch_size, fuse(grads),
                                       fuse(reduced_grads), self._alpha)
 
-        print_op = tf.print('Gradient Noise Scale:', noise_op)
+        abs_global_noise = tf.math.abs(noise_op)
+        beta = 0.01
+
+        gradient_noise_scale_ema = tf.cond(
+            tf.math.equal(self._global_step, 0),  #
+            lambda: tf.assign(self._gradient_noise_moving_average,
+                              abs_global_noise),
+            lambda: tf.assign(self._gradient_noise_moving_average,
+                              (1 - beta) * self._gradient_noise_moving_average
+                              + beta * abs_global_noise))
+
+        sum_gradient_noise_scale_ema = all_reduce(gradient_noise_scale_ema)
+
+        tf.summary.scalar('gradient_noise_scale', abs_global_noise)
+        tf.summary.scalar('gradient_noise_scale_ema', gradient_noise_scale_ema)
+        tf.summary.scalar('sum_gradient_noise_scale_ema',
+                          sum_gradient_noise_scale_ema)
+        print_op = tf.print('Gradient Noise Scale:', abs_global_noise)
         return print_op
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
