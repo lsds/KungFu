@@ -213,7 +213,7 @@ def model_function(features, labels, mode):
 
 def main(_):
     model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
-    # model_dir  = "~/repos/KungFu/mnist/model"
+    #model_dir  = "~/repos/KungFu/mnist/model"
 
     #TODO: check if estimator session necessary
     # save_checkpoints_steps = 100
