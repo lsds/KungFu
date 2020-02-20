@@ -230,11 +230,11 @@ int kungfu_world::ResizeCluster(const char *init_step, int new_size,
                                  reinterpret_cast<char *>(keep));
 }
 
-int kungfu_world::ResizeClusterFromURL(const char *init_step,
-                                bool *changed, bool *keep)
+int kungfu_world::ResizeClusterFromURL(const char *init_step, bool *changed,
+                                       bool *keep)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
     return GoKungfuResizeClusterFromURL(const_cast<char *>(init_step),
-                                 reinterpret_cast<char *>(changed),
-                                 reinterpret_cast<char *>(keep));
+                                        reinterpret_cast<char *>(changed),
+                                        reinterpret_cast<char *>(keep));
 }
