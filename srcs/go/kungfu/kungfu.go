@@ -217,7 +217,8 @@ func (kf *Kungfu) ResizeClusterFromURL(initStep string) (bool, bool, error) {
 		var err error
 		peers, err = kf.getPeerListFromURL(kf.configServerURL)
 		if err != nil {
-			utils.ExitErr(err)
+			log.Errorf("getPeerListFromURL failed: %v, using current config", err)
+			peers = kf.currentPeers
 		}
 
 		if digest := peers.Bytes(); kf.consensus(digest) {
