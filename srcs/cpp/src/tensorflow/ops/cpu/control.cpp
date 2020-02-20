@@ -22,7 +22,7 @@ class ResizeCluster : public OpKernel
   public:
     ResizeCluster(OpKernelConstruction *context) : OpKernel(context)
     {
-        context->GetAttr("debug", &debug_);
+        OP_REQUIRES_OK(context, context->GetAttr("debug", &debug_));
     }
 
     void Compute(OpKernelContext *context) override

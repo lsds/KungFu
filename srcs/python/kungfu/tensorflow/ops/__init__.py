@@ -8,7 +8,7 @@ from .collective import (all_reduce, barrier, broadcast, consensus,
 from .local import save_variable, save_variables
 from .monitor import global_noise_scale
 from .p2p import request_variable, request_variable_with_template
-from .state import counter
+from .state import counter, exponential_moving_average
 from .topology import peer_info
 
 __all__ = [
