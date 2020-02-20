@@ -1,36 +1,51 @@
 package job
 
-import "sync"
+import (
+	"errors"
+	"sync"
 
+	"github.com/lsds/KungFu/srcs/go/utils"
+)
+
+// GPUPool manages GPU ids
 type GPUPool struct {
 	sync.Mutex
-	cap int
-	ids []int
+	cap  int
+	mask []bool
 }
 
+// NewGPUPool create a new GPUPool of given size
 func NewGPUPool(n int) *GPUPool {
-	var ids []int
+	var mask []bool
 	for i := 0; i < n; i++ {
-		ids = append(ids, i)
+		mask = append(mask, true)
 	}
-	return &GPUPool{cap: n, ids: ids}
+	return &GPUPool{cap: n, mask: mask}
 }
 
+// Get returns the smallest GPU id that is available
 func (p *GPUPool) Get() int {
 	p.Lock()
 	defer p.Unlock()
-	if len(p.ids) <= 0 {
-		return -1
+	for i := range p.mask {
+		if p.mask[i] {
+			p.mask[i] = false
+		}
+		return i
 	}
-	id := p.ids[0]
-	p.ids = p.ids[1:]
-	return id
+	return -1
 }
 
+var errGPUNotAllocated = errors.New("GPU not allocated")
+
+// Put puts an GPU id back to the pool
 func (p *GPUPool) Put(id int) {
 	p.Lock()
 	defer p.Unlock()
 	if 0 <= id && id < p.cap {
-		p.ids = append(p.ids, id)
+		if p.mask[id] {
+			utils.ExitErr(errGPUNotAllocated)
+		}
+		p.mask[id] = true
 	}
 }
