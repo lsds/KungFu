@@ -30,8 +30,8 @@ func (p *GPUPool) Get() int {
 	for i := range p.mask {
 		if p.mask[i] {
 			p.mask[i] = false
+			return i
 		}
-		return i
 	}
 	return -1
 }
