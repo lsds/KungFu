@@ -2,7 +2,6 @@ package kungfurun
 
 import (
 	"context"
-	"path"
 	"sync"
 	"sync/atomic"
 
@@ -133,10 +132,12 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 }
 
 func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version string, logDir string) {
-	r := &runner.Runner{}
-	r.SetName(proc.Name)
-	r.SetLogFilePrefix(path.Join(logDir, proc.Name+"@"+version))
-	r.SetVerbose(true)
+	r := &runner.Runner{
+		Name:          proc.Name,
+		LogDir:        logDir,
+		LogFilePrefix: proc.Name + "@" + version,
+		VerboseLog:    true,
+	}
 	if err := r.Run(ctx, proc.Cmd()); err != nil {
 		log.Infof("%s finished with error: %v", proc.Name, err)
 		cancel()
