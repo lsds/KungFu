@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -237,26 +236,19 @@ func (kf *Kungfu) ResizeClusterFromURL(initStep string) (bool, bool, error) {
 }
 
 func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
-	var pl plan.PeerList
-
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(resp.Status)
+	}
+	var pl plan.PeerList
+	if err = json.NewDecoder(resp.Body).Decode(&pl); err != nil {
 		return nil, err
 	}
-
-	err = json.Unmarshal(body, &pl)
-	if err != nil {
-		return nil, err
-	}
-
 	if kf.hostList.Cap() < len(pl) {
 		return nil, plan.ErrNoEnoughCapacity
 	}
-
 	return pl, nil
 }

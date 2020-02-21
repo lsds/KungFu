@@ -31,6 +31,9 @@ func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 	s.RLock()
 	defer s.RUnlock()
 	e := json.NewEncoder(w)
+	if s.peerList == nil {
+		w.WriteHeader(http.StatusNotFound)
+	}
 	if err := e.Encode(s.peerList); err != nil {
 		log.Errorf("failed to encode JSON: %v", err)
 	}

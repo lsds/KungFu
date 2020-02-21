@@ -16,11 +16,34 @@ import (
 var (
 	configServer = flag.String("server", "http://127.0.0.1:9100/put", "")
 	period       = flag.Duration("period", 1*time.Second, "")
+	clear        = flag.Bool("clear", false, "set peer list to empty")
 )
 
 func main() {
 	flag.Parse()
+	if *clear {
+		clearConfig()
+		return
+	}
 	periodically(*period, updateConfig)
+}
+
+func postConfig(pl plan.PeerList) {
+	reqBody, err := json.Marshal(pl)
+	if err != nil {
+		fmt.Println("Cannot marshal peer list")
+	}
+	_, err = http.Post(*configServer, "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		fmt.Printf("Cannot post request %v\n", err)
+		return
+	}
+	fmt.Printf("OK\n")
+}
+
+func clearConfig() {
+	pl := plan.PeerList{}
+	postConfig(pl)
 }
 
 func updateConfig() {
@@ -32,18 +55,7 @@ func updateConfig() {
 	}
 	pl := genPeerList(hl)
 	fmt.Printf("updating to %d peers: %s\n", len(pl), pl)
-
-	reqBody, err := json.Marshal(pl)
-	if err != nil {
-		fmt.Println("Cannot marshal peer list")
-	}
-
-	_, err = http.Post(*configServer, "application/json", bytes.NewBuffer(reqBody))
-	if err != nil {
-		fmt.Println("Cannot post request ", err)
-		return
-	}
-	fmt.Printf("OK\n")
+	postConfig(pl)
 }
 
 func genPeerList(hl plan.HostList) plan.PeerList {
