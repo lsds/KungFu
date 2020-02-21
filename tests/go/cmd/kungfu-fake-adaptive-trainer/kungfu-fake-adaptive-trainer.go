@@ -84,15 +84,22 @@ func restore(kungfu *kf.Kungfu, step *int) error {
 
 func resize(kungfu *kf.Kungfu, nextStep int) bool {
 	sess := kungfu.CurrentSession()
-	npBefore := sess.ClusterSize()
+	oldRank := sess.Rank()
+	oldSize := sess.ClusterSize()
 	t0 := time.Now()
 	changed, keep, err := kungfu.ResizeClusterFromURL(strconv.Itoa(nextStep))
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	if changed {
-		npAfter := sess.ClusterSize()
-		log.Infof("resize %d -> %d took %s", npBefore, npAfter, time.Since(t0))
+		if keep {
+			sess := kungfu.CurrentSession()
+			newRank := sess.Rank()
+			newSize := sess.ClusterSize()
+			log.Infof("resize %d -> %d took %s, rank %d -> %d", oldSize, newSize, time.Since(t0), oldRank, newRank)
+		} else {
+			log.Infof("resize took %s, I'm not in the cluster of %d peers any more.", time.Since(t0), oldSize)
+		}
 	}
 	return keep
 }

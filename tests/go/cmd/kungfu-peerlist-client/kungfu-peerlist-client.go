@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -14,39 +15,58 @@ import (
 )
 
 var (
-	configServer = flag.String("server", "http://127.0.0.1:9100/put", "")
+	configServer = flag.String("server", "http://127.0.0.1:9100/", "")
 	period       = flag.Duration("period", 1*time.Second, "")
+	reset        = flag.Bool("reset", false, "reset config server")
 	clear        = flag.Bool("clear", false, "set peer list to empty")
 )
 
 func main() {
 	flag.Parse()
+	u, err := url.Parse(*configServer)
+	if err != nil {
+		utils.ExitErr(err)
+	}
 	if *clear {
-		clearConfig()
+		clearConfig(*u)
 		return
 	}
-	periodically(*period, updateConfig)
+	if *reset {
+		resetConfig(*u)
+		return
+	}
+	periodically(*period, func() { updateConfig(*u) })
 }
 
-func postConfig(pl plan.PeerList) {
+func postConfig(pl plan.PeerList, endpoint url.URL) {
 	reqBody, err := json.Marshal(pl)
 	if err != nil {
 		fmt.Println("Cannot marshal peer list")
 	}
-	_, err = http.Post(*configServer, "application/json", bytes.NewBuffer(reqBody))
+	endpoint.Path = `/put`
+	resp, err := http.Post(endpoint.String(), "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
 		fmt.Printf("Cannot post request %v\n", err)
 		return
 	}
-	fmt.Printf("OK\n")
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("%s\n", resp.Status)
+	} else {
+		fmt.Printf("OK\n")
+	}
 }
 
-func clearConfig() {
+func resetConfig(endpoint url.URL) {
+	endpoint.Path = `/reset`
+	http.Post(endpoint.String(), "application/json", nil)
+}
+
+func clearConfig(endpoint url.URL) {
 	pl := plan.PeerList{}
-	postConfig(pl)
+	postConfig(pl, endpoint)
 }
 
-func updateConfig() {
+func updateConfig(endpoint url.URL) {
 	hl := plan.HostList{
 		{
 			IPv4:  plan.MustParseIPv4(`127.0.0.1`),
@@ -55,7 +75,7 @@ func updateConfig() {
 	}
 	pl := genPeerList(hl)
 	fmt.Printf("updating to %d peers: %s\n", len(pl), pl)
-	postConfig(pl)
+	postConfig(pl, endpoint)
 }
 
 func genPeerList(hl plan.HostList) plan.PeerList {

@@ -227,7 +227,6 @@ func (kf *Kungfu) ResizeClusterFromURL(initStep string) (bool, bool, error) {
 		log.Warnf("diverge proposal detected! I proposed %s", peers)
 		time.Sleep(50 * time.Millisecond)
 	}
-
 	changed, keep := kf.Propose(initStep, peers)
 	if keep {
 		kf.Update()
