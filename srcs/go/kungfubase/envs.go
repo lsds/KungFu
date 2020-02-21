@@ -2,10 +2,11 @@ package kungfubase
 
 const (
 	// FIXME: merge with config.go
-	InitStepEnvKey  = `KUNGFU_INIT_STEP`
-	ParentIDEnvKey  = `KUNGFU_PARENT_ID`
-	HostListEnvKey  = `KUNGFU_HOST_LIST`
-	PortRangeEnvKey = `KUNGFU_PORT_RANGE`
+	ConfigServerEnvKey = `KUNGFU_CONFIG_SERVER`
+	InitStepEnvKey     = `KUNGFU_INIT_STEP`
+	ParentIDEnvKey     = `KUNGFU_PARENT_ID`
+	HostListEnvKey     = `KUNGFU_HOST_LIST`
+	PortRangeEnvKey    = `KUNGFU_PORT_RANGE`
 
 	PeerListEnvKey          = `KUNGFU_INIT_PEERS`
 	HostSpecEnvKey          = `KUNGFU_HOST_SPEC`

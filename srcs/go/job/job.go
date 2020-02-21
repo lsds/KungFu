@@ -12,13 +12,14 @@ import (
 )
 
 type Job struct {
-	Strategy  kb.Strategy
-	Parent    plan.PeerID
-	HostList  plan.HostList
-	PortRange plan.PortRange
-	Prog      string
-	Args      []string
-	LogDir    string
+	ConfigServer string
+	Strategy     kb.Strategy
+	Parent       plan.PeerID
+	HostList     plan.HostList
+	PortRange    plan.PortRange
+	Prog         string
+	Args         []string
+	LogDir       string
 
 	AllowNVLink bool
 }
@@ -32,8 +33,11 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initStep string, pl plan.PeerL
 		kb.PeerListEnvKey:          pl.String(),
 		kb.InitStepEnvKey:          initStep,
 		kb.AllReduceStrategyEnvKey: j.Strategy.String(),
+		kb.ConfigServerEnvKey:      j.ConfigServer,
 	}
-
+	if len(j.ConfigServer) > 0 {
+		envs[kb.ConfigServerEnvKey] = j.ConfigServer
+	}
 	cudaIdx := strconv.Itoa(getCudaIndex(gpuID))
 	envs[`KUNGFU_`+cudaVisibleDevicesKey] = cudaIdx
 	if j.AllowNVLink {

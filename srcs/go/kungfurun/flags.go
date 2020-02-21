@@ -26,9 +26,10 @@ func Init(f *FlagSet) {
 }
 
 type FlagSet struct {
-	ClusterSize int
-	HostList    string
-	PeerList    string
+	ConfigServer string
+	ClusterSize  int
+	HostList     string
+	PeerList     string
 
 	User string
 
@@ -76,6 +77,7 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.IntVar(&f.Port, "port", 38080, "port for rchannel")
 	flag.BoolVar(&f.Watch, "w", false, "watch config")
 	flag.StringVar(&f.Checkpoint, "checkpoint", "0", "")
+	flag.StringVar(&f.ConfigServer, "config-server", "", "config server URL")
 
 	flag.StringVar(&f.Logfile, "logfile", "", "path to log file")
 	flag.StringVar(&f.LogDir, "logdir", "", "path to log dir")

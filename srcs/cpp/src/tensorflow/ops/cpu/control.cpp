@@ -61,23 +61,21 @@ REGISTER_KUNGFU_OP(ResizeClusterFromURL)
 
 class ResizeClusterFromURL : public OpKernel
 {
+    using OpKernel::OpKernel;
+
   public:
-    ResizeClusterFromURL(OpKernelConstruction *context) : OpKernel(context){
-
-    }
-
     void Compute(OpKernelContext *context) override
     {
         const std::string &chpt = context->input(0).scalar<std::string>()();
-        Tensor *changed = nullptr;
+        Tensor *changed         = nullptr;
         OP_REQUIRES_OK(
             context, context->allocate_output(0, MakeTensorShape(), &changed));
         Tensor *keep = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(1, MakeTensorShape(), &keep));
         _kungfu_world->ResizeClusterFromURL(chpt.c_str(),
-                                     changed->scalar<bool>().data(),
-                                     keep->scalar<bool>().data());
+                                            changed->scalar<bool>().data(),
+                                            keep->scalar<bool>().data());
     }
 };
 

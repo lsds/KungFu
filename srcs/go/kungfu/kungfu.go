@@ -22,23 +22,23 @@ type Kungfu struct {
 	sync.Mutex
 
 	// immutable
-	parent    plan.PeerID
-	parents   plan.PeerList
-	hostList  plan.HostList
-	portRange plan.PortRange
-	self      plan.PeerID
-	strategy  kb.Strategy
-	single    bool
+	configServerURL string
+	parent          plan.PeerID
+	parents         plan.PeerList
+	hostList        plan.HostList
+	portRange       plan.PortRange
+	self            plan.PeerID
+	strategy        kb.Strategy
+	single          bool
 
 	router *rch.Router
 	server rch.Server
 
 	// dynamic
-	currentSession  *session
-	currentPeers    plan.PeerList
-	initStep        string
-	updated         bool
-	configServerURL string
+	currentSession *session
+	currentPeers   plan.PeerList
+	initStep       string
+	updated        bool
 }
 
 func New() (*Kungfu, error) {
@@ -53,6 +53,7 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
 	server := rch.NewServer(router)
 	return &Kungfu{
+		configServerURL: config.ConfigServer,
 		parent:          config.Parent,
 		parents:         config.Parents,
 		currentPeers:    config.InitPeers,
@@ -64,7 +65,6 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 		single:          config.Single,
 		router:          router,
 		server:          server,
-		configServerURL: "http://127.0.0.1:9100/get",
 	}, nil
 }
 

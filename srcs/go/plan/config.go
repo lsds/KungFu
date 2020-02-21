@@ -7,10 +7,11 @@ import (
 )
 
 type Config struct {
-	Parent   PeerID
-	Parents  PeerList
-	Self     PeerID
-	Strategy kb.Strategy
+	ConfigServer string
+	Parent       PeerID
+	Parents      PeerList
+	Self         PeerID
+	Strategy     kb.Strategy
 
 	InitStep  string
 	InitPeers PeerList
@@ -51,14 +52,15 @@ func ParseConfigFromEnv() (*Config, error) {
 		return nil, err
 	}
 	return &Config{
-		Self:      *self,
-		Parent:    *parent,
-		Parents:   getParentIDs(hostList, *parent),
-		HostList:  hostList,
-		PortRange: *portRange,
-		InitPeers: initPeers,
-		Strategy:  *strategy,
-		InitStep:  os.Getenv(kb.InitStepEnvKey),
+		ConfigServer: getConfigServerFromEnv(),
+		Self:         *self,
+		Parent:       *parent,
+		Parents:      getParentIDs(hostList, *parent),
+		HostList:     hostList,
+		PortRange:    *portRange,
+		InitPeers:    initPeers,
+		Strategy:     *strategy,
+		InitStep:     os.Getenv(kb.InitStepEnvKey),
 	}, nil
 }
 
@@ -78,4 +80,8 @@ func singleEnv() *Config {
 		Strategy:  kb.DefaultStrategy,
 		Single:    true,
 	}
+}
+
+func getConfigServerFromEnv() string {
+	return os.Getenv(kb.ConfigServerEnvKey)
 }
