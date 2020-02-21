@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -22,22 +23,22 @@ type Kungfu struct {
 	sync.Mutex
 
 	// immutable
-	configServerURL string
-	parent          plan.PeerID
-	parents         plan.PeerList
-	hostList        plan.HostList
-	portRange       plan.PortRange
-	self            plan.PeerID
-	strategy        kb.Strategy
-	single          bool
-
-	router *rch.Router
-	server rch.Server
+	configServerURL    string
+	initClusterVersion int
+	parent             plan.PeerID
+	parents            plan.PeerList
+	hostList           plan.HostList // FIXME: make it dynamic
+	portRange          plan.PortRange
+	self               plan.PeerID
+	strategy           kb.Strategy
+	single             bool
+	router             *rch.Router
+	server             rch.Server
 
 	// dynamic
+	clusterVersion int
 	currentSession *session
 	currentPeers   plan.PeerList
-	initStep       string
 	updated        bool
 }
 
@@ -52,19 +53,24 @@ func New() (*Kungfu, error) {
 func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
 	server := rch.NewServer(router)
+	initClusterVersion, err := strconv.Atoi(config.InitStep)
+	if err != nil {
+		return nil, err
+	}
 	return &Kungfu{
-		configServerURL: config.ConfigServer,
-		parent:          config.Parent,
-		parents:         config.Parents,
-		currentPeers:    config.InitPeers,
-		self:            config.Self,
-		hostList:        config.HostList,
-		portRange:       config.PortRange,
-		strategy:        config.Strategy,
-		initStep:        config.InitStep,
-		single:          config.Single,
-		router:          router,
-		server:          server,
+		configServerURL:    config.ConfigServer,
+		parent:             config.Parent,
+		parents:            config.Parents,
+		currentPeers:       config.InitPeers,
+		self:               config.Self,
+		hostList:           config.HostList,
+		portRange:          config.PortRange,
+		strategy:           config.Strategy,
+		initClusterVersion: initClusterVersion,
+		clusterVersion:     initClusterVersion,
+		single:             config.Single,
+		router:             router,
+		server:             server,
 	}, nil
 }
 
@@ -106,10 +112,6 @@ func (kf *Kungfu) CurrentSession() *session {
 		kf.updateTo(kf.currentPeers)
 	}
 	return kf.currentSession
-}
-
-func (kf *Kungfu) GetInitStep() string {
-	return kf.initStep
 }
 
 func (kf *Kungfu) Update() bool {
@@ -168,7 +170,7 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 	return ok
 }
 
-func (kf *Kungfu) Propose(initStep string, peers plan.PeerList) (bool, bool) {
+func (kf *Kungfu) propose(peers plan.PeerList) (bool, bool) {
 	if peers.Eq(kf.currentPeers) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
@@ -178,7 +180,10 @@ func (kf *Kungfu) Propose(initStep string, peers plan.PeerList) (bool, bool) {
 		return false, true
 	}
 	{
-		stage := run.Stage{InitStep: initStep, Cluster: peers}
+		stage := run.Stage{
+			InitStep: strconv.Itoa(kf.clusterVersion + 1),
+			Cluster:  peers,
+		}
 		if err := par(kf.parents, func(parent plan.PeerID) error {
 			return kf.router.Send(parent.WithName("update"), stage.Encode(), rch.ConnControl, 0)
 		}); err != nil {
@@ -189,28 +194,27 @@ func (kf *Kungfu) Propose(initStep string, peers plan.PeerList) (bool, bool) {
 		kf.Lock()
 		defer kf.Unlock()
 		kf.currentPeers = peers
-		kf.initStep = initStep
+		kf.clusterVersion++
 		kf.updated = false
 	}()
 	_, keep := peers.Rank(kf.self)
 	return true, keep
 }
 
-func (kf *Kungfu) ResizeCluster(initStep string, newSize int) (bool, bool, error) {
-	log.Debugf("resize cluster to %d with checkpoint %q", newSize, initStep)
+func (kf *Kungfu) ResizeCluster(newSize int) (bool, bool, error) {
+	log.Debugf("resize cluster to %d", newSize)
 	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
 	if err != nil {
 		return false, true, err
 	}
-	changed, keep := kf.Propose(initStep, peers)
+	changed, keep := kf.propose(peers)
 	if keep {
 		kf.Update()
 	}
 	return changed, keep, nil
 }
 
-func (kf *Kungfu) ResizeClusterFromURL(initStep string) (bool, bool, error) {
-	log.Debugf("resize cluster with checkpoint %q", initStep)
+func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
 	var peers plan.PeerList
 	for i := 0; ; i++ {
 		var err error
@@ -227,7 +231,7 @@ func (kf *Kungfu) ResizeClusterFromURL(initStep string) (bool, bool, error) {
 		log.Warnf("diverge proposal detected! I proposed %s", peers)
 		time.Sleep(50 * time.Millisecond)
 	}
-	changed, keep := kf.Propose(initStep, peers)
+	changed, keep := kf.propose(peers)
 	if keep {
 		kf.Update()
 	}

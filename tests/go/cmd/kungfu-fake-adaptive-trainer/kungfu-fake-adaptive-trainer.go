@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"strconv"
 	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
@@ -76,7 +75,7 @@ func fakeTrainLoop(kungfu *kf.Kungfu) {
 		}
 
 		// BEGIN tf.train.SessionRunHook::after_run
-		changed, keep := resize(kungfu, step+1)
+		changed, keep := resize(kungfu)
 		if !keep {
 			break
 		}
@@ -103,12 +102,12 @@ func syncStep(kungfu *kf.Kungfu, step int) int {
 	return int(y.AsI64()[0])
 }
 
-func resize(kungfu *kf.Kungfu, nextStep int) (bool, bool) {
+func resize(kungfu *kf.Kungfu) (bool, bool) {
 	sess := kungfu.CurrentSession()
 	oldRank := sess.Rank()
 	oldSize := sess.ClusterSize()
 	t0 := time.Now()
-	changed, keep, err := kungfu.ResizeClusterFromURL(strconv.Itoa(nextStep))
+	changed, keep, err := kungfu.ResizeClusterFromURL()
 	if err != nil {
 		utils.ExitErr(err)
 	}

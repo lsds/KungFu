@@ -221,20 +221,17 @@ int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
 }
 
 // control APIs
-int kungfu_world::ResizeCluster(const char *init_step, int new_size,
-                                bool *changed, bool *keep)
+int kungfu_world::ResizeCluster(int new_size, bool *changed, bool *keep)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuResizeCluster(const_cast<char *>(init_step), GoInt(new_size),
+    return GoKungfuResizeCluster(GoInt(new_size),
                                  reinterpret_cast<char *>(changed),
                                  reinterpret_cast<char *>(keep));
 }
 
-int kungfu_world::ResizeClusterFromURL(const char *init_step, bool *changed,
-                                       bool *keep)
+int kungfu_world::ResizeClusterFromURL(bool *changed, bool *keep)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuResizeClusterFromURL(const_cast<char *>(init_step),
-                                        reinterpret_cast<char *>(changed),
+    return GoKungfuResizeClusterFromURL(reinterpret_cast<char *>(changed),
                                         reinterpret_cast<char *>(keep));
 }
