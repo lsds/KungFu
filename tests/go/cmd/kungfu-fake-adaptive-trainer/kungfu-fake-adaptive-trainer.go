@@ -55,34 +55,55 @@ func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {
 
 func fakeTrainLoop(kungfu *kf.Kungfu) {
 	model := fakemodel.New([]int{1}, kb.F32, false)
-	var step int
-	if err := restore(kungfu, &step); err != nil {
-		utils.ExitErr(err)
-	}
-	for ; step < *maxStep; step++ {
+
+	// BEGIN tf.train.SessionRunHook::begin
+	shouldSync := true
+	// END tf.train.SessionRunHook::begin
+
+	for step := 0; step < *maxStep; step++ {
+		// BEGIN tf.train.SessionRunHook::before_run
+		if shouldSync {
+			newStep := syncStep(kungfu, step)
+			fmt.Printf("sync step: %d -> %d\n", step, newStep)
+			step = newStep
+			// TODO: broadcast from the oldest
+			shouldSync = false
+		}
+		// END tf.train.SessionRunHook::before_run
+
 		if *runTrain {
 			fakeTrainStep(kungfu, model, step)
 		}
-		if nextStep := step + 1; nextStep < *maxStep && !resize(kungfu, nextStep) {
-			log.Infof("should stop")
+
+		// BEGIN tf.train.SessionRunHook::after_run
+		changed, keep := resize(kungfu, step+1)
+		if !keep {
 			break
 		}
+		if changed {
+			shouldSync = true
+		}
+		// BEGIN tf.train.SessionRunHook::after_run
 	}
 	log.Infof("finished")
 }
 
-func restore(kungfu *kf.Kungfu, step *int) error {
-	initStep := kungfu.GetInitStep()
-	n, err := strconv.Atoi(initStep)
-	if err != nil {
-		return err
+func syncStep(kungfu *kf.Kungfu, step int) int {
+	sess := kungfu.CurrentSession()
+	x := kb.NewVector(1, kb.I64)
+	y := kb.NewVector(1, kb.I64)
+	x.AsI64()[0] = int64(step)
+	w := kf.Workspace{
+		SendBuf: x,
+		RecvBuf: y,
+		OP:      kb.MAX,
+		Name:    "sync-step",
 	}
-	*step = n
-	log.Infof("restored from %q", initStep)
-	return nil
+	sess.AllReduce(w)
+	return int(y.AsI64()[0])
 }
 
-func resize(kungfu *kf.Kungfu, nextStep int) bool {
+func resize(kungfu *kf.Kungfu, nextStep int) (bool, bool) {
 	sess := kungfu.CurrentSession()
 	oldRank := sess.Rank()
 	oldSize := sess.ClusterSize()
@@ -101,5 +122,5 @@ func resize(kungfu *kf.Kungfu, nextStep int) bool {
 			log.Infof("resize took %s, I'm not in the cluster of %d peers any more.", time.Since(t0), oldSize)
 		}
 	}
-	return keep
+	return changed, keep
 }
