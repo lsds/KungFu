@@ -4,11 +4,19 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"sync"
 
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/utils"
+)
+
+var (
+	port     = flag.Int("port", 9100, "")
+	initFile = flag.String("init", "", "")
 )
 
 type configServer struct {
@@ -18,48 +26,47 @@ type configServer struct {
 }
 
 func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Printf("%s %s from %s %s\n", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
 	s.RLock()
 	defer s.RUnlock()
-	jsonPeerList, err := json.Marshal(s.peerList)
-	if err != nil {
-		fmt.Println("Cannot marshal peer list")
+	e := json.NewEncoder(w)
+	if err := e.Encode(s.peerList); err != nil {
+		log.Errorf("failed to encode JSON: %v", err)
 	}
-	fmt.Fprintf(w, "%s\n", jsonPeerList)
 }
 
 func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
+	var pl plan.PeerList
+	if err := readJSON(req.Body, &pl); err != nil {
+		log.Errorf("failed to decode JSON: %v", err)
+	}
 	s.Lock()
 	defer s.Unlock()
-
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		fmt.Println("Cannot read request body")
+	if s.peerList == nil {
+		fmt.Printf("init first config to %d peers: %s\n", len(pl), pl)
+		s.peerList = pl
+	} else {
+		s.peerList = pl
+		fmt.Printf("updated to %d peers: %s\n", len(pl), pl)
 	}
-
-	fmt.Println(string(body))
-
-	err = json.Unmarshal(body, &s.peerList)
-	if err != nil {
-		fmt.Println("Cannot unmarshal body")
-	}
-
-	fmt.Fprintf(w, "OK\n")
 }
-
-var port = flag.Int("port", 9100, "")
-var peerlistPath = flag.String("path", "./hostlists/hostlist.json", "")
 
 func main() {
 	flag.Parse()
 	h := &configServer{}
 
-	content, err := ioutil.ReadFile(*peerlistPath)
-	if err != nil {
-		fmt.Println("Cannot read file")
-	}
-	err = json.Unmarshal(content, &h.peerList)
-	if err != nil {
-		fmt.Println("Cannot unmarshal content")
+	if len(*initFile) > 0 {
+		f, err := os.Open(*initFile)
+		if err != nil {
+			utils.ExitErr(err)
+		}
+		defer f.Close()
+		var pl plan.PeerList
+		if err := readJSON(f, &pl); err != nil {
+			utils.ExitErr(err)
+		}
+		h.peerList = pl
 	}
 
 	fmt.Printf("http://127.0.0.1:%d/get\n", *port)
@@ -68,4 +75,9 @@ func main() {
 	http.HandleFunc("/get", http.HandlerFunc(h.getConfig))
 	http.HandleFunc("/put", http.HandlerFunc(h.putConfig))
 	http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+}
+
+func readJSON(r io.Reader, i interface{}) error {
+	d := json.NewDecoder(r)
+	return d.Decode(&i)
 }
