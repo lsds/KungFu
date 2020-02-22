@@ -16,8 +16,8 @@ import (
 )
 
 type Stage struct {
-	InitStep string
-	Cluster  plan.PeerList
+	Version int
+	Cluster plan.PeerList
 }
 
 func (s Stage) Encode() []byte {
@@ -32,14 +32,14 @@ func (s *Stage) Decode(bs []byte) error {
 }
 
 func (s Stage) Eq(t Stage) bool {
-	return s.InitStep == t.InitStep && s.Cluster.Eq(t.Cluster)
+	return s.Version == t.Version && s.Cluster.Eq(t.Cluster)
 }
 
 type Handler struct {
 	self plan.PeerID
 
 	mu          sync.Mutex
-	checkpoints map[string]Stage
+	checkpoints map[int]Stage
 	ch          chan Stage
 	cancel      context.CancelFunc
 
@@ -53,7 +53,7 @@ func (h *Handler) Self() plan.PeerID {
 func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Handler {
 	h := &Handler{
 		self:            self,
-		checkpoints:     make(map[string]Stage),
+		checkpoints:     make(map[int]Stage),
 		ch:              ch,
 		cancel:          cancel,
 		controlHandlers: make(map[string]rch.MsgHandleFunc),
@@ -95,15 +95,15 @@ func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.C
 	func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		if val, ok := h.checkpoints[s.InitStep]; ok {
+		if val, ok := h.checkpoints[s.Version]; ok {
 			if !val.Eq(s) {
 				utils.ExitErr(errInconsistentUpdate)
 			}
 			return
 		}
-		h.checkpoints[s.InitStep] = s
+		h.checkpoints[s.Version] = s
 		h.ch <- s
-		log.Debugf("update to %q with %d peers", s.InitStep, len(s.Cluster))
+		log.Debugf("update to v%d with %d peers", s.Version, len(s.Cluster))
 	}()
 }
 

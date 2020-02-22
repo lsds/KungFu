@@ -2,6 +2,7 @@ package kungfurun
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -38,9 +39,9 @@ func (w *watcher) create(id plan.PeerID, s Stage) {
 	if gpuID < 0 {
 		log.Errorf("gpuID = %d", gpuID)
 	}
-	proc := w.job.NewProc(id, gpuID, s.InitStep, s.Cluster)
+	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster)
 	go func(g *sync.WaitGroup) {
-		runProc(w.ctx, w.cancel, proc, s.InitStep, w.job.LogDir)
+		runProc(w.ctx, w.cancel, proc, s.Version, w.job.LogDir)
 		g.Done()
 		w.gpuPool.Put(gpuID)
 		w.stopped <- id
@@ -56,7 +57,7 @@ func (w *watcher) update(s Stage) {
 	a, b := w.current.Diff(s.Cluster)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
-	log.Infof("arrived at %q, np=%d, +%d/%d, -%d/%d", s.InitStep, len(s.Cluster), len(add), len(b), len(del), len(a))
+	log.Infof("arrived at v%d, np=%d, +%d/%d, -%d/%d", s.Version, len(s.Cluster), len(add), len(b), len(del), len(a))
 	log.Debugf("waiting %d peers to stop", len(del))
 	for _, id := range del {
 		w.delete(id)
@@ -131,11 +132,11 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 	log.Infof("stop watching")
 }
 
-func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version string, logDir string) {
+func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version int, logDir string) {
 	r := &runner.Runner{
 		Name:          proc.Name,
 		LogDir:        logDir,
-		LogFilePrefix: proc.Name + "@" + version,
+		LogFilePrefix: fmt.Sprintf("%s@%d", proc.Name, version),
 		VerboseLog:    true,
 	}
 	if err := r.Run(ctx, proc.Cmd()); err != nil {

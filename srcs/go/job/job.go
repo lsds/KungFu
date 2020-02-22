@@ -24,16 +24,16 @@ type Job struct {
 	AllowNVLink bool
 }
 
-func (j Job) NewProc(peer plan.PeerID, gpuID int, initStep string, pl plan.PeerList) Proc {
+func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl plan.PeerList) Proc {
 	envs := Envs{
-		kb.SelfSpecEnvKey:          peer.String(),
-		kb.HostListEnvKey:          j.HostList.String(),
-		kb.PortRangeEnvKey:         j.PortRange.String(),
-		kb.ParentIDEnvKey:          j.Parent.String(),
-		kb.PeerListEnvKey:          pl.String(),
-		kb.InitStepEnvKey:          initStep,
-		kb.AllReduceStrategyEnvKey: j.Strategy.String(),
-		kb.ConfigServerEnvKey:      j.ConfigServer,
+		kb.SelfSpecEnvKey:           peer.String(),
+		kb.HostListEnvKey:           j.HostList.String(),
+		kb.PortRangeEnvKey:          j.PortRange.String(),
+		kb.ParentIDEnvKey:           j.Parent.String(),
+		kb.PeerListEnvKey:           pl.String(),
+		kb.InitClusterVersionEnvKey: strconv.Itoa(initClusterVersion),
+		kb.AllReduceStrategyEnvKey:  j.Strategy.String(),
+		kb.ConfigServerEnvKey:       j.ConfigServer,
 	}
 	if len(j.ConfigServer) > 0 {
 		envs[kb.ConfigServerEnvKey] = j.ConfigServer
@@ -70,7 +70,7 @@ func (j Job) CreateAllProcs(pl plan.PeerList) []Proc {
 	var ps []Proc
 	for _, self := range pl {
 		localRank, _ := pl.LocalRank(self)
-		proc := j.NewProc(self, localRank, "", pl)
+		proc := j.NewProc(self, localRank, 0, pl)
 		ps = append(ps, proc)
 	}
 	return ps
@@ -80,7 +80,7 @@ func (j Job) CreateProcs(pl plan.PeerList, host uint32) []Proc {
 	var ps []Proc
 	for _, self := range pl.On(host) {
 		localRank, _ := pl.LocalRank(self)
-		proc := j.NewProc(self, localRank, "", pl)
+		proc := j.NewProc(self, localRank, 0, pl)
 		ps = append(ps, proc)
 	}
 	return ps

@@ -54,9 +54,9 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
 	server := rch.NewServer(router)
 	var initClusterVersion int
-	if len(config.InitStep) > 0 {
+	if len(config.InitClusterVersion) > 0 {
 		var err error
-		initClusterVersion, err = strconv.Atoi(config.InitStep)
+		initClusterVersion, err = strconv.Atoi(config.InitClusterVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -185,8 +185,8 @@ func (kf *Kungfu) propose(peers plan.PeerList) (bool, bool) {
 	}
 	{
 		stage := run.Stage{
-			InitStep: strconv.Itoa(kf.clusterVersion + 1),
-			Cluster:  peers,
+			Version: kf.clusterVersion + 1,
+			Cluster: peers,
 		}
 		if err := par(kf.parents, func(parent plan.PeerID) error {
 			return kf.router.Send(parent.WithName("update"), stage.Encode(), rch.ConnControl, 0)
