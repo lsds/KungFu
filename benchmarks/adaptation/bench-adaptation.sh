@@ -24,4 +24,6 @@ kungfu_run() {
 TF_CPP_MIN_LOG_LEVEL=2
 
 kungfu_run 2 python3 adaptive_trainer.py
-kungfu_run 2 python3 adaptive_trainer.py --schedule '1:16,1:1,1:16,1:1'
+
+# travis-ci 10010: bind: address already in use
+kungfu_run 2 -port-range 20001-20016 python3 adaptive_trainer.py --schedule '1:16,1:1,1:16,1:1'
