@@ -53,9 +53,13 @@ func New() (*Kungfu, error) {
 func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
 	server := rch.NewServer(router)
-	initClusterVersion, err := strconv.Atoi(config.InitStep)
-	if err != nil {
-		return nil, err
+	var initClusterVersion int
+	if len(config.InitStep) > 0 {
+		var err error
+		initClusterVersion, err = strconv.Atoi(config.InitStep)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &Kungfu{
 		configServerURL:    config.ConfigServer,
