@@ -1,5 +1,3 @@
-import os
-
 from ._tf_oplib import _op_lib
 from .state import counter
 
