@@ -142,6 +142,7 @@ func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, vers
 	if err := r.Run(ctx, proc.Cmd()); err != nil {
 		log.Infof("%s finished with error: %v", proc.Name, err)
 		cancel()
+		utils.ExitErr(err) // FIXME: graceful shutdown
 		return
 	}
 }
