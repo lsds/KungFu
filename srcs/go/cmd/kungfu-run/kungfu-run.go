@@ -87,7 +87,7 @@ func main() {
 	}
 	if f.Watch {
 		ch := make(chan run.Stage, 1)
-		ch <- run.Stage{Cluster: peers, InitStep: f.Checkpoint}
+		ch <- run.Stage{Cluster: peers, Version: f.InitVersion}
 		j.ConfigServer = f.ConfigServer
 		run.WatchRun(ctx, parent, parents, ch, j)
 	} else {

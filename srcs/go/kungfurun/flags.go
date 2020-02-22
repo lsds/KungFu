@@ -43,9 +43,9 @@ type FlagSet struct {
 
 	Strategy kb.Strategy
 
-	Port       int
-	Watch      bool
-	Checkpoint string
+	Port        int
+	Watch       bool
+	InitVersion int
 
 	Logfile string
 	LogDir  string
@@ -76,7 +76,7 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 
 	flag.IntVar(&f.Port, "port", 38080, "port for rchannel")
 	flag.BoolVar(&f.Watch, "w", false, "watch config")
-	flag.StringVar(&f.Checkpoint, "checkpoint", "0", "")
+	flag.IntVar(&f.InitVersion, "init-version", 0, "initial cluster version")
 	flag.StringVar(&f.ConfigServer, "config-server", "", "config server URL")
 
 	flag.StringVar(&f.Logfile, "logfile", "", "path to log file")
