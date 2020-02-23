@@ -63,29 +63,30 @@ def get_model_dir(args):
 MNIST_DATA_SIZE = 60000
 
 
-def main():
+def main(do_eval=True):
     args = parse_args()
-    # print('using config: %s, max step=%d' % (args.schedule, args.max_step))
     model_dir = get_model_dir(args)
 
     data = load_datasets(args.data_dir, normalize=True)
     classifier = tf.estimator.Estimator(model_fn, model_dir=model_dir)
 
-    batch_size = 100
-    epochs = 10
-    max_steps = MNIST_DATA_SIZE * epochs / batch_size
+    max_steps = MNIST_DATA_SIZE * args.num_epochs / args.batch_size
     print('max_steps: %d' % (max_steps))
 
     from kungfu.tensorflow.experimental.hook import ElasticHook
     hooks = [ElasticHook(max_steps)]
 
-    classifier.train(input_fn(data.train, batch_size, epochs=epochs),
+    classifier.train(input_fn(data.train,
+                              args.batch_size,
+                              epochs=args.num_epochs),
                      hooks=hooks,
                      max_steps=max_steps)
     print('train finished')
 
+    if not do_eval:
+        return
     results = classifier.evaluate(input_fn(data.test,
-                                           batch_size,
+                                           args.batch_size,
                                            shuffle=False),
                                   hooks=[],
                                   steps=1)
@@ -93,4 +94,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(False)
+    print('main finished')
