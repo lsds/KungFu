@@ -34,6 +34,7 @@ type Kungfu struct {
 	single             bool
 	router             *rch.Router
 	server             rch.Server
+	client             http.Client
 
 	// dynamic
 	clusterVersion int
@@ -105,6 +106,13 @@ func (kf *Kungfu) Close() error {
 		kf.server.Close() // TODO: check error
 	}
 	return nil
+}
+
+// UID returns an immutable unique ID of this peer
+func (kf *Kungfu) UID() uint64 {
+	hi := uint64(kf.self.IPv4)
+	lo := (uint64(kf.self.Port) << 16) | uint64(uint16(kf.initClusterVersion))
+	return (hi<<32 | lo)
 }
 
 var errSelfNotInCluster = errors.New("self not in cluster")
@@ -243,19 +251,21 @@ func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
 }
 
 func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
-	resp, err := http.Get(url)
+	resp, err := kf.client.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New(resp.Status)
 	}
-	var pl plan.PeerList
-	if err = json.NewDecoder(resp.Body).Decode(&pl); err != nil {
+	var o struct {
+		Peers plan.PeerList `json:"peers"`
+	}
+	if err = json.NewDecoder(resp.Body).Decode(&o); err != nil {
 		return nil, err
 	}
-	if kf.hostList.Cap() < len(pl) {
+	if kf.hostList.Cap() < len(o.Peers) {
 		return nil, plan.ErrNoEnoughCapacity
 	}
-	return pl, nil
+	return o.Peers, nil
 }

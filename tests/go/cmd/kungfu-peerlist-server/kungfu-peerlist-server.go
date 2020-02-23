@@ -23,6 +23,7 @@ type configServer struct {
 	sync.RWMutex
 
 	peerList plan.PeerList
+	version  int
 }
 
 func (s *configServer) index(w http.ResponseWriter, req *http.Request) {
@@ -40,11 +41,20 @@ func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 	fmt.Printf("%s %s from %s %s\n", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
 	s.RLock()
 	defer s.RUnlock()
-	e := json.NewEncoder(w)
 	if s.peerList == nil {
 		w.WriteHeader(http.StatusNotFound)
+		return
 	}
-	if err := e.Encode(s.peerList); err != nil {
+	e := json.NewEncoder(w)
+	e.SetIndent("", "    ")
+	o := struct {
+		Version int
+		Peers   plan.PeerList `json:"peers"`
+	}{
+		Version: s.version,
+		Peers:   s.peerList,
+	}
+	if err := e.Encode(o); err != nil {
 		log.Errorf("failed to encode JSON: %v", err)
 	}
 }
@@ -58,8 +68,10 @@ func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
 	defer s.Unlock()
 	if s.peerList == nil {
 		fmt.Printf("init first config to %d peers: %s\n", len(pl), pl)
+		s.version = 1
 		s.peerList = pl
 	} else if len(s.peerList) > 0 {
+		s.version++
 		s.peerList = pl
 		fmt.Printf("updated to %d peers: %s\n", len(pl), pl)
 	} else {

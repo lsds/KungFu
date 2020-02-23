@@ -37,6 +37,8 @@ kungfu_world::kungfu_world()
 
 kungfu_world::~kungfu_world() { GoKungfuFinalize(); }
 
+uint64_t kungfu_world::Uid() const { return GoKungfuUID(); }
+
 int kungfu_world::Rank() const { return GoKungfuRank(); }
 
 int kungfu_world::LocalRank() const { return GoKungfuLocalRank(); }

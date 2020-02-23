@@ -12,6 +12,8 @@ void kungfu_python_init() { _kungfu_world.reset(new kungfu_world); }
 
 void kungfu_python_finialize() { _kungfu_world.reset(nullptr); }
 
+uint64_t kungfu_uid() { return _kungfu_world->Uid(); }
+
 int kungfu_rank() { return _kungfu_world->Rank(); }
 
 int kungfu_local_rank() { return _kungfu_world->LocalRank(); }

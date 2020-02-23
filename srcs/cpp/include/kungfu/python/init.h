@@ -17,6 +17,7 @@ extern void kungfu_python_finialize_nccl();
 extern int kungfu_get_cuda_index();
 
 // helpers APIs to access kungfu without tensorflow operators
+extern uint64_t kungfu_uid();
 extern int kungfu_rank();          // get current rank
 extern int kungfu_local_rank();    // get current local rank
 extern int kungfu_cluster_size();  // get current size

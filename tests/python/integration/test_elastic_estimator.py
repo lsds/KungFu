@@ -56,10 +56,12 @@ def input_fn(ds, batch_size, epochs=1, shuffle=True):
 
 
 def get_model_dir(args):
-    self_id = os.getenv('KUNGFU_SELF_SPEC')
-    ckpt = os.getenv('KUNGFU_INIT_STEP')
-    uid = '%s@%s' % (self_id, ckpt)  # FIXME: provide an API
-    return os.path.join(args.model_dir_prefix, uid)
+    from kungfu.ext import uid
+    x = uid()
+    port = (x >> 16) & 0xffff
+    version = x & 0xffff
+    suffix = '%d.%d' % (port, version)
+    return os.path.join(args.model_dir_prefix, suffix)
 
 
 def main():

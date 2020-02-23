@@ -38,6 +38,7 @@ class kungfu_world
     ~kungfu_world();
 
     // metadata APIs
+    uint64_t Uid() const;
     int Rank() const;
     int LocalRank() const;
     int ClusterSize() const;
