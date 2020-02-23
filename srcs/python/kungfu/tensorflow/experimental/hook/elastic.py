@@ -1,12 +1,15 @@
+import time
+
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import all_reduce, resize_cluster_from_url
 
 
 class ElasticHook(tf.train.SessionRunHook):
-    def __init__(self, max_step):
+    def __init__(self, max_step, debug=True):
         self._max_step = max_step
         self._need_sync = True
+        self._debug = debug
 
     def begin(self):
         self._step = 0
@@ -15,6 +18,10 @@ class ElasticHook(tf.train.SessionRunHook):
 
         self._sync_op = BroadcastGlobalVariablesOp()
         self._resize_op = resize_cluster_from_url()
+
+        if self._debug:
+            self._t0 = time.time()
+            self._t_last = self._t0
 
     def after_create_session(self, sess, coord):
         pass
@@ -42,10 +49,23 @@ class ElasticHook(tf.train.SessionRunHook):
             print('changed on step %d' % (self._step))
             self._need_sync = True
         self._step += 1
+        if self._debug:
+            self._log_rate()
         if self._step >= self._max_step:
             self._exit_reasion = 'finished'
             print('request_stop on kungfu_step: %d' % (self._step))
             run_context.request_stop()
+
+    def _log_rate(self):
+        log_period = 100
+        if (self._step % log_period == 0):
+            now = time.time()
+            duration = now - self._t_last
+            self._t_last = now
+            rate = duration / log_period
+            print(
+                'current step: %d, max step: %d, %.3fs / step, %fs since last, %f since begin'
+                % (self._step, self._max_step, rate, duration, now - self._t0))
 
     def end(self, sess):
         print('stopped at step: %d due to %s' %
