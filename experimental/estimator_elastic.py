@@ -66,15 +66,20 @@ def main():
     data = load_datasets(args.data_dir, normalize=True)
     classifier = tf.estimator.Estimator(model_fn, model_dir=model_dir)
 
-    num_train_steps = 1000
+    num_train_steps = 10000
+    batch_size = 100
+    epochs = 100
     from kungfu.tensorflow.experimental.hook import ElasticHook
     hooks = [ElasticHook(num_train_steps)]
 
-    classifier.train(input_fn(data.train, 1000),
+    classifier.train(input_fn(data.train, batch_size, epochs=epochs),
                      hooks=hooks,
                      max_steps=num_train_steps)
+    print('train finished')
 
-    results = classifier.evaluate(input_fn(data.test, 1000, shuffle=False),
+    results = classifier.evaluate(input_fn(data.test,
+                                           batch_size,
+                                           shuffle=False),
                                   hooks=[],
                                   steps=1)
     print('results: %s' % (results, ))

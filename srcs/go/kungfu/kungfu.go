@@ -129,7 +129,7 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 		log.Debugf("ignore update")
 		return true
 	}
-	log.Debugf("Kungfu::updateTo(%s), %d peers", pl, len(pl))
+	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", kf.clusterVersion, len(pl), pl)
 	kf.router.ResetConnections(pl)
 	sess, exist := newSession(kf.strategy, kf.self, pl, kf.router)
 	if !exist {

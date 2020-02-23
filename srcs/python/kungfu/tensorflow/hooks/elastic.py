@@ -3,8 +3,8 @@ import os
 import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-from kungfu.tensorflow.ops import (all_reduce, consensus, counter,
-                                   resize_cluster, step_based_schedule)
+from kungfu.tensorflow.ops import (all_reduce, consensus, resize_cluster,
+                                   step_based_schedule)
 
 
 class KungFuElasticTrainHook(tf.train.SessionRunHook):
@@ -21,8 +21,6 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         return resize_op
 
     def begin(self):
-        self._kungfu_step = tf.Variable(0, trainable=False, dtype=tf.int64)
-        self._advance = tf.assign_add(self._kungfu_step, 1)
         self._sync_op = BroadcastGlobalVariablesOp()
 
         self._step = 0
