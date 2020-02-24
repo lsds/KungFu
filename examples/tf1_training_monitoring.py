@@ -173,7 +173,14 @@ def model_function(features, labels, mode):
         optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
         tf.identity(FLAGS.learning_rate, name='learning_rate')
 
-        # KungFu: Wrap the tf.train.optimizer with KungFu optimizers
+        #get custom Ada optimizer
+        #TODO: fix this and enable it
+        # from ./experimental.net_monitoring.NetMonHook import NetMonHook
+        # spec = importlib.util.spec_from_file_location("CustomAdaptiveSGD", "./experimental/net_monitoring/NetMonHook.py")
+        # CustomOpt = importlib.util.module_from_spec(spec)
+        # spec.loader.exec_module(CustomOpt)
+
+        #KungFu: Wrap the tf.train.optimizer with KungFu optimizers
         if FLAGS.kf_optimizer == 'sync_sgd':
             from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
             optimizer = SynchronousSGDOptimizer(optimizer)
@@ -182,6 +189,8 @@ def model_function(features, labels, mode):
             optimizer = PairAveragingOptimizer(optimizer)
         else:
             raise RuntimeError('Unknown kungfu optimizer')
+
+        optimizer = CustomOpt(optimizer)
 
         # create an estimator spec to optimize the loss
         estimator_spec = tf.estimator.EstimatorSpec(
