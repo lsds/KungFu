@@ -133,6 +133,7 @@ func (kf *Kungfu) Update() bool {
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
+	defer utils.InstallStallDetector(fmt.Sprintf("updateTo v%d (%d peers): %s", kf.clusterVersion, len(pl), pl)).Stop()
 	if kf.updated {
 		log.Debugf("ignore update")
 		return true
@@ -227,7 +228,6 @@ func (kf *Kungfu) ResizeCluster(newSize int) (bool, bool, error) {
 }
 
 func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
-	defer utils.InstallStallDetector("ResizeClusterFromURL").Stop()
 	var peers plan.PeerList
 	for i := 0; ; i++ {
 		var err error

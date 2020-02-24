@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"sync"
 
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -18,6 +19,7 @@ import (
 type Stage struct {
 	Version int
 	Cluster plan.PeerList
+	Size    int
 }
 
 func (s Stage) Encode() []byte {
@@ -38,10 +40,10 @@ func (s Stage) Eq(t Stage) bool {
 type Handler struct {
 	self plan.PeerID
 
-	mu          sync.Mutex
-	checkpoints map[int]Stage
-	ch          chan Stage
-	cancel      context.CancelFunc
+	mu       sync.RWMutex
+	versions map[int]Stage
+	ch       chan Stage
+	cancel   context.CancelFunc
 
 	controlHandlers map[string]rch.MsgHandleFunc
 }
@@ -53,7 +55,7 @@ func (h *Handler) Self() plan.PeerID {
 func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Handler {
 	h := &Handler{
 		self:            self,
-		checkpoints:     make(map[int]Stage),
+		versions:        make(map[int]Stage),
 		ch:              ch,
 		cancel:          cancel,
 		controlHandlers: make(map[string]rch.MsgHandleFunc),
@@ -92,16 +94,17 @@ func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.C
 		log.Warnf("invalid update message: %v", err)
 		return
 	}
+	s.Size = len(s.Cluster)
 	func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		if val, ok := h.checkpoints[s.Version]; ok {
+		if val, ok := h.versions[s.Version]; ok {
 			if !val.Eq(s) {
 				utils.ExitErr(errInconsistentUpdate)
 			}
 			return
 		}
-		h.checkpoints[s.Version] = s
+		h.versions[s.Version] = s
 		h.ch <- s
 		log.Debugf("update to v%d with %d peers", s.Version, len(s.Cluster))
 	}()
@@ -110,4 +113,12 @@ func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.C
 func (h *Handler) handleContrlExit(_name string, msg *rch.Message, _conn net.Conn, remote plan.NetAddr) {
 	log.Infof("exit control message received.")
 	h.cancel()
+}
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	e := json.NewEncoder(w)
+	e.SetIndent("", "    ")
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	e.Encode(h.versions)
 }

@@ -3,6 +3,9 @@ package kungfurun
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -106,7 +109,7 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 	}
 }
 
-func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job) {
+func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job, debugPort int) {
 	ctx, cancel := context.WithCancel(ctx)
 	watcher := &watcher{
 		parent:  parent,
@@ -120,9 +123,13 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 		gs:      make(map[plan.PeerID]*sync.WaitGroup),
 		gpuPool: job.NewGPUPool(j.HostList.SlotOf(parent.IPv4)),
 	}
-
 	globalCtx, globalCancel := context.WithCancel(ctx)
-	server := rch.NewServer(NewHandler(parent, ch, globalCancel))
+	handler := NewHandler(parent, ch, globalCancel)
+	if debugPort > 0 {
+		log.Infof("debug server: http://127.0.0.1:%d/", debugPort)
+		go http.ListenAndServe(net.JoinHostPort("", strconv.Itoa(debugPort)), handler)
+	}
+	server := rch.NewServer(handler)
 	if err := server.Start(); err != nil {
 		utils.ExitErr(err)
 	}
