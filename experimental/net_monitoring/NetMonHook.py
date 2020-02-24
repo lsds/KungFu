@@ -19,8 +19,12 @@ class NetMonHook(tf.estimator.SessionRunHook):
     def begin(self):
         self.__setup_summary_writer()
         self._avg_step_dur_tensor = tf.Variable(0.,trainable=False)
+        self._net_cong_mon_tensor = tf.Variable(np.uint8(0), trainable=False)
         tf.summary.scalar(name='CMA', tensor=self._avg_step_dur_tensor)
+        tf.summary.scalar(name='congestion', tensor=self._net_cong_mon_tensor)
+        self._net_cong_mon_place = tf.placeholder(tf.uint8)
         self._cma_place = tf.placeholder(tf.float32)
+        self._net_cong_mon_assign_op = tf.assign(self._net_cong_mon_tensor, self._net_cong_mon_place)
         self._cma_assign_op = tf.assign(self._avg_step_dur_tensor, self._cma_place)
 
         #create AllReduce tensor
@@ -63,6 +67,16 @@ class NetMonHook(tf.estimator.SessionRunHook):
         #trigger a network interference flag action
         if global_aggr_avg - self._avg_step_dur > self.interference_threshold*self._avg_step_dur:
             print("WARNINIG: Network congestion detected !")
+            
+            #update network congestion monitor
+            run_context.session.run(self._net_cong_mon_assign_op, feed_dict={
+                self._net_cong_mon_place: 1,
+            })
+        else:
+            #update network congestion monitor
+            run_context.session.run(self._net_cong_mon_assign_op, feed_dict={
+                self._net_cong_mon_place: 0,
+            })
 
         #Calculation of Cumulative Moving Average (CMA)
         self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + global_aggr_avg) / self._cur_step
