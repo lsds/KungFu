@@ -1,6 +1,7 @@
 import time
 
 import tensorflow as tf
+from kungfu._utils import show_duration
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import all_reduce, resize_cluster_from_url
 
@@ -62,9 +63,11 @@ class ElasticHook(tf.train.SessionRunHook):
             duration = now - self._t_last
             self._t_last = now
             rate = duration / log_period
+            remain = (self._max_step - self._step) * rate
             print(
-                'current step: %d, max step: %d, %.3fs / step, %fs since last, %f since begin'
-                % (self._step, self._max_step, rate, duration, now - self._t0))
+                'current step: %d, max step: %d, %.3fs / step, %fs since last, %s since begin, about %s remain'
+                % (self._step, self._max_step, rate, duration,
+                   show_duration(now - self._t0), show_duration(remain)))
 
     def end(self, sess):
         print('stopped at step: %d due to %s' %
