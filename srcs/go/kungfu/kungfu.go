@@ -227,6 +227,7 @@ func (kf *Kungfu) ResizeCluster(newSize int) (bool, bool, error) {
 }
 
 func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
+	defer utils.InstallStallDetector("ResizeClusterFromURL").Stop()
 	var peers plan.PeerList
 	for i := 0; ; i++ {
 		var err error
