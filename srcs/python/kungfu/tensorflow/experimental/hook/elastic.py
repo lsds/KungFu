@@ -39,8 +39,8 @@ class ElasticHook(tf.train.SessionRunHook):
             self._need_sync = False
 
     def after_run(self, run_context, run_values):
-        changed, keep = run_context.session.run(
-            self._resize_op, feed_dict={self._step_place: self._step})
+        self._step += 1
+        changed, keep = run_context.session.run(self._resize_op)
         if not keep:
             run_context.request_stop()
             self._exit_reasion = 'resize'
@@ -48,7 +48,6 @@ class ElasticHook(tf.train.SessionRunHook):
         if changed:
             print('changed on step %d' % (self._step))
             self._need_sync = True
-        self._step += 1
         if self._debug:
             self._log_rate()
         if self._step >= self._max_step:
