@@ -8,6 +8,9 @@ from kungfu.tensorflow.ops import (current_cluster_size, all_reduce)
 
 
 class NetMonHook(tf.estimator.SessionRunHook):
+
+    interference_threshold = 0.25
+
     def __init__(self):
         self._cur_step = 0
         self._avg_step_dur = 0
@@ -22,11 +25,11 @@ class NetMonHook(tf.estimator.SessionRunHook):
 
         #create AllReduce tensor
         self._global_avg_step_dur_tensor = tf.Variable(0.,trainable=False)
-        self._allreduce_place = tf.placeholder(tf.float32)
-        self._allreduce_op = tf.assign(self._global_avg_step_dur_tensor, self._allreduce_place)
+        self._global_avg_step_dur_tensor_place = tf.placeholder(tf.float32)
+        self._global_avg_step_dur_tensor_place_assign_op = tf.assign(self._global_avg_step_dur_tensor, self._global_avg_step_dur_tensor_place)
 
         #create AllReduce operator
-        self._global_avg_step_dur_op = all_reduce(self._global_avg_step_dur_tensor)
+        self._global_avg_step_dur_allreduce_op = all_reduce(self._global_avg_step_dur_tensor)
 
     def after_create_session(self, sess, coord):
         pass
@@ -37,7 +40,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
 
     def after_run(self, run_context, run_values):
         step_dur = time.time() - self._step_start_time
-        #print('Step Time: ', step_dur,' sec')
+        
         if self._cur_step == 1:
             self._avg_step_dur = step_dur
 
@@ -47,9 +50,9 @@ class NetMonHook(tf.estimator.SessionRunHook):
             })
             return
 
-        #update CMA tensor
-        run_context.session.run(self._allreduce_op, feed_dict={
-            self._allreduce_place: step_dur,
+        #update global avg step dur tensor
+        run_context.session.run(self._global_avg_step_dur_tensor_place_assign_op, feed_dict={
+            self._global_avg_step_dur_tensor_place: step_dur,
         })
 
         #perform allreduce to communicate cma between peers
@@ -58,8 +61,8 @@ class NetMonHook(tf.estimator.SessionRunHook):
         #check for network interference: 
         #If Global CMA average is deviating more that a predefined value from the last step CMA
         #trigger a network interference flag action
-        if global_aggr_avg - self._avg_step_dur > 0.1*self._avg_step_dur:
-            print("Network congestion detected")
+        if global_aggr_avg - self._avg_step_dur > self.interference_threshold*self._avg_step_dur:
+            print("WARNINIG: Network congestion detected !")
 
         #Calculation of Cumulative Moving Average (CMA)
         self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + global_aggr_avg) / self._cur_step
@@ -67,7 +70,6 @@ class NetMonHook(tf.estimator.SessionRunHook):
         run_context.session.run(self._cma_assign_op, feed_dict={
             self._cma_place: self._avg_step_dur,
         })
-
     
     def end(self, sess):
         pass
@@ -80,4 +82,4 @@ class NetMonHook(tf.estimator.SessionRunHook):
         cluster_size = current_cluster_size()
 
         #perform CMA AllReduce
-        return (run_context.session.run(self._global_avg_step_dur_op)) / cluster_size
+        return (run_context.session.run(self._global_avg_step_dur_allreduce_op)) / cluster_size
