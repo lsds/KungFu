@@ -88,8 +88,8 @@ func genPeerList(hl plan.HostList) plan.PeerList {
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	// rand.Shuffle(len(pl), func(i, j int) { pl[i], pl[j] = pl[j], pl[i] })
-	n := rand.Int()%(len(pl)-1) + 1
+	rand.Shuffle(len(pl), func(i, j int) { pl[i], pl[j] = pl[j], pl[i] })
+	n := rand.Int()%len(pl) + 1
 	pl = pl[:n]
 	rand.Shuffle(len(pl), func(i, j int) { pl[i], pl[j] = pl[j], pl[i] })
 	return pl

@@ -69,6 +69,21 @@ func (pl PeerList) sub(ql PeerList) PeerList {
 	return a
 }
 
+func (pl PeerList) Intersection(ql PeerList) PeerList {
+	s := ql.Set()
+	var a PeerList
+	for _, p := range pl {
+		if _, ok := s[p]; ok {
+			a = append(a, p)
+		}
+	}
+	return a
+}
+
+func (pl PeerList) Disjoint(ql PeerList) bool {
+	return len(pl.Intersection(ql)) == 0
+}
+
 func (pl PeerList) Diff(ql PeerList) (PeerList, PeerList) {
 	return pl.sub(ql), ql.sub(pl)
 }

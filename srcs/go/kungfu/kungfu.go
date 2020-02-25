@@ -206,6 +206,9 @@ func (kf *Kungfu) propose(peers plan.PeerList) (bool, bool) {
 	func() {
 		kf.Lock()
 		defer kf.Unlock()
+		if kf.currentPeers.Disjoint(peers) {
+			log.Warnf("full update detected, TODO: checkpoint")
+		}
 		kf.currentPeers = peers
 		kf.clusterVersion++
 		kf.updated = false
