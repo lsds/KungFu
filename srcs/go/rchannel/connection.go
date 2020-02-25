@@ -20,14 +20,16 @@ type Connection interface {
 }
 
 func NewPingConnection(remote, local plan.NetAddr) Connection {
-	c := newConnection(remote, local, ConnPing)
+	c := newConnection(remote, local, ConnPing, 0) // FIXME: use token
 	if err := c.initOnce(); err != nil {
 		log.Errorf("ping connection initOnce failed: %v", err)
 	}
 	return c
 }
 
-func newConnection(remote, local plan.NetAddr, t ConnType) *tcpConnection {
+var errInvalidToken = errors.New("invalid token")
+
+func newConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpConnection {
 	init := func() (net.Conn, error) {
 		conn, err := func() (net.Conn, error) {
 			if kc.UseUnixSock && remote.ColocatedWith(local) {
@@ -46,6 +48,17 @@ func newConnection(remote, local plan.NetAddr, t ConnType) *tcpConnection {
 		}
 		if err := h.WriteTo(conn); err != nil {
 			return nil, err
+		}
+		var ack connectionACK
+		if err := ack.ReadFrom(conn); err != nil {
+			return nil, err
+		}
+		if ack.Token != token {
+			if t == ConnCollective {
+				conn.Close()
+				return nil, errInvalidToken
+			}
+			// FIXME: ignored token check for other connection types
 		}
 		return conn, nil
 	}

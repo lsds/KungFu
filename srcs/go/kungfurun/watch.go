@@ -18,6 +18,7 @@ import (
 )
 
 type watcher struct {
+	server  rch.Server
 	parent  plan.PeerID
 	parents plan.PeerList
 
@@ -57,6 +58,7 @@ func (w *watcher) delete(id plan.PeerID) {
 }
 
 func (w *watcher) update(s Stage) {
+	w.server.SetToken(uint32(s.Version))
 	a, b := w.current.Diff(s.Cluster)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
@@ -65,11 +67,11 @@ func (w *watcher) update(s Stage) {
 	for _, id := range del {
 		w.delete(id)
 	}
-	log.Debugf("%s removed", utils.Pluralize(len(del), "peer", "peers"))
+	log.Debugf("%s removed: %d - %d = %d", utils.Pluralize(len(del), "peer", "peers"), len(w.current), len(del), len(w.current)-len(del))
 	for _, id := range add {
 		w.create(id, s)
 	}
-	log.Debugf("%s created", utils.Pluralize(len(add), "peer", "peers"))
+	log.Debugf("%s created: %d - %d + %d = %d", utils.Pluralize(len(add), "peer", "peers"), len(w.current), len(del), len(add), len(s.Cluster))
 	w.current = s.Cluster
 }
 
@@ -85,7 +87,7 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 			}
 		case <-w.stopped:
 			n := atomic.AddInt32(&w.running, -1)
-			log.Debugf("%s is still running on this host", utils.Pluralize(int(n), "peer", "peers"))
+			log.Debugf("%s are still running on this host", utils.Pluralize(int(n), "peer", "peers"))
 			if n == 0 {
 				inactive = true
 				if hostRank == 0 {
@@ -111,18 +113,6 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 
 func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job, debugPort int) {
 	ctx, cancel := context.WithCancel(ctx)
-	watcher := &watcher{
-		parent:  parent,
-		parents: parents,
-
-		job:     j,
-		ctx:     ctx,
-		cancel:  cancel,
-		ch:      ch,
-		stopped: make(chan plan.PeerID, 1),
-		gs:      make(map[plan.PeerID]*sync.WaitGroup),
-		gpuPool: job.NewGPUPool(j.HostList.SlotOf(parent.IPv4)),
-	}
 	globalCtx, globalCancel := context.WithCancel(ctx)
 	handler := NewHandler(parent, ch, globalCancel)
 	if debugPort > 0 {
@@ -134,6 +124,19 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 		utils.ExitErr(err)
 	}
 	defer server.Close()
+	watcher := &watcher{
+		server:  server,
+		parent:  parent,
+		parents: parents,
+
+		job:     j,
+		ctx:     ctx,
+		cancel:  cancel,
+		ch:      ch,
+		stopped: make(chan plan.PeerID, 1),
+		gs:      make(map[plan.PeerID]*sync.WaitGroup),
+		gpuPool: job.NewGPUPool(j.HostList.SlotOf(parent.IPv4)),
+	}
 	log.Infof("watching config server")
 	watcher.watchRun(globalCtx)
 	log.Infof("stop watching")

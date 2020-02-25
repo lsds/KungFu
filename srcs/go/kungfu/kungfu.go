@@ -133,13 +133,13 @@ func (kf *Kungfu) Update() bool {
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
-	defer utils.InstallStallDetector(fmt.Sprintf("updateTo v%d (%d peers): %s", kf.clusterVersion, len(pl), pl)).Stop()
+	kf.server.SetToken(uint32(kf.clusterVersion))
 	if kf.updated {
 		log.Debugf("ignore update")
 		return true
 	}
 	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", kf.clusterVersion, len(pl), pl)
-	kf.router.ResetConnections(pl)
+	kf.router.ResetConnections(pl, uint32(kf.clusterVersion))
 	sess, exist := newSession(kf.strategy, kf.self, pl, kf.router)
 	if !exist {
 		return false
