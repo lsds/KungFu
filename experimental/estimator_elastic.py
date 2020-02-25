@@ -4,6 +4,9 @@ import os
 import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.v1.helpers.mnist import load_datasets
+from tensorflow.python.util import deprecation
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def parse_args():
@@ -81,9 +84,11 @@ def main(do_eval=True):
                               epochs=args.num_epochs),
                      hooks=hooks,
                      max_steps=max_steps)
-    print('train finished')
+    # print('train finished')
 
     if not do_eval:
+        import time
+        time.sleep(1)
         return
     results = classifier.evaluate(input_fn(data.test,
                                            args.batch_size,
@@ -94,5 +99,6 @@ def main(do_eval=True):
 
 
 if __name__ == '__main__':
+    print('main started')
     main(False)
     print('main finished')

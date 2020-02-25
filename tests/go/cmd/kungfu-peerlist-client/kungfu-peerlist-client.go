@@ -19,6 +19,7 @@ var (
 	period       = flag.Duration("period", 1*time.Second, "")
 	reset        = flag.Bool("reset", false, "reset config server")
 	clear        = flag.Bool("clear", false, "set peer list to empty")
+	cap          = flag.Int("cap", 4, "max peers per host")
 )
 
 func main() {
@@ -35,7 +36,7 @@ func main() {
 		resetConfig(*u)
 		return
 	}
-	periodically(*period, func() { updateConfig(*u) })
+	periodically(*period, func(idx int) { updateConfig(*u, idx) })
 }
 
 func postConfig(pl plan.PeerList, endpoint url.URL) {
@@ -66,14 +67,18 @@ func clearConfig(endpoint url.URL) {
 	postConfig(pl, endpoint)
 }
 
-func updateConfig(endpoint url.URL) {
+func updateConfig(endpoint url.URL, idx int) {
 	hl := plan.HostList{
 		{
 			IPv4:  plan.MustParseIPv4(`127.0.0.1`),
-			Slots: 8,
+			Slots: *cap,
 		},
 	}
 	pl := genPeerList(hl)
+	// pl := testSchedule[idx%len(testSchedule)]
+	// if len(pl) == 2 {
+	// 	pl[0], pl[1] = pl[1], pl[0]
+	// }
 	fmt.Printf("updating to %d peers: %s\n", len(pl), pl)
 	postConfig(pl, endpoint)
 }
@@ -83,17 +88,42 @@ func genPeerList(hl plan.HostList) plan.PeerList {
 	if err != nil {
 		utils.ExitErr(err)
 	}
+	// rand.Shuffle(len(pl), func(i, j int) { pl[i], pl[j] = pl[j], pl[i] })
 	n := rand.Int()%(len(pl)-1) + 1
 	pl = pl[:n]
 	rand.Shuffle(len(pl), func(i, j int) { pl[i], pl[j] = pl[j], pl[i] })
 	return pl
 }
 
-func periodically(p time.Duration, f func()) {
+func periodically(p time.Duration, f func(int)) {
 	tk := time.NewTicker(p)
 	defer tk.Stop()
-	f()
+	var idx int
+	f(idx)
 	for range tk.C {
-		f()
+		idx++
+		f(idx)
 	}
 }
+
+var (
+	testHostList = plan.HostList{
+		{
+			IPv4:  plan.MustParseIPv4(`127.0.0.1`),
+			Slots: 8,
+		},
+	}
+
+	getTestPeerList = func(hl plan.HostList, n int) plan.PeerList {
+		pl, err := hl.GenPeerList(n, plan.DefaultPortRange)
+		if err != nil {
+			panic(err)
+		}
+		return pl
+	}
+
+	testSchedule = []plan.PeerList{
+		getTestPeerList(testHostList, 1),
+		getTestPeerList(testHostList, 2),
+	}
+)

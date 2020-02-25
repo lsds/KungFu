@@ -43,6 +43,7 @@ func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 	defer s.RUnlock()
 	if s.peerList == nil {
 		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "No Config Found.\n")
 		return
 	}
 	e := json.NewEncoder(w)

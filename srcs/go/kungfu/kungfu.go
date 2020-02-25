@@ -133,12 +133,13 @@ func (kf *Kungfu) Update() bool {
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
+	kf.server.SetToken(uint32(kf.clusterVersion))
 	if kf.updated {
 		log.Debugf("ignore update")
 		return true
 	}
 	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", kf.clusterVersion, len(pl), pl)
-	kf.router.ResetConnections(pl)
+	kf.router.ResetConnections(pl, uint32(kf.clusterVersion))
 	sess, exist := newSession(kf.strategy, kf.self, pl, kf.router)
 	if !exist {
 		return false
@@ -188,7 +189,7 @@ func (kf *Kungfu) propose(peers plan.PeerList) (bool, bool) {
 		return false, true
 	}
 	if digest := peers.Bytes(); !kf.consensus(digest) {
-		log.Errorf("diverge proposal detected! I proposed %s", peers)
+		log.Errorf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentPeers), peers)
 		return false, true
 	}
 	{
@@ -235,12 +236,15 @@ func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
 			log.Errorf("getPeerListFromURL failed: %v, using current config", err)
 			peers = kf.currentPeers
 		}
-
 		if digest := peers.Bytes(); kf.consensus(digest) {
-			log.Debugf("New peer list is consistent after %d trails", i+1)
+			if i > 0 {
+				log.Infof("New peer list is consistent after failed %d times", i)
+			} else {
+				log.Debugf("New peer list is consistent after ONE attempt!")
+			}
 			break
 		}
-		log.Warnf("diverge proposal detected! I proposed %s", peers)
+		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentPeers), peers)
 		time.Sleep(50 * time.Millisecond)
 	}
 	changed, keep := kf.propose(peers)
