@@ -26,9 +26,10 @@ func Init(f *FlagSet) {
 }
 
 type FlagSet struct {
-	ClusterSize int
-	HostList    string
-	PeerList    string
+	ConfigServer string
+	ClusterSize  int
+	HostList     string
+	PeerList     string
 
 	User string
 
@@ -42,9 +43,10 @@ type FlagSet struct {
 
 	Strategy kb.Strategy
 
-	Port       int
-	Watch      bool
-	Checkpoint string
+	Port        int
+	DebugPort   int
+	Watch       bool
+	InitVersion int
 
 	Logfile string
 	LogDir  string
@@ -74,8 +76,10 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.Var(&f.Strategy, "strategy", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 
 	flag.IntVar(&f.Port, "port", 38080, "port for rchannel")
+	flag.IntVar(&f.DebugPort, "debug-port", 0, "port for HTTP debug server")
 	flag.BoolVar(&f.Watch, "w", false, "watch config")
-	flag.StringVar(&f.Checkpoint, "checkpoint", "0", "")
+	flag.IntVar(&f.InitVersion, "init-version", 0, "initial cluster version")
+	flag.StringVar(&f.ConfigServer, "config-server", "", "config server URL")
 
 	flag.StringVar(&f.Logfile, "logfile", "", "path to log file")
 	flag.StringVar(&f.LogDir, "logdir", "", "path to log dir")

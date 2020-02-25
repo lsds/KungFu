@@ -23,6 +23,11 @@ def _finalize_python_lib():
 atexit.register(_finalize_python_lib)
 
 
+def uid():
+    """Get the uid of this peer."""
+    return _python_lib.kungfu_uid()
+
+
 def current_rank():
     """Get the current rank of this peer."""
     return _python_lib.kungfu_rank()

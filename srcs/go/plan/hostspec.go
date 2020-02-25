@@ -84,6 +84,15 @@ func ParseHostList(hostlist string) (HostList, error) {
 	return hl, nil
 }
 
+func (hl HostList) SlotOf(ipv4 uint32) int {
+	for _, h := range hl {
+		if h.IPv4 == ipv4 {
+			return h.Slots
+		}
+	}
+	return 0
+}
+
 func (hl HostList) Cap() int {
 	var cap int
 	for _, h := range hl {
@@ -161,15 +170,15 @@ func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	return pl
 }
 
-var errNoEnoughCapacity = errors.New("no enough capacity")
+var ErrNoEnoughCapacity = errors.New("no enough capacity")
 
 func (hl HostList) GenPeerList(np int, pr PortRange) (PeerList, error) {
 	if hl.Cap() < np {
-		return nil, errNoEnoughCapacity
+		return nil, ErrNoEnoughCapacity
 	}
 	for _, h := range hl {
 		if pr.Cap() < h.Slots {
-			return nil, errNoEnoughCapacity
+			return nil, ErrNoEnoughCapacity
 		}
 	}
 	return hl.genPeerList(np, pr), nil

@@ -1,24 +1,22 @@
 import argparse
 import os
 
+import numpy as np
 import tensorflow as tf
-from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
 from kungfu.tensorflow.v1.helpers.mnist import load_datasets
 from tensorflow.python.util import deprecation
-from kungfu.tensorflow.hooks import KungFuElasticTrainHook
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def parse_args():
     p = argparse.ArgumentParser(description='Example.')
-    p.add_argument('--schedule',
-                   type=str,
-                   default='3:2,3:4,3:16,3:1',
-                   help='cluster size schedule')
-    p.add_argument('--max-step', type=int, default=10, help='max train step')
-    p.add_argument('--data-dir', type=str, default='.')
-    p.add_argument('--model-dir-prefix', type=str, default='./checkpoints/')
+    p.add_argument('--data-dir', type=str, default='.', help='')
+    p.add_argument('--model-dir', type=str, default='.', help='')
+    p.add_argument('--kf-optimizer', type=str, default='sync_sgd', help='')
+    p.add_argument('--batch-size', type=int, default=100, help='')
+    p.add_argument('--num-epochs', type=int, default=1, help='')
+    p.add_argument('--learning-rate', type=float, default=0.01, help='')
     return p.parse_args()
 
 
@@ -38,6 +36,7 @@ def model_fn(features, labels, mode):
         'accuracy': tf.metrics.accuracy(labels=labels, predictions=predictions)
     }
     optimizer = tf.train.GradientDescentOptimizer(0.1)
+    from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
     optimizer = SynchronousSGDOptimizer(optimizer)
     train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
     return tf.estimator.EstimatorSpec(mode=mode,
@@ -61,28 +60,45 @@ def get_model_dir(args):
     port = (x >> 16) & 0xffff
     version = x & 0xffff
     suffix = '%d.%d' % (port, version)
-    return os.path.join(args.model_dir_prefix, suffix)
+    return os.path.join(args.model_dir, suffix)
 
 
-def main():
+MNIST_DATA_SIZE = 60000
+
+
+def main(do_eval=True):
     args = parse_args()
-    print('using config: %s, max step=%d' % (args.schedule, args.max_step))
     model_dir = get_model_dir(args)
 
     data = load_datasets(args.data_dir, normalize=True)
     classifier = tf.estimator.Estimator(model_fn, model_dir=model_dir)
 
-    classifier.train(input_fn(data.train, 1000),
-                     hooks=[
-                         KungFuElasticTrainHook(args.schedule, args.max_step,
-                                                model_dir)
-                     ],
-                     max_steps=args.max_step)
+    max_steps = MNIST_DATA_SIZE * args.num_epochs / args.batch_size
+    print('max_steps: %d' % (max_steps))
 
-    results = classifier.evaluate(input_fn(data.test, 1000, shuffle=False),
+    from kungfu.tensorflow.experimental.hook import ElasticHook
+    hooks = [ElasticHook(max_steps)]
+
+    classifier.train(input_fn(data.train,
+                              args.batch_size,
+                              epochs=args.num_epochs),
+                     hooks=hooks,
+                     max_steps=max_steps)
+    # print('train finished')
+
+    if not do_eval:
+        import time
+        time.sleep(1)
+        return
+    results = classifier.evaluate(input_fn(data.test,
+                                           args.batch_size,
+                                           shuffle=False),
                                   hooks=[],
                                   steps=1)
     print('results: %s' % (results, ))
 
 
-main()
+if __name__ == '__main__':
+    print('main started')
+    main(False)
+    print('main finished')

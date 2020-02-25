@@ -1,9 +1,13 @@
 package kungfu
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 	"sync"
+	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -19,21 +23,23 @@ type Kungfu struct {
 	sync.Mutex
 
 	// immutable
-	parent    plan.PeerID
-	parents   plan.PeerList
-	hostList  plan.HostList
-	portRange plan.PortRange
-	self      plan.PeerID
-	strategy  kb.Strategy
-	single    bool
-
-	router *rch.Router
-	server rch.Server
+	configServerURL    string
+	initClusterVersion int
+	parent             plan.PeerID
+	parents            plan.PeerList
+	hostList           plan.HostList // FIXME: make it dynamic
+	portRange          plan.PortRange
+	self               plan.PeerID
+	strategy           kb.Strategy
+	single             bool
+	router             *rch.Router
+	server             rch.Server
+	client             http.Client
 
 	// dynamic
+	clusterVersion int
 	currentSession *session
 	currentPeers   plan.PeerList
-	initStep       string
 	updated        bool
 }
 
@@ -48,18 +54,28 @@ func New() (*Kungfu, error) {
 func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
 	server := rch.NewServer(router)
+	var initClusterVersion int
+	if len(config.InitClusterVersion) > 0 {
+		var err error
+		initClusterVersion, err = strconv.Atoi(config.InitClusterVersion)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &Kungfu{
-		parent:       config.Parent,
-		parents:      config.Parents,
-		currentPeers: config.InitPeers,
-		self:         config.Self,
-		hostList:     config.HostList,
-		portRange:    config.PortRange,
-		strategy:     config.Strategy,
-		initStep:     config.InitStep,
-		single:       config.Single,
-		router:       router,
-		server:       server,
+		configServerURL:    config.ConfigServer,
+		parent:             config.Parent,
+		parents:            config.Parents,
+		currentPeers:       config.InitPeers,
+		self:               config.Self,
+		hostList:           config.HostList,
+		portRange:          config.PortRange,
+		strategy:           config.Strategy,
+		initClusterVersion: initClusterVersion,
+		clusterVersion:     initClusterVersion,
+		single:             config.Single,
+		router:             router,
+		server:             server,
 	}, nil
 }
 
@@ -92,6 +108,13 @@ func (kf *Kungfu) Close() error {
 	return nil
 }
 
+// UID returns an immutable unique ID of this peer
+func (kf *Kungfu) UID() uint64 {
+	hi := uint64(kf.self.IPv4)
+	lo := (uint64(kf.self.Port) << 16) | uint64(uint16(kf.initClusterVersion))
+	return (hi<<32 | lo)
+}
+
 var errSelfNotInCluster = errors.New("self not in cluster")
 
 func (kf *Kungfu) CurrentSession() *session {
@@ -103,10 +126,6 @@ func (kf *Kungfu) CurrentSession() *session {
 	return kf.currentSession
 }
 
-func (kf *Kungfu) GetInitStep() string {
-	return kf.initStep
-}
-
 func (kf *Kungfu) Update() bool {
 	kf.Lock()
 	defer kf.Unlock()
@@ -114,12 +133,13 @@ func (kf *Kungfu) Update() bool {
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
+	kf.server.SetToken(uint32(kf.clusterVersion))
 	if kf.updated {
 		log.Debugf("ignore update")
 		return true
 	}
-	log.Debugf("Kungfu::updateTo(%s), %d peers", pl, len(pl))
-	kf.router.ResetConnections(pl)
+	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", kf.clusterVersion, len(pl), pl)
+	kf.router.ResetConnections(pl, uint32(kf.clusterVersion))
 	sess, exist := newSession(kf.strategy, kf.self, pl, kf.router)
 	if !exist {
 		return false
@@ -163,17 +183,20 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 	return ok
 }
 
-func (kf *Kungfu) propose(initStep string, peers plan.PeerList) (bool, bool) {
+func (kf *Kungfu) propose(peers plan.PeerList) (bool, bool) {
 	if peers.Eq(kf.currentPeers) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
 	}
 	if digest := peers.Bytes(); !kf.consensus(digest) {
-		log.Errorf("diverge proposal detected! I proposed %s", peers)
+		log.Errorf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentPeers), peers)
 		return false, true
 	}
 	{
-		stage := run.Stage{InitStep: initStep, Cluster: peers}
+		stage := run.Stage{
+			Version: kf.clusterVersion + 1,
+			Cluster: peers,
+		}
 		if err := par(kf.parents, func(parent plan.PeerID) error {
 			return kf.router.Send(parent.WithName("update"), stage.Encode(), rch.ConnControl, 0)
 		}); err != nil {
@@ -183,23 +206,71 @@ func (kf *Kungfu) propose(initStep string, peers plan.PeerList) (bool, bool) {
 	func() {
 		kf.Lock()
 		defer kf.Unlock()
+		if kf.currentPeers.Disjoint(peers) {
+			log.Warnf("full update detected, TODO: checkpoint")
+		}
 		kf.currentPeers = peers
-		kf.initStep = initStep
+		kf.clusterVersion++
 		kf.updated = false
 	}()
 	_, keep := peers.Rank(kf.self)
 	return true, keep
 }
 
-func (kf *Kungfu) ResizeCluster(initStep string, newSize int) (bool, bool, error) {
-	log.Debugf("resize cluster to %d with checkpoint %q", newSize, initStep)
+func (kf *Kungfu) ResizeCluster(newSize int) (bool, bool, error) {
+	log.Debugf("resize cluster to %d", newSize)
 	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
 	if err != nil {
 		return false, true, err
 	}
-	changed, keep := kf.propose(initStep, peers)
+	changed, keep := kf.propose(peers)
 	if keep {
 		kf.Update()
 	}
 	return changed, keep, nil
+}
+
+func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
+	var peers plan.PeerList
+	for i := 0; ; i++ {
+		var err error
+		peers, err = kf.getPeerListFromURL(kf.configServerURL)
+		if err != nil {
+			log.Errorf("getPeerListFromURL failed: %v, using current config", err)
+			peers = kf.currentPeers
+		}
+		if digest := peers.Bytes(); kf.consensus(digest) {
+			if i > 0 {
+				log.Infof("New peer list is consistent after failed %d times", i)
+			} else {
+				log.Debugf("New peer list is consistent after ONE attempt!")
+			}
+			break
+		}
+		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentPeers), peers)
+		time.Sleep(50 * time.Millisecond)
+	}
+	changed, keep := kf.propose(peers)
+	if keep {
+		kf.Update()
+	}
+	return changed, keep, nil
+}
+
+func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
+	resp, err := kf.client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(resp.Status)
+	}
+	var pl plan.PeerList
+	if err = json.NewDecoder(resp.Body).Decode(&pl); err != nil {
+		return nil, err
+	}
+	if kf.hostList.Cap() < len(pl) {
+		return nil, plan.ErrNoEnoughCapacity
+	}
+	return pl, nil
 }

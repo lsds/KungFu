@@ -2,7 +2,10 @@ package kungfurun
 
 import (
 	"context"
-	"path"
+	"fmt"
+	"net"
+	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -15,6 +18,7 @@ import (
 )
 
 type watcher struct {
+	server  rch.Server
 	parent  plan.PeerID
 	parents plan.PeerList
 
@@ -28,17 +32,22 @@ type watcher struct {
 	current plan.PeerList
 	running int32
 	gs      map[plan.PeerID]*sync.WaitGroup
+	gpuPool *job.GPUPool
 }
 
 func (w *watcher) create(id plan.PeerID, s Stage) {
 	w.gs[id] = new(sync.WaitGroup)
 	w.gs[id].Add(1)
 	atomic.AddInt32(&w.running, 1)
-	localRank, _ := s.Cluster.LocalRank(id)
-	proc := w.job.NewProc(id, localRank, s.InitStep, s.Cluster)
+	gpuID := w.gpuPool.Get()
+	if gpuID < 0 {
+		log.Errorf("gpuID = %d", gpuID)
+	}
+	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster)
 	go func(g *sync.WaitGroup) {
-		runProc(w.ctx, w.cancel, proc, s.InitStep, w.job.LogDir)
+		runProc(w.ctx, w.cancel, proc, s.Version, w.job.LogDir)
 		g.Done()
+		w.gpuPool.Put(gpuID)
 		w.stopped <- id
 	}(w.gs[id])
 }
@@ -49,19 +58,23 @@ func (w *watcher) delete(id plan.PeerID) {
 }
 
 func (w *watcher) update(s Stage) {
+	w.server.SetToken(uint32(s.Version))
+	if w.current.Disjoint(s.Cluster) {
+		log.Warnf("full update detected")
+	}
 	a, b := w.current.Diff(s.Cluster)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
-	log.Infof("arrived at %q, np=%d, +%d/%d, -%d/%d", s.InitStep, len(s.Cluster), len(add), len(b), len(del), len(a))
+	log.Infof("arrived at v%d, np=%d, +%d/%d, -%d/%d", s.Version, len(s.Cluster), len(add), len(b), len(del), len(a))
 	log.Debugf("waiting %d peers to stop", len(del))
 	for _, id := range del {
 		w.delete(id)
 	}
-	log.Debugf("%s removed", utils.Pluralize(len(del), "peer", "peers"))
+	log.Debugf("%s removed: %d - %d = %d", utils.Pluralize(len(del), "peer", "peers"), len(w.current), len(del), len(w.current)-len(del))
 	for _, id := range add {
 		w.create(id, s)
 	}
-	log.Debugf("%s created", utils.Pluralize(len(add), "peer", "peers"))
+	log.Debugf("%s created: %d - %d + %d = %d", utils.Pluralize(len(add), "peer", "peers"), len(w.current), len(del), len(add), len(s.Cluster))
 	w.current = s.Cluster
 }
 
@@ -77,7 +90,7 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 			}
 		case <-w.stopped:
 			n := atomic.AddInt32(&w.running, -1)
-			log.Debugf("%s is still running on this host", utils.Pluralize(int(n), "peer", "peers"))
+			log.Debugf("%s are still running on this host", utils.Pluralize(int(n), "peer", "peers"))
 			if n == 0 {
 				inactive = true
 				if hostRank == 0 {
@@ -101,39 +114,48 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 	}
 }
 
-func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, job job.Job) {
+func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job, debugPort int) {
 	ctx, cancel := context.WithCancel(ctx)
+	globalCtx, globalCancel := context.WithCancel(ctx)
+	handler := NewHandler(parent, ch, globalCancel)
+	if debugPort > 0 {
+		log.Infof("debug server: http://127.0.0.1:%d/", debugPort)
+		go http.ListenAndServe(net.JoinHostPort("", strconv.Itoa(debugPort)), handler)
+	}
+	server := rch.NewServer(handler)
+	if err := server.Start(); err != nil {
+		utils.ExitErr(err)
+	}
+	defer server.Close()
 	watcher := &watcher{
+		server:  server,
 		parent:  parent,
 		parents: parents,
 
-		job:     job,
+		job:     j,
 		ctx:     ctx,
 		cancel:  cancel,
 		ch:      ch,
 		stopped: make(chan plan.PeerID, 1),
 		gs:      make(map[plan.PeerID]*sync.WaitGroup),
+		gpuPool: job.NewGPUPool(j.HostList.SlotOf(parent.IPv4)),
 	}
-
-	globalCtx, globalCancel := context.WithCancel(ctx)
-	server := rch.NewServer(NewHandler(parent, ch, globalCancel))
-	if err := server.Start(); err != nil {
-		utils.ExitErr(err)
-	}
-	defer server.Close()
 	log.Infof("watching config server")
 	watcher.watchRun(globalCtx)
 	log.Infof("stop watching")
 }
 
-func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version string, logDir string) {
-	r := &runner.Runner{}
-	r.SetName(proc.Name)
-	r.SetLogFilePrefix(path.Join(logDir, proc.Name+"@"+version))
-	r.SetVerbose(true)
+func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version int, logDir string) {
+	r := &runner.Runner{
+		Name:          proc.Name,
+		LogDir:        logDir,
+		LogFilePrefix: fmt.Sprintf("%s@%d", proc.Name, version),
+		VerboseLog:    true,
+	}
 	if err := r.Run(ctx, proc.Cmd()); err != nil {
 		log.Infof("%s finished with error: %v", proc.Name, err)
 		cancel()
+		utils.ExitErr(err) // FIXME: graceful shutdown
 		return
 	}
 }
