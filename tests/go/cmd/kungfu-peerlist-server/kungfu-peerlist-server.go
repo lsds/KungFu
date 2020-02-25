@@ -48,14 +48,7 @@ func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 	}
 	e := json.NewEncoder(w)
 	e.SetIndent("", "    ")
-	o := struct {
-		Version int
-		Peers   plan.PeerList `json:"peers"`
-	}{
-		Version: s.version,
-		Peers:   s.peerList,
-	}
-	if err := e.Encode(o); err != nil {
+	if err := e.Encode(s.peerList); err != nil {
 		log.Errorf("failed to encode JSON: %v", err)
 	}
 }

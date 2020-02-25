@@ -262,14 +262,12 @@ func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New(resp.Status)
 	}
-	var o struct {
-		Peers plan.PeerList `json:"peers"`
-	}
-	if err = json.NewDecoder(resp.Body).Decode(&o); err != nil {
+	var pl plan.PeerList
+	if err = json.NewDecoder(resp.Body).Decode(&pl); err != nil {
 		return nil, err
 	}
-	if kf.hostList.Cap() < len(o.Peers) {
+	if kf.hostList.Cap() < len(pl) {
 		return nil, plan.ErrNoEnoughCapacity
 	}
-	return o.Peers, nil
+	return pl, nil
 }
