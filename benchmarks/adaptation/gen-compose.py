@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import argparse
+import sys
+
 import yaml
 
 
@@ -66,16 +69,24 @@ def gen_compose(np, n_nodes, node_cap, tag, user_command):
         f.write(config)
 
 
-def main():
-    np = 16
-    n_nodes = 4
-    node_cap = 4
-    tag = 'kungfu-adaptation-benchmark:snapshot'
+def parse_args():
+    p = argparse.ArgumentParser(description='generate docker-compose.yaml')
+    p.add_argument('--nodes', type=int, default=4, help='node count')
+    p.add_argument('--node-cap', type=int, default=4, help='node cap')
+    p.add_argument('--np', type=int, default=16, help='cluster size')
+    p.add_argument('--image',
+                   type=str,
+                   default='kungfu-ci-base:snapshot',
+                   help='docker image tag')
+    return p.parse_args()
+
+
+def main(args):
     user_command = [
         'python3',
         'benchmarks/adaptation/adaptive_trainer.py',
     ]
-    gen_compose(np, n_nodes, node_cap, tag, user_command)
+    gen_compose(args.np, args.nodes, args.node_cap, args.image, user_command)
 
 
-main()
+main(parse_args())

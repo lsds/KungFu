@@ -1,0 +1,7 @@
+# docker build --rm -t kungfu-ci-base:snapshot -f .github/Dockerfile.base .
+FROM github-ci-base:latest
+
+WORKDIR /src/kungfu
+ADD . .
+
+RUN pip3 install --no-index -U -v .

@@ -7,13 +7,19 @@ jobs:
     # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
     runs-on: ubuntu-18.04
 
+    env:
+      BASE_TAG: 'github-ci-base:latest'
+      TAG: 'kungfu-ci-base:snapshot'
+
     steps:
     - uses: actions/checkout@v1
 
     - run: docker images
     - run: docker ps
-    - run: ./benchmarks/adaptation/build-image.sh
+    - run: docker build --rm -t ${BASE_TAG} -f .github/Dockerfile.base .
+    - run: docker build --rm -t ${TAG} -f .github/Dockerfile.kungfu .
     - run: docker images
     - run: docker ps
 
-    - run: ./benchmarks/adaptation/compose-run.sh
+    - run: ./benchmarks/adaptation/gen-compose.py --image ${TAG}
+    - run: docker-compose up
