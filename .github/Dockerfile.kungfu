@@ -5,3 +5,7 @@ WORKDIR /src/kungfu
 ADD . .
 
 RUN pip3 install --no-index -U -v .
+
+ENV GOBIN /root/go/bin
+RUN go install -v ./tests/go/cmd/...
+ENV PATH ${GOBIN}:${PATH}

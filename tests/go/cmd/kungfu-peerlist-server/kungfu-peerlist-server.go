@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -17,6 +21,7 @@ import (
 var (
 	port     = flag.Int("port", 9100, "")
 	initFile = flag.String("init", "", "")
+	ttl      = flag.Duration("ttl", 0, "time to live")
 )
 
 type configServer struct {
@@ -89,6 +94,7 @@ func (s *configServer) resetConfig(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	t0 := time.Now()
 	flag.Parse()
 	h := &configServer{}
 
@@ -109,12 +115,27 @@ func main() {
 	fmt.Printf("http://127.0.0.1:%d/put\n", *port)
 	fmt.Printf("http://127.0.0.1:%d/reset\n", *port)
 
-	http.HandleFunc("/", http.HandlerFunc(h.index))
-	http.HandleFunc("/get", http.HandlerFunc(h.getConfig))
-	http.HandleFunc("/put", http.HandlerFunc(h.putConfig))
-	http.HandleFunc("/reset", http.HandlerFunc(h.resetConfig))
-	http.HandleFunc("/clear", http.HandlerFunc(h.clearConfig))
-	http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+	mux := &http.ServeMux{}
+	mux.HandleFunc("/", http.HandlerFunc(h.index))
+	mux.HandleFunc("/get", http.HandlerFunc(h.getConfig))
+	mux.HandleFunc("/put", http.HandlerFunc(h.putConfig))
+	mux.HandleFunc("/reset", http.HandlerFunc(h.resetConfig))
+	mux.HandleFunc("/clear", http.HandlerFunc(h.clearConfig))
+	ctx := context.Background()
+	if *ttl > 0 {
+		var cancal context.CancelFunc
+		ctx, cancal = context.WithTimeout(ctx, *ttl)
+		defer cancal()
+	}
+	srv := &http.Server{
+		Addr:    net.JoinHostPort("", strconv.Itoa(*port)),
+		Handler: mux,
+	}
+	srv.SetKeepAlivesEnabled(false)
+	go srv.ListenAndServe()
+	<-ctx.Done()
+	srv.Close()
+	fmt.Printf("Stopped after %s\n", time.Since(t0))
 }
 
 func readJSON(r io.Reader, i interface{}) error {

@@ -265,6 +265,7 @@ func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New(resp.Status)
 	}
+	defer resp.Body.Close()
 	var pl plan.PeerList
 	if err = json.NewDecoder(resp.Body).Decode(&pl); err != nil {
 		return nil, err
