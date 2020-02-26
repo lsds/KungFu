@@ -1,0 +1,19 @@
+name: Cluster Test
+
+on: [push]
+
+jobs:
+  test:
+    # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - run: docker images
+    - run: docker ps
+    - run: ./benchmarks/adaptation/build-image.sh
+    - run: docker images
+    - run: docker ps
+
+    - run: ./benchmarks/adaptation/compose-run.sh

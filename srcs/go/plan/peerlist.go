@@ -10,6 +10,7 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
+// PeerList is an ordered list of PeerIDs
 type PeerList []PeerID
 
 func (pl PeerList) String() string {
@@ -18,6 +19,10 @@ func (pl PeerList) String() string {
 		parts = append(parts, p.String())
 	}
 	return strings.Join(parts, ",")
+}
+
+func (pl PeerList) DebugString() string {
+	return fmt.Sprintf("[%d]{%s}", len(pl), pl)
 }
 
 func (pl PeerList) Bytes() []byte {

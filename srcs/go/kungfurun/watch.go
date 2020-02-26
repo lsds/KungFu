@@ -60,7 +60,7 @@ func (w *watcher) delete(id plan.PeerID) {
 func (w *watcher) update(s Stage) {
 	w.server.SetToken(uint32(s.Version))
 	if w.current.Disjoint(s.Cluster) {
-		log.Warnf("full update detected")
+		log.Warnf("full update detected: %s -> %s", w.current.DebugString(), s.Cluster.DebugString())
 	}
 	a, b := w.current.Diff(s.Cluster)
 	del := a.On(w.parent.IPv4)
