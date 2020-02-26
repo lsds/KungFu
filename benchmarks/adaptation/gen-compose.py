@@ -57,11 +57,12 @@ class IPPool:
         return ip
 
 
-def gen_compose(np, n_nodes, node_cap, tag, user_command):
+def gen_compose(ttl, np, n_nodes, node_cap, tag, user_command):
     net = 'app'
     subnet = '%s.0/24' % (IP_PREFIX)
     ip_pool = IPPool(IP_PREFIX)
 
+    config_server_port = 9100
     config_server_ip = ip_pool.get()
     config_client_ip = ip_pool.get()
     node_ips = [ip_pool.get() for _ in range(n_nodes)]
@@ -69,7 +70,8 @@ def gen_compose(np, n_nodes, node_cap, tag, user_command):
 
     command = [
         "kungfu-run",
-        "-timeout=1m",
+        "-timeout",
+        ttl,
         "-q",
         "-H",
         H,
@@ -77,6 +79,8 @@ def gen_compose(np, n_nodes, node_cap, tag, user_command):
         "-np",
         str(np),
         "-w",
+        "-config-server",
+        "http://%s:%d/get" % (config_server_ip, config_server_port),
     ] + user_command
 
     nodes = gen_services(net, node_ips, tag, command)
@@ -84,18 +88,22 @@ def gen_compose(np, n_nodes, node_cap, tag, user_command):
     config_server = gen_service(net, config_server_ip, tag, [
         'kungfu-peerlist-server',
         '-ttl',
-        '10s',
+        ttl,
     ])
-    config_server['ports'] = ['9100:9100']
+    config_server['ports'] = [
+        '%d:%d' % (config_server_port, config_server_port)
+    ]
 
     config_client = gen_service(net, config_client_ip, tag, [
         'kungfu-peerlist-client',
         '-server',
-        'http://%s:%d/put' % (config_server_ip, 9100),
+        'http://%s:%d/put' % (config_server_ip, config_server_port),
         '-ttl',
-        '10s',
+        ttl,
         '-H',
         H,
+        '-period',
+        '10s',
     ])
 
     services = {
@@ -119,19 +127,22 @@ def parse_args():
     p.add_argument('--nodes', type=int, default=4, help='node count')
     p.add_argument('--node-cap', type=int, default=4, help='node cap')
     p.add_argument('--np', type=int, default=16, help='cluster size')
+    p.add_argument('--ttl', type=str, default='10m', help='time to live')
     p.add_argument('--image',
                    type=str,
                    default='kungfu-ci-base:snapshot',
                    help='docker image tag')
+    p.add_argument('--cmd',
+                   type=str,
+                   default='python3 benchmarks/adaptation/adaptive_trainer.py',
+                   help='')
     return p.parse_args()
 
 
 def main(args):
-    user_command = [
-        'python3',
-        'benchmarks/adaptation/adaptive_trainer.py',
-    ]
-    gen_compose(args.np, args.nodes, args.node_cap, args.image, user_command)
+    user_command = args.cmd.replace('\n', ' ').split(' ')
+    gen_compose(args.ttl, args.np, args.nodes, args.node_cap, args.image,
+                user_command)
 
 
 main(parse_args())
