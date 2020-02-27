@@ -11,6 +11,7 @@ class ElasticHook(tf.train.SessionRunHook):
         self._max_step = max_step
         self._need_sync = True
         self._debug = debug
+        self._exit_reason = None
 
     def begin(self):
         self._step = 0
@@ -44,14 +45,14 @@ class ElasticHook(tf.train.SessionRunHook):
         changed, keep = run_context.session.run(self._resize_op)
         if not keep:
             run_context.request_stop()
-            self._exit_reasion = 'resize'
+            self._exit_reason = 'resize'
             return
         if changed:
             self._need_sync = True
         if self._debug:
             self._log_rate()
         if self._step >= self._max_step:
-            self._exit_reasion = 'finished'
+            self._exit_reason = 'finished'
             print('request_stop on kungfu_step: %d' % (self._step))
             run_context.request_stop()
 
@@ -69,5 +70,8 @@ class ElasticHook(tf.train.SessionRunHook):
                    show_duration(now - self._t0), show_duration(remain)))
 
     def end(self, sess):
-        print('stopped at step %d due to %s' %
-              (self._step, self._exit_reasion))
+        if self._exit_reason is None:
+            # raise RuntimeError('unknown exit reason') # FIXME: doesn't work
+            print('unknown exit reason!')
+            exit(1)  # cause all workers to stop
+        print('stopped at step %d due to %s' % (self._step, self._exit_reason))
