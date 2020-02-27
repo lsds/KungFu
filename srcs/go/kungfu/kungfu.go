@@ -133,6 +133,10 @@ func (kf *Kungfu) Update() bool {
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
+	if kc.EnableStallDetection {
+		name := fmt.Sprintf("updateTo(%s)", pl.DebugString())
+		defer utils.InstallStallDetector(name).Stop()
+	}
 	kf.server.SetToken(uint32(kf.clusterVersion))
 	if kf.updated {
 		log.Debugf("ignore update")
