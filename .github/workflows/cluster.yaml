@@ -10,7 +10,6 @@ jobs:
     env:
       BASE_TAG: 'github-ci-base:latest'
       TAG: 'kungfu-ci-base:snapshot'
-      KUNGFU_CONFIG_ENABLE_STALL_DETECTION: 'true'
 
     steps:
     - uses: actions/checkout@v1
