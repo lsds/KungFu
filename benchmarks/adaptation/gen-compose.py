@@ -103,7 +103,7 @@ def gen_compose(ttl, np, n_nodes, node_cap, tag, user_command):
         '-H',
         H,
         '-period',
-        '10s',
+        '1s',
     ])
 
     services = {
