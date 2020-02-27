@@ -29,7 +29,7 @@ func (s *stallDetector) start() {
 		select {
 		case <-s.tk.C:
 			hasStalled = true
-			fmt.Fprintf(os.Stderr, "%s stalled\n", s.name)
+			fmt.Fprintf(os.Stderr, "%s stalled for %s\n", s.name, time.Since(t0))
 		case <-s.stopped:
 			goto Stopped
 		}
