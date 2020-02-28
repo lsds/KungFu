@@ -7,7 +7,7 @@ t0 = time.time()  # before import tensorflow
 
 import tensorflow as tf
 from kungfu.tensorflow.ops import (all_reduce, barrier, current_cluster_size,
-                                   resize_cluster)
+                                   resize_cluster_from_url)
 from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -67,7 +67,7 @@ def restore(checkpoint):
 
 
 new_size = tf.placeholder(tf.int32)
-resize_op = resize_cluster(new_size)
+resize_op = resize_cluster_from_url()
 
 init = tf.global_variables_initializer()
 
@@ -96,8 +96,8 @@ with tf.Session() as sess:
             new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
             if new_np != np:
                 t0 = time.time()
-                changed, keep = sess.run(resize_op,
-                                         feed_dict={new_size: new_np})
+                print('TODO: propose new np: %d' % (np))
+                changed, keep = sess.run(resize_op)
                 print('resize %d -> %d took %s' %
                       (np, new_np, show_duration(time.time() - t0)))
                 np = new_np
