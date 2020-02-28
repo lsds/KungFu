@@ -28,7 +28,6 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl pla
 	envs := Envs{
 		kb.SelfSpecEnvKey:           peer.String(),
 		kb.HostListEnvKey:           j.HostList.String(),
-		kb.PortRangeEnvKey:          j.PortRange.String(),
 		kb.ParentIDEnvKey:           j.Parent.String(),
 		kb.PeerListEnvKey:           pl.String(),
 		kb.InitClusterVersionEnvKey: strconv.Itoa(initClusterVersion),

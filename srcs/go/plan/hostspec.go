@@ -113,14 +113,6 @@ var DefaultPortRange = PortRange{
 
 var errInvalidPortRange = errors.New("invalid port range")
 
-func getPortRangeFromEnv() (*PortRange, error) {
-	val, ok := os.LookupEnv(kb.PortRangeEnvKey)
-	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.PortRangeEnvKey)
-	}
-	return ParsePortRange(val)
-}
-
 func ParsePortRange(val string) (*PortRange, error) {
 	var begin, end uint16
 	if _, err := fmt.Sscanf(val, "%d-%d", &begin, &end); err != nil {

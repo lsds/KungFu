@@ -27,8 +27,6 @@ type Kungfu struct {
 	initClusterVersion int
 	parent             plan.PeerID
 	parents            plan.PeerList
-	hostList           plan.HostList // FIXME: make it dynamic
-	portRange          plan.PortRange
 	self               plan.PeerID
 	strategy           kb.Strategy
 	single             bool
@@ -68,8 +66,6 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 		parents:            config.Parents,
 		currentPeers:       config.InitPeers,
 		self:               config.Self,
-		hostList:           config.HostList,
-		portRange:          config.PortRange,
 		strategy:           config.Strategy,
 		initClusterVersion: initClusterVersion,
 		clusterVersion:     initClusterVersion,
@@ -221,19 +217,6 @@ func (kf *Kungfu) propose(peers plan.PeerList) (bool, bool) {
 	return true, keep
 }
 
-func (kf *Kungfu) ResizeCluster(newSize int) (bool, bool, error) {
-	log.Debugf("resize cluster to %d", newSize)
-	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
-	if err != nil {
-		return false, true, err
-	}
-	changed, keep := kf.propose(peers)
-	if keep {
-		kf.Update()
-	}
-	return changed, keep, nil
-}
-
 func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
 	var peers plan.PeerList
 	for i := 0; ; i++ {
@@ -273,9 +256,6 @@ func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
 	var pl plan.PeerList
 	if err = json.NewDecoder(resp.Body).Decode(&pl); err != nil {
 		return nil, err
-	}
-	if kf.hostList.Cap() < len(pl) {
-		return nil, plan.ErrNoEnoughCapacity
 	}
 	return pl, nil
 }

@@ -2,20 +2,6 @@ from ._tf_oplib import _op_lib
 from .state import counter
 
 
-def resize_cluster(new_size, debug=False):
-    """Resize cluster to given size.
-
-    Inputs:
-        new_size: A scalar tensor of type int32, the new cluster size.
-    Returns:
-        A pair of scalar tensors (changed, keep) of type bool,
-        {changed} indicates if the cluster has been changed,
-        {keep} indicates if the current peer is still in the new cluster,
-        the peer should quit if it is not in the new cluster.
-    """
-    return _op_lib.kungfu_resize_cluster(new_size, debug=debug)
-
-
 def resize_cluster_from_url():
     """Resize cluster from config server.
 
