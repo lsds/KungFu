@@ -47,7 +47,7 @@ with tf.Session() as sess:
         print('step %d, np=%d' % (i, v))
 
         # must be called exactly once per step
-        new_step = sess.run(resize_op, feed_dict={step_place: i})
+        new_step = sess.run(new_step_op, feed_dict={step_place: i})
         print('propose new_step: %d' % (new_step))
         need_sync, keep = sess.run(resize_op)
         if not keep:
