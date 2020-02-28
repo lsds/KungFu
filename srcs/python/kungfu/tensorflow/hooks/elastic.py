@@ -3,8 +3,9 @@ import os
 import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-from kungfu.tensorflow.ops import (all_reduce, consensus, step_based_schedule,
-                                   resize_cluster_from_url)
+from kungfu.tensorflow.ops import (all_reduce, consensus,
+                                   resize_cluster_from_url,
+                                   step_based_schedule)
 
 
 class KungFuElasticTrainHook(tf.train.SessionRunHook):
