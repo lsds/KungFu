@@ -1,6 +1,7 @@
 import tensorflow as tf
 from kungfu.tensorflow.ops import (counter, all_reduce, broadcast,
-                                   resize_cluster, step_based_schedule)
+                                   resize_cluster_from_url,
+                                   step_based_schedule)
 
 
 def get_config():
@@ -17,12 +18,12 @@ config, max_step = get_config()
 
 def build_ops():
     step_place = tf.placeholder(dtype=tf.int32, shape=())
-    schedule = step_based_schedule(config, step_place)
-    resize_op = resize_cluster(schedule)
-    return step_place, resize_op
+    new_step_op = step_based_schedule(config, step_place)
+    resize_op = resize_cluster_from_url()
+    return step_place, resize_op, new_step_op
 
 
-step_place, resize_op = build_ops()
+step_place, resize_op, new_step_op = build_ops()
 sync_step_op = all_reduce(step_place, op='max')
 x = tf.Variable(1, tf.int32)
 y = all_reduce(x)
@@ -46,7 +47,9 @@ with tf.Session() as sess:
         print('step %d, np=%d' % (i, v))
 
         # must be called exactly once per step
-        need_sync, keep = sess.run(resize_op, feed_dict={step_place: i})
+        new_step = sess.run(resize_op, feed_dict={step_place: i})
+        print('propose new_step: %d' % (new_step))
+        need_sync, keep = sess.run(resize_op)
         if not keep:
             break
         i += 1
