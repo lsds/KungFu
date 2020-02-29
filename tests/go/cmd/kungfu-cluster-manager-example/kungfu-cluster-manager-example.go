@@ -4,8 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
+
+	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 var (
@@ -32,8 +36,15 @@ func example(c *cluster) {
 	c.Setup()
 
 	wg := &sync.WaitGroup{}
-	server := c.Start(ctx, wg, `kf-config-server`, `kungfu-peerlist-server`,
-		`-ttl`, ttl.String(),
+	const configServerPort = 9100
+	server := c.Start(ctx, wg, `kf-config-server`,
+		proc{
+			cmd: `kungfu-peerlist-server`,
+			args: []string{
+				`-ttl`, ttl.String(),
+			},
+			port: configServerPort,
+		},
 	)
 	/*
 		c.Start(ctx, wg, `kf-config-client`, `kungfu-peerlist-client`,
@@ -41,17 +52,48 @@ func example(c *cluster) {
 			`-ttl`, ttl.String(),
 		)
 	*/
-	startWorker := func(name string) {
-		c.Start(ctx, wg, name, `kungfu-run`,
-			`-q`,
-			`-w`,
-			`-config-server`, fmt.Sprintf("http://%s:%d/get", server.ip, 9100),
-			`-np`, `1`,
-			`kungfu-fake-adaptive-trainer`,
-		)
 
+	getConfigURL := fmt.Sprintf("http://%s:%d/get", server.ip, configServerPort)
+	putConfigURL := fmt.Sprintf("http://%s:%d/put", `127.0.0.1`, configServerPort)
+
+	cc := &configClient{
+		endpoint: putConfigURL,
 	}
-	startWorker(`kf-node-01`)
+	cc.Wait()
+
+	var hl plan.HostList
+
+	startWorker := func(name string, cap int) {
+		ip := c.pool.get()
+		hl = plan.HostList{
+			{
+				IPv4:  plan.MustParseIPv4(ip),
+				Slots: cap,
+			},
+		}
+		pl, err := hl.GenPeerList(hl.Cap(), plan.DefaultPortRange)
+		if err != nil {
+			utils.ExitErr(err)
+			return
+		}
+		if err := cc.Update(pl); err != nil {
+			utils.ExitErr(err)
+			return
+		}
+		c.StartWithIP(ctx, wg, name, ip,
+			proc{
+				cmd: `kungfu-run`,
+				args: []string{
+					`-q`,
+					`-w`,
+					`-config-server`, getConfigURL,
+					`-np`, strconv.Itoa(cap),
+					`kungfu-fake-adaptive-trainer`,
+				},
+			},
+		)
+	}
+	startWorker(`kf-node-01`, 1)
 	wg.Wait()
 	c.Teardown()
 }
