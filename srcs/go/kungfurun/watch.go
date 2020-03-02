@@ -28,6 +28,7 @@ type watcher struct {
 	cancel  context.CancelFunc
 	ch      chan Stage
 	stopped chan plan.PeerID
+	keep    bool
 
 	current plan.Cluster
 	running int32
@@ -79,45 +80,30 @@ func (w *watcher) update(s Stage) {
 }
 
 func (w *watcher) watchRun(globalCtx context.Context) {
-	hostRank, _ := w.parents.Rank(w.parent)
-	var globalStopped, inactive bool
 	for {
 		select {
 		case s := <-w.ch:
 			w.update(s)
-			if n := atomic.LoadInt32(&w.running); n > 0 {
-				inactive = false
-			}
 		case <-w.stopped:
 			n := atomic.AddInt32(&w.running, -1)
 			log.Debugf("%s are still running on this host", utils.Pluralize(int(n), "peer", "peers"))
-			if n == 0 {
-				inactive = true
-				if hostRank == 0 {
-					globalStopped = true
-					if len(w.parents) > 0 {
-						router := rch.NewRouter(w.parent)
-						for i, p := range w.parents {
-							if i != hostRank {
-								router.Send(p.WithName("exit"), nil, rch.ConnControl, 0)
-							}
-						}
-					}
-				}
+			if n == 0 && !w.keep {
+				return
 			}
+		case <-w.ctx.Done():
+			log.Errorf("canceled: %v", w.ctx.Err())
+			return
 		case <-globalCtx.Done():
-			globalStopped = true
-		}
-		if globalStopped && inactive {
-			break
+			log.Errorf("canceled: %v", globalCtx.Err())
+			return
 		}
 	}
 }
 
-func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job, debugPort int) {
+func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch chan Stage, j job.Job, keep bool, debugPort int) {
 	ctx, cancel := context.WithCancel(ctx)
 	globalCtx, globalCancel := context.WithCancel(ctx)
-	handler := NewHandler(parent, ch, globalCancel)
+	handler := NewHandler(self, ch, globalCancel)
 	if debugPort > 0 {
 		log.Infof("debug server: http://127.0.0.1:%d/", debugPort)
 		go http.ListenAndServe(net.JoinHostPort("", strconv.Itoa(debugPort)), handler)
@@ -129,16 +115,16 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 	defer server.Close()
 	watcher := &watcher{
 		server:  server,
-		parent:  parent,
-		parents: parents,
-
+		parent:  self,
+		parents: runners,
 		job:     j,
 		ctx:     ctx,
 		cancel:  cancel,
 		ch:      ch,
+		keep:    keep,
 		stopped: make(chan plan.PeerID, 1),
 		gs:      make(map[plan.PeerID]*sync.WaitGroup),
-		gpuPool: job.NewGPUPool(j.HostList.SlotOf(parent.IPv4)),
+		gpuPool: job.NewGPUPool(j.HostList.SlotOf(self.IPv4)),
 	}
 	log.Infof("watching config server")
 	watcher.watchRun(globalCtx)

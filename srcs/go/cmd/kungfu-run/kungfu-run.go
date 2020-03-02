@@ -98,7 +98,7 @@ func main() {
 			}
 		}
 		j.ConfigServer = f.ConfigServer
-		run.WatchRun(ctx, self, runners, ch, j, f.DebugPort)
+		run.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
 	} else {
 		run.SimpleRun(ctx, localhostIPv4, peers, j, f.VerboseLog)
 	}
