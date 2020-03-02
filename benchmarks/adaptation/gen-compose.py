@@ -79,7 +79,7 @@ def gen_compose(ttl, np, n_nodes, node_cap, tag, user_command):
         "-np",
         str(np),
         "-w",
-        "-k"
+        "-k",
         "-config-server",
         "http://%s:%d/get" % (config_server_ip, config_server_port),
     ] + user_command
