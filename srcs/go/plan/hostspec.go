@@ -111,6 +111,8 @@ var DefaultPortRange = PortRange{
 	End:   11000,
 }
 
+const DefaultRunnerPort = uint16(38080)
+
 var errInvalidPortRange = errors.New("invalid port range")
 
 func ParsePortRange(val string) (*PortRange, error) {
@@ -163,6 +165,14 @@ func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 }
 
 var ErrNoEnoughCapacity = errors.New("no enough capacity")
+
+func (hl HostList) GenRunnerList(port uint16) PeerList {
+	var pl PeerList
+	for _, h := range hl {
+		pl = append(pl, PeerID{IPv4: h.IPv4, Port: port})
+	}
+	return pl
+}
 
 func (hl HostList) GenPeerList(np int, pr PortRange) (PeerList, error) {
 	if hl.Cap() < np {

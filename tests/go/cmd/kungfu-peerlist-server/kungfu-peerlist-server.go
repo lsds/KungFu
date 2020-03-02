@@ -27,8 +27,8 @@ var (
 type configServer struct {
 	sync.RWMutex
 
-	peerList plan.PeerList
-	version  int
+	cluster *plan.Cluster
+	version int
 }
 
 func (s *configServer) index(w http.ResponseWriter, req *http.Request) {
@@ -43,36 +43,37 @@ func (s *configServer) index(w http.ResponseWriter, req *http.Request) {
 
 func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Printf("%s %s from %s %s\n", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
+	fmt.Printf("%s %s from %s, UA: %s\n", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
 	s.RLock()
 	defer s.RUnlock()
-	if s.peerList == nil {
+	if s.cluster == nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "No Config Found.\n")
 		return
 	}
 	e := json.NewEncoder(w)
 	e.SetIndent("", "    ")
-	if err := e.Encode(s.peerList); err != nil {
+	if err := e.Encode(s.cluster); err != nil {
 		log.Errorf("failed to encode JSON: %v", err)
 	}
 }
 
 func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
-	var pl plan.PeerList
-	if err := readJSON(req.Body, &pl); err != nil {
+	var cluster plan.Cluster
+	if err := readJSON(req.Body, &cluster); err != nil {
 		log.Errorf("failed to decode JSON: %v", err)
+		return
 	}
 	s.Lock()
 	defer s.Unlock()
-	if s.peerList == nil {
-		fmt.Printf("init first config to %d peers: %s\n", len(pl), pl)
+	if s.cluster == nil {
+		fmt.Printf("init first config to %d peers: %s\n", len(cluster.Workers), cluster)
 		s.version = 1
-		s.peerList = pl
-	} else if len(s.peerList) > 0 {
+		s.cluster = &cluster
+	} else if len(s.cluster.Workers) > 0 {
 		s.version++
-		s.peerList = pl
-		fmt.Printf("updated to %d peers: %s\n", len(pl), pl)
+		s.cluster = &cluster
+		fmt.Printf("updated to %d peers: %s\n", len(cluster.Workers), cluster.Workers)
 	} else {
 		fmt.Printf("config is cleared, update rejected\n")
 		w.WriteHeader(http.StatusForbidden)
@@ -82,14 +83,14 @@ func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
 func (s *configServer) clearConfig(w http.ResponseWriter, req *http.Request) {
 	s.Lock()
 	defer s.Unlock()
-	s.peerList = plan.PeerList{}
+	s.cluster = &plan.Cluster{}
 	fmt.Printf("OK: clear config\n")
 }
 
 func (s *configServer) resetConfig(w http.ResponseWriter, req *http.Request) {
 	s.Lock()
 	defer s.Unlock()
-	s.peerList = nil
+	s.cluster = nil
 	fmt.Printf("OK: reset config\n")
 }
 
@@ -104,11 +105,11 @@ func main() {
 			utils.ExitErr(err)
 		}
 		defer f.Close()
-		var pl plan.PeerList
-		if err := readJSON(f, &pl); err != nil {
+		var cluster plan.Cluster
+		if err := readJSON(f, &cluster); err != nil {
 			utils.ExitErr(err)
 		}
-		h.peerList = pl
+		h.cluster = &cluster
 	}
 
 	fmt.Printf("http://127.0.0.1:%d/get\n", *port)

@@ -63,7 +63,7 @@ func example(c *cluster) {
 
 	var hl plan.HostList
 
-	startWorker := func(name string, cap int) {
+	startWorker := func(name string, cap int, isFirst bool) {
 		ip := c.pool.get()
 		hl = plan.HostList{
 			{
@@ -80,20 +80,28 @@ func example(c *cluster) {
 			utils.ExitErr(err)
 			return
 		}
+		initVersion := -1
+		if isFirst {
+			initVersion = 0
+		}
 		c.StartWithIP(ctx, wg, name, ip,
 			proc{
 				cmd: `kungfu-run`,
 				args: []string{
 					`-q`,
+					`-timeout`, ttl.String(),
+					`-H`, hl.String(),
+					`-self`, ip,
 					`-w`,
 					`-config-server`, getConfigURL,
-					`-np`, strconv.Itoa(cap),
+					// `-np`, strconv.Itoa(cap),
+					`-init-version`, strconv.Itoa(initVersion),
 					`kungfu-fake-adaptive-trainer`,
 				},
 			},
 		)
 	}
-	startWorker(`kf-node-01`, 1)
+	startWorker(`kf-node-01`, 1, true)
 	wg.Wait()
 	c.Teardown()
 }

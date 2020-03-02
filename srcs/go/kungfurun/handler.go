@@ -18,8 +18,7 @@ import (
 
 type Stage struct {
 	Version int
-	Cluster plan.PeerList
-	Size    int
+	Cluster plan.Cluster
 }
 
 func (s Stage) Encode() []byte {
@@ -94,7 +93,6 @@ func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.C
 		log.Warnf("invalid update message: %v", err)
 		return
 	}
-	s.Size = len(s.Cluster)
 	func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
@@ -106,7 +104,7 @@ func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.C
 		}
 		h.versions[s.Version] = s
 		h.ch <- s
-		log.Debugf("update to v%d with %d peers", s.Version, len(s.Cluster))
+		log.Debugf("update to v%d with %s", s.Version, s.Cluster.DebugString())
 	}()
 }
 

@@ -75,7 +75,7 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	f.Strategy = kb.DefaultStrategy
 	flag.Var(&f.Strategy, "strategy", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 
-	flag.IntVar(&f.Port, "port", 38080, "port for rchannel")
+	flag.IntVar(&f.Port, "port", int(plan.DefaultRunnerPort), "port for rchannel")
 	flag.IntVar(&f.DebugPort, "debug-port", 0, "port for HTTP debug server")
 	flag.BoolVar(&f.Watch, "w", false, "watch config")
 	flag.IntVar(&f.InitVersion, "init-version", 0, "initial cluster version")

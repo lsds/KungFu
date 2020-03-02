@@ -26,7 +26,6 @@ type Kungfu struct {
 	configServerURL    string
 	initClusterVersion int
 	parent             plan.PeerID
-	parents            plan.PeerList
 	self               plan.PeerID
 	strategy           kb.Strategy
 	single             bool
@@ -37,7 +36,7 @@ type Kungfu struct {
 	// dynamic
 	clusterVersion int
 	currentSession *session
-	currentPeers   plan.PeerList
+	currentCluster *plan.Cluster
 	updated        bool
 }
 
@@ -60,11 +59,14 @@ func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 			return nil, err
 		}
 	}
+	currentCluster := &plan.Cluster{
+		Runners: config.Parents,
+		Workers: config.InitPeers,
+	}
 	return &Kungfu{
 		configServerURL:    config.ConfigServer,
 		parent:             config.Parent,
-		parents:            config.Parents,
-		currentPeers:       config.InitPeers,
+		currentCluster:     currentCluster,
 		self:               config.Self,
 		strategy:           config.Strategy,
 		initClusterVersion: initClusterVersion,
@@ -117,7 +119,7 @@ func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
-		kf.updateTo(kf.currentPeers)
+		kf.updateTo(kf.currentCluster.Workers)
 	}
 	return kf.currentSession
 }
@@ -125,7 +127,7 @@ func (kf *Kungfu) CurrentSession() *session {
 func (kf *Kungfu) Update() bool {
 	kf.Lock()
 	defer kf.Unlock()
-	return kf.updateTo(kf.currentPeers)
+	return kf.updateTo(kf.currentCluster.Workers)
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
@@ -183,22 +185,23 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 	return ok
 }
 
-func (kf *Kungfu) propose(peers plan.PeerList) (bool, bool) {
-	if peers.Eq(kf.currentPeers) {
+func (kf *Kungfu) propose(cluster plan.Cluster) (bool, bool) {
+	if kf.currentCluster.Eq(cluster) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
 	}
-	if digest := peers.Bytes(); !kf.consensus(digest) {
-		log.Errorf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentPeers), peers)
+	if digest := cluster.Bytes(); !kf.consensus(digest) {
+		log.Errorf("diverge proposal detected among %d peers! I proposed %s", len(cluster.Workers), cluster.Workers)
 		return false, true
 	}
 	{
 		stage := run.Stage{
 			Version: kf.clusterVersion + 1,
-			Cluster: peers,
+			Cluster: cluster,
 		}
-		if err := par(kf.parents, func(parent plan.PeerID) error {
-			return kf.router.Send(parent.WithName("update"), stage.Encode(), rch.ConnControl, 0)
+		// FIXME: assuming runners are up and running
+		if err := par(cluster.Runners, func(ctrl plan.PeerID) error {
+			return kf.router.Send(ctrl.WithName("update"), stage.Encode(), rch.ConnControl, 0)
 		}); err != nil {
 			utils.ExitErr(err)
 		}
@@ -206,27 +209,27 @@ func (kf *Kungfu) propose(peers plan.PeerList) (bool, bool) {
 	func() {
 		kf.Lock()
 		defer kf.Unlock()
-		if kf.currentPeers.Disjoint(peers) {
+		if kf.currentCluster.Workers.Disjoint(cluster.Workers) {
 			log.Warnf("full update detected, TODO: checkpoint")
 		}
-		kf.currentPeers = peers
+		kf.currentCluster = &cluster
 		kf.clusterVersion++
 		kf.updated = false
 	}()
-	_, keep := peers.Rank(kf.self)
+	_, keep := cluster.Workers.Rank(kf.self)
 	return true, keep
 }
 
 func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
-	var peers plan.PeerList
+	var cluster *plan.Cluster
 	for i := 0; ; i++ {
 		var err error
-		peers, err = kf.getPeerListFromURL(kf.configServerURL)
+		cluster, err = kf.getClusterConfig(kf.configServerURL)
 		if err != nil {
-			log.Errorf("getPeerListFromURL failed: %v, using current config", err)
-			peers = kf.currentPeers
+			log.Errorf("getClusterConfig failed: %v, using current config", err)
+			cluster = kf.currentCluster
 		}
-		if digest := peers.Bytes(); kf.consensus(digest) {
+		if digest := cluster.Bytes(); kf.consensus(digest) {
 			if i > 0 {
 				log.Infof("New peer list is consistent after failed %d times", i)
 			} else {
@@ -234,18 +237,23 @@ func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
 			}
 			break
 		}
-		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentPeers), peers.DebugString())
+		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentCluster.Workers), cluster.DebugString())
 		time.Sleep(50 * time.Millisecond)
 	}
-	changed, keep := kf.propose(peers)
+	changed, keep := kf.propose(*cluster)
 	if keep {
 		kf.Update()
 	}
 	return changed, keep, nil
 }
 
-func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
-	resp, err := kf.client.Get(url)
+func (kf *Kungfu) getClusterConfig(url string) (*plan.Cluster, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", kf.self))
+	resp, err := kf.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -253,9 +261,9 @@ func (kf *Kungfu) getPeerListFromURL(url string) (plan.PeerList, error) {
 		return nil, errors.New(resp.Status)
 	}
 	defer resp.Body.Close()
-	var pl plan.PeerList
-	if err = json.NewDecoder(resp.Body).Decode(&pl); err != nil {
+	var cluster plan.Cluster
+	if err = json.NewDecoder(resp.Body).Decode(&cluster); err != nil {
 		return nil, err
 	}
-	return pl, nil
+	return &cluster, nil
 }

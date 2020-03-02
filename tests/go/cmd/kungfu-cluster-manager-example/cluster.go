@@ -9,6 +9,7 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 type cluster struct {
@@ -30,11 +31,11 @@ type node struct {
 }
 
 func (c cluster) Setup() {
-	run(`docker`, `network`, `create`, c.vnet, `--subnet`, c.pool.subnet())
+	run(xterm.Blue, `setup`, `docker`, `network`, `create`, c.vnet, `--subnet`, c.pool.subnet())
 }
 
 func (c cluster) Teardown() {
-	run(`docker`, `network`, `rm`, c.vnet)
+	run(xterm.Yellow, `teardown`, `docker`, `network`, `rm`, c.vnet)
 }
 
 func (c cluster) Start(ctx context.Context, all *sync.WaitGroup, name string, p proc) *node {
@@ -69,7 +70,7 @@ func (c cluster) Run(ctx context.Context, name, ip string, p proc) {
 	dockerArgs = append(dockerArgs, `-t`, c.image)
 	dockerArgs = append(dockerArgs, p.cmd)
 	dockerArgs = append(dockerArgs, p.args...)
-	run(`docker`, dockerArgs...)
+	run(xterm.Green, name, `docker`, dockerArgs...)
 }
 
 func (c cluster) Remove(name string) {
@@ -77,16 +78,17 @@ func (c cluster) Remove(name string) {
 		`rm`, `-f`,
 		name,
 	}
-	run(`docker`, dockerArgs...)
+	run(xterm.Yellow, `rm`, `docker`, dockerArgs...)
 }
 
-func run(prog string, args ...string) error {
+func run(c xterm.Color, name string, prog string, args ...string) error {
 	log.Infof("$ %s %s", prog, strings.Join(args, " "))
 	cmd := exec.Command(prog, args...)
 	r := runner.Runner{
-		Name:       "docker",
+		Name:       name,
 		LogDir:     "logs",
 		VerboseLog: true,
+		Color:      c,
 	}
 	return r.Run(context.TODO(), cmd)
 }

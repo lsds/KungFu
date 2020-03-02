@@ -58,8 +58,8 @@ var client = http.Client{
 	Timeout: 1 * time.Second,
 }
 
-func postConfig(pl plan.PeerList, endpoint url.URL) {
-	reqBody, err := json.Marshal(pl)
+func postConfig(clustr plan.Cluster, endpoint url.URL) {
+	reqBody, err := json.Marshal(clustr)
 	if err != nil {
 		fmt.Println("Cannot marshal peer list")
 	}
@@ -82,14 +82,18 @@ func resetConfig(endpoint url.URL) {
 }
 
 func clearConfig(endpoint url.URL) {
-	pl := plan.PeerList{}
-	postConfig(pl, endpoint)
+	clustr := plan.Cluster{}
+	postConfig(clustr, endpoint)
 }
 
 func updateConfig(endpoint url.URL, hl plan.HostList) {
 	pl := genPeerList(hl)
 	fmt.Printf("updating to %d peers: %s\n", len(pl), pl)
-	postConfig(pl, endpoint)
+	clustr := plan.Cluster{
+		Runners: hl.GenRunnerList(plan.DefaultRunnerPort),
+		Workers: pl,
+	}
+	postConfig(clustr, endpoint)
 }
 
 func genPeerList(hl plan.HostList) plan.PeerList {

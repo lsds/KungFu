@@ -29,7 +29,7 @@ type watcher struct {
 	ch      chan Stage
 	stopped chan plan.PeerID
 
-	current plan.PeerList
+	current plan.Cluster
 	running int32
 	gs      map[plan.PeerID]*sync.WaitGroup
 	gpuPool *job.GPUPool
@@ -43,7 +43,7 @@ func (w *watcher) create(id plan.PeerID, s Stage) {
 	if gpuID < 0 {
 		log.Errorf("gpuID = %d", gpuID)
 	}
-	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster)
+	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster.Workers)
 	go func(g *sync.WaitGroup) {
 		runProc(w.ctx, w.cancel, proc, s.Version, w.job.LogDir)
 		g.Done()
@@ -59,22 +59,22 @@ func (w *watcher) delete(id plan.PeerID) {
 
 func (w *watcher) update(s Stage) {
 	w.server.SetToken(uint32(s.Version))
-	if w.current.Disjoint(s.Cluster) {
+	if w.current.Workers.Disjoint(s.Cluster.Workers) {
 		log.Warnf("full update detected: %s -> %s", w.current.DebugString(), s.Cluster.DebugString())
 	}
-	a, b := w.current.Diff(s.Cluster)
+	a, b := w.current.Workers.Diff(s.Cluster.Workers)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
-	log.Infof("arrived at v%d, np=%d, +%d/%d, -%d/%d", s.Version, len(s.Cluster), len(add), len(b), len(del), len(a))
+	log.Infof("arrived at v%d, new np=%d, local: +%d/-%d, global: -%d/%d", s.Version, len(s.Cluster.Workers), len(add), len(del), len(b), len(a))
 	log.Debugf("waiting %d peers to stop", len(del))
 	for _, id := range del {
 		w.delete(id)
 	}
-	log.Debugf("%s removed: %d - %d = %d", utils.Pluralize(len(del), "peer", "peers"), len(w.current), len(del), len(w.current)-len(del))
+	log.Debugf("%s removed: %d - %d = %d", utils.Pluralize(len(del), "peer", "peers"), len(w.current.Workers), len(del), len(w.current.Workers)-len(del))
 	for _, id := range add {
 		w.create(id, s)
 	}
-	log.Debugf("%s created: %d - %d + %d = %d", utils.Pluralize(len(add), "peer", "peers"), len(w.current), len(del), len(add), len(s.Cluster))
+	log.Debugf("%s created: %d - %d + %d = %d", utils.Pluralize(len(add), "peer", "peers"), len(w.current.Workers), len(del), len(add), len(s.Cluster.Workers))
 	w.current = s.Cluster
 }
 
