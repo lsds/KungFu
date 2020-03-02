@@ -87,7 +87,7 @@ def gen_compose(ttl, np, n_nodes, node_cap, tag, user_command):
     nodes = gen_services(net, node_ips, tag, command)
 
     config_server = gen_service(net, config_server_ip, tag, [
-        'kungfu-peerlist-server',
+        'kungfu-config-server-example',
         '-ttl',
         ttl,
     ])
@@ -96,7 +96,7 @@ def gen_compose(ttl, np, n_nodes, node_cap, tag, user_command):
     ]
 
     config_client = gen_service(net, config_client_ip, tag, [
-        'kungfu-peerlist-client',
+        'kungfu-config-client-example',
         '-server',
         'http://%s:%d/put' % (config_server_ip, config_server_port),
         '-ttl',

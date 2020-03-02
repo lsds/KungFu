@@ -39,7 +39,7 @@ func example(c *cluster) {
 	const configServerPort = 9100
 	server := c.Start(ctx, wg, `kf-config-server`,
 		proc{
-			cmd: `kungfu-peerlist-server`,
+			cmd: `kungfu-config-server-example`,
 			args: []string{
 				`-ttl`, ttl.String(),
 			},
@@ -47,7 +47,7 @@ func example(c *cluster) {
 		},
 	)
 	/*
-		c.Start(ctx, wg, `kf-config-client`, `kungfu-peerlist-client`,
+		c.Start(ctx, wg, `kf-config-client`, `kungfu-config-client-example`,
 			`-server`, fmt.Sprintf("http://%s:%d/put", server.ip, 9100),
 			`-ttl`, ttl.String(),
 		)
