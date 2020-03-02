@@ -76,7 +76,11 @@ func example(c *cluster) {
 			utils.ExitErr(err)
 			return
 		}
-		if err := cc.Update(pl); err != nil {
+		cluster := plan.Cluster{
+			Runners: hl.GenRunnerList(plan.DefaultRunnerPort),
+			Workers: pl,
+		}
+		if err := cc.Update(cluster); err != nil {
 			utils.ExitErr(err)
 			return
 		}
@@ -102,6 +106,7 @@ func example(c *cluster) {
 		)
 	}
 	startWorker(`kf-node-01`, 1, true)
+	startWorker(`kf-node-02`, 1, false)
 	wg.Wait()
 	c.Teardown()
 }

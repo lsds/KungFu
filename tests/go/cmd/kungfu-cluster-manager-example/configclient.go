@@ -16,9 +16,9 @@ type configClient struct {
 	client   http.Client
 }
 
-func (cc *configClient) Update(pl plan.PeerList) error {
+func (cc *configClient) Update(cluster plan.Cluster) error {
 	var body bytes.Buffer
-	if err := json.NewEncoder(&body).Encode(pl); err != nil {
+	if err := json.NewEncoder(&body).Encode(cluster); err != nil {
 		return err
 	}
 	resp, err := cc.client.Post(cc.endpoint, "application/json", &body)
