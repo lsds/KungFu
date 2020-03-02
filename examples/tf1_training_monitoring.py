@@ -175,22 +175,22 @@ def model_function(features, labels, mode):
 
         #get custom Ada optimizer
         #TODO: fix this and enable it
-        # from ./experimental.net_monitoring.NetMonHook import NetMonHook
-        # spec = importlib.util.spec_from_file_location("CustomAdaptiveSGD", "./experimental/net_monitoring/NetMonHook.py")
-        # CustomOpt = importlib.util.module_from_spec(spec)
-        # spec.loader.exec_module(CustomOpt)
+        spec = importlib.util.spec_from_file_location("CustomAdaSGD", 
+            "./experimental/net_monitoring/CustomAdaSGD.py")
+        CustomAda = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(CustomAda)
 
         #KungFu: Wrap the tf.train.optimizer with KungFu optimizers
-        if FLAGS.kf_optimizer == 'sync_sgd':
-            from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
-            optimizer = SynchronousSGDOptimizer(optimizer)
-        elif FLAGS.kf_optimizer == 'async_sgd':
-            from kungfu.tensorflow.optimizers import PairAveragingOptimizer
-            optimizer = PairAveragingOptimizer(optimizer)
-        else:
-            raise RuntimeError('Unknown kungfu optimizer')
+        # if FLAGS.kf_optimizer == 'sync_sgd':
+        #     from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+        #     optimizer = SynchronousSGDOptimizer(optimizer)
+        # elif FLAGS.kf_optimizer == 'async_sgd':
+        #     from kungfu.tensorflow.optimizers import PairAveragingOptimizer
+        #     optimizer = PairAveragingOptimizer(optimizer)
+        # else:
+        #     raise RuntimeError('Unknown kungfu optimizer')
 
-        optimizer = CustomOpt(optimizer)
+        optimizer = CustomAda.CustomAdaSGDOptimizer(optimizer)
 
         # create an estimator spec to optimize the loss
         estimator_spec = tf.estimator.EstimatorSpec(
@@ -221,8 +221,8 @@ def model_function(features, labels, mode):
 
 
 def main(_):
-    model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
-    #model_dir  = "~/repos/KungFu/mnist/model"
+    #model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
+    model_dir  = "~/repos/KungFu/mnist/model"
 
     #TODO: check if estimator session necessary
     # save_checkpoints_steps = 100

@@ -83,7 +83,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
             })
 
             #TODO: change for more intricate triggering algorithm
-            run_context.session.run(self._cond_var_Ada_setFalse)
+            run_context.session.run(self._cond_var_Ada_setTrue)
 
         else:
             #update network congestion monitor
@@ -92,7 +92,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
             })
 
             #TODO: change for more intricate triggering algorithm
-            run_context.session.run(self._cond_var_Ada_setTrue)
+            run_context.session.run(self._cond_var_Ada_setFalse)
 
         #Calculation of Cumulative Moving Average (CMA)
         self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + global_aggr_avg) / self._cur_step

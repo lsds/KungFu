@@ -9,25 +9,23 @@ from kungfu.tensorflow.optimizers.core import (_create_kungfu_keras_optimizer,
                                                _KungFuAlgorithm)
 
 
-def AdaptiveSGDOptimizer(optimizer,
-                         change_step,
+def CustomAdaSGDOptimizer(optimizer,
                          alpha=0.1,
                          name=None,
                          use_locking=False,
                          with_keras=False):
 
-    algo = _AdaptiveSGD(change_step, alpha)
+    algo = _CustomAdaSGD(alpha)
     if not with_keras:
         return _create_kungfu_optimizer(optimizer, algo, name, use_locking)
     else:
         return _create_kungfu_keras_optimizer(optimizer, algo)
 
 
-class _AdaptiveSGD(_KungFuAlgorithm):
-    def __init__(self, change_step, alpha):
+class _CustomAdaSGD(_KungFuAlgorithm):
+    def __init__(self, alpha):
         self._num_workers = current_cluster_size()
         self._alpha = alpha
-        self._change_step = change_step
         self._global_step = tf.train.get_or_create_global_step()
         self._cond_var_Ada_var = tf.Variable(False, trainable=False, name='cond_var_Ada')
 
@@ -35,13 +33,18 @@ class _AdaptiveSGD(_KungFuAlgorithm):
         sum_grads = group_all_reduce(gradients)
         avg_grads = map_maybe(lambda g: g / self._num_workers, sum_grads)
 
+        print_op = tf.print("Inside SSGD")
+
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         grads_and_vars = zip(avg_grads, variables)
 
-        return apply_grads_func(grads_and_vars, **kwargs)
+        with tf.control_dependencies([print_op]):
+            return apply_grads_func(grads_and_vars, **kwargs)
 
     def _sma(self, apply_grads_func, gradients, variables, **kwargs):
         # It is important to apply model averaging every iteration [2]
+        print_op = tf.print("Inside SMA")
+
         sum_vars = group_all_reduce(variables)
         avg_vars = [v / self._num_workers for v in sum_vars]
 
@@ -55,7 +58,7 @@ class _AdaptiveSGD(_KungFuAlgorithm):
         grads_and_vars = zip(gradients, variables)
 
         # We can overlap model averaging and local SGD [2].
-        with tf.control_dependencies(assign_ops):
+        with tf.control_dependencies(assign_ops + [print_op]):
             return apply_grads_func(grads_and_vars, **kwargs)
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
