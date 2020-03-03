@@ -27,5 +27,6 @@ kungfu-cluster-manager-example -ttl 1m kungfu-fake-adaptive-trainer
 ```bash
 kungfu-cluster-manager-example -ttl 1m \
     python3 ./examples/elastic/mnist_slp_estimator.py \
-    --data-dir /root/var/data/mnist
+    --data-dir /root/var/data/mnist \
+    --num-epochs 5
 ```
