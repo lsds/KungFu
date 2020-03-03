@@ -30,6 +30,10 @@ type node struct {
 	wg   *sync.WaitGroup
 }
 
+func (n *node) Wait() {
+	n.wg.Wait()
+}
+
 func (c cluster) Setup() {
 	run(xterm.Blue, `setup`, `docker`, `network`, `create`, c.vnet, `--subnet`, c.pool.subnet())
 }

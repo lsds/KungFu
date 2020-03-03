@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -60,11 +61,12 @@ func example(c *cluster, prog string, args []string) {
 	cc := &configClient{
 		endpoint: putConfigURL,
 	}
-	cc.Wait()
+	cc.WaitServer()
 
 	var hl plan.HostList
 
-	startWorker := func(name string, cap int, isFirst bool) {
+	var workerGroup sync.WaitGroup
+	startWorker := func(name string, cap int, isFirst bool) *node {
 		ip := c.pool.get()
 		hl = plan.HostList{
 			{
@@ -75,7 +77,7 @@ func example(c *cluster, prog string, args []string) {
 		pl, err := hl.GenPeerList(hl.Cap(), plan.DefaultPortRange)
 		if err != nil {
 			utils.ExitErr(err)
-			return
+			return nil
 		}
 		cluster := plan.Cluster{
 			Runners: hl.GenRunnerList(plan.DefaultRunnerPort),
@@ -83,7 +85,7 @@ func example(c *cluster, prog string, args []string) {
 		}
 		if err := cc.Update(cluster); err != nil {
 			utils.ExitErr(err)
-			return
+			return nil
 		}
 		initVersion := -1
 		if isFirst {
@@ -99,16 +101,28 @@ func example(c *cluster, prog string, args []string) {
 			`-init-version`, strconv.Itoa(initVersion),
 			prog,
 		}
-		c.StartWithIP(ctx, wg, name, ip,
+		node := c.StartWithIP(ctx, wg, name, ip,
 			proc{
 				cmd:  `kungfu-run`,
 				args: append(kungfuRunArgs, args...),
 			},
 		)
+		workerGroup.Add(1)
+		go func() {
+			node.Wait()
+			workerGroup.Done()
+		}()
+		return node
 	}
+
 	startWorker(`kf-node-01`, 4, true)
 	time.Sleep(5 * time.Second)
 	startWorker(`kf-node-02`, 4, false)
+
+	workerGroup.Wait()
+	log.Infof("all nodes stopped, stopping config server")
+	cc.StopServer()
+
 	wg.Wait()
 	c.Teardown()
 }

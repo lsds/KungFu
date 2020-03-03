@@ -26,6 +26,7 @@ var (
 
 type configServer struct {
 	sync.RWMutex
+	cancel context.CancelFunc
 
 	cluster *plan.Cluster
 	version int
@@ -98,11 +99,17 @@ func (s *configServer) resetConfig(w http.ResponseWriter, req *http.Request) {
 	log.Infof("OK: reset config")
 }
 
+func (s *configServer) stop(w http.ResponseWriter, req *http.Request) {
+	s.cancel()
+}
+
 func main() {
 	t0 := time.Now()
 	flag.Parse()
-	h := &configServer{}
-
+	ctx, cancel := context.WithCancel(context.Background())
+	h := &configServer{
+		cancel: cancel,
+	}
 	if len(*initFile) > 0 {
 		f, err := os.Open(*initFile)
 		if err != nil {
@@ -124,11 +131,10 @@ func main() {
 	mux.HandleFunc("/put", http.HandlerFunc(h.putConfig))
 	mux.HandleFunc("/reset", http.HandlerFunc(h.resetConfig))
 	mux.HandleFunc("/clear", http.HandlerFunc(h.clearConfig))
-	ctx := context.Background()
+	mux.HandleFunc("/stop", http.HandlerFunc(h.stop))
 	if *ttl > 0 {
-		var cancal context.CancelFunc
-		ctx, cancal = context.WithTimeout(ctx, *ttl)
-		defer cancal()
+		ctx, cancel = context.WithTimeout(ctx, *ttl)
+		defer cancel()
 	}
 	srv := &http.Server{
 		Addr:    net.JoinHostPort("", strconv.Itoa(*port)),
