@@ -15,6 +15,7 @@ import (
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 type watcher struct {
@@ -28,8 +29,9 @@ type watcher struct {
 	cancel  context.CancelFunc
 	ch      chan Stage
 	stopped chan plan.PeerID
+	keep    bool
 
-	current plan.PeerList
+	current plan.Cluster
 	running int32
 	gs      map[plan.PeerID]*sync.WaitGroup
 	gpuPool *job.GPUPool
@@ -43,7 +45,7 @@ func (w *watcher) create(id plan.PeerID, s Stage) {
 	if gpuID < 0 {
 		log.Errorf("gpuID = %d", gpuID)
 	}
-	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster)
+	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster.Workers)
 	go func(g *sync.WaitGroup) {
 		runProc(w.ctx, w.cancel, proc, s.Version, w.job.LogDir)
 		g.Done()
@@ -59,65 +61,50 @@ func (w *watcher) delete(id plan.PeerID) {
 
 func (w *watcher) update(s Stage) {
 	w.server.SetToken(uint32(s.Version))
-	if w.current.Disjoint(s.Cluster) {
-		log.Warnf("full update detected")
+	if w.current.Workers.Disjoint(s.Cluster.Workers) {
+		log.Errorf("full update detected: %s -> %s", w.current.DebugString(), s.Cluster.DebugString())
 	}
-	a, b := w.current.Diff(s.Cluster)
+	a, b := w.current.Workers.Diff(s.Cluster.Workers)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
-	log.Infof("arrived at v%d, np=%d, +%d/%d, -%d/%d", s.Version, len(s.Cluster), len(add), len(b), len(del), len(a))
+	log.Infof("arrived at v%d, new np=%d, local: +%d/-%d, global: -%d/%d", s.Version, len(s.Cluster.Workers), len(add), len(del), len(b), len(a))
 	log.Debugf("waiting %d peers to stop", len(del))
 	for _, id := range del {
 		w.delete(id)
 	}
-	log.Debugf("%s removed: %d - %d = %d", utils.Pluralize(len(del), "peer", "peers"), len(w.current), len(del), len(w.current)-len(del))
+	log.Debugf("%s removed: %d - %d = %d", utils.Pluralize(len(del), "peer", "peers"), len(w.current.Workers), len(del), len(w.current.Workers)-len(del))
 	for _, id := range add {
 		w.create(id, s)
 	}
-	log.Debugf("%s created: %d - %d + %d = %d", utils.Pluralize(len(add), "peer", "peers"), len(w.current), len(del), len(add), len(s.Cluster))
+	log.Debugf("%s created: %d - %d + %d = %d", utils.Pluralize(len(add), "peer", "peers"), len(w.current.Workers), len(del), len(add), len(s.Cluster.Workers))
 	w.current = s.Cluster
 }
 
 func (w *watcher) watchRun(globalCtx context.Context) {
-	hostRank, _ := w.parents.Rank(w.parent)
-	var globalStopped, inactive bool
 	for {
 		select {
 		case s := <-w.ch:
 			w.update(s)
-			if n := atomic.LoadInt32(&w.running); n > 0 {
-				inactive = false
-			}
 		case <-w.stopped:
 			n := atomic.AddInt32(&w.running, -1)
 			log.Debugf("%s are still running on this host", utils.Pluralize(int(n), "peer", "peers"))
-			if n == 0 {
-				inactive = true
-				if hostRank == 0 {
-					globalStopped = true
-					if len(w.parents) > 0 {
-						router := rch.NewRouter(w.parent)
-						for i, p := range w.parents {
-							if i != hostRank {
-								router.Send(p.WithName("exit"), nil, rch.ConnControl, 0)
-							}
-						}
-					}
-				}
+			if n == 0 && !w.keep {
+				return
 			}
+		case <-w.ctx.Done():
+			log.Errorf("canceled: %v", w.ctx.Err())
+			return
 		case <-globalCtx.Done():
-			globalStopped = true
-		}
-		if globalStopped && inactive {
-			break
+			log.Errorf("canceled: %v", globalCtx.Err())
+			return
 		}
 	}
 }
 
-func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch chan Stage, j job.Job, debugPort int) {
+func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch chan Stage, j job.Job, keep bool, debugPort int) {
 	ctx, cancel := context.WithCancel(ctx)
 	globalCtx, globalCancel := context.WithCancel(ctx)
-	handler := NewHandler(parent, ch, globalCancel)
+	handler := NewHandler(self, ch, globalCancel)
 	if debugPort > 0 {
 		log.Infof("debug server: http://127.0.0.1:%d/", debugPort)
 		go http.ListenAndServe(net.JoinHostPort("", strconv.Itoa(debugPort)), handler)
@@ -129,20 +116,20 @@ func WatchRun(ctx context.Context, parent plan.PeerID, parents plan.PeerList, ch
 	defer server.Close()
 	watcher := &watcher{
 		server:  server,
-		parent:  parent,
-		parents: parents,
-
+		parent:  self,
+		parents: runners,
 		job:     j,
 		ctx:     ctx,
 		cancel:  cancel,
 		ch:      ch,
+		keep:    keep,
 		stopped: make(chan plan.PeerID, 1),
 		gs:      make(map[plan.PeerID]*sync.WaitGroup),
-		gpuPool: job.NewGPUPool(j.HostList.SlotOf(parent.IPv4)),
+		gpuPool: job.NewGPUPool(j.HostList.SlotOf(self.IPv4)),
 	}
 	log.Infof("watching config server")
 	watcher.watchRun(globalCtx)
-	log.Infof("stop watching")
+	log.Infof(xterm.Blue.S("stop watching"))
 }
 
 func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version int, logDir string) {

@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -17,13 +21,15 @@ import (
 var (
 	port     = flag.Int("port", 9100, "")
 	initFile = flag.String("init", "", "")
+	ttl      = flag.Duration("ttl", 0, "time to live")
 )
 
 type configServer struct {
 	sync.RWMutex
+	cancel context.CancelFunc
 
-	peerList plan.PeerList
-	version  int
+	cluster *plan.Cluster
+	version int
 }
 
 func (s *configServer) index(w http.ResponseWriter, req *http.Request) {
@@ -38,38 +44,43 @@ func (s *configServer) index(w http.ResponseWriter, req *http.Request) {
 
 func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Printf("%s %s from %s %s\n", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
+	log.Debugf("%s %s from %s, UA: %s", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
 	s.RLock()
 	defer s.RUnlock()
-	if s.peerList == nil {
+	if s.cluster == nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "No Config Found.\n")
 		return
 	}
 	e := json.NewEncoder(w)
 	e.SetIndent("", "    ")
-	if err := e.Encode(s.peerList); err != nil {
+	if err := e.Encode(s.cluster); err != nil {
 		log.Errorf("failed to encode JSON: %v", err)
 	}
 }
 
 func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
-	var pl plan.PeerList
-	if err := readJSON(req.Body, &pl); err != nil {
+	var cluster plan.Cluster
+	if err := readJSON(req.Body, &cluster); err != nil {
 		log.Errorf("failed to decode JSON: %v", err)
+		return
+	}
+	if err := cluster.Validate(); err != nil {
+		log.Errorf("invalid cluster config: %v", err)
+		return
 	}
 	s.Lock()
 	defer s.Unlock()
-	if s.peerList == nil {
-		fmt.Printf("init first config to %d peers: %s\n", len(pl), pl)
+	if s.cluster == nil {
+		log.Infof("init first config to %d peers: %s", len(cluster.Workers), cluster)
 		s.version = 1
-		s.peerList = pl
-	} else if len(s.peerList) > 0 {
+		s.cluster = &cluster
+	} else if len(s.cluster.Workers) > 0 {
 		s.version++
-		s.peerList = pl
-		fmt.Printf("updated to %d peers: %s\n", len(pl), pl)
+		s.cluster = &cluster
+		log.Infof("updated to %d peers: %s", len(cluster.Workers), cluster.Workers)
 	} else {
-		fmt.Printf("config is cleared, update rejected\n")
+		log.Infof("config is cleared, update rejected")
 		w.WriteHeader(http.StatusForbidden)
 	}
 }
@@ -77,44 +88,63 @@ func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
 func (s *configServer) clearConfig(w http.ResponseWriter, req *http.Request) {
 	s.Lock()
 	defer s.Unlock()
-	s.peerList = plan.PeerList{}
-	fmt.Printf("OK: clear config\n")
+	s.cluster = &plan.Cluster{}
+	log.Infof("OK: clear config")
 }
 
 func (s *configServer) resetConfig(w http.ResponseWriter, req *http.Request) {
 	s.Lock()
 	defer s.Unlock()
-	s.peerList = nil
-	fmt.Printf("OK: reset config\n")
+	s.cluster = nil
+	log.Infof("OK: reset config")
+}
+
+func (s *configServer) stop(w http.ResponseWriter, req *http.Request) {
+	s.cancel()
 }
 
 func main() {
+	t0 := time.Now()
 	flag.Parse()
-	h := &configServer{}
-
+	ctx, cancel := context.WithCancel(context.Background())
+	h := &configServer{
+		cancel: cancel,
+	}
 	if len(*initFile) > 0 {
 		f, err := os.Open(*initFile)
 		if err != nil {
 			utils.ExitErr(err)
 		}
 		defer f.Close()
-		var pl plan.PeerList
-		if err := readJSON(f, &pl); err != nil {
+		var cluster plan.Cluster
+		if err := readJSON(f, &cluster); err != nil {
 			utils.ExitErr(err)
 		}
-		h.peerList = pl
+		h.cluster = &cluster
 	}
 
-	fmt.Printf("http://127.0.0.1:%d/get\n", *port)
-	fmt.Printf("http://127.0.0.1:%d/put\n", *port)
-	fmt.Printf("http://127.0.0.1:%d/reset\n", *port)
+	log.Infof("http://127.0.0.1:%d/", *port)
 
-	http.HandleFunc("/", http.HandlerFunc(h.index))
-	http.HandleFunc("/get", http.HandlerFunc(h.getConfig))
-	http.HandleFunc("/put", http.HandlerFunc(h.putConfig))
-	http.HandleFunc("/reset", http.HandlerFunc(h.resetConfig))
-	http.HandleFunc("/clear", http.HandlerFunc(h.clearConfig))
-	http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+	mux := &http.ServeMux{}
+	mux.HandleFunc("/", http.HandlerFunc(h.index))
+	mux.HandleFunc("/get", http.HandlerFunc(h.getConfig))
+	mux.HandleFunc("/put", http.HandlerFunc(h.putConfig))
+	mux.HandleFunc("/reset", http.HandlerFunc(h.resetConfig))
+	mux.HandleFunc("/clear", http.HandlerFunc(h.clearConfig))
+	mux.HandleFunc("/stop", http.HandlerFunc(h.stop))
+	if *ttl > 0 {
+		ctx, cancel = context.WithTimeout(ctx, *ttl)
+		defer cancel()
+	}
+	srv := &http.Server{
+		Addr:    net.JoinHostPort("", strconv.Itoa(*port)),
+		Handler: mux,
+	}
+	srv.SetKeepAlivesEnabled(false)
+	go srv.ListenAndServe()
+	<-ctx.Done()
+	srv.Close()
+	log.Infof("Stopped after %s", time.Since(t0))
 }
 
 func readJSON(r io.Reader, i interface{}) error {

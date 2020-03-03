@@ -16,10 +16,6 @@ type Config struct {
 	InitClusterVersion string
 	InitPeers          PeerList
 
-	// resources
-	HostList  HostList
-	PortRange PortRange
-
 	Single bool
 }
 
@@ -39,10 +35,6 @@ func ParseConfigFromEnv() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	portRange, err := getPortRangeFromEnv()
-	if err != nil {
-		return nil, err
-	}
 	initPeers, err := getInitPeersFromEnv()
 	if err != nil {
 		return nil, err
@@ -56,8 +48,6 @@ func ParseConfigFromEnv() (*Config, error) {
 		Self:               *self,
 		Parent:             *parent,
 		Parents:            getParentIDs(hostList, *parent),
-		HostList:           hostList,
-		PortRange:          *portRange,
 		InitPeers:          initPeers,
 		Strategy:           *strategy,
 		InitClusterVersion: os.Getenv(kb.InitClusterVersionEnvKey),

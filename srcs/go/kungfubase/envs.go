@@ -6,7 +6,6 @@ const (
 	InitClusterVersionEnvKey = `KUNGFU_INIT_CLUSTER_VERSION`
 	ParentIDEnvKey           = `KUNGFU_PARENT_ID`
 	HostListEnvKey           = `KUNGFU_HOST_LIST`
-	PortRangeEnvKey          = `KUNGFU_PORT_RANGE`
 
 	PeerListEnvKey          = `KUNGFU_INIT_PEERS`
 	HostSpecEnvKey          = `KUNGFU_HOST_SPEC`

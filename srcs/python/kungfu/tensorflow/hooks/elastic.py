@@ -3,7 +3,8 @@ import os
 import numpy as np
 import tensorflow as tf
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-from kungfu.tensorflow.ops import (all_reduce, consensus, resize_cluster,
+from kungfu.tensorflow.ops import (all_reduce, consensus,
+                                   resize_cluster_from_url,
                                    step_based_schedule)
 
 
@@ -16,9 +17,9 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         self._need_sync = True
 
     def _build_resize_op(self, config, step):
-        new_size = step_based_schedule(config, step)
-        resize_op = resize_cluster(new_size)
-        return resize_op
+        new_size_op = step_based_schedule(config, step)
+        resize_op = resize_cluster_from_url()
+        return resize_op, new_size_op
 
     def begin(self):
         self._sync_op = BroadcastGlobalVariablesOp()
@@ -26,8 +27,8 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         self._step = 0
         self._step_place = tf.placeholder(dtype=tf.int32, shape=())
         self._sync_step_op = all_reduce(self._step_place, op='max')
-        self._resize_op = self._build_resize_op(self._schedule,
-                                                self._step_place)
+        self._resize_op, self._new_size_op = self._build_resize_op(
+            self._schedule, self._step_place)
 
     def after_create_session(self, sess, coord):
         pass
@@ -45,8 +46,10 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
             self._need_sync = False
 
     def after_run(self, run_context, run_values):
-        changed, keep = run_context.session.run(
-            self._resize_op, feed_dict={self._step_place: self._step})
+        new_size = run_context.session.run(
+            self._new_size_op, feed_dict={self._step_place: self._step})
+        print('TODO: propose new list with new_size')
+        changed, keep = run_context.session.run(self._resize_op)
         if not keep:
             run_context.request_stop()
             return

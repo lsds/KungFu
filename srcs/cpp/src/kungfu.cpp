@@ -223,14 +223,6 @@ int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
 }
 
 // control APIs
-int kungfu_world::ResizeCluster(int new_size, bool *changed, bool *keep)
-{
-    static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuResizeCluster(GoInt(new_size),
-                                 reinterpret_cast<char *>(changed),
-                                 reinterpret_cast<char *>(keep));
-}
-
 int kungfu_world::ResizeClusterFromURL(bool *changed, bool *keep)
 {
     static_assert(sizeof(bool) == sizeof(char), "");

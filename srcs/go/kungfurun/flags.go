@@ -46,6 +46,7 @@ type FlagSet struct {
 	Port        int
 	DebugPort   int
 	Watch       bool
+	Keep        bool
 	InitVersion int
 
 	Logfile string
@@ -75,9 +76,10 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	f.Strategy = kb.DefaultStrategy
 	flag.Var(&f.Strategy, "strategy", fmt.Sprintf("all reduce strategy, options are: %s", strings.Join(kb.StrategyNames(), " | ")))
 
-	flag.IntVar(&f.Port, "port", 38080, "port for rchannel")
+	flag.IntVar(&f.Port, "port", int(plan.DefaultRunnerPort), "port for rchannel")
 	flag.IntVar(&f.DebugPort, "debug-port", 0, "port for HTTP debug server")
 	flag.BoolVar(&f.Watch, "w", false, "watch config")
+	flag.BoolVar(&f.Keep, "k", false, "stay alive after works finished")
 	flag.IntVar(&f.InitVersion, "init-version", 0, "initial cluster version")
 	flag.StringVar(&f.ConfigServer, "config-server", "", "config server URL")
 

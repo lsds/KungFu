@@ -46,7 +46,7 @@ func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {
 	}
 	fmt.Printf("step: %d, rank=%d, np=%d, took %s\n", step, rank, np, time.Since(t0))
 	if sess.Rank() == 0 {
-		time.Sleep(2000 * time.Millisecond)
+		time.Sleep(600 * time.Millisecond)
 	} else {
 		time.Sleep(100 * time.Millisecond)
 	}
