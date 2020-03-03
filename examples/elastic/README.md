@@ -7,7 +7,6 @@ elastic training example
 ./.github/workflows/build-image.sh
 ```
 
-
 ### build cluster manager example
 
 ```bash
@@ -30,3 +29,8 @@ kungfu-cluster-manager-example -ttl 1m \
     --data-dir /root/var/data/mnist \
     --num-epochs 5
 ```
+
+### Caveats
+
+* full update (all old peers are removed in the new cluster) is not supported
+* rank 0 of the new cluster must be a member of the old cluster

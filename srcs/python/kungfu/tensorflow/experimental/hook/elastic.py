@@ -26,7 +26,8 @@ class ElasticHook(tf.train.SessionRunHook):
         new_offset = sess.run(
             self._sync_offset_op,
             feed_dict={self._trained_samples_place: self._trained_samples})
-        print('sync offset %d -> %d' % (self._trained_samples, new_offset))
+        print('sync offset %d -> %d on step %d' %
+              (self._trained_samples, new_offset, self._step))
         self._trained_samples = new_offset
 
     def before_run(self, run_context):
