@@ -1,28 +1,49 @@
-elastic training example
+# Elastic Training
 
-## How to run example
+This is an alpha example that demonstrate how to run elastic training with KungFu.
 
-### build docker image
+A dynamic KungFu cluster has three elements:
+
+* An elastic TensorFlow training program should contain an `ElasticHook` provided by KungFu. This hook is responsible for tracking the changes of cluster membership and enforces changes without breaking the current training process.
+* All KungFu workers (which runs the TensorFlow training program) synchronize the full cluster membership through a `ConfigStore`. To change the cluster membership, you can use `ConfigStoreClient` to write the new configuration into the `ConfigStore`.
+* You should develop your own cluster manager to start and reclaim nodes during training. Once you start the nodes properly, you can write the new configuration into the `ConfigStore`.
+
+In the following, we provide an example that go through the basic process of elastic training.
+
+## Docker Image
+
+In the cluster, we assume each server is initialized by Docker.
+
 ```bash
 ./.github/workflows/build-image.sh
 ```
 
+## Cluster Manager Example
 
-### build cluster manager example
+We provide an example that show how does a cluster manager work.
+In this example, you can find how to use the `ConfigStoreClient` to update `ConfigStore`.
+
+You can install the cluster manager example as follow:
 
 ```bash
 go install -v ./tests/go/cmd/kungfu-cluster-manager-example
 ```
 
-### run examples
+## Run Examples
 
-* simple example without tensorflow
+We provide two options to bootstrap the cluster manager example.
+
+### Training without TensorFlow
+
+A simple training example without TensorFlow (testing purpose):
 
 ```bash
 kungfu-cluster-manager-example -ttl 1m kungfu-fake-adaptive-trainer
 ```
 
-* train mnist SLP with tensorflow
+### Training with TensorFLow
+
+A full training example using TensorFlow:
 
 ```bash
 kungfu-cluster-manager-example -ttl 1m \
