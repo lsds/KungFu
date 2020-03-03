@@ -210,7 +210,7 @@ func (kf *Kungfu) propose(cluster plan.Cluster) (bool, bool) {
 		kf.Lock()
 		defer kf.Unlock()
 		if kf.currentCluster.Workers.Disjoint(cluster.Workers) {
-			log.Errorf("Full update detected! State will be lost.")
+			log.Errorf("Full update detected: %s -> %s! State will be lost.", kf.currentCluster.DebugString(), cluster.DebugString())
 		} else if len(cluster.Workers) > 0 && !kf.currentCluster.Workers.Contains(cluster.Workers[0]) {
 			log.Errorf("New root can't not be a new worker! State will be lost.")
 		}

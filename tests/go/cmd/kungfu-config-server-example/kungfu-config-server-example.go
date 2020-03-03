@@ -43,7 +43,7 @@ func (s *configServer) index(w http.ResponseWriter, req *http.Request) {
 
 func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Printf("%s %s from %s, UA: %s\n", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
+	log.Debugf("%s %s from %s, UA: %s", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
 	s.RLock()
 	defer s.RUnlock()
 	if s.cluster == nil {
@@ -71,15 +71,15 @@ func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
 	s.Lock()
 	defer s.Unlock()
 	if s.cluster == nil {
-		fmt.Printf("init first config to %d peers: %s\n", len(cluster.Workers), cluster)
+		log.Infof("init first config to %d peers: %s", len(cluster.Workers), cluster)
 		s.version = 1
 		s.cluster = &cluster
 	} else if len(s.cluster.Workers) > 0 {
 		s.version++
 		s.cluster = &cluster
-		fmt.Printf("updated to %d peers: %s\n", len(cluster.Workers), cluster.Workers)
+		log.Infof("updated to %d peers: %s", len(cluster.Workers), cluster.Workers)
 	} else {
-		fmt.Printf("config is cleared, update rejected\n")
+		log.Infof("config is cleared, update rejected")
 		w.WriteHeader(http.StatusForbidden)
 	}
 }
@@ -88,14 +88,14 @@ func (s *configServer) clearConfig(w http.ResponseWriter, req *http.Request) {
 	s.Lock()
 	defer s.Unlock()
 	s.cluster = &plan.Cluster{}
-	fmt.Printf("OK: clear config\n")
+	log.Infof("OK: clear config")
 }
 
 func (s *configServer) resetConfig(w http.ResponseWriter, req *http.Request) {
 	s.Lock()
 	defer s.Unlock()
 	s.cluster = nil
-	fmt.Printf("OK: reset config\n")
+	log.Infof("OK: reset config")
 }
 
 func main() {
@@ -116,9 +116,7 @@ func main() {
 		h.cluster = &cluster
 	}
 
-	fmt.Printf("http://127.0.0.1:%d/get\n", *port)
-	fmt.Printf("http://127.0.0.1:%d/put\n", *port)
-	fmt.Printf("http://127.0.0.1:%d/reset\n", *port)
+	log.Infof("http://127.0.0.1:%d/", *port)
 
 	mux := &http.ServeMux{}
 	mux.HandleFunc("/", http.HandlerFunc(h.index))
@@ -140,7 +138,7 @@ func main() {
 	go srv.ListenAndServe()
 	<-ctx.Done()
 	srv.Close()
-	fmt.Printf("Stopped after %s\n", time.Since(t0))
+	log.Infof("Stopped after %s", time.Since(t0))
 }
 
 func readJSON(r io.Reader, i interface{}) error {

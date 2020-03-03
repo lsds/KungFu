@@ -28,7 +28,7 @@ func (c Cluster) Bytes() []byte {
 }
 
 func (c Cluster) DebugString() string {
-	return fmt.Sprintf("[%d/%d]{%s}{%s}", len(c.Workers), len(c.Runners), c.Workers, c.Runners)
+	return fmt.Sprintf("[%d@%d]{%s}@{%s}", len(c.Workers), len(c.Runners), c.Workers, c.Runners)
 }
 
 var (

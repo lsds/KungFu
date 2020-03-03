@@ -53,12 +53,6 @@ func example(c *cluster, prog string, args []string) {
 			port: configServerPort,
 		},
 	)
-	/*
-		c.Start(ctx, wg, `kf-config-client`, `kungfu-config-client-example`,
-			`-server`, fmt.Sprintf("http://%s:%d/put", server.ip, 9100),
-			`-ttl`, ttl.String(),
-		)
-	*/
 
 	getConfigURL := fmt.Sprintf("http://%s:%d/get", server.ip, configServerPort)
 	putConfigURL := fmt.Sprintf("http://%s:%d/put", `127.0.0.1`, configServerPort)
@@ -120,6 +114,5 @@ func example(c *cluster, prog string, args []string) {
 
 func clear(c *cluster) {
 	c.Remove(`kf-config-server`)
-	c.Remove(`kf-config-client`)
 	c.Teardown()
 }
