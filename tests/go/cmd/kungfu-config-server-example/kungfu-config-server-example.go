@@ -64,6 +64,10 @@ func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
 		log.Errorf("failed to decode JSON: %v", err)
 		return
 	}
+	if err := cluster.Validate(); err != nil {
+		log.Errorf("invalid cluster config: %v", err)
+		return
+	}
 	s.Lock()
 	defer s.Unlock()
 	if s.cluster == nil {

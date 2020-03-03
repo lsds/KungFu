@@ -3,6 +3,7 @@ package plan
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 )
 
@@ -28,4 +29,35 @@ func (c Cluster) Bytes() []byte {
 
 func (c Cluster) DebugString() string {
 	return fmt.Sprintf("[%d/%d]{%s}{%s}", len(c.Workers), len(c.Runners), c.Workers, c.Runners)
+}
+
+var (
+	errDuplicatedPort   = errors.New("duplicated port")
+	errDuplicatedRunner = errors.New("duplicated runner")
+	errMissingRunner    = errors.New("missing runner")
+)
+
+func (c Cluster) Validate() error {
+	h := make(map[uint32]int)
+	p := make(map[PeerID]int)
+	for _, r := range c.Runners {
+		if p[r] != 0 {
+			return errDuplicatedPort
+		}
+		p[r]++
+		if h[r.IPv4] != 0 {
+			return errDuplicatedRunner
+		}
+		h[r.IPv4]++
+	}
+	for _, w := range c.Workers {
+		if p[w] != 0 {
+			return errDuplicatedPort
+		}
+		p[w]++
+		if h[w.IPv4] == 0 {
+			return errMissingRunner
+		}
+	}
+	return nil
 }

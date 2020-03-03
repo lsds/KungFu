@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"strconv"
@@ -17,8 +18,14 @@ var (
 	ttl   = flag.Duration("ttl", 120*time.Second, "")
 )
 
+var errMissingProgramName = errors.New("missing program name")
+
 func main() {
 	flag.Parse()
+	args := flag.Args()
+	if len(args) < 1 {
+		utils.ExitErr(errMissingProgramName)
+	}
 	c := &cluster{
 		image: *image,
 		vnet:  `kungfu`,
@@ -28,10 +35,10 @@ func main() {
 		},
 	}
 	clear(c)
-	example(c)
+	example(c, args[0], args[1:])
 }
 
-func example(c *cluster) {
+func example(c *cluster, prog string, args []string) {
 	ctx := context.Background()
 	c.Setup()
 
@@ -88,25 +95,25 @@ func example(c *cluster) {
 		if isFirst {
 			initVersion = 0
 		}
+		kungfuRunArgs := []string{
+			`-q`,
+			`-timeout`, ttl.String(),
+			`-H`, hl.String(),
+			`-self`, ip,
+			`-w`,
+			`-config-server`, getConfigURL,
+			`-init-version`, strconv.Itoa(initVersion),
+			prog,
+		}
 		c.StartWithIP(ctx, wg, name, ip,
 			proc{
-				cmd: `kungfu-run`,
-				args: []string{
-					`-q`,
-					`-timeout`, ttl.String(),
-					`-H`, hl.String(),
-					`-self`, ip,
-					`-w`,
-					`-config-server`, getConfigURL,
-					// `-np`, strconv.Itoa(cap),
-					`-init-version`, strconv.Itoa(initVersion),
-					`kungfu-fake-adaptive-trainer`,
-				},
+				cmd:  `kungfu-run`,
+				args: append(kungfuRunArgs, args...),
 			},
 		)
 	}
-	startWorker(`kf-node-01`, 1, true)
-	startWorker(`kf-node-02`, 1, false)
+	startWorker(`kf-node-01`, 4, true)
+	startWorker(`kf-node-02`, 4, false)
 	wg.Wait()
 	c.Teardown()
 }
