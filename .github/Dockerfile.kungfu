@@ -8,7 +8,7 @@ RUN /download-mnist.sh
 WORKDIR /src/kungfu
 ADD . .
 
-RUN pip3 install --no-index -U -v .
+RUN pip3 install --no-index -U .
 
 ENV GOBIN /root/go/bin
 RUN go install -v ./tests/go/cmd/...

@@ -15,6 +15,7 @@ import (
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 type watcher struct {
@@ -61,7 +62,7 @@ func (w *watcher) delete(id plan.PeerID) {
 func (w *watcher) update(s Stage) {
 	w.server.SetToken(uint32(s.Version))
 	if w.current.Workers.Disjoint(s.Cluster.Workers) {
-		log.Warnf("full update detected: %s -> %s", w.current.DebugString(), s.Cluster.DebugString())
+		log.Errorf("full update detected: %s -> %s", w.current.DebugString(), s.Cluster.DebugString())
 	}
 	a, b := w.current.Workers.Diff(s.Cluster.Workers)
 	del := a.On(w.parent.IPv4)
@@ -128,7 +129,7 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 	}
 	log.Infof("watching config server")
 	watcher.watchRun(globalCtx)
-	log.Infof("stop watching")
+	log.Infof(xterm.Blue.S("stop watching"))
 }
 
 func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version int, logDir string) {

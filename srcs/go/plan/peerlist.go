@@ -33,26 +33,31 @@ func (pl PeerList) Bytes() []byte {
 	return b.Bytes()
 }
 
-func (pl PeerList) Rank(ps PeerID) (int, bool) {
+func (pl PeerList) Rank(q PeerID) (int, bool) {
 	for i, p := range pl {
-		if p == ps {
+		if p == q {
 			return i, true
 		}
 	}
 	return -1, false
 }
 
-func (pl PeerList) LocalRank(ps PeerID) (int, bool) {
+func (pl PeerList) LocalRank(q PeerID) (int, bool) {
 	var i int
 	for _, p := range pl {
-		if p == ps {
+		if p == q {
 			return i, true
 		}
-		if ps.ColocatedWith(p) {
+		if p.ColocatedWith(q) {
 			i++
 		}
 	}
 	return -1, false
+}
+
+func (pl PeerList) Contains(p PeerID) bool {
+	_, ok := pl.Rank(p)
+	return ok
 }
 
 func (pl PeerList) Set() map[PeerID]struct{} {
