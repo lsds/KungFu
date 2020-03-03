@@ -73,18 +73,13 @@ def main(do_eval=True):
     data = load_datasets(args.data_dir, normalize=True)
     classifier = tf.estimator.Estimator(model_fn, model_dir=model_dir)
 
-    max_steps = MNIST_DATA_SIZE * args.num_epochs / args.batch_size
-    print('max_steps: %d' % (max_steps))
-
     from kungfu.tensorflow.experimental.hook import ElasticHook
-    hooks = [ElasticHook(max_steps)]
+    hooks = [ElasticHook(args.batch_size, args.num_epochs, MNIST_DATA_SIZE)]
 
     classifier.train(input_fn(data.train,
                               args.batch_size,
                               epochs=args.num_epochs),
-                     hooks=hooks,
-                     max_steps=max_steps)
-    # print('train finished')
+                     hooks=hooks)
 
     if not do_eval:
         import time

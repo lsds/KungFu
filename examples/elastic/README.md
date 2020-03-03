@@ -2,16 +2,16 @@ elastic training example
 
 ## How to run example
 
-### build image
+### build docker image
 ```bash
 ./.github/workflows/build-image.sh
 ```
 
 
-### build tools
+### build cluster manager example
 
 ```bash
-go install -v ./tests/go/cmd/...
+go install -v ./tests/go/cmd/kungfu-cluster-manager-example
 ```
 
 ### run example

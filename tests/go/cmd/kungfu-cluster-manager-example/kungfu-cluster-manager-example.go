@@ -107,6 +107,7 @@ func example(c *cluster, prog string, args []string) {
 		)
 	}
 	startWorker(`kf-node-01`, 4, true)
+	time.Sleep(5 * time.Second)
 	startWorker(`kf-node-02`, 4, false)
 	wg.Wait()
 	c.Teardown()
