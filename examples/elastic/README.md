@@ -14,11 +14,15 @@ elastic training example
 go install -v ./tests/go/cmd/kungfu-cluster-manager-example
 ```
 
-### run example
+### run examples
+
+* simple example without tensorflow
 
 ```bash
 kungfu-cluster-manager-example -ttl 1m kungfu-fake-adaptive-trainer
 ```
+
+* train mnist SLP with tensorflow
 
 ```bash
 kungfu-cluster-manager-example -ttl 1m \
