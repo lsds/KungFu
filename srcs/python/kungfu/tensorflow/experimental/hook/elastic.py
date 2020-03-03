@@ -1,7 +1,8 @@
 import tensorflow as tf
 from kungfu._utils import show_duration
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-from kungfu.tensorflow.ops import all_reduce, current_cluster_size, resize_cluster_from_url
+from kungfu.tensorflow.ops import (all_reduce, current_cluster_size,
+                                   resize_cluster_from_url)
 
 
 class ElasticHook(tf.train.SessionRunHook):
