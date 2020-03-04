@@ -54,6 +54,8 @@ class NetMonHook(tf.estimator.SessionRunHook):
         self._global_avg_step_dur_allreduce_op = all_reduce(self._global_avg_step_dur_tensor)
 
         #create Broadcast handle
+        for v in tf.global_variables():
+            print('DEBUG: var name & type: (', v.name, ',',v.dtype,')')
         self._broadcastOp = BroadcastGlobalVariablesOp()
 
     def after_create_session(self, sess, coord):
@@ -140,7 +142,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
             #TODO: change for more intricate triggering algorithm
             #run_context.session.run(self._cond_var_Ada_setFalse)
 
-        #Calculation of Cumulative Moving Average (CMA)
+        #Calculate and update Cumulative Moving Average (CMA)
         self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + global_aggr_avg) / self._cur_step
 
         run_context.session.run(self._cma_assign_op, feed_dict={
