@@ -32,10 +32,10 @@ class NetMonHook(tf.estimator.SessionRunHook):
     def begin(self):
         self.__setup_summary_writer()
         self._avg_step_dur_tensor = tf.Variable(0.,trainable=False)
-        self._net_cong_mon_tensor = tf.Variable(np.uint8(0), trainable=False)
+        self._net_cong_mon_tensor = tf.Variable(np.int32(0), trainable=False)
         tf.summary.scalar(name='CMA', tensor=self._avg_step_dur_tensor)
         tf.summary.scalar(name='congestion', tensor=self._net_cong_mon_tensor)
-        self._net_cong_mon_place = tf.placeholder(tf.uint8)
+        self._net_cong_mon_place = tf.placeholder(tf.int32)
         self._cma_place = tf.placeholder(tf.float32)
         self._net_cong_mon_assign_op = tf.assign(self._net_cong_mon_tensor, self._net_cong_mon_place)
         self._cma_assign_op = tf.assign(self._avg_step_dur_tensor, self._cma_place)
@@ -54,8 +54,6 @@ class NetMonHook(tf.estimator.SessionRunHook):
         self._global_avg_step_dur_allreduce_op = all_reduce(self._global_avg_step_dur_tensor)
 
         #create Broadcast handle
-        for v in tf.global_variables():
-            print('DEBUG: var name & type: (', v.name, ',',v.dtype,')')
         self._broadcastOp = BroadcastGlobalVariablesOp()
 
     def after_create_session(self, sess, coord):
