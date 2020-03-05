@@ -234,15 +234,8 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		for i, rank := range ranks {
 			wg.Add(1)
 			go func(i, rank int) {
-				ch := make(chan bool, 1)
-				go func() {
-					errs[i] = op(sess.peers[rank])
-					ch <- true
-				}()
-				select {
-				case <-ch:
-				case <-time.After(timeout):
-					fmt.Println("timed out in par")
+				errs[i] = op(sess.peers[rank])
+				if errs[i] != nil {
 					// TODO report sess.peers[rank] as gone
 					// client.Post(endpoint.String(), "application/json", bytes.NewBuffer(reqBody))
 				}
@@ -250,7 +243,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			}(i, rank)
 		}
 		wg.Wait()
-		return mergeErrors(errs, "par")
+		return mergeErrors(errs, "par") // TODO should we still return it if we handle it here?
 	}
 
 	seq := func(ranks []int, op func(plan.PeerID)) {
