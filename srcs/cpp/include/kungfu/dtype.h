@@ -6,11 +6,13 @@ extern "C" {
 #endif
 
 /*
+|00000000|   c    |    b   |00001000|
 |01234567|01234567|01234567|01234567|
 type-category :
     - unsigned: 0
     - signed: 1
     - float: 2
+    - bool: 3
 
 type-bytes : 1 2 4 8
 bits-per-byte : 8
@@ -32,6 +34,8 @@ enum KungFu_Datatype {
     KungFu_FLOAT16 = TYPE_CODE(2, 2),
     KungFu_FLOAT   = TYPE_CODE(2, 4),
     KungFu_DOUBLE  = TYPE_CODE(2, 8),
+    
+    KungFu_BOOL = TYPE_CODE(3, 1),
 };
 
 typedef enum KungFu_Datatype KungFu_Datatype;

@@ -1,7 +1,17 @@
 import tensorflow as tf
-from kungfu.tensorflow.ops import (barrier, counter, group_all_reduce,
+from kungfu.tensorflow.ops import (broadcast, barrier, counter, group_all_reduce,
                                    peer_info, request_variable, save_variable)
+from kungfu import current_rank
 
+def test_broadcast():
+    v = tf.Variable(True if current_rank() == 0 else False)
+    u = broadcast(v)
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        x = sess.run(v)
+        y = sess.run(u)
+        print(x,y)
 
 def test_barrier():
     with tf.Session() as sess:
@@ -75,6 +85,7 @@ def test_all():
     test_peer_info()
     test_save_and_request()
     test_consensus()
+    test_broadcast()
 
 
 test_all()
