@@ -1,9 +1,13 @@
 package kungfu
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 	"sync"
+	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -19,21 +23,20 @@ type Kungfu struct {
 	sync.Mutex
 
 	// immutable
-	parent    plan.PeerID
-	parents   plan.PeerList
-	hostList  plan.HostList
-	portRange plan.PortRange
-	self      plan.PeerID
-	strategy  kb.Strategy
-	single    bool
-
-	router *rch.Router
-	server rch.Server
+	configServerURL    string
+	initClusterVersion int
+	parent             plan.PeerID
+	self               plan.PeerID
+	strategy           kb.Strategy
+	single             bool
+	router             *rch.Router
+	server             rch.Server
+	client             http.Client
 
 	// dynamic
+	clusterVersion int
 	currentSession *session
-	currentPeers   plan.PeerList
-	checkpoint     string
+	currentCluster *plan.Cluster
 	updated        bool
 }
 
@@ -48,18 +51,29 @@ func New() (*Kungfu, error) {
 func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
 	server := rch.NewServer(router)
+	var initClusterVersion int
+	if len(config.InitClusterVersion) > 0 {
+		var err error
+		initClusterVersion, err = strconv.Atoi(config.InitClusterVersion)
+		if err != nil {
+			return nil, err
+		}
+	}
+	currentCluster := &plan.Cluster{
+		Runners: config.Parents,
+		Workers: config.InitPeers,
+	}
 	return &Kungfu{
-		parent:       config.Parent,
-		parents:      config.Parents,
-		currentPeers: config.InitPeers,
-		self:         config.Self,
-		hostList:     config.HostList,
-		portRange:    config.PortRange,
-		strategy:     config.Strategy,
-		checkpoint:   config.InitCheckpoint,
-		single:       config.Single,
-		router:       router,
-		server:       server,
+		configServerURL:    config.ConfigServer,
+		parent:             config.Parent,
+		currentCluster:     currentCluster,
+		self:               config.Self,
+		strategy:           config.Strategy,
+		initClusterVersion: initClusterVersion,
+		clusterVersion:     initClusterVersion,
+		single:             config.Single,
+		router:             router,
+		server:             server,
 	}, nil
 }
 
@@ -92,34 +106,42 @@ func (kf *Kungfu) Close() error {
 	return nil
 }
 
+// UID returns an immutable unique ID of this peer
+func (kf *Kungfu) UID() uint64 {
+	hi := uint64(kf.self.IPv4)
+	lo := (uint64(kf.self.Port) << 16) | uint64(uint16(kf.initClusterVersion))
+	return (hi<<32 | lo)
+}
+
 var errSelfNotInCluster = errors.New("self not in cluster")
 
 func (kf *Kungfu) CurrentSession() *session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
-		kf.updateTo(kf.currentPeers)
+		kf.updateTo(kf.currentCluster.Workers)
 	}
 	return kf.currentSession
-}
-
-func (kf *Kungfu) GetCheckpoint() string {
-	return kf.checkpoint
 }
 
 func (kf *Kungfu) Update() bool {
 	kf.Lock()
 	defer kf.Unlock()
-	return kf.updateTo(kf.currentPeers)
+	return kf.updateTo(kf.currentCluster.Workers)
 }
 
 func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
+	if kc.EnableStallDetection {
+		name := fmt.Sprintf("updateTo(%s)", pl.DebugString())
+		defer utils.InstallStallDetector(name).Stop()
+	}
+	kf.server.SetToken(uint32(kf.clusterVersion))
 	if kf.updated {
 		log.Debugf("ignore update")
 		return true
 	}
-	log.Debugf("Kungfu::updateTo(%s), %d peers", pl, len(pl))
-	kf.router.ResetConnections(pl)
+	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", kf.clusterVersion, len(pl), pl)
+	kf.router.ResetConnections(pl, uint32(kf.clusterVersion))
 	sess, exist := newSession(kf.strategy, kf.self, pl, kf.router)
 	if !exist {
 		return false
@@ -163,19 +185,23 @@ func (kf *Kungfu) consensus(bs []byte) bool {
 	return ok
 }
 
-func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
-	if peers.Eq(kf.currentPeers) {
+func (kf *Kungfu) propose(cluster plan.Cluster) (bool, bool) {
+	if kf.currentCluster.Eq(cluster) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
 	}
-	if digest := peers.Bytes(); !kf.consensus(digest) {
-		log.Errorf("diverge proposal detected! I proposed %s", peers)
+	if digest := cluster.Bytes(); !kf.consensus(digest) {
+		log.Errorf("diverge proposal detected among %d peers! I proposed %s", len(cluster.Workers), cluster.Workers)
 		return false, true
 	}
 	{
-		stage := run.Stage{Checkpoint: ckpt, Cluster: peers}
-		if err := par(kf.parents, func(parent plan.PeerID) error {
-			return kf.router.Send(parent.WithName("update"), stage.Encode(), rch.ConnControl, 0)
+		stage := run.Stage{
+			Version: kf.clusterVersion + 1,
+			Cluster: cluster,
+		}
+		// FIXME: assuming runners are up and running
+		if err := par(cluster.Runners, func(ctrl plan.PeerID) error {
+			return kf.router.Send(ctrl.WithName("update"), stage.Encode(), rch.ConnControl, 0)
 		}); err != nil {
 			utils.ExitErr(err)
 		}
@@ -183,23 +209,63 @@ func (kf *Kungfu) propose(ckpt string, peers plan.PeerList) (bool, bool) {
 	func() {
 		kf.Lock()
 		defer kf.Unlock()
-		kf.currentPeers = peers
-		kf.checkpoint = ckpt
+		if kf.currentCluster.Workers.Disjoint(cluster.Workers) {
+			log.Errorf("Full update detected: %s -> %s! State will be lost.", kf.currentCluster.DebugString(), cluster.DebugString())
+		} else if len(cluster.Workers) > 0 && !kf.currentCluster.Workers.Contains(cluster.Workers[0]) {
+			log.Errorf("New root can't not be a new worker! State will be lost.")
+		}
+		kf.currentCluster = &cluster
+		kf.clusterVersion++
 		kf.updated = false
 	}()
-	_, keep := peers.Rank(kf.self)
+	_, keep := cluster.Workers.Rank(kf.self)
 	return true, keep
 }
 
-func (kf *Kungfu) ResizeCluster(ckpt string, newSize int) (bool, bool, error) {
-	log.Debugf("resize cluster to %d with checkpoint %q", newSize, ckpt)
-	peers, err := kf.hostList.GenPeerList(newSize, kf.portRange)
-	if err != nil {
-		return false, true, err
+func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
+	var cluster *plan.Cluster
+	for i := 0; ; i++ {
+		var err error
+		cluster, err = kf.getClusterConfig(kf.configServerURL)
+		if err != nil {
+			log.Errorf("getClusterConfig failed: %v, using current config", err)
+			cluster = kf.currentCluster
+		}
+		if digest := cluster.Bytes(); kf.consensus(digest) {
+			if i > 0 {
+				log.Infof("New peer list is consistent after failed %d times", i)
+			} else {
+				log.Debugf("New peer list is consistent after ONE attempt!")
+			}
+			break
+		}
+		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentCluster.Workers), cluster.DebugString())
+		time.Sleep(50 * time.Millisecond)
 	}
-	changed, keep := kf.propose(ckpt, peers)
+	changed, keep := kf.propose(*cluster)
 	if keep {
 		kf.Update()
 	}
 	return changed, keep, nil
+}
+
+func (kf *Kungfu) getClusterConfig(url string) (*plan.Cluster, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", kf.self))
+	resp, err := kf.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(resp.Status)
+	}
+	defer resp.Body.Close()
+	var cluster plan.Cluster
+	if err = json.NewDecoder(resp.Body).Decode(&cluster); err != nil {
+		return nil, err
+	}
+	return &cluster, nil
 }

@@ -5,6 +5,23 @@ import (
 	"fmt"
 )
 
+type ColorSet []Color
+
+func (cs ColorSet) Choose(i int) Color {
+	return cs[i%len(cs)]
+}
+
+var (
+	BasicColors = ColorSet{
+		Green,
+		Blue,
+		Yellow,
+		LightBlue,
+	}
+
+	Warn = Red
+)
+
 type Color interface {
 	B(text string) []byte
 	S(text string) string
@@ -39,4 +56,16 @@ func (c color) B(text string) []byte {
 
 func (c color) S(text string) string {
 	return c.bs(text).String()
+}
+
+var NoColor = noColor{}
+
+type noColor struct{}
+
+func (c noColor) B(text string) []byte {
+	return []byte(text)
+}
+
+func (c noColor) S(text string) string {
+	return text
 }

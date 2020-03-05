@@ -14,6 +14,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 var f run.FlagSet
@@ -37,26 +38,24 @@ func main() {
 		log.SetOutput(lf)
 	}
 	t0 := time.Now()
-	defer func(prog string) { log.Infof("%s took %s", prog, time.Since(t0)) }(utils.ProgName())
+	defer func(prog string) { log.Debugf("%s finished, took %s", prog, time.Since(t0)) }(utils.ProgName())
 	localhostIPv4, err := run.InferSelfIPv4(f.Self, f.NIC)
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	log.Infof("Using self=%s", plan.FormatIPv4(localhostIPv4))
-	parent := plan.PeerID{IPv4: localhostIPv4, Port: uint16(f.Port)}
-	var parents plan.PeerList
+	log.Debugf("Using self=%s", plan.FormatIPv4(localhostIPv4))
+	self := plan.PeerID{IPv4: localhostIPv4, Port: uint16(f.Port)}
 	var hl plan.HostList
 	var peers plan.PeerList
+	var runners plan.PeerList
 	if len(f.HostList) > 0 {
 		hl, err = run.ResolveHostList(f.HostList, f.NIC)
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 		}
-		for _, h := range hl {
-			parents = append(parents, plan.PeerID{IPv4: h.IPv4, Port: uint16(f.Port)})
-		}
-		if _, ok := parents.Rank(parent); !ok {
-			utils.ExitErr(fmt.Errorf("%s not in %s", parent, parents))
+		runners = hl.GenRunnerList(uint16(f.Port)) // FIXME: assuming runner port is the same
+		if _, ok := runners.Rank(self); !ok {
+			utils.ExitErr(fmt.Errorf("%s not in %s", self, runners))
 		}
 		peers, err = hl.GenPeerList(f.ClusterSize, f.PortRange)
 		if err != nil {
@@ -71,7 +70,7 @@ func main() {
 	}
 	j := job.Job{
 		Strategy:    f.Strategy,
-		Parent:      parent,
+		Parent:      self,
 		HostList:    hl,
 		PortRange:   f.PortRange,
 		Prog:        f.Prog,
@@ -87,8 +86,19 @@ func main() {
 	}
 	if f.Watch {
 		ch := make(chan run.Stage, 1)
-		ch <- run.Stage{Cluster: peers, Checkpoint: f.Checkpoint}
-		run.WatchRun(ctx, parent, parents, ch, j)
+		if f.InitVersion < 0 {
+			log.Infof(xterm.Blue.S("waiting to be initialized"))
+		} else {
+			ch <- run.Stage{
+				Cluster: plan.Cluster{
+					Runners: runners,
+					Workers: peers,
+				},
+				Version: f.InitVersion,
+			}
+		}
+		j.ConfigServer = f.ConfigServer
+		run.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
 	} else {
 		run.SimpleRun(ctx, localhostIPv4, peers, j, f.VerboseLog)
 	}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"sync"
 
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -16,8 +17,8 @@ import (
 )
 
 type Stage struct {
-	Checkpoint string
-	Cluster    plan.PeerList
+	Version int
+	Cluster plan.Cluster
 }
 
 func (s Stage) Encode() []byte {
@@ -32,16 +33,16 @@ func (s *Stage) Decode(bs []byte) error {
 }
 
 func (s Stage) Eq(t Stage) bool {
-	return s.Checkpoint == t.Checkpoint && s.Cluster.Eq(t.Cluster)
+	return s.Version == t.Version && s.Cluster.Eq(t.Cluster)
 }
 
 type Handler struct {
 	self plan.PeerID
 
-	mu          sync.Mutex
-	checkpoints map[string]Stage
-	ch          chan Stage
-	cancel      context.CancelFunc
+	mu       sync.RWMutex
+	versions map[int]Stage
+	ch       chan Stage
+	cancel   context.CancelFunc
 
 	controlHandlers map[string]rch.MsgHandleFunc
 }
@@ -53,7 +54,7 @@ func (h *Handler) Self() plan.PeerID {
 func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Handler {
 	h := &Handler{
 		self:            self,
-		checkpoints:     make(map[string]Stage),
+		versions:        make(map[int]Stage),
 		ch:              ch,
 		cancel:          cancel,
 		controlHandlers: make(map[string]rch.MsgHandleFunc),
@@ -95,19 +96,27 @@ func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.C
 	func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		if val, ok := h.checkpoints[s.Checkpoint]; ok {
+		if val, ok := h.versions[s.Version]; ok {
 			if !val.Eq(s) {
 				utils.ExitErr(errInconsistentUpdate)
 			}
 			return
 		}
-		h.checkpoints[s.Checkpoint] = s
+		h.versions[s.Version] = s
 		h.ch <- s
-		log.Debugf("update to %q with %d peers", s.Checkpoint, len(s.Cluster))
+		log.Debugf("update to v%d with %s", s.Version, s.Cluster.DebugString())
 	}()
 }
 
 func (h *Handler) handleContrlExit(_name string, msg *rch.Message, _conn net.Conn, remote plan.NetAddr) {
 	log.Infof("exit control message received.")
 	h.cancel()
+}
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	e := json.NewEncoder(w)
+	e.SetIndent("", "    ")
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	e.Encode(h.versions)
 }

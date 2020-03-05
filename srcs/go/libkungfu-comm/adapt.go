@@ -4,10 +4,9 @@ import "github.com/lsds/KungFu/srcs/go/utils"
 
 import "C"
 
-//export GoKungfuResizeCluster
-func GoKungfuResizeCluster(pCkpt *C.char, size int, pChanged, pKeep *C.char) int {
-	ckpt := C.GoString(pCkpt)
-	changed, keep, err := kungfu.ResizeCluster(ckpt, size)
+//export GoKungfuResizeClusterFromURL
+func GoKungfuResizeClusterFromURL(pChanged, pKeep *C.char) int {
+	changed, keep, err := kungfu.ResizeClusterFromURL()
 	if err != nil {
 		utils.ExitErr(err)
 	}

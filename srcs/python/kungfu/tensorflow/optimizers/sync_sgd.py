@@ -1,7 +1,7 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.ops import (current_cluster_size, defuse, fuse,
-                                   group_all_reduce, group_nccl_all_reduce)
+from kungfu.tensorflow.ops import (defuse, fuse, group_all_reduce,
+                                   group_nccl_all_reduce, peer_info)
 
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
                    _KungFuAlgorithm)
@@ -9,7 +9,7 @@ from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
 
 def SynchronousSGDOptimizer(optimizer,
                             nccl=False,
-                            nccl_fusion=True,
+                            nccl_fusion=False,
                             name=None,
                             use_locking=False,
                             with_keras=False):
@@ -49,7 +49,7 @@ class _SynchronousSGD(_KungFuAlgorithm):
     def __init__(self, nccl=False, nccl_fusion=True):
         self._nccl = nccl
         self._nccl_fusion = nccl_fusion
-        self._num_workers = current_cluster_size()
+        _rank, self._num_workers = peer_info()
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         gradients, variables = list(zip(*grads_and_vars))
@@ -70,8 +70,8 @@ class _SynchronousSGD(_KungFuAlgorithm):
         else:
             summed_gradients = group_all_reduce(gradients)
 
-        reduced_grads = map_maybe(lambda g: g / self._num_workers,
-                                  summed_gradients)
+        np = tf.cast(self._num_workers, tf.float32)
+        reduced_grads = map_maybe(lambda g: g / np, summed_gradients)
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         reduced_grads_and_vars = zip(reduced_grads, variables)

@@ -9,6 +9,9 @@ timeout=2m
 cap=16
 H=127.0.0.1:$cap
 
+# travis-ci 10010: bind: address already in use
+PORT_RANGE=20001-20016
+
 kungfu_run() {
     local init_np=$1
     shift
@@ -17,6 +20,7 @@ kungfu_run() {
         -H ${H} \
         -np $init_np \
         -timeout ${timeout} \
+        -port-range ${PORT_RANGE} \
         -w \
         $@
 }

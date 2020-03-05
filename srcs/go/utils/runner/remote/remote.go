@@ -2,10 +2,8 @@ package remote
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"strings"
+	"path"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,8 +15,9 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
-func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bool) ([]*Outputs, error) {
-	outputs := make([]*Outputs, len(ps))
+func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bool, logDir string) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	var wg sync.WaitGroup
 	var fail int32
 	for i, p := range ps {
@@ -32,56 +31,27 @@ func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bo
 			}
 			client, err := ssh.New(config)
 			if err != nil {
-				log.Errorf("%s #<%s> failed to new SSH Client with config: %v: %v", xterm.Red.S("[E]"), p.Name, config, err)
+				log.Errorf("#<%s> failed to new SSH Client with config: %v: %v", p.Name, config, err)
 				atomic.AddInt32(&fail, 1)
-				outputs[i] = &Outputs{}
 				return
 			}
-			outWatcher := iostream.NewStreamWatcher(fmt.Sprintf("%s::stdout", p.Name), verboseLog)
-			errWatcher := iostream.NewStreamWatcher(fmt.Sprintf("%s::stderr", p.Name), verboseLog)
-			getOutputs := func() *Outputs {
-				return &Outputs{
-					Stdout: outWatcher.Wait(),
-					Stderr: errWatcher.Wait(),
-				}
+			var redirectors []*iostream.StdWriters
+			if verboseLog {
+				redirectors = append(redirectors, iostream.NewXTermRedirector(p.Name, xterm.BasicColors.Choose(i)))
 			}
-			if err := client.Watch(ctx, p.Script(), outWatcher.Watch, errWatcher.Watch); err != nil {
-				log.Errorf("%s #<%s> exited with error: %v, took %s", xterm.Red.S("[E]"), p.Name, err, time.Since(t0))
+			redirectors = append(redirectors, iostream.NewFileRedirector(path.Join(logDir, p.Name)))
+			if err := client.Watch(ctx, p.Script(), redirectors); err != nil {
+				log.Errorf("#<%s> exited with error: %v, took %s", p.Name, err, time.Since(t0))
 				atomic.AddInt32(&fail, 1)
-				outputs[i] = getOutputs()
+				cancel()
 				return
 			}
-			outputs[i] = getOutputs()
-			log.Infof("%s #<%s> finished successfully, took %s", xterm.Green.S("[I]"), p.Name, time.Since(t0))
+			log.Debugf("#<%s> finished successfully, took %s", p.Name, time.Since(t0))
 		}(i, p)
 	}
 	wg.Wait()
 	if fail != 0 {
-		return outputs, fmt.Errorf("%d peers failed", fail)
-	}
-	return outputs, nil
-}
-
-// Outputs stores stdout/stderr of a process
-type Outputs struct {
-	Stdout []string
-	Stderr []string
-}
-
-func (r *Outputs) SaveTo(prefix string) error {
-	var errs []error
-	if r.Stdout != nil {
-		if err := ioutil.WriteFile(prefix+".stdout.log", []byte(strings.Join(r.Stdout, "\n")), 0666); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if r.Stderr != nil {
-		if err := ioutil.WriteFile(prefix+".stderr.log", []byte(strings.Join(r.Stderr, "\n")), 0666); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) > 0 {
-		return errors.New("failed to save some files")
+		return fmt.Errorf("%d tasks failed", fail)
 	}
 	return nil
 }

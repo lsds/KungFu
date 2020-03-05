@@ -9,15 +9,15 @@
 
 extern "C" {
 extern void kungfu_python_init();
-extern void kungfu_python_init_gpu();
+extern void kungfu_python_init_nccl();
 
 extern void kungfu_python_finialize();
-extern void kungfu_python_finialize_gpu();
+extern void kungfu_python_finialize_nccl();
 
 extern int kungfu_get_cuda_index();
 
 // helpers APIs to access kungfu without tensorflow operators
-// FIXME: don't mix with tensorflow binding
+extern uint64_t kungfu_uid();
 extern int kungfu_rank();          // get current rank
 extern int kungfu_local_rank();    // get current local rank
 extern int kungfu_cluster_size();  // get current size
@@ -37,42 +37,33 @@ class order_group
   public:
     using Task = DoneCallback;
 
-    order_group(const std::vector<std::string> &names);
+    order_group(const std::vector<std::string> &names,
+                const std::vector<int32_t> &order);
 
     ~order_group();
 
     void Start(const std::string &name, const Task &task);
 
-    void Wait();
+    std::vector<int32_t> Wait();
 };
 
-namespace tensorflow
-{
+extern std::unique_ptr<order_group> _nccl_order_group;
 
-struct cpu;
-struct gpu;
-
-template <class device> class world;
-
-template <> class world<gpu>
+class nccl_controller
 {
     std::unique_ptr<gpu_collective> _gpu_collective;
 
-    std::unique_ptr<order_group> _gpu_all_reduce_group;
-
   public:
-    world();
+    void InitOnce();
 
-    ~world();
+    int ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
+                           void *recvbuf, int count, KungFu_Datatype dtype,
+                           KungFu_Op op, const char *name, DoneCallback done);
 
-    void StartGroup(const std::vector<std::string> &name);
-
-    int AllReduce(DoneCallback ready, const void *sendbuf, void *recvbuf,
-                  int count, KungFu_Datatype dtype, KungFu_Op op,
-                  const char *name, DoneCallback done);
+    int AllReduce(const void *sendbuf, void *recvbuf, int count,
+                  KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                  DoneCallback done);
 };
 
-extern std::unique_ptr<world<gpu>> _world_gpu;
-
-}  // namespace tensorflow
+extern std::unique_ptr<nccl_controller> _nccl_controller;
 }  // namespace kungfu

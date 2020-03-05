@@ -9,6 +9,8 @@
 #include "fake_trainer.hpp"
 #include "testing.hpp"
 
+DEFINE_TRACE_CONTEXTS;
+
 int main(int argc, char *argv[])
 {
     TRACE_SCOPE(__func__);

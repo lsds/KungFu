@@ -50,7 +50,7 @@ func GenBinaryTree(k int) *Graph {
 	return g
 }
 
-func GenBinaryTreeStar(peers PeerList) *Graph {
+func genBinaryTreeStar(peers PeerList, offset int) *Graph {
 	g := NewGraph(len(peers))
 	masters, hostMaster := getLocalMasters(peers)
 	for rank, p := range peers {
@@ -59,16 +59,33 @@ func GenBinaryTreeStar(peers PeerList) *Graph {
 		}
 	}
 	if k := len(masters); k > 1 {
+		idx := func(i int) int {
+			return (i + offset) % k
+		}
 		for i := 0; i < k; i++ {
 			if j := i*2 + 1; j < k {
-				g.AddEdge(masters[i], masters[j])
+				g.AddEdge(masters[idx(i)], masters[idx(j)])
 			}
 			if j := i*2 + 2; j < k {
-				g.AddEdge(masters[i], masters[j])
+				g.AddEdge(masters[idx(i)], masters[idx(j)])
 			}
 		}
 	}
 	return g
+}
+
+func GenBinaryTreeStar(peers PeerList) *Graph {
+	return genBinaryTreeStar(peers, 0)
+}
+
+func GenMultiBinaryTreeStar(peers PeerList) []*Graph {
+	var gs []*Graph
+	masters, _ := getLocalMasters(peers)
+	m := len(masters)
+	for i := 0; i < m; i++ {
+		gs = append(gs, genBinaryTreeStar(peers, i))
+	}
+	return gs
 }
 
 // GenStarBcastGraph generates a star shape graph with k vertices and centered at vertice r (0 <= r < k)

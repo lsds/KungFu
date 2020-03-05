@@ -19,9 +19,9 @@ def broadcast(t):
     return _op_lib.kungfu_broadcast(t)
 
 
-def all_reduce(t):
+def all_reduce(t, op='sum'):
     """Create a new all_reduce operator for given tensor."""
-    return _op_lib.kungfu_all_reduce(t)
+    return _op_lib.kungfu_all_reduce(t, op=op)
 
 
 def _maybe_group_all_reduce(ts, group_all_reduce_fn):
@@ -41,6 +41,11 @@ def _nccl_all_reduce(t):
     return _op_lib.kungfu_nccl_all_reduce(t, input_tensor_name=t.name)
 
 
+def _scheduled_nccl_all_reduce(t):
+    return _op_lib.kungfu_scheduled_nccl_all_reduce(t,
+                                                    input_tensor_name=t.name)
+
+
 def _start_nccl_scheduler(*args, **kwargs):
     if hasattr(_op_lib, 'kungfu_start_nccl_scheduler'):
         return _op_lib.kungfu_start_nccl_scheduler(*args, **kwargs)
@@ -51,11 +56,12 @@ def _start_nccl_scheduler(*args, **kwargs):
 def group_nccl_all_reduce(ts):
     """Create a list of all_reduce operators for given tensor list, using NCCL."""
     names = [t.name for t in ts if t is not None]
-    if len(names) > 1:
-        print("WARNING: Please fuse tensors before using NCCL.")
-        names = list(sorted(names))  # FIXME: use topsort
-    import tensorflow as tf
-    with tf.control_dependencies([
-            _start_nccl_scheduler(names),
-    ]):
-        return map_maybe(_nccl_all_reduce, ts)
+    if len(names) == 1:
+        return map_maybe(_nccl_all_reduce, ts)  # exactly one of ts is not None
+    else:
+        names = list(sorted(names))
+        import tensorflow as tf
+        with tf.control_dependencies([
+                _start_nccl_scheduler(names),
+        ]):
+            return map_maybe(_scheduled_nccl_all_reduce, ts)

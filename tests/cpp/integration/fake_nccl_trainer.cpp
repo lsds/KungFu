@@ -13,6 +13,8 @@
 #include "resnet50_info.hpp"
 #include "testing.hpp"
 
+DEFINE_TRACE_CONTEXTS;
+
 template <typename T> struct fake_gpu_buffer_t {
     using value_type = T;
     const std::string name;

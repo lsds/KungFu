@@ -1,5 +1,7 @@
 #include <kungfu/tensorflow/ops.h>
 
+#include <kungfu/utils/trace.hpp>
+
 namespace tensorflow
 {
 REGISTER_KUNGFU_OP(Barrier);
@@ -58,15 +60,31 @@ REGISTER_KUNGFU_KERNEL_BUILDER(Consensus, DEVICE_CPU);
 // exactly the same shape.
 REGISTER_KUNGFU_OP(AllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("op: string")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);
 
 class AllReduce : public AsyncOpKernel
 {
-    using AsyncOpKernel::AsyncOpKernel;
+    KungFu_Op op_;
 
   public:
+    explicit AllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
+    {
+        std::string op;
+        OP_REQUIRES_OK(context, context->GetAttr("op", &op));
+        static const std::map<std::string, KungFu_Op> kungfu_op({
+            {"sum", KungFu_SUM},
+            {"min", KungFu_MIN},
+            {"max", KungFu_MAX},
+            {"prod", KungFu_PROD},
+        });
+        OP_REQUIRES(context, kungfu_op.count(op) > 0,
+                    errors::InvalidArgument("invalid op"));
+        op_ = kungfu_op.at(op);
+    }
+
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
@@ -76,7 +94,7 @@ class AllReduce : public AsyncOpKernel
         _kungfu_world->AllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
-            input.NumElements(), to_kungfu_type(input.dtype()), KungFu_SUM,
+            input.NumElements(), to_kungfu_type(input.dtype()), op_,
             name().c_str(), done);
     }
 };
@@ -84,7 +102,7 @@ class AllReduce : public AsyncOpKernel
 REGISTER_KUNGFU_KERNEL_BUILDER(AllReduce, DEVICE_CPU);
 
 REGISTER_KUNGFU_OP(Broadcast)
-    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("T: {int32, int64, float16, float32, float64, bool}")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);

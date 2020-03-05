@@ -16,7 +16,7 @@ typedef struct order_group_s order_group_t;
 extern order_group_t *new_ranked_order_group(int n_names);
 extern void del_order_group(order_group_t *);
 extern void order_group_do_rank(order_group_t *, int rank, callback_t *task);
-extern void order_group_wait(order_group_t *);
+extern void order_group_wait(order_group_t *, int32_t *arrive_order);
 
 #ifdef __cplusplus
 }
@@ -38,6 +38,7 @@ class kungfu_world
     ~kungfu_world();
 
     // metadata APIs
+    uint64_t Uid() const;
     int Rank() const;
     int LocalRank() const;
     int ClusterSize() const;
@@ -127,8 +128,7 @@ class kungfu_world
     int GetPeerLatencies(float *recvbuf, int recv_count);
 
     // control APIs
-    int ResizeCluster(const char *ckpt, int new_size, bool *changed,
-                      bool *keep);
+    int ResizeClusterFromURL(bool *changed, bool *keep);
 };
 
 #endif

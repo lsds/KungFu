@@ -2,20 +2,22 @@
 Usage:
     kungfu-run -q -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method CPU
     kungfu-run -q -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method NCCL
-    mpirun -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method CPU
+    mpirun -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method HOROVOD
 """
 
 import argparse
 import sys
-import time
 
 import tensorflow as tf
-from kungfu.ext import _finalize_python_lib, _get_cuda_index
-from kungfu.tensorflow.ops import (current_cluster_size, group_all_reduce,
-                                   group_nccl_all_reduce)
+from kungfu._utils import measure, one_based_range
+from kungfu.ext import _get_cuda_index
+from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
+                                   group_all_reduce, group_nccl_all_reduce)
+from kungfu.tensorflow.v1.benchmarks import model_sizes
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
+from tensorflow.python.util import deprecation
 
-from . import model_sizes
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def _tensor_size(t):
@@ -64,6 +66,14 @@ def _config(method):
     return config
 
 
+def _rank(method):
+    if method == 'HOROVOD':
+        import horovod.tensorflow as hvd
+        return hvd.rank()
+    else:
+        return current_rank()
+
+
 def parse_args():
     p = argparse.ArgumentParser(description='Perf Benchmarks.')
     p.add_argument('--model',
@@ -80,12 +90,18 @@ def parse_args():
 
 
 def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
+    rank = _rank(method)
+
+    def log(msg):
+        if rank == 0:
+            print(msg)
+
     xs = [tf.Variable(tf.ones([n], dtype)) for n in sizes]
     tot_size = sum(_tensor_size(x) for x in xs)
     np = get_cluster_size(method)
     multiplier = 4 * (np - 1)
-    print('all reduce %d tensors of total size: %s among %d peers, using %s' %
-          (len(sizes), show_size(tot_size), np, method))
+    log('all reduce %d tensors of total size: %s among %d peers, using %s' %
+        (len(sizes), show_size(tot_size), np, method))
 
     ys = _group_all_reduce_func[method](xs)
 
@@ -95,18 +111,18 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
     bench_steps = 10
 
     with tf.Session(config=_config(method)) as sess:
-        sess.run(init)
-        for step in range(warmup_steps):
-            sess.run(ys)
-        for step in range(bench_steps):
-            t0 = time.time()
-            sess.run(ys)
-            d = time.time() - t0
-            print('step %d, took %.2fs, equivalent data rate: %s' %
-                  (step, d, show_rate(tot_size * multiplier, d)))
+        duration, _ = measure(lambda: sess.run(init))
+        log('tensorflow init took %.fs' % (duration))
 
+        for step in one_based_range(warmup_steps):
+            duration, _ = measure(lambda: sess.run(ys))
+            log('warmup step %d, took %.2fs, equivalent data rate: %s' %
+                (step, duration, show_rate(tot_size * multiplier, duration)))
 
-Mi = 1 << 20
+        for step in one_based_range(bench_steps):
+            duration, _ = measure(lambda: sess.run(ys))
+            log('step %d, took %.2fs, equivalent data rate: %s' %
+                (step, duration, show_rate(tot_size * multiplier, duration)))
 
 
 def main(_):
@@ -118,7 +134,6 @@ def main(_):
     if args.fuse:
         sizes = [sum(sizes)]
     all_reduce_benchmark(sizes, dtype, args.method)
-    _finalize_python_lib()
 
 
 if __name__ == "__main__":

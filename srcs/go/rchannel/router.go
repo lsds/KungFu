@@ -31,8 +31,8 @@ func (r *Router) Self() plan.PeerID {
 	return plan.PeerID(r.localAddr)
 }
 
-func (r *Router) ResetConnections(keeps plan.PeerList) {
-	r.connPool.reset(keeps)
+func (r *Router) ResetConnections(keeps plan.PeerList, token uint32) {
+	r.connPool.reset(keeps, token)
 }
 
 // Send sends data in buf to given Addr
@@ -49,10 +49,7 @@ func (r *Router) Send(a plan.Addr, buf []byte, t ConnType, flags uint32) error {
 }
 
 func (r *Router) send(a plan.Addr, msg Message, t ConnType, flags uint32) error {
-	conn, err := r.connPool.get(a.NetAddr(), r.localAddr, t)
-	if err != nil {
-		return err
-	}
+	conn := r.connPool.get(a.NetAddr(), r.localAddr, t)
 	if err := conn.Send(a.Name, msg, flags); err != nil {
 		return err
 	}

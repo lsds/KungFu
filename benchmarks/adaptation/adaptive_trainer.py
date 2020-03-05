@@ -7,7 +7,7 @@ t0 = time.time()  # before import tensorflow
 
 import tensorflow as tf
 from kungfu.tensorflow.ops import (all_reduce, barrier, current_cluster_size,
-                                   get_init_checkpoint, resize_cluster)
+                                   resize_cluster_from_url)
 from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -66,29 +66,26 @@ def restore(checkpoint):
     return gs
 
 
-ckpt = tf.placeholder(tf.string)
 new_size = tf.placeholder(tf.int32)
-resize_op = resize_cluster(ckpt, new_size)
+resize_op = resize_cluster_from_url()
 
 init = tf.global_variables_initializer()
-
-# barrier_op = barrier()
 
 with tf.Session() as sess:
     sess.run(init)
 
-    init_gs = restore(get_init_checkpoint())
     np = current_cluster_size()
-    init_np = get_cluster_size(init_gs, cluster_size_schedule, np)
-    if np != init_np:
-        print(
-            '[W] init cluster size (np=%d) is not consistent with schedule (np=%d)'
-            % (np, init_np))
 
-    print('restored from %d, np=%d, init_np=%d, start took %s' %
-          (init_gs, np, init_np, show_duration(time.time() - t0)))
-
-    for gs in range(init_gs, max_step):
+    gs_place = tf.placeholder(dtype=tf.int64, shape=())
+    sync_step_op = all_reduce(gs_place, op='max')
+    shoud_sync = True
+    gs = 0
+    while gs < max_step:
+        if shoud_sync:
+            new_gs = sess.run(sync_step_op, feed_dict={gs_place: gs})
+            print('sync step: %d -> %d' % (gs, new_gs))
+            gs = new_gs
+            shoud_sync = False
         t0 = time.time()
         v = sess.run(y)
         print('step %d, result: %d, np=%d, took %s' %
@@ -99,13 +96,13 @@ with tf.Session() as sess:
             new_np = get_cluster_size(next_gs, cluster_size_schedule, np)
             if new_np != np:
                 t0 = time.time()
-                _, keep = sess.run(resize_op,
-                                   feed_dict={
-                                       ckpt: str(next_gs),
-                                       new_size: new_np,
-                                   })
+                print('TODO: propose new np: %d' % (np))
+                changed, keep = sess.run(resize_op)
                 print('resize %d -> %d took %s' %
                       (np, new_np, show_duration(time.time() - t0)))
                 np = new_np
                 if not keep:
                     break
+                if changed:
+                    shoud_sync = True
+        gs += 1

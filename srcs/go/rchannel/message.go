@@ -49,6 +49,18 @@ func (h *connectionHeader) ReadFrom(r io.Reader) error {
 	return binary.Read(r, endian, h)
 }
 
+type connectionACK struct {
+	Token uint32
+}
+
+func (a connectionACK) WriteTo(w io.Writer) error {
+	return binary.Write(w, endian, &a)
+}
+
+func (a *connectionACK) ReadFrom(r io.Reader) error {
+	return binary.Read(r, endian, a)
+}
+
 const NoFlag uint32 = 0
 
 const (
