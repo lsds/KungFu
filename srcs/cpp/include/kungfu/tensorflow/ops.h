@@ -23,6 +23,8 @@ inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
         return KungFu_FLOAT;
     case DT_DOUBLE:
         return KungFu_DOUBLE;
+    case DT_BOOL:
+        return KungFu_BOOL;
     default:
         // TODO: add more types
         throw std::invalid_argument("unsupported dtype");
