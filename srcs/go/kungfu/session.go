@@ -236,6 +236,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			go func(i, rank int) {
 				errs[i] = op(sess.peers[rank])
 				if errs[i] != nil {
+					fmt.Println("error in par")
 					// TODO report sess.peers[rank] as gone
 					// client.Post(endpoint.String(), "application/json", bytes.NewBuffer(reqBody))
 				}
@@ -257,7 +258,16 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			case <-ch:
 			case <-time.After(timeout):
 				fmt.Println("timed out in seq")
-				// TODO healthcheck() ping?
+				conn := rch.NewPingConnection(plan.NetAddr(sess.self), plan.NetAddr(sess.peers[rank]))
+				defer conn.Close()
+				var empty rch.Message
+				err := conn.Send("ping", empty, rch.NoFlag)
+				if err != nil {
+					fmt.Println("ping failed")
+					// TODO report sess.peers[rank] as gone
+				} else {
+					fmt.Println("successful ping")
+				}
 			}
 		}
 	}
