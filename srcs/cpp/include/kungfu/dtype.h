@@ -34,7 +34,7 @@ enum KungFu_Datatype {
     KungFu_FLOAT16 = TYPE_CODE(2, 2),
     KungFu_FLOAT   = TYPE_CODE(2, 4),
     KungFu_DOUBLE  = TYPE_CODE(2, 8),
-    
+
     KungFu_BOOL = TYPE_CODE(3, 1),
 };
 
