@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
@@ -13,8 +14,9 @@ import (
 )
 
 var (
-	maxStep  = flag.Int("max-step", 10, "")
-	runTrain = flag.Bool("train", true, "")
+	maxStep    = flag.Int("max-step", 10, "")
+	runTrain   = flag.Bool("train", true, "")
+	errorAfter = flag.Duration("error-after", 10*time.Second, "")
 )
 
 func main() {
@@ -25,8 +27,23 @@ func main() {
 	}
 	kungfu.Start()
 	defer kungfu.Close()
-
-	fakeTrainLoop(kungfu)
+	rank := kungfu.CurrentSession().Rank()
+	if rank == 0 {
+		ch := make(chan bool, 1)
+		go func() {
+			fakeTrainLoop(kungfu)
+			ch <- true
+		}()
+		select {
+		case <-time.After(*errorAfter):
+			fmt.Println("rank 0 exits")
+			os.Exit(0)
+		case <-ch:
+			return
+		}
+	} else {
+		fakeTrainLoop(kungfu)
+	}
 }
 
 func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {

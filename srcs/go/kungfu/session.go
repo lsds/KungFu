@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -225,13 +226,26 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		recvCount++
 	}
 
+	timeout := time.Duration(5 * time.Second)
+
 	par := func(ranks []int, op func(plan.PeerID) error) error {
 		errs := make([]error, len(ranks))
 		var wg sync.WaitGroup
 		for i, rank := range ranks {
 			wg.Add(1)
 			go func(i, rank int) {
-				errs[i] = op(sess.peers[rank])
+				ch := make(chan bool, 1)
+				go func() {
+					errs[i] = op(sess.peers[rank])
+					ch <- true
+				}()
+				select {
+				case <-ch:
+				case <-time.After(timeout):
+					fmt.Println("timed out in par")
+					// TODO report sess.peers[rank] as gone
+					// client.Post(endpoint.String(), "application/json", bytes.NewBuffer(reqBody))
+				}
 				wg.Done()
 			}(i, rank)
 		}
@@ -241,7 +255,17 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 	seq := func(ranks []int, op func(plan.PeerID)) {
 		for _, rank := range ranks {
-			op(sess.peers[rank])
+			ch := make(chan bool, 1)
+			go func() {
+				op(sess.peers[rank])
+				ch <- true
+			}()
+			select {
+			case <-ch:
+			case <-time.After(timeout):
+				fmt.Println("timed out in seq")
+				// TODO healthcheck() ping?
+			}
 		}
 	}
 
