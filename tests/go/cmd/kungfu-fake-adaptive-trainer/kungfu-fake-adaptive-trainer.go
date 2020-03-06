@@ -17,6 +17,7 @@ var (
 	maxStep    = flag.Int("max-step", 10, "")
 	runTrain   = flag.Bool("train", true, "")
 	errorAfter = flag.Duration("error-after", 10*time.Second, "")
+	adaptive   = flag.Bool("adaptive", true, "")
 )
 
 func main() {
@@ -92,12 +93,14 @@ func fakeTrainLoop(kungfu *kf.Kungfu) {
 		}
 
 		// BEGIN tf.train.SessionRunHook::after_run
-		changed, keep := resize(kungfu)
-		if !keep {
-			break
-		}
-		if changed {
-			shouldSync = true
+		if *adaptive {
+			changed, keep := resize(kungfu)
+			if !keep {
+				break
+			}
+			if changed {
+				shouldSync = true
+			}
 		}
 		// BEGIN tf.train.SessionRunHook::after_run
 	}

@@ -1,7 +1,6 @@
 package kungfu
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -22,8 +21,8 @@ func timeoutHelper(timeoutDuration time.Duration, op func(), timeoutCallback fun
 	}
 }
 
-func healthCeck(self plan.PeerID, target plan.PeerID) {
-	conn := rch.NewPingConnection(plan.NetAddr(self), plan.NetAddr(target))
+func healthCheck(self plan.PeerID, target plan.PeerID) {
+	conn := rch.NewPingConnection(plan.NetAddr(target), plan.NetAddr(self))
 	defer conn.Close()
 	var empty rch.Message
 	err := conn.Send("ping", empty, rch.NoFlag)
@@ -32,6 +31,5 @@ func healthCeck(self plan.PeerID, target plan.PeerID) {
 		// TODO report sess.peers[rank] as gone
 	} else {
 		log.Errorf("successful ping %s -> %s", plan.NetAddr(self), plan.NetAddr(target))
-		fmt.Println("")
 	}
 }

@@ -27,7 +27,7 @@ func (sess *session) GetPeerLatencies() []time.Duration {
 }
 
 func getLatency(self, peer plan.PeerID) time.Duration {
-	conn := rch.NewPingConnection(plan.NetAddr(self), plan.NetAddr(peer))
+	conn := rch.NewPingConnection(plan.NetAddr(peer), plan.NetAddr(self))
 	defer conn.Close()
 	t0 := time.Now()
 	var empty rch.Message
