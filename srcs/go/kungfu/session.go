@@ -14,6 +14,7 @@ import (
 )
 
 const defaultRoot = 0
+const timeoutDuration = 5 * time.Second
 
 // A strategy is a pair of dataflow graphs
 type strategy struct {
@@ -207,26 +208,28 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 	var lock sync.Mutex
 	recvOnto := func(peer plan.PeerID) error {
-		m := sess.router.Collective.Recv(peer.WithName(w.Name))
-		b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
-		lock.Lock()
-		defer lock.Unlock()
-		if recvCount == 0 {
-			kb.Transform2(w.RecvBuf, w.SendBuf, b, w.OP)
-		} else {
-			kb.Transform(w.RecvBuf, b, w.OP)
-		}
-		recvCount++
-		rch.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
+		timeoutHelper(timeoutDuration, func() {
+			m := sess.router.Collective.Recv(peer.WithName(w.Name))
+			b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
+			lock.Lock()
+			defer lock.Unlock()
+			if recvCount == 0 {
+				kb.Transform2(w.RecvBuf, w.SendBuf, b, w.OP)
+			} else {
+				kb.Transform(w.RecvBuf, b, w.OP)
+			}
+			recvCount++
+			rch.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
+		}, func() { healthCeck(sess.self, peer) })
 		return nil
 	}
 
 	recvInto := func(peer plan.PeerID) {
-		sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
-		recvCount++
+		timeoutHelper(timeoutDuration, func() {
+			sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
+			recvCount++
+		}, func() { healthCeck(sess.self, peer) })
 	}
-
-	timeout := time.Duration(5 * time.Second)
 
 	par := func(ranks []int, op func(plan.PeerID) error) error {
 		errs := make([]error, len(ranks))
@@ -237,6 +240,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 				errs[i] = op(sess.peers[rank])
 				if errs[i] != nil {
 					fmt.Println("error in par")
+					log.Errorf("%s in par %s", errs[i], sess.peers[rank])
 					// TODO report sess.peers[rank] as gone
 					// client.Post(endpoint.String(), "application/json", bytes.NewBuffer(reqBody))
 				}
@@ -249,26 +253,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 	seq := func(ranks []int, op func(plan.PeerID)) {
 		for _, rank := range ranks {
-			ch := make(chan bool, 1)
-			go func() {
-				op(sess.peers[rank])
-				ch <- true
-			}()
-			select {
-			case <-ch:
-			case <-time.After(timeout):
-				fmt.Println("timed out in seq")
-				conn := rch.NewPingConnection(plan.NetAddr(sess.self), plan.NetAddr(sess.peers[rank]))
-				defer conn.Close()
-				var empty rch.Message
-				err := conn.Send("ping", empty, rch.NoFlag)
-				if err != nil {
-					fmt.Println("ping failed")
-					// TODO report sess.peers[rank] as gone
-				} else {
-					fmt.Println("successful ping")
-				}
-			}
+			op(sess.peers[rank])
 		}
 	}
 
