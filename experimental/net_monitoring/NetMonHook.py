@@ -20,6 +20,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
     """
 
     interference_threshold = 0.25
+    cluster_congestion_threshold = 0.5
     backoff_limit = 100
 
     def __init__(self):
@@ -30,6 +31,9 @@ class NetMonHook(tf.estimator.SessionRunHook):
 
 
     def begin(self):
+        # get the cluster size 
+        self._cluster_size = current_cluster_size()
+
         self.__setup_summary_writer()
         self._avg_step_dur_tensor = tf.Variable(0.,trainable=False)
         self._net_cong_mon_tensor = tf.Variable(np.int32(0), trainable=False)
@@ -46,12 +50,12 @@ class NetMonHook(tf.estimator.SessionRunHook):
         self._cond_var_Ada_setFalse = tf.assign(self._cond_var_Ada, False)
 
         #create AllReduce tensor
-        self._global_avg_step_dur_tensor = tf.Variable(0.,trainable=False)
-        self._global_avg_step_dur_tensor_place = tf.placeholder(tf.float32)
-        self._global_avg_step_dur_tensor_place_assign_op = tf.assign(self._global_avg_step_dur_tensor, self._global_avg_step_dur_tensor_place)
+        self._cong_tensor = tf.Variable(0,trainable=False)
+        self._cong_tensor_place = tf.placeholder(tf.int32)
+        self._cong_tensor_place_assign_op = tf.assign(self._cong_tensor, self._cong_tensor_place)
 
         #create AllReduce operator
-        self._global_avg_step_dur_allreduce_op = all_reduce(self._global_avg_step_dur_tensor)
+        self._cong_allreduce_op = all_reduce(self._cong_tensor)
 
         #create Broadcast handle
         self._broadcastOp = BroadcastGlobalVariablesOp()
@@ -106,32 +110,50 @@ class NetMonHook(tf.estimator.SessionRunHook):
             return
 
         #update global avg step dur tensor for performing all reduce 
-        run_context.session.run(self._global_avg_step_dur_tensor_place_assign_op, feed_dict={
-            self._global_avg_step_dur_tensor_place: step_dur,
-        })
+        # run_context.session.run(self._global_avg_step_dur_tensor_place_assign_op, feed_dict={
+        #     self._global_avg_step_dur_tensor_place: step_dur,
+        # })
 
         #perform allreduce to communicate cma between peers
-        global_aggr_avg = self.__cma_allreduce(run_context)
+        # global_aggr_avg = self.__cma_allreduce(run_context)
 
         #check for network interference:
         #If Global CMA average is deviating more than a predefined value from the last calculated CMA
         #trigger a network interference flag action
-        if global_aggr_avg - self._avg_step_dur > self.interference_threshold*self._avg_step_dur:
-            print("WARNINIG: Network congestion detected !")
+        if step_dur - self._avg_step_dur > self.interference_threshold*self._avg_step_dur:
+            print("WARNINIG: Worker network congestion detected !")
             
-            self._congestion_flag = True
+            # perform AllReduce to detect cluster congestion
+            #update congestion tensor for performing all reduce 
+            run_context.session.run(self._cong_allreduce_op, feed_dict={
+                self._cong_tensor_place: 1,
+            })
+
+            #perform allreduce to communicate congestion tensor between peers
+            global_cong = run_context.session.run(self._cong_allreduce_op)
+
+            if global_cong >= (self._cluster_size * self.cluster_congestion_threshold):
+                print("WARNINIG: Cluster network congestion detected !\n Changing to SMA.")
+
+                self._congestion_flag = True
+
+                #TODO: change for more intricate triggering algorithm
+                run_context.session.run(self._cond_var_Ada_setTrue)
+
+                #increment backoff counter
+                self._backOff_timer += 1
 
             #update network congestion monitor
             run_context.session.run(self._net_cong_mon_assign_op, feed_dict={
                 self._net_cong_mon_place: 1,
             })
-
-            #TODO: change for more intricate triggering algorithm
-            run_context.session.run(self._cond_var_Ada_setTrue)
-
-            #increment backoff counter
-            self._backOff_timer += 1
         else:
+
+            #update congestion tensor for performing all reduce 
+            run_context.session.run(self._cong_allreduce_op, feed_dict={
+                self._cong_tensor_place: 0,
+            })
+
             #update network congestion monitor
             run_context.session.run(self._net_cong_mon_assign_op, feed_dict={
                 self._net_cong_mon_place: 0,
@@ -141,7 +163,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
             #run_context.session.run(self._cond_var_Ada_setFalse)
 
         #Calculate and update Cumulative Moving Average (CMA)
-        self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + global_aggr_avg) / self._cur_step
+        self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + step_dur) / self._cur_step
 
         run_context.session.run(self._cma_assign_op, feed_dict={
             self._cma_place: self._avg_step_dur,
@@ -154,8 +176,8 @@ class NetMonHook(tf.estimator.SessionRunHook):
         cma_log_dir = 'mnist/model'
         self._cma_summary_writer = tf.summary.FileWriter(cma_log_dir)
 
-    def __cma_allreduce(self, run_context):
-        cluster_size = current_cluster_size()
+    # def __cma_allreduce(self, run_context):
+    #     cluster_size = current_cluster_size()
 
-        #perform CMA AllReduce
-        return (run_context.session.run(self._global_avg_step_dur_allreduce_op)) / cluster_size
+    #     #perform CMA AllReduce
+    #     return (run_context.session.run(self._global_avg_step_dur_allreduce_op)) / cluster_size
