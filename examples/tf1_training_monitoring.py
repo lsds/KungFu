@@ -20,6 +20,9 @@ flags.DEFINE_string('kf_optimizer', 'sync_sgd', 'KungFu optimizer')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('num_epochs', 1, 'Num of batches to train (epochs).')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning Rate')
+
+home = os.getenv("HOME")
+
 FLAGS = flags.FLAGS
 
 
@@ -176,7 +179,7 @@ def model_function(features, labels, mode):
         #get custom Ada optimizer
         #TODO: fix this and enable it
         spec = importlib.util.spec_from_file_location("CustomAdaSGD", 
-            "./experimental/net_monitoring/CustomAdaSGD.py")
+            os.path.join(home,"KungFu/experimental/net_monitoring/CustomAdaSGD.py"))
         CustomAda = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(CustomAda)
 
@@ -219,10 +222,18 @@ def model_function(features, labels, mode):
 
     return estimator_spec
 
+def getModelDr():
+    md = os.getenv("KUNGFU_SELF_SPEC")
+
+    if md is None:
+        return FLAGS.model_dir
+    else:
+        return md
 
 def main(_):
-    #model_dir = os.path.join(FLAGS.model_dir, os.getenv("KUNGFU_SELF_SPEC"))
-    model_dir  = "~/repos/KungFu/mnist/model"
+
+    model_dir = getModelDr()
+    # model_dir  = "~/repos/KungFu/mnist/model"
 
     #TODO: check if estimator session necessary
     # save_checkpoints_steps = 100
@@ -241,7 +252,7 @@ def main(_):
     num_train_steps = 10000
     
     #from ./experimental.net_monitoring.NetMonHook import NetMonHook
-    spec = importlib.util.spec_from_file_location("NetMonHook", "./experimental/net_monitoring/NetMonHook.py")
+    spec = importlib.util.spec_from_file_location("NetMonHook", os.path.join(home,"KungFu/experimental/net_monitoring/NetMonHook.py"))
     NetMon = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(NetMon)
 

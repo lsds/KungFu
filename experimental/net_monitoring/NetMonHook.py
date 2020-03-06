@@ -154,6 +154,9 @@ class NetMonHook(tf.estimator.SessionRunHook):
                 self._cong_tensor_place: 0,
             })
 
+            #perform allreduce to communicate congestion tensor between peers
+            global_cong = run_context.session.run(self._cong_allreduce_op)
+            
             #update network congestion monitor
             run_context.session.run(self._net_cong_mon_assign_op, feed_dict={
                 self._net_cong_mon_place: 0,
