@@ -24,6 +24,7 @@ type strategy struct {
 
 // session contains the immutable topology and strategies for a given period of logical duration
 type session struct {
+	kf           *Kungfu
 	strategies   []strategy
 	self         plan.PeerID
 	peers        plan.PeerList
@@ -33,25 +34,26 @@ type session struct {
 	strategyHash strategyHashFunc
 }
 
-func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
-	rank, ok := pl.Rank(self)
+func newSession(kf *Kungfu, pl plan.PeerList) (*session, bool) {
+	rank, ok := pl.Rank(kf.self)
 	if !ok {
 		return nil, false
 	}
-	localRank, ok := pl.LocalRank(self)
+	localRank, ok := pl.LocalRank(kf.self)
 	if !ok {
 		return nil, false
 	}
-	if strategy == kb.Auto {
-		strategy = autoSelect(pl)
+	if kf.strategy == kb.Auto {
+		kf.strategy = autoSelect(pl)
 	}
 	sess := &session{
-		strategies:   partitionStrategies[strategy](pl),
-		self:         self,
+		kf:           kf,
+		strategies:   partitionStrategies[kf.strategy](pl),
+		self:         kf.self,
 		peers:        pl,
 		rank:         rank,
 		localRank:    localRank,
-		router:       router,
+		router:       kf.router,
 		strategyHash: getStrategyHash(),
 	}
 	return sess, true
@@ -220,7 +222,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			}
 			recvCount++
 			rch.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
-		}, func() { healthCheck(sess.self, peer) })
+		}, func() { healthCheck(sess.self, peer, sess.kf.configServerURL) })
 		return nil
 	}
 
@@ -228,7 +230,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		timeoutHelper(timeoutDuration, func() {
 			sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 			recvCount++
-		}, func() { healthCheck(sess.self, peer) })
+		}, func() { healthCheck(sess.self, peer, sess.kf.configServerURL) })
 	}
 
 	par := func(ranks []int, op func(plan.PeerID) error) error {

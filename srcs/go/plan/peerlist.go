@@ -140,3 +140,9 @@ func getInitPeersFromEnv() (PeerList, error) {
 	}
 	return parsePeerList(val)
 }
+
+func (pl PeerList) Clone() PeerList {
+	newPeerList := make([]PeerID, len(pl))
+	copy(newPeerList, pl)
+	return newPeerList
+}

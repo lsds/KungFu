@@ -61,3 +61,7 @@ func (c Cluster) Validate() error {
 	}
 	return nil
 }
+
+func (c Cluster) Clone() Cluster {
+	return Cluster{Runners: c.Runners.Clone(), Workers: c.Workers.Clone()}
+}

@@ -103,6 +103,42 @@ func (s *configServer) stop(w http.ResponseWriter, req *http.Request) {
 	s.cancel()
 }
 
+func (s *configServer) removeWorker(w http.ResponseWriter, req *http.Request) {
+	s.Lock()
+	defer s.Unlock()
+	var cluster = s.cluster.Clone()
+	var peer plan.PeerID
+	if err := readJSON(req.Body, &peer); err != nil {
+		log.Errorf("failed to decode JSON: %v", err)
+		return
+	}
+	numWorkersSameIP := 0
+	for i, worker := range cluster.Workers {
+		if peer == worker {
+			cluster.Workers[i] = cluster.Workers[len(cluster.Workers)-1]
+			cluster.Workers = cluster.Workers[:len(cluster.Workers)-1]
+		} else {
+			if peer.IPv4 == worker.IPv4 {
+				numWorkersSameIP = numWorkersSameIP + 1
+			}
+		}
+	}
+	if numWorkersSameIP == 0 {
+		for i, runner := range s.cluster.Runners {
+			if peer.IPv4 == runner.IPv4 {
+				cluster.Runners[i] = cluster.Runners[len(cluster.Runners)-1]
+				cluster.Runners = cluster.Runners[:len(cluster.Runners)-1]
+			}
+		}
+	}
+	if err := cluster.Validate(); err != nil {
+		log.Errorf("invalid cluster config: %v", err)
+		return
+	}
+	s.cluster = &cluster
+	log.Infof("remove worker: %s", cluster)
+}
+
 func main() {
 	t0 := time.Now()
 	flag.Parse()
@@ -132,6 +168,7 @@ func main() {
 	mux.HandleFunc("/reset", http.HandlerFunc(h.resetConfig))
 	mux.HandleFunc("/clear", http.HandlerFunc(h.clearConfig))
 	mux.HandleFunc("/stop", http.HandlerFunc(h.stop))
+	mux.HandleFunc("/removeworker", http.HandlerFunc(h.removeWorker))
 	if *ttl > 0 {
 		ctx, cancel = context.WithTimeout(ctx, *ttl)
 		defer cancel()
