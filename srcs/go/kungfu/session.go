@@ -222,7 +222,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			}
 			recvCount++
 			rch.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
-		}, func() { healthCheck(sess.self, peer, sess.kf.configServerURL) })
+		}, func() { healthCheck(sess.kf, sess.self, peer) })
 		return nil
 	}
 
@@ -230,7 +230,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		timeoutHelper(timeoutDuration, func() {
 			sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 			recvCount++
-		}, func() { healthCheck(sess.self, peer, sess.kf.configServerURL) })
+		}, func() { healthCheck(sess.kf, sess.self, peer) })
 	}
 
 	par := func(ranks []int, op func(plan.PeerID) error) error {

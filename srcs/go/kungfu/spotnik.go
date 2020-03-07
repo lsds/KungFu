@@ -28,14 +28,21 @@ func timeoutHelper(timeoutDuration time.Duration, op func(), timeoutCallback fun
 	}
 }
 
-func healthCheck(self plan.PeerID, target plan.PeerID, configServer string) {
+func healthCheck(kf *Kungfu, self plan.PeerID, target plan.PeerID) {
 	conn, err := rch.NewPingConnection(plan.NetAddr(target), plan.NetAddr(self))
 	if err != nil {
 		log.Errorf("ping failed %s -> %s", plan.NetAddr(self), plan.NetAddr(target))
-		removeWorker(target, configServer)
+		removeWorker(target, kf.configServerURL)
+		fmt.Printf("%s removed worker %s\n", self, target)
+		_, _, err := kf.ResizeClusterFromURL()
+		// FIXME ResizeClusterFromURL () does not finish
+		fmt.Printf("%s called ResizeClusterFromURL\n", self)
+		if err != nil {
+			utils.ExitErr(err)
+		}
 	}
 	if conn != nil {
-		defer conn.Close()
+		conn.Close()
 	}
 }
 
