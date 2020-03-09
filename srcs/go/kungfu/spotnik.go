@@ -22,15 +22,10 @@ func timeoutHelper(kf *Kungfu, timeoutDuration time.Duration, op func(), timeout
 	}()
 	select {
 	case <-ch:
-		fmt.Printf("No TIMEOUT\n")
 	case <-time.After(timeoutDuration):
 		log.Errorf("timed out")
 		timeoutCallback()
 	}
-	// fmt.Printf("Before calling ResizeClusterFromURL\n")
-	// kf.ResizeClusterFromURL()
-	// // FIXME ResizeClusterFromURL() gets stuck at kf.consensus
-	// fmt.Printf("Called ResizeClusterFromURL\n")
 }
 
 func healthCheck(kf *Kungfu, self plan.PeerID, target plan.PeerID) {
@@ -39,9 +34,9 @@ func healthCheck(kf *Kungfu, self plan.PeerID, target plan.PeerID) {
 		conn.Close()
 	}
 	if err != nil {
-		log.Errorf("ping failed %s -> %s", plan.NetAddr(self), plan.NetAddr(target))
+		log.Warnf("ping failed %s -> %s", plan.NetAddr(self), plan.NetAddr(target))
 		removeWorker(target, kf.configServerURL)
-		fmt.Printf("%s removed worker %s\n", self, target)
+		log.Warnf("%s removed worker %s\n", self, target)
 	}
 }
 

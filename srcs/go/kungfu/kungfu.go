@@ -7,11 +7,9 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -190,22 +188,6 @@ func (kf *Kungfu) propose(cluster plan.Cluster) (bool, bool) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
 	}
-	if digest := cluster.Bytes(); !kf.consensus(digest) {
-		log.Errorf("diverge proposal detected among %d peers! I proposed %s", len(cluster.Workers), cluster.Workers)
-		return false, true
-	}
-	{
-		stage := run.Stage{
-			Version: kf.clusterVersion + 1,
-			Cluster: cluster,
-		}
-		// FIXME: assuming runners are up and running
-		if err := par(cluster.Runners, func(ctrl plan.PeerID) error {
-			return kf.router.Send(ctrl.WithName("update"), stage.Encode(), rch.ConnControl, 0)
-		}); err != nil {
-			utils.ExitErr(err)
-		}
-	}
 	func() {
 		kf.Lock()
 		defer kf.Unlock()
@@ -224,25 +206,11 @@ func (kf *Kungfu) propose(cluster plan.Cluster) (bool, bool) {
 
 func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
 	var cluster *plan.Cluster
-	for i := 0; ; i++ {
-		var err error
-		cluster, err = kf.getClusterConfig(kf.configServerURL)
-		if err != nil {
-			log.Errorf("getClusterConfig failed: %v, using current config", err)
-			cluster = kf.currentCluster
-		}
-		fmt.Printf("CLUSTER %s\n", cluster)
-		if digest := cluster.Bytes(); kf.consensus(digest) {
-			if i > 0 {
-				log.Infof("New peer list is consistent after failed %d times", i)
-			} else {
-				log.Debugf("New peer list is consistent after ONE attempt!")
-			}
-			break
-		}
-		fmt.Printf("AFTER consensus\n")
-		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentCluster.Workers), cluster.DebugString())
-		time.Sleep(50 * time.Millisecond)
+	var err error
+	cluster, err = kf.getClusterConfig(kf.configServerURL)
+	if err != nil {
+		log.Errorf("getClusterConfig failed: %v, using current config", err)
+		cluster = kf.currentCluster
 	}
 	changed, keep := kf.propose(*cluster)
 	if keep {
