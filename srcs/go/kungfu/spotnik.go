@@ -3,6 +3,7 @@ package kungfu
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,7 +15,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func timeoutHelper(kf *Kungfu, timeoutDuration time.Duration, op func(), timeoutCallback func()) {
+func timeoutHelper(kf *Kungfu, timeoutDuration time.Duration, op func(), timeoutCallback func() error) error {
 	ch := make(chan bool, 1)
 	go func() {
 		op()
@@ -22,13 +23,14 @@ func timeoutHelper(kf *Kungfu, timeoutDuration time.Duration, op func(), timeout
 	}()
 	select {
 	case <-ch:
+		return nil
 	case <-time.After(timeoutDuration):
 		log.Errorf("timed out")
-		timeoutCallback()
+		return timeoutCallback()
 	}
 }
 
-func healthCheck(kf *Kungfu, self plan.PeerID, target plan.PeerID) {
+func healthCheck(kf *Kungfu, self plan.PeerID, target plan.PeerID) error {
 	conn, err := rch.NewPingConnection(plan.NetAddr(target), plan.NetAddr(self))
 	if conn != nil {
 		conn.Close()
@@ -37,7 +39,9 @@ func healthCheck(kf *Kungfu, self plan.PeerID, target plan.PeerID) {
 		log.Warnf("ping failed %s -> %s", plan.NetAddr(self), plan.NetAddr(target))
 		removeWorker(target, kf.configServerURL)
 		log.Warnf("%s removed worker %s\n", self, target)
+		return errors.New("NodeFailure")
 	}
+	return nil
 }
 
 func removeWorker(worker plan.PeerID, configServer string) {

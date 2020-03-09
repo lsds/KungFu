@@ -202,15 +202,23 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return w.RecvBuf.Data
 	}
 	sendOnto := func(peer plan.PeerID) error {
-		return sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.NoFlag)
+		err := sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.NoFlag)
+		if err != nil {
+			removeWorker(peer, sess.kf.configServerURL)
+		}
+		return err
 	}
 	sendInto := func(peer plan.PeerID) error {
-		return sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.WaitRecvBuf)
+		err := sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.WaitRecvBuf)
+		if err != nil {
+			removeWorker(peer, sess.kf.configServerURL)
+		}
+		return err
 	}
 
 	var lock sync.Mutex
 	recvOnto := func(peer plan.PeerID) error {
-		timeoutHelper(sess.kf, timeoutDuration, func() {
+		return timeoutHelper(sess.kf, timeoutDuration, func() {
 			m := sess.router.Collective.Recv(peer.WithName(w.Name))
 			b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 			lock.Lock()
@@ -222,15 +230,14 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			}
 			recvCount++
 			rch.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
-		}, func() { healthCheck(sess.kf, sess.self, peer) })
-		return nil
+		}, func() error { return healthCheck(sess.kf, sess.self, peer) })
 	}
 
-	recvInto := func(peer plan.PeerID) {
-		timeoutHelper(sess.kf, timeoutDuration, func() {
+	recvInto := func(peer plan.PeerID) error {
+		return timeoutHelper(sess.kf, timeoutDuration, func() {
 			sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 			recvCount++
-		}, func() { healthCheck(sess.kf, sess.self, peer) })
+		}, func() error { return healthCheck(sess.kf, sess.self, peer) })
 	}
 
 	par := func(ranks []int, op func(plan.PeerID) error) error {
@@ -242,8 +249,6 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 				errs[i] = op(sess.peers[rank])
 				if errs[i] != nil {
 					log.Errorf("%s in par %s", errs[i], sess.peers[rank])
-					// TODO report sess.peers[rank] as gone
-					// client.Post(endpoint.String(), "application/json", bytes.NewBuffer(reqBody))
 				}
 				wg.Done()
 			}(i, rank)
@@ -252,10 +257,14 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return mergeErrors(errs, "par") // TODO should we still return it if we handle it here?
 	}
 
-	seq := func(ranks []int, op func(plan.PeerID)) {
+	seq := func(ranks []int, op func(plan.PeerID) error) error {
 		for _, rank := range ranks {
-			op(sess.peers[rank])
+			err := op(sess.peers[rank])
+			if err != nil {
+				return err
+			}
 		}
+		return nil
 	}
 
 	for _, g := range graphs {
@@ -274,7 +283,10 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			if len(prevs) == 0 && recvCount == 0 {
 				w.RecvBuf.CopyFrom(w.SendBuf)
 			} else {
-				seq(prevs, recvInto) // len(prevs) == 1 is expected
+				err := seq(prevs, recvInto) // len(prevs) == 1 is expected
+				if err != nil {
+					return err
+				}
 			}
 			if err := par(g.Nexts(sess.rank), sendInto); err != nil {
 				return err

@@ -16,7 +16,7 @@ import (
 var (
 	maxStep    = flag.Int("max-step", 10, "")
 	runTrain   = flag.Bool("train", true, "")
-	errorAfter = flag.Duration("error-after", 10*time.Second, "")
+	errorAfter = flag.Duration("error-after", 20*time.Second, "")
 	adaptive   = flag.Bool("adaptive", true, "")
 )
 
@@ -37,7 +37,20 @@ func main() {
 		}()
 		select {
 		case <-time.After(*errorAfter):
-			fmt.Println("rank 0 exits")
+			fmt.Printf("rank %d exits at %d\n", rank, time.Now().UnixNano())
+			os.Exit(0)
+		case <-ch:
+			return
+		}
+	} else if rank == 1 {
+		ch := make(chan bool, 1)
+		go func() {
+			fakeTrainLoop(kungfu)
+			ch <- true
+		}()
+		select {
+		case <-time.After(*errorAfter * 3):
+			fmt.Printf("rank %d exits at %d\n", rank, time.Now().UnixNano())
 			os.Exit(0)
 		case <-ch:
 			return
@@ -52,6 +65,7 @@ func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {
 	np := sess.ClusterSize()
 	rank := sess.Rank()
 	t0 := time.Now()
+	numErrors := 0
 	for _, name := range m.Names {
 		b := m.Buffers[name]
 		w := kf.Workspace{
@@ -60,7 +74,14 @@ func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {
 			OP:      kb.SUM,
 			Name:    name,
 		}
-		sess.AllReduce(w)
+		err := sess.AllReduce(w)
+		if err != nil {
+			log.Warnf("AllReduce %s", err)
+			numErrors = numErrors + 1
+		}
+	}
+	if numErrors > 0 {
+		fmt.Printf("DO NOT UPDATE\n")
 	}
 	fmt.Printf("step: %d, rank=%d, np=%d, took %s\n", step, rank, np, time.Since(t0))
 	if sess.Rank() == 0 {
@@ -137,6 +158,7 @@ func resize(kungfu *kf.Kungfu) (bool, bool) {
 			newRank := sess.Rank()
 			newSize := sess.ClusterSize()
 			log.Infof("resize %d -> %d took %s, rank %d -> %d", oldSize, newSize, time.Since(t0), oldRank, newRank)
+			fmt.Printf("RECOVERED AT %d\n", time.Now().UnixNano())
 		} else {
 			log.Infof("resize took %s, I'm not in the cluster of %d peers any more.", time.Since(t0), oldSize)
 		}
