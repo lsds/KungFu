@@ -14,7 +14,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func timeoutHelper(timeoutDuration time.Duration, op func(), timeoutCallback func()) {
+func timeoutHelper(kf *Kungfu, timeoutDuration time.Duration, op func(), timeoutCallback func()) {
 	ch := make(chan bool, 1)
 	go func() {
 		op()
@@ -22,27 +22,26 @@ func timeoutHelper(timeoutDuration time.Duration, op func(), timeoutCallback fun
 	}()
 	select {
 	case <-ch:
+		fmt.Printf("No TIMEOUT\n")
 	case <-time.After(timeoutDuration):
 		log.Errorf("timed out")
 		timeoutCallback()
 	}
+	// fmt.Printf("Before calling ResizeClusterFromURL\n")
+	// kf.ResizeClusterFromURL()
+	// // FIXME ResizeClusterFromURL() gets stuck at kf.consensus
+	// fmt.Printf("Called ResizeClusterFromURL\n")
 }
 
 func healthCheck(kf *Kungfu, self plan.PeerID, target plan.PeerID) {
 	conn, err := rch.NewPingConnection(plan.NetAddr(target), plan.NetAddr(self))
+	if conn != nil {
+		conn.Close()
+	}
 	if err != nil {
 		log.Errorf("ping failed %s -> %s", plan.NetAddr(self), plan.NetAddr(target))
 		removeWorker(target, kf.configServerURL)
 		fmt.Printf("%s removed worker %s\n", self, target)
-		_, _, err := kf.ResizeClusterFromURL()
-		// FIXME ResizeClusterFromURL () does not finish
-		fmt.Printf("%s called ResizeClusterFromURL\n", self)
-		if err != nil {
-			utils.ExitErr(err)
-		}
-	}
-	if conn != nil {
-		conn.Close()
 	}
 }
 
@@ -50,6 +49,7 @@ func removeWorker(worker plan.PeerID, configServer string) {
 	client := http.Client{Timeout: 1 * time.Second}
 	endpoint, err := url.Parse(configServer)
 	if err != nil {
+		fmt.Println("Parsing url failed")
 		utils.ExitErr(err)
 	}
 	reqBody, err := json.Marshal(worker)

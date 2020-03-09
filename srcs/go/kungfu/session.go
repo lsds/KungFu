@@ -210,7 +210,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 	var lock sync.Mutex
 	recvOnto := func(peer plan.PeerID) error {
-		timeoutHelper(timeoutDuration, func() {
+		timeoutHelper(sess.kf, timeoutDuration, func() {
 			m := sess.router.Collective.Recv(peer.WithName(w.Name))
 			b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 			lock.Lock()
@@ -227,7 +227,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	}
 
 	recvInto := func(peer plan.PeerID) {
-		timeoutHelper(timeoutDuration, func() {
+		timeoutHelper(sess.kf, timeoutDuration, func() {
 			sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 			recvCount++
 		}, func() { healthCheck(sess.kf, sess.self, peer) })

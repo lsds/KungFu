@@ -231,6 +231,7 @@ func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
 			log.Errorf("getClusterConfig failed: %v, using current config", err)
 			cluster = kf.currentCluster
 		}
+		fmt.Printf("CLUSTER %s\n", cluster)
 		if digest := cluster.Bytes(); kf.consensus(digest) {
 			if i > 0 {
 				log.Infof("New peer list is consistent after failed %d times", i)
@@ -239,6 +240,7 @@ func (kf *Kungfu) ResizeClusterFromURL() (bool, bool, error) {
 			}
 			break
 		}
+		fmt.Printf("AFTER consensus\n")
 		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(kf.currentCluster.Workers), cluster.DebugString())
 		time.Sleep(50 * time.Millisecond)
 	}
