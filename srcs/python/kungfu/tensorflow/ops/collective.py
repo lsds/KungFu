@@ -42,7 +42,7 @@ def spotnik_all_reduce(t, op='sum'):
 
 def spotnik_group_all_reduce(ts):
     """Create a list of all_reduce operators for given tensor list."""
-    all_reduce_list = [spotnik_all_reduce(t) for t in ts]
+    all_reduce_list = [spotnik_all_reduce(t) if t is not None else None for t in ts]
     tensors, not_succeeded = zip(all_reduce_list)
     num_not_succeeded = tf.add_n(not_succeeded)
     return tensors, num_not_succeeded
