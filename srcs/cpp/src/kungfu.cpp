@@ -159,6 +159,15 @@ int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
                              new CallbackWrapper(done));
 }
 
+int kungfu_world::SpotnikAllReduce(const void *sendbuf, void *recvbuf, int count,
+                            KungFu_Datatype dtype, int32_t *succeeded, KungFu_Op op,
+                            const char *name, const DoneCallback &done)
+{
+    return GoSpotnikAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
+                             dtype, succeeded, op, const_cast<char *>(name),
+                             new CallbackWrapper(done));
+}
+
 int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
                             KungFu_Datatype dtype, const char *name)
 {

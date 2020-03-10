@@ -36,6 +36,16 @@ def group_all_reduce(ts):
     """Create a list of all_reduce operators for given tensor list."""
     return map_maybe(all_reduce, ts)
 
+def spotnik_all_reduce(t, op='sum'):
+    """Create a new spotnik_all_reduce operator for given tensor."""
+    return _op_lib.kungfu_spotnik_all_reduce(t, op=op)
+
+def spotnik_group_all_reduce(ts):
+    """Create a list of all_reduce operators for given tensor list."""
+    all_reduce = [spotnik_all_reduce(t) for t in ts]
+    tensors = [t for t, _ in all_reduce]
+    num_not_succeeded = [t for t, _ in all_reduce]
+    return tensors, num_not_succeeded
 
 def _nccl_all_reduce(t):
     return _op_lib.kungfu_nccl_all_reduce(t, input_tensor_name=t.name)

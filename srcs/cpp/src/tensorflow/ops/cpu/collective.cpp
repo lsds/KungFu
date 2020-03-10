@@ -101,6 +101,58 @@ class AllReduce : public AsyncOpKernel
 
 REGISTER_KUNGFU_KERNEL_BUILDER(AllReduce, DEVICE_CPU);
 
+// The SpotnikAllReduce operator takes a single tensor (e.g. the computed gradient),
+// and reduce (by taking sum) with the peers, and finally returns a tensor with
+// exactly the same shape and if the operation succeeded.
+REGISTER_KUNGFU_OP(SpotnikAllReduce)
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("op: string")
+    .Input("input: T")
+    .Output("output: T")
+    .Output("succeeded: int32")
+    .SetShapeFn(shape_inference::UnchangedShape);
+
+class SpotnikAllReduce : public AsyncOpKernel
+{
+    KungFu_Op op_;
+
+  public:
+    explicit SpotnikAllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
+    {
+        std::string op;
+        OP_REQUIRES_OK(context, context->GetAttr("op", &op));
+        static const std::map<std::string, KungFu_Op> kungfu_op({
+            {"sum", KungFu_SUM},
+            {"min", KungFu_MIN},
+            {"max", KungFu_MAX},
+            {"prod", KungFu_PROD},
+        });
+        OP_REQUIRES(context, kungfu_op.count(op) > 0,
+                    errors::InvalidArgument("invalid op"));
+        op_ = kungfu_op.at(op);
+    }
+
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        const Tensor &input = context->input(0);
+        Tensor *output      = nullptr;
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, input.shape(), &output), done);
+        Tensor *succeeded      = nullptr;
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(1, MakeTensorShape(), &succeeded), done);
+        _kungfu_world->SpotnikAllReduce(
+            input.tensor_data().data(),
+            const_cast<char *>(output->tensor_data().data()),
+            input.NumElements(), to_kungfu_type(input.dtype()),
+            const_cast<int32_t *>(succeeded->scalar<int32_t>().data()),
+            op_,
+            name().c_str(), done);
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(SpotnikAllReduce, DEVICE_CPU);
+
 REGISTER_KUNGFU_OP(Broadcast)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Input("input: T")
