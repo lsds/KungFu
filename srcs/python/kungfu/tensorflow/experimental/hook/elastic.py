@@ -1,8 +1,10 @@
+import time
+import sys
 import tensorflow as tf
 from kungfu._utils import show_duration
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, current_cluster_size,
-                                   resize_cluster_from_url)
+                                   current_rank, resize_cluster_from_url)
 
 
 class ElasticHook(tf.train.SessionRunHook):
@@ -11,6 +13,10 @@ class ElasticHook(tf.train.SessionRunHook):
         self._total_samples = epoch_size * epochs
         self._need_sync = True
         self._exit_reason = None
+        # Spotnik
+        self._time_at_init = time.time()
+        self._exit_after = 2 * 60
+        self._rank = current_rank()
 
     def begin(self):
         self._step = 0
@@ -50,6 +56,9 @@ class ElasticHook(tf.train.SessionRunHook):
         if self._trained_samples >= self._total_samples:
             self._exit_reason = 'finished'
             run_context.request_stop()
+        if time.time() - self._time_at_init > self._exit_after and self._rank == 0:
+            print("ERROR")
+            sys.exit(0)
 
     def end(self, sess):
         if self._exit_reason is None:
