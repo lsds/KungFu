@@ -1,4 +1,5 @@
 from __future__ import absolute_import, division, print_function
+from tensorflow.python.util import deprecation
 
 import gzip
 import os
@@ -25,6 +26,7 @@ home = os.getenv("HOME")
 
 FLAGS = flags.FLAGS
 
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 def read32(bytestream):
     """Read 4 bytes from bytestream as an unsigned 32-bit integer."""
