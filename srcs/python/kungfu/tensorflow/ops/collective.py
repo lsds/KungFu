@@ -42,20 +42,11 @@ def spotnik_all_reduce(t, op='sum'):
     return _op_lib.kungfu_spotnik_all_reduce(t, op=op)
 
 
-def return_first(tup):
-    f, _ = tup
-    return f
-
-def return_second(tup):
-    _, s = tup
-    return s    
-
-
 def spotnik_group_all_reduce(ts):
     """Create a list of all_reduce operators for given tensor list."""
     all_reduce_list = [spotnik_all_reduce(t) if t is not None else None for t in ts]
-    tensors = [return_first(t) if t is not None else None for t in all_reduce_list]
-    not_succeeded = [return_second(t) for t in all_reduce_list if t is not None]
+    tensors = [t[0] if t is not None else None for t in all_reduce_list]
+    not_succeeded = [t[1] for t in all_reduce_list if t is not None]
     num_not_succeeded = tf.add_n(not_succeeded)
     return tensors, num_not_succeeded
 
