@@ -22,6 +22,8 @@ extern int kungfu_rank();          // get current rank
 extern int kungfu_local_rank();    // get current local rank
 extern int kungfu_cluster_size();  // get current size
 extern void kungfu_barrier();
+
+extern int kungfu_propose_new_size(int new_size);
 }
 
 extern std::unique_ptr<kungfu_world> _kungfu_world;

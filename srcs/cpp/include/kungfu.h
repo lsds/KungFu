@@ -129,6 +129,8 @@ class kungfu_world
 
     // control APIs
     int ResizeClusterFromURL(bool *changed, bool *keep);
+
+    int ProposeNewSize(int new_size);
 };
 
 #endif
