@@ -33,6 +33,12 @@ func (pl PeerList) Bytes() []byte {
 	return b.Bytes()
 }
 
+func (pl PeerList) Clone() PeerList {
+	ql := make(PeerList, len(pl))
+	copy(ql, pl)
+	return ql
+}
+
 func (pl PeerList) Rank(q PeerID) (int, bool) {
 	for i, p := range pl {
 		if p == q {

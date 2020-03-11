@@ -61,3 +61,53 @@ func (c Cluster) Validate() error {
 	}
 	return nil
 }
+
+func (c Cluster) Clone() Cluster {
+	return Cluster{
+		Runners: c.Runners.Clone(),
+		Workers: c.Workers.Clone(),
+	}
+}
+
+// append one worker to the runner which has the minimal number of workers
+func (c *Cluster) growOne() error {
+	usedSlots := make(map[uint32]int)
+	for _, r := range c.Runners {
+		usedSlots[r.IPv4] = 0
+	}
+	for _, w := range c.Workers {
+		usedSlots[w.IPv4]++
+	}
+	ipv4 := c.Runners[0].IPv4
+	for _, r := range c.Runners {
+		if usedSlots[r.IPv4] < usedSlots[ipv4] {
+			ipv4 = r.IPv4
+		}
+	}
+	var port uint16
+	for _, w := range c.Workers {
+		if w.IPv4 == ipv4 && port <= w.Port {
+			port = w.Port + 1
+		}
+	}
+	if port == 0 {
+		port = DefaultPortRange.Begin
+	}
+	newWorker := PeerID{IPv4: ipv4, Port: port}
+	c.Workers = append(c.Workers, newWorker)
+	return nil
+}
+
+func (c Cluster) Resize(newSize int) (*Cluster, error) {
+	d := c.Clone()
+	if len(d.Workers) > newSize {
+		d.Workers = d.Workers[:newSize]
+	}
+	for i := len(d.Workers); i < newSize; i++ {
+		// FIXME: make it more efficient
+		if err := d.growOne(); err != nil {
+			return nil, err
+		}
+	}
+	return &d, nil
+}
