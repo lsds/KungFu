@@ -116,6 +116,13 @@ int kungfu_world::Request(int destRank, const char *name, void *buf, int count,
                            GoInt(count), dtype, new CallbackWrapper(done));
 }
 
+int kungfu_world::SpotnikRequest(int destRank, const char *name, void *buf, int count,
+                          KungFu_Datatype dtype, int32_t *succeeded, const DoneCallback &done)
+{
+    return GoSpotnikRequest(destRank, const_cast<char *>(name), buf,
+                           GoInt(count), dtype, succeeded, new CallbackWrapper(done));
+}
+
 int kungfu_world::Request(int rank, const char *version, const char *name,
                           void *buf, int count, KungFu_Datatype dtype)
 {

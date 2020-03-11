@@ -15,7 +15,7 @@ class ElasticHook(tf.train.SessionRunHook):
         self._exit_reason = None
         # Spotnik
         self._time_at_init = time.time()
-        self._exit_after = 2 * 60
+        self._exit_after = 3 * 60
         self._rank = current_rank()
 
     def begin(self):

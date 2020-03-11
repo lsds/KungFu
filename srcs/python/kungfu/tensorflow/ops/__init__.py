@@ -8,7 +8,7 @@ from .collective import (all_reduce, barrier, broadcast, consensus,
                          spotnik_all_reduce, spotnik_group_all_reduce)
 from .local import save_variable, save_variables
 from .monitor import global_noise_scale
-from .p2p import request_variable, request_variable_with_template
+from .p2p import request_variable, request_variable_with_template, spotnik_request_variable, spotnik_request_variable_with_template
 from .state import counter, exponential_moving_average
 from .topology import peer_info
 

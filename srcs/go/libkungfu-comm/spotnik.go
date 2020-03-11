@@ -37,3 +37,28 @@ func GoSpotnikAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.Kung
 	}()
 	return 0
 }
+
+//export GoSpotnikRequest
+func GoSpotnikRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, succeeded *C.int32_t, done *C.callback_t) int {
+	sess := kungfu.CurrentSession()
+	goName := C.GoString(name) // copy *C.char into go string before entering closure
+	b := toVector(buf, count, dtype)
+	op := func() error {
+		ok, err := sess.Request(rank, "", goName, b)
+		if !ok {
+			// log.Warnf("Request %s not found", goName) TODO
+		}
+		return err
+	}
+	if done == nil {
+		code := errorCode(goName, op())
+		*succeeded = C.int32_t(code)
+		return code
+	}
+	go func() {
+		*succeeded = C.int32_t(errorCode(goName, op()))
+		C.invoke_callback(done)
+		C.delete_callback(done)
+	}()
+	return 0
+}

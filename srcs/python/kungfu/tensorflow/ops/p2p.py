@@ -32,3 +32,29 @@ def request_variable_with_template(target, template, version=None):
                             name=template.name,
                             shape=template.shape,
                             dtype=template.dtype)
+
+def spotnik_request_variable(target, version=None, name=None, shape=None, dtype=None):
+    """
+    target: a scalar tensor of int32
+    version: a scalar tensor of int64
+    name: string
+    """
+    if name is None:
+        raise RuntimeError('name is required')
+    if shape is None:
+        raise RuntimeError('shape is required')
+    if dtype is None:
+        raise RuntimeError('dtype is required')
+    return _op_lib.kungfu_spotnik_request_variable(target,
+                                           version=0,
+                                           tensor_name=name,
+                                           shape=shape,
+                                           T=dtype,
+                                           use_version=False)
+
+def spotnik_request_variable_with_template(target, template, version=None):
+    return spotnik_request_variable(target,
+                            version=version,
+                            name=template.name,
+                            shape=template.shape,
+                            dtype=template.dtype)

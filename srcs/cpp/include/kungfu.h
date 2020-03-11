@@ -59,6 +59,8 @@ class kungfu_world
                 KungFu_Datatype dtype);
     int Request(int destRank, const char *name, void *buf, int count,
                 KungFu_Datatype dtype, const DoneCallback &done);
+    int SpotnikRequest(int destRank, const char *name, void *buf, int count,
+                KungFu_Datatype dtype, int32_t *succeeded, const DoneCallback &done);
 
     int Request(int rank, const char *version, const char *name, void *buf,
                 int count, KungFu_Datatype dtype);
