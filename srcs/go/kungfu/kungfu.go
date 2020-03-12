@@ -105,6 +105,10 @@ func (kf *Kungfu) Close() error {
 	return nil
 }
 
+func (kf *Kungfu) Self() plan.PeerID {
+	return kf.self
+}
+
 // UID returns an immutable unique ID of this peer
 func (kf *Kungfu) UID() uint64 {
 	hi := uint64(kf.self.IPv4)

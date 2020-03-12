@@ -204,14 +204,14 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	sendOnto := func(peer plan.PeerID) error {
 		err := sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.NoFlag)
 		if err != nil {
-			removeWorker(peer, sess.kf.configServerURL)
+			sess.kf.removeWorker(peer, sess.kf.configServerURL)
 		}
 		return err
 	}
 	sendInto := func(peer plan.PeerID) error {
 		err := sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.WaitRecvBuf)
 		if err != nil {
-			removeWorker(peer, sess.kf.configServerURL)
+			sess.kf.removeWorker(peer, sess.kf.configServerURL)
 		}
 		return err
 	}

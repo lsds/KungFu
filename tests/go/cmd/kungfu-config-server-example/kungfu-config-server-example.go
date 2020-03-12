@@ -112,6 +112,7 @@ func (s *configServer) removeWorker(w http.ResponseWriter, req *http.Request) {
 		log.Errorf("failed to decode JSON: %v", err)
 		return
 	}
+	log.Infof("%s wants to remove %s", req.UserAgent(), peer)
 	numWorkersSameIP := 0
 	for i, worker := range cluster.Workers {
 		if peer == worker {
@@ -136,7 +137,7 @@ func (s *configServer) removeWorker(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	s.cluster = &cluster
-	log.Infof("remove worker: %s", cluster)
+	log.Infof("after remove worker: %s requested by %s", cluster, req.UserAgent())
 }
 
 func (s *configServer) addWorker(w http.ResponseWriter, req *http.Request) {

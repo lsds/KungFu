@@ -15,6 +15,8 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
+var errCollectiveOpTimeout = errors.New("collection op timeout")
+
 func timeoutHelper(kf *Kungfu, timeoutDuration time.Duration, op func(), timeoutCallback func() error) error {
 	ch := make(chan bool, 1)
 	go func() {
@@ -26,7 +28,8 @@ func timeoutHelper(kf *Kungfu, timeoutDuration time.Duration, op func(), timeout
 		return nil
 	case <-time.After(timeoutDuration):
 		log.Errorf("timed out")
-		return timeoutCallback()
+		timeoutCallback()
+		return errCollectiveOpTimeout
 	}
 }
 
@@ -37,15 +40,14 @@ func healthCheck(kf *Kungfu, self plan.PeerID, target plan.PeerID) error {
 	}
 	if err != nil {
 		log.Warnf("ping failed %s -> %s", plan.NetAddr(self), plan.NetAddr(target))
-		removeWorker(target, kf.configServerURL)
+		kf.removeWorker(target, kf.configServerURL)
 		log.Warnf("%s removed worker %s\n", self, target)
 		return errors.New("NodeFailure")
 	}
 	return nil
 }
 
-func removeWorker(worker plan.PeerID, configServer string) {
-	client := http.Client{Timeout: 1 * time.Second}
+func (kf *Kungfu) removeWorker(worker plan.PeerID, configServer string) {
 	endpoint, err := url.Parse(configServer)
 	if err != nil {
 		fmt.Println("Parsing url failed")
@@ -56,7 +58,14 @@ func removeWorker(worker plan.PeerID, configServer string) {
 		fmt.Println("Cannot marshal peer list")
 	}
 	endpoint.Path = "/removeworker"
-	resp, err := client.Post(endpoint.String(), "application/json", bytes.NewBuffer(reqBody))
+
+	req, err := http.NewRequest(http.MethodPut, endpoint.String(), bytes.NewBuffer(reqBody))
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", kf.self))
+
+	resp, err := kf.client.Do(req)
 	if err != nil {
 		fmt.Printf("Cannot post request %v\n", err)
 		return

@@ -28,8 +28,9 @@ func main() {
 	}
 	kungfu.Start()
 	defer kungfu.Close()
-	rank := kungfu.CurrentSession().Rank()
-	if rank == 0 {
+	self := kungfu.Self()
+	initRank := kungfu.CurrentSession().Rank()
+	if initRank == 0 {
 		ch := make(chan bool, 1)
 		go func() {
 			fakeTrainLoop(kungfu)
@@ -37,12 +38,12 @@ func main() {
 		}()
 		select {
 		case <-time.After(*errorAfter):
-			fmt.Printf("rank %d exits at %d\n", rank, time.Now().UnixNano())
+			fmt.Printf("%s rank %d exits at %d\n", self, initRank, time.Now().UnixNano())
 			os.Exit(0)
 		case <-ch:
 			return
 		}
-	} else if rank == 1 {
+	} else if initRank == 1 {
 		ch := make(chan bool, 1)
 		go func() {
 			fakeTrainLoop(kungfu)
@@ -50,7 +51,7 @@ func main() {
 		}()
 		select {
 		case <-time.After(*errorAfter * 3):
-			fmt.Printf("rank %d exits at %d\n", rank, time.Now().UnixNano())
+			fmt.Printf("%s rank %d exits at %d\n", self, initRank, time.Now().UnixNano())
 			os.Exit(0)
 		case <-ch:
 			return
@@ -76,14 +77,14 @@ func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {
 		}
 		err := sess.AllReduce(w)
 		if err != nil {
-			log.Warnf("AllReduce %s", err)
+			log.Warnf("AllReduce failed: %v", err)
 			numErrors = numErrors + 1
 		}
 	}
 	if numErrors > 0 {
 		fmt.Printf("DO NOT UPDATE\n")
 	}
-	fmt.Printf("step: %d, rank=%d, np=%d, took %s\n", step, rank, np, time.Since(t0))
+	fmt.Printf("step: %d, rank=%d, np=%d, took %s, got %d errors\n", step, rank, np, time.Since(t0), numErrors)
 	if sess.Rank() == 0 {
 		time.Sleep(600 * time.Millisecond)
 	} else {
