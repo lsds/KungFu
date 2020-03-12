@@ -165,7 +165,7 @@ func (s *configServer) addWorker(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	s.cluster = &cluster
-	log.Infof("remove worker: %s", cluster)
+	log.Infof("addWorker worker: %s", cluster)
 }
 
 func main() {

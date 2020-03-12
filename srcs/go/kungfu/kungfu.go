@@ -10,6 +10,7 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -187,6 +188,22 @@ func (kf *Kungfu) propose(cluster plan.Cluster) (bool, bool) {
 	if kf.currentCluster.Eq(cluster) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
+	}
+	// if digest := cluster.Bytes(); !kf.consensus(digest) {
+	// 	log.Errorf("diverge proposal detected among the peers! I proposed %s", cluster.DebugString())
+	// 	return false, true
+	// }
+	{
+		stage := run.Stage{
+			Version: kf.clusterVersion + 1,
+			Cluster: cluster,
+		}
+		// FIXME: assuming runners are up and running
+		if err := par(cluster.Runners, func(ctrl plan.PeerID) error {
+			return kf.router.Send(ctrl.WithName("update"), stage.Encode(), rch.ConnControl, 0)
+		}); err != nil {
+			utils.ExitErr(err)
+		}
 	}
 	func() {
 		kf.Lock()
