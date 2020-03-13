@@ -130,7 +130,7 @@ func parsePeerList(val string) (PeerList, error) {
 	parts := strings.Split(val, ",")
 	var pl PeerList
 	for _, p := range parts {
-		id, err := parseID(p)
+		id, err := ParsePeerID(p)
 		if err != nil {
 			return nil, err
 		}

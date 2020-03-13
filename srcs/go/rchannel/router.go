@@ -58,13 +58,16 @@ func (r *Router) send(a plan.Addr, msg Message, t ConnType, flags uint32) error 
 
 var ErrInvalidConnectionType = errors.New("invalid connection type")
 
-// Handle implements ConnHandler.Handle interface
+// Handle implements Handle method of ConnHandler interface
 func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error {
 	switch t {
 	case ConnCollective:
 		return r.Collective.Handle(conn, remote, t)
 	case ConnPeerToPeer:
 		return r.P2P.Handle(conn, remote, t)
+	case ConnControl:
+		var h controlHandler
+		return h.Handle(conn, remote, t)
 	default:
 		return ErrInvalidConnectionType
 	}
