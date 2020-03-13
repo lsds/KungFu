@@ -24,6 +24,8 @@ uint32_t kungfu_type_size(KungFu_Datatype dt)
         CASE(KungFu_FLOAT16, uint16_t);  //
         CASE(KungFu_FLOAT, float);
         CASE(KungFu_DOUBLE, double);
+
+        CASE(KungFu_BOOL, char);
     default:
         fprintf(stderr, "unknown dtype: %d\n", (int)(dt));
         exit(1);

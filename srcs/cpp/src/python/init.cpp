@@ -22,6 +22,11 @@ int kungfu_cluster_size() { return _kungfu_world->ClusterSize(); }
 
 void kungfu_barrier() { _kungfu_world->Barrier(); }
 
+int kungfu_propose_new_size(int new_size)
+{
+    return _kungfu_world->ProposeNewSize(new_size);
+}
+
 namespace kungfu
 {
 order_group::order_group(const std::vector<std::string> &names,
