@@ -125,7 +125,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
             
             # perform AllReduce to detect cluster congestion
             #update congestion tensor for performing all reduce 
-            run_context.session.run(self._cong_allreduce_op, feed_dict={
+            run_context.session.run(self._cong_tensor_place_assign_op, feed_dict={
                 self._cong_tensor_place: 1,
             })
 
@@ -150,7 +150,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
         else:
 
             #update congestion tensor for performing all reduce 
-            run_context.session.run(self._cong_allreduce_op, feed_dict={
+            run_context.session.run(self._cong_tensor_place_assign_op, feed_dict={
                 self._cong_tensor_place: 0,
             })
 
