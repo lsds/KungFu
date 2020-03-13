@@ -33,17 +33,16 @@ class _CustomAdaSGD(_KungFuAlgorithm):
         sum_grads = group_all_reduce(gradients)
         avg_grads = map_maybe(lambda g: g / self._num_workers, sum_grads)
 
-        print_op = tf.print("Inside SSGD")
+        # print_op = tf.print("Inside SSGD")
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         grads_and_vars = zip(avg_grads, variables)
 
-        with tf.control_dependencies([print_op]):
-            return apply_grads_func(grads_and_vars, **kwargs)
+        return apply_grads_func(grads_and_vars, **kwargs)
 
     def _sma(self, apply_grads_func, gradients, variables, **kwargs):
         # It is important to apply model averaging every iteration [2]
-        print_op = tf.print("Inside SMA")
+        # print_op = tf.print("Inside SMA")
 
         sum_vars = group_all_reduce(variables)
         avg_vars = [v / self._num_workers for v in sum_vars]
@@ -58,7 +57,7 @@ class _CustomAdaSGD(_KungFuAlgorithm):
         grads_and_vars = zip(gradients, variables)
 
         # We can overlap model averaging and local SGD [2].
-        with tf.control_dependencies(assign_ops + [print_op]):
+        with tf.control_dependencies(assign_ops):
             return apply_grads_func(grads_and_vars, **kwargs)
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
