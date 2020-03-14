@@ -245,3 +245,8 @@ int kungfu_world::ResizeClusterFromURL(bool *changed, bool *keep)
     return GoKungfuResizeClusterFromURL(reinterpret_cast<char *>(changed),
                                         reinterpret_cast<char *>(keep));
 }
+
+int kungfu_world::ProposeNewSize(int new_size)
+{
+    return GoKungfuProposeNewSize(GoInt(new_size));
+}

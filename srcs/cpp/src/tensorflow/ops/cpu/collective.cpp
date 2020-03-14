@@ -154,7 +154,7 @@ class SpotnikAllReduce : public AsyncOpKernel
 REGISTER_KUNGFU_KERNEL_BUILDER(SpotnikAllReduce, DEVICE_CPU);
 
 REGISTER_KUNGFU_OP(Broadcast)
-    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("T: {int32, int64, float16, float32, float64, bool}")
     .Input("input: T")
     .Output("output: T")
     .SetShapeFn(shape_inference::UnchangedShape);

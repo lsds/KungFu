@@ -2,8 +2,9 @@ import os
 
 import numpy as np
 import tensorflow as tf
+from kungfu.ext import propose_new_size
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-from kungfu.tensorflow.ops import (all_reduce, consensus,
+from kungfu.tensorflow.ops import (all_reduce, consensus, current_cluster_size,
                                    resize_cluster_from_url,
                                    step_based_schedule)
 
@@ -48,7 +49,7 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
     def after_run(self, run_context, run_values):
         new_size = run_context.session.run(
             self._new_size_op, feed_dict={self._step_place: self._step})
-        print('TODO: propose new list with new_size')
+        propose_new_size(new_size)
         changed, keep = run_context.session.run(self._resize_op)
         if not keep:
             run_context.request_stop()

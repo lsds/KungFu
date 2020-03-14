@@ -33,6 +33,12 @@ func (pl PeerList) Bytes() []byte {
 	return b.Bytes()
 }
 
+func (pl PeerList) Clone() PeerList {
+	ql := make(PeerList, len(pl))
+	copy(ql, pl)
+	return ql
+}
+
 func (pl PeerList) Rank(q PeerID) (int, bool) {
 	for i, p := range pl {
 		if p == q {
@@ -124,7 +130,7 @@ func parsePeerList(val string) (PeerList, error) {
 	parts := strings.Split(val, ",")
 	var pl PeerList
 	for _, p := range parts {
-		id, err := parseID(p)
+		id, err := ParsePeerID(p)
 		if err != nil {
 			return nil, err
 		}
@@ -139,10 +145,4 @@ func getInitPeersFromEnv() (PeerList, error) {
 		return nil, fmt.Errorf("%s not set", kb.PeerListEnvKey)
 	}
 	return parsePeerList(val)
-}
-
-func (pl PeerList) Clone() PeerList {
-	newPeerList := make([]PeerID, len(pl))
-	copy(newPeerList, pl)
-	return newPeerList
 }

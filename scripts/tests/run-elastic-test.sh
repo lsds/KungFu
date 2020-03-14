@@ -17,6 +17,8 @@ kungfu_flags() {
     echo -H $H
     echo -np $init_np
     echo -logdir logs
+    echo -w
+    echo -config-server http://127.0.0.1:9100/get
 }
 
 flags() {
@@ -29,7 +31,7 @@ main() {
     rm -fr checkpoints
     env \
         PATH=$PWD/bin:$PATH \
-        kungfu-run -w $(kungfu_flags) python3 tests/python/integration/test_elastic_estimator.py $(flags)
+        kungfu-run $(kungfu_flags) python3 tests/python/integration/test_elastic_estimator.py $(flags)
 }
 
 measure main

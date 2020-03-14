@@ -21,7 +21,7 @@ type Connection interface {
 
 func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
 	c := newConnection(remote, local, ConnPing, 0) // FIXME: use token
-	if err := c.initOnce(1); err != nil {
+	if err := c.initOnce(); err != nil {
 		return nil, err
 	}
 	return c, nil
@@ -62,26 +62,35 @@ func newConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpCon
 		}
 		return conn, nil
 	}
-	return &tcpConnection{remote: remote, init: init}
+	var initRetry int
+	if t == ConnCollective || t == ConnPeerToPeer {
+		initRetry = kc.ConnRetryCount
+	}
+	return &tcpConnection{
+		remote:    remote,
+		init:      init,
+		initRetry: initRetry,
+	}
 }
 
 type tcpConnection struct {
 	sync.Mutex
-	remote plan.NetAddr
-	init   func() (net.Conn, error)
-	conn   net.Conn
+	remote    plan.NetAddr
+	init      func() (net.Conn, error)
+	conn      net.Conn
+	initRetry int
 }
 
 var errCantEstablishConnection = errors.New("can't establish connection")
 
-func (c *tcpConnection) initOnce(connRetryCount int) error {
+func (c *tcpConnection) initOnce() error {
 	c.Lock()
 	defer c.Unlock()
 	if c.conn != nil {
 		return nil
 	}
 	t0 := time.Now()
-	for i := 0; i <= connRetryCount; i++ {
+	for i := 0; i <= c.initRetry; i++ {
 		var err error
 		if c.conn, err = c.init(); err == nil {
 			log.Debugf("connection to #<%s> established after %d trials, took %s", c.remote, i+1, time.Since(t0))
@@ -94,7 +103,9 @@ func (c *tcpConnection) initOnce(connRetryCount int) error {
 }
 
 func (c *tcpConnection) Send(msgName string, m Message, flags uint32) error {
-	c.initOnce(kc.ConnRetryCount)
+	if err := c.initOnce(); err != nil {
+		return err
+	}
 	c.Lock()
 	defer c.Unlock()
 	bs := []byte(msgName)
@@ -110,7 +121,9 @@ func (c *tcpConnection) Send(msgName string, m Message, flags uint32) error {
 }
 
 func (c *tcpConnection) Read(msgName string, m Message) error {
-	c.initOnce(kc.ConnRetryCount)
+	if err := c.initOnce(); err != nil {
+		return err
+	}
 	c.Lock()
 	defer c.Unlock()
 	var mh messageHeader
