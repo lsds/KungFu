@@ -101,9 +101,9 @@ class AllReduce : public AsyncOpKernel
 
 REGISTER_KUNGFU_KERNEL_BUILDER(AllReduce, DEVICE_CPU);
 
-// The SpotnikAllReduce operator takes a single tensor (e.g. the computed gradient),
-// and reduce (by taking sum) with the peers, and finally returns a tensor with
-// exactly the same shape and if the operation succeeded.
+// The SpotnikAllReduce operator takes a single tensor (e.g. the computed
+// gradient), and reduce (by taking sum) with the peers, and finally returns a
+// tensor with exactly the same shape and if the operation succeeded.
 REGISTER_KUNGFU_OP(SpotnikAllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("op: string")
@@ -117,7 +117,8 @@ class SpotnikAllReduce : public AsyncOpKernel
     KungFu_Op op_;
 
   public:
-    explicit SpotnikAllReduce(OpKernelConstruction *context) : AsyncOpKernel(context)
+    explicit SpotnikAllReduce(OpKernelConstruction *context)
+        : AsyncOpKernel(context)
     {
         std::string op;
         OP_REQUIRES_OK(context, context->GetAttr("op", &op));
@@ -138,15 +139,15 @@ class SpotnikAllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
-        Tensor *succeeded      = nullptr;
+        Tensor *succeeded = nullptr;
         OP_REQUIRES_OK_ASYNC(
-            context, context->allocate_output(1, MakeTensorShape(), &succeeded), done);
+            context, context->allocate_output(1, MakeTensorShape(), &succeeded),
+            done);
         _kungfu_world->SpotnikAllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()),
-            const_cast<int32_t *>(succeeded->scalar<int32_t>().data()),
-            op_,
+            const_cast<int32_t *>(succeeded->scalar<int32_t>().data()), op_,
             name().c_str(), done);
     }
 };
