@@ -31,7 +31,7 @@ func main() {
 		LogDir:    f.LogDir,
 	}
 	procs := []job.Proc{
-		j.NewProc(env.Self, 0, "", env.PeerList),
+		j.NewProc(env.Self, 0, 0, env.PeerList),
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	if f.Timeout > 0 {

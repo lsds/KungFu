@@ -12,6 +12,8 @@ void kungfu_python_init() { _kungfu_world.reset(new kungfu_world); }
 
 void kungfu_python_finialize() { _kungfu_world.reset(nullptr); }
 
+uint64_t kungfu_uid() { return _kungfu_world->Uid(); }
+
 int kungfu_rank() { return _kungfu_world->Rank(); }
 
 int kungfu_local_rank() { return _kungfu_world->LocalRank(); }
@@ -19,6 +21,11 @@ int kungfu_local_rank() { return _kungfu_world->LocalRank(); }
 int kungfu_cluster_size() { return _kungfu_world->ClusterSize(); }
 
 void kungfu_barrier() { _kungfu_world->Barrier(); }
+
+int kungfu_propose_new_size(int new_size)
+{
+    return _kungfu_world->ProposeNewSize(new_size);
+}
 
 namespace kungfu
 {

@@ -28,7 +28,7 @@ func (p PeerID) SockFile() string {
 	return NetAddr(p).SockFile()
 }
 
-func parseID(val string) (*PeerID, error) {
+func ParsePeerID(val string) (*PeerID, error) {
 	host, p, err := net.SplitHostPort(val)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func getSelfFromEnv() (*PeerID, error) {
 	if !ok {
 		return nil, fmt.Errorf("%s not set", kb.SelfSpecEnvKey)
 	}
-	return parseID(config)
+	return ParsePeerID(config)
 }
 
 func getParentFromEnv() (*PeerID, error) {
@@ -63,5 +63,5 @@ func getParentFromEnv() (*PeerID, error) {
 	if !ok {
 		return nil, fmt.Errorf("%s not set", kb.ParentIDEnvKey)
 	}
-	return parseID(val)
+	return ParsePeerID(val)
 }

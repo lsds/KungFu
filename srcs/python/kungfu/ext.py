@@ -23,6 +23,11 @@ def _finalize_python_lib():
 atexit.register(_finalize_python_lib)
 
 
+def uid():
+    """Get the uid of this peer."""
+    return _python_lib.kungfu_uid()
+
+
 def current_rank():
     """Get the current rank of this peer."""
     return _python_lib.kungfu_rank()
@@ -44,6 +49,11 @@ def _get_cuda_index():
 def run_barrier():
     """Run the barrier operation eagerly."""
     _python_lib.kungfu_barrier()
+
+
+def propose_new_size(new_size):
+    # FIXME: check ctypes
+    _python_lib.kungfu_propose_new_size(int(new_size))
 
 
 def _get_other_ranks():

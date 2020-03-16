@@ -1,11 +1,11 @@
 package kungfubase
 
+// Internal environment variables set by kungfu-run, users should not set them.
 const (
-	// FIXME: merge with config.go
-	InitStepEnvKey  = `KUNGFU_INIT_STEP`
-	ParentIDEnvKey  = `KUNGFU_PARENT_ID`
-	HostListEnvKey  = `KUNGFU_HOST_LIST`
-	PortRangeEnvKey = `KUNGFU_PORT_RANGE`
+	ConfigServerEnvKey       = `KUNGFU_CONFIG_SERVER`
+	InitClusterVersionEnvKey = `KUNGFU_INIT_CLUSTER_VERSION`
+	ParentIDEnvKey           = `KUNGFU_PARENT_ID`
+	HostListEnvKey           = `KUNGFU_HOST_LIST`
 
 	PeerListEnvKey          = `KUNGFU_INIT_PEERS`
 	HostSpecEnvKey          = `KUNGFU_HOST_SPEC`

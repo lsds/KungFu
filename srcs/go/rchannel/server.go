@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -17,6 +18,7 @@ import (
 type Server interface {
 	Start() error
 	Close()
+	SetToken(uint32)
 }
 
 // NewServer creates a new Server
@@ -35,6 +37,14 @@ func NewServer(endpoint Endpoint) Server {
 type composedServer struct {
 	tcpServer  *server
 	unixServer *server
+}
+
+func (s *composedServer) SetToken(token uint32) {
+	for _, srv := range []*server{s.tcpServer, s.unixServer} {
+		if srv != nil {
+			srv.SetToken(token)
+		}
+	}
 }
 
 func (s *composedServer) Start() error {
@@ -76,6 +86,7 @@ type server struct {
 	listen   func() (net.Listener, error)
 	listener net.Listener
 	endpoint Endpoint
+	token    uint32
 	unix     bool
 }
 
@@ -125,6 +136,10 @@ func newUnixServer(endpoint Endpoint) *server {
 	}
 }
 
+func (s *server) SetToken(token uint32) {
+	atomic.StoreUint32(&s.token, token)
+}
+
 func (s *server) Listen() error {
 	var err error
 	s.listener, err = s.listen()
@@ -167,6 +182,10 @@ func (s *server) handle(conn net.Conn) error {
 	remote := plan.NetAddr{IPv4: ch.SrcIPv4, Port: ch.SrcPort}
 	t := ConnType(ch.Type)
 	log.Debugf("got new connection of type %s from: %s", t, remote)
+	ack := connectionACK{Token: atomic.LoadUint32(&s.token)}
+	if err := ack.WriteTo(conn); err != nil {
+		return err
+	}
 	if t == ConnPing {
 		return s.handlePing(remote, conn)
 	}

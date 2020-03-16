@@ -18,10 +18,11 @@ const (
 )
 
 const (
-	EnableMonitoringEnvKey   = `KUNGFU_CONFIG_ENABLE_MONITORING`
-	MonitoringPeriodEnvKey   = `KUNGFU_CONFIG_MONITORING_PERIOD`
-	LogLevelEnvKey           = `KUNGFU_CONFIG_LOG_LEVEL`
-	StrategyHashMethodEnvKey = `KUNGFU_CONFIG_STRATEGY_HASH_METHOD`
+	EnableMonitoringEnvKey     = `KUNGFU_CONFIG_ENABLE_MONITORING`
+	EnableStallDetectionEnvKey = `KUNGFU_CONFIG_ENABLE_STALL_DETECTION`
+	LogLevelEnvKey             = `KUNGFU_CONFIG_LOG_LEVEL`
+	MonitoringPeriodEnvKey     = `KUNGFU_CONFIG_MONITORING_PERIOD`
+	StrategyHashMethodEnvKey   = `KUNGFU_CONFIG_STRATEGY_HASH_METHOD`
 )
 
 var ConfigEnvKeys = []string{
@@ -32,15 +33,19 @@ var ConfigEnvKeys = []string{
 }
 
 var (
-	EnableMonitoring   = false
-	LogLevel           = `INFO`
-	MonitoringPeriod   = 1 * time.Second
-	StrategyHashMethod = `NAME`
+	EnableMonitoring     = false
+	EnableStallDetection = false
+	LogLevel             = `INFO`
+	MonitoringPeriod     = 1 * time.Second
+	StrategyHashMethod   = `NAME`
 )
 
 func init() {
 	if val := os.Getenv(EnableMonitoringEnvKey); len(val) > 0 {
 		EnableMonitoring = isTrue(val)
+	}
+	if val := os.Getenv(EnableStallDetectionEnvKey); len(val) > 0 {
+		EnableStallDetection = isTrue(val)
 	}
 	if val := os.Getenv(MonitoringPeriodEnvKey); len(val) > 0 {
 		MonitoringPeriod = parseDuration(val)
