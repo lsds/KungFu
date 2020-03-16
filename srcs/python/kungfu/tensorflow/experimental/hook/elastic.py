@@ -56,9 +56,9 @@ class ElasticHook(tf.train.SessionRunHook):
         if self._trained_samples >= self._total_samples:
             self._exit_reason = 'finished'
             run_context.request_stop()
-        if time.time() - self._time_at_init > self._exit_after and self._rank == 0:
-            print("ERROR")
-            sys.exit(0)
+        # if time.time() - self._time_at_init > self._exit_after and self._rank == 0:
+        #     print("ERROR")
+        #     sys.exit(0)
 
     def end(self, sess):
         if self._exit_reason is None:

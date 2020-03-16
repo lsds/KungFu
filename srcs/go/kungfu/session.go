@@ -14,7 +14,7 @@ import (
 )
 
 const defaultRoot = 0
-const timeoutDuration = 5 * time.Second
+const timeoutDuration = 10 * time.Second
 
 // A strategy is a pair of dataflow graphs
 type strategy struct {
