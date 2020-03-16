@@ -39,7 +39,10 @@ class ElasticHook(tf.train.SessionRunHook):
     def before_run(self, run_context):
         if self._need_sync:
             self._do_sync_offset(run_context.session)
+            start = time.time()
             run_context.session.run(self._sync_state_op)
+            duration = time.time() - start
+            print("duration of broadcast", duration, "s")
             self._need_sync = False
 
     def after_run(self, run_context, run_values):
