@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu.tensorflow.compat import _tf_assign
-from kungfu.tensorflow.ops import current_cluster_size, group_all_reduce
+from kungfu.tensorflow.ops import current_cluster_size, spotnik_group_all_reduce
 
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
                    _KungFuAlgorithm)
@@ -57,7 +57,7 @@ class _SynchronousAveraging(_KungFuAlgorithm):
         ]
 
         # It is important to apply model averaging every iteration [2]
-        sum_vars = group_all_reduce(filtered_variables)
+        sum_vars, num_unsucceeded = spotnik_group_all_reduce(filtered_variables)
         avg_vars = [g / self._num_workers for g in sum_vars]
 
         # TODO: Apply momentum to the averaged model [2]
@@ -71,4 +71,6 @@ class _SynchronousAveraging(_KungFuAlgorithm):
 
         # We can overlap model averaging and local SGD [2].
         with tf.control_dependencies(assign_ops):
-            return apply_grads_func(new_grads_and_vars, **kwargs)
+            return tf.cond(tf.math.greater(num_unsucceeded, 0),
+            lambda: tf.no_op(),
+            lambda: apply_grads_func(new_grads_and_vars, **kwargs))

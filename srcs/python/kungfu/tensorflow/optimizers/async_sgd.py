@@ -3,7 +3,7 @@ from kungfu.tensorflow.compat import _tf_assign, _tf_mod
 from kungfu.tensorflow.ops import (barrier, counter, current_cluster_size,
                                    current_rank, defuse, fuse,
                                    request_variable,
-                                   request_variable_with_template,
+                                   spotnik_request_variable_with_template,
                                    save_variable)
 
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
@@ -93,7 +93,7 @@ class _PairAveraging(_KungFuAlgorithm):
             return defuse(other_peer_var_fused, [v.shape for v in variables])
         else:
             return [
-                request_variable_with_template(target, v) for v in variables
+                spotnik_request_variable_with_template(target, v) for v in variables
             ]
 
     def _build_save_op(self, variables):
@@ -122,8 +122,12 @@ class _PairAveraging(_KungFuAlgorithm):
                                 lambda: self.init_store(filtered_variables),
                                 tf.no_op)
         with tf.control_dependencies([init_store_op]):
-            other_peer_vars = self._build_request_ops(target,
+            other_peer = self._build_request_ops(target,
                                                       filtered_variables)
+
+        other_peer_vars = [t[0] if t is not None else None for t in other_peer]
+        not_succeeded = [t[1] for t in other_peer if t is not None]
+        num_not_succeeded = tf.add_n(not_succeeded)
 
         save_model_op = self._build_save_op(filtered_variables)
 
@@ -137,6 +141,7 @@ class _PairAveraging(_KungFuAlgorithm):
         apply_op = apply_grads_func(new_grads_and_vars, **kwargs)
 
         with tf.control_dependencies(assign_ops):
-            with tf.control_dependencies([apply_op]):
-                with tf.control_dependencies([save_model_op]):
-                    return tf.group(apply_op)
+            with tf.control_dependencies([save_model_op]):
+                return tf.cond(tf.math.greater(num_not_succeeded, 0),
+                    lambda: tf.no_op(),
+                    lambda: apply_op)

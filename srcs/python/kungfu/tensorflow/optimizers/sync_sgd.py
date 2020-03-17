@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.ops import (defuse, fuse, group_all_reduce,
+from kungfu.tensorflow.ops import (defuse, fuse, spotnik_group_all_reduce,
                                    group_nccl_all_reduce, peer_info)
 
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
@@ -68,7 +68,7 @@ class _SynchronousSGD(_KungFuAlgorithm):
             else:
                 summed_gradients = group_nccl_all_reduce(gradients)
         else:
-            summed_gradients = group_all_reduce(gradients)
+            summed_gradients, num_unsucceeded = spotnik_group_all_reduce(gradients)
 
         np = tf.cast(self._num_workers, tf.float32)
         reduced_grads = map_maybe(lambda g: g / np, summed_gradients)
@@ -76,4 +76,6 @@ class _SynchronousSGD(_KungFuAlgorithm):
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         reduced_grads_and_vars = zip(reduced_grads, variables)
 
-        return apply_grads_func(reduced_grads_and_vars, **kwargs)
+        return tf.cond(tf.math.greater(num_unsucceeded, 0),
+            lambda: tf.no_op(),
+            lambda: apply_grads_func(reduced_grads_and_vars, **kwargs))
