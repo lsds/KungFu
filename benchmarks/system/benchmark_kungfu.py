@@ -154,26 +154,26 @@ def run(sess, benchmark_step):
     # Benchmark
     log('Running benchmark...')
     img_secs = []
-    for step in range(args.num_iters):
-        if need_sync:
-            sess.run(spotnik_all_reduce(trained_samples, op='max'))
-            sess.run(BroadcastGlobalVariablesOp())
-            need_sync = False
-        
-        time = timeit.timeit(lambda: sess.run(benchmark_step), number=args.num_batches_per_iter)
-        sess.run(benchmark_step)
-        
-        np = current_cluster_size()
-        trained_samples += args.batch_size * np
-        changed, keep = sess.run(resize_cluster_from_url())
-        if not keep:
-            sys.exit(0)
-        if changed:
-            need_sync = True
+    for _ in range(args.num_iters):
+        for _ in range(args.num_batches_per_iter):
+            if need_sync:
+                sess.run(spotnik_all_reduce(trained_samples, op='max'))
+                sess.run(BroadcastGlobalVariablesOp())
+                need_sync = False
+            
+            time = timeit.timeit(lambda: sess.run(benchmark_step), number=1)
+            
+            np = current_cluster_size()
+            trained_samples += args.batch_size * np
+            changed, keep = sess.run(resize_cluster_from_url())
+            if not keep:
+                sys.exit(0)
+            if changed:
+                need_sync = True
 
-        img_sec = args.batch_size * args.num_batches_per_iter / time
-        log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
-        img_secs.append(img_sec)
+            img_sec = args.batch_size / time
+            log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
+            img_secs.append(img_sec)
 
     # Results
     img_sec_mean = np.mean(img_secs)
