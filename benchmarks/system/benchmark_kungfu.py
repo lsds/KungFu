@@ -136,13 +136,32 @@ log('Batch size: %d' % args.batch_size)
 device = '/gpu:0' if args.cuda else 'CPU'
 
 
+def log_detailed_result(value, error, attrs):
+    import json
+    attr_str = json.dumps(attrs, separators=(',', ':'))
+    print('RESULT: %f +-%f %s' % (value, error, attr_str))  # grep RESULT *.log
+
+
+def log_final_result(value, error):
+    from kungfu.tensorflow.ops import current_rank, current_cluster_size
+    if current_rank() != 0:
+        return
+    attrs = {
+        'np': current_cluster_size(),
+        'strategy': os.getenv('KUNGFU_ALLREDUCE_STRATEGY'),
+        'bs': args.batch_size,
+        'model': args.model,
+        'kf-opt': args.kf_optimizer,
+    }
+    log_detailed_result(value, error, attrs)
+
+
 def run(sess, benchmark_step):
     import sys
     from kungfu.tensorflow.ops import spotnik_all_reduce, current_cluster_size, resize_cluster_from_url
     from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
     need_sync = True
     trained_samples = 0
-
     # Warm-up
     log('Running warmup...')
     for x in range(args.num_warmup_batches):
@@ -179,6 +198,7 @@ def run(sess, benchmark_step):
     img_sec_mean = np.mean(img_secs)
     img_sec_conf = 1.96 * np.std(img_secs)
     log('Img/sec per %s: %.1f +-%.1f' % (device, img_sec_mean, img_sec_conf))
+    log_final_result(img_sec_mean, img_sec_conf)
 
 
 loss = loss_function()
