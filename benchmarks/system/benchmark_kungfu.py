@@ -154,7 +154,7 @@ def run(sess, benchmark_step):
     # Benchmark
     log('Running benchmark...')
     img_secs = []
-    for _ in range(args.num_iters):
+    for x in range(args.num_iters):
         for _ in range(args.num_batches_per_iter):
             if need_sync:
                 sess.run(spotnik_all_reduce(trained_samples, op='max'))
