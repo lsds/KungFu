@@ -136,7 +136,13 @@ log('Batch size: %d' % args.batch_size)
 device = '/gpu:0' if args.cuda else 'CPU'
 
 
-def run(benchmark_step):
+def run(sess, benchmark_step):
+    import sys
+    from kungfu.tensorflow.ops import spotnik_all_reduce, current_cluster_size, resize_cluster_from_url
+    from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
+    need_sync = True
+    trained_samples = 0
+
     # Warm-up
     log('Running warmup...')
     for x in range(args.num_warmup_batches):
@@ -148,8 +154,23 @@ def run(benchmark_step):
     # Benchmark
     log('Running benchmark...')
     img_secs = []
-    for x in range(args.num_iters):
-        time = timeit.timeit(benchmark_step, number=args.num_batches_per_iter)
+    for step in range(args.num_iters):
+        if need_sync:
+            sess.run(spotnik_all_reduce(trained_samples, op='max'))
+            sess.run(BroadcastGlobalVariablesOp())
+            need_sync = False
+        
+        time = timeit.timeit(lambda: sess.run(benchmark_step), number=args.num_batches_per_iter)
+        sess.run(benchmark_step)
+        
+        np = current_cluster_size()
+        trained_samples += args.batch_size * np
+        changed, keep = sess.run(resize_cluster_from_url())
+        if not keep:
+            sys.exit(0)
+        if changed:
+            need_sync = True
+
         img_sec = args.batch_size * args.num_batches_per_iter / time
         log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
         img_secs.append(img_sec)
@@ -180,6 +201,8 @@ else:
         if bcast_op:
             duration, _ = measure(lambda: session.run(bcast_op))
             log('bcast_op took %.3fs' % (duration))
-        run(lambda: session.run(train_opt))
+
+        run(session, train_opt)
+
         if barrier_op is not None:
             session.run(barrier_op)
