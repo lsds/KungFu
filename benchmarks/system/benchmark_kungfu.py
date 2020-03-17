@@ -163,8 +163,8 @@ def run(sess, benchmark_step):
             
             time = timeit.timeit(lambda: sess.run(benchmark_step), number=1)
             
-            np = current_cluster_size()
-            trained_samples += args.batch_size * np
+            num_workers = current_cluster_size()
+            trained_samples += args.batch_size * num_workers
             changed, keep = sess.run(resize_cluster_from_url())
             if not keep:
                 sys.exit(0)
