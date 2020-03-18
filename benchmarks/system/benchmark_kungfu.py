@@ -198,8 +198,6 @@ def run(sess, benchmark_step):
             log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
             img_secs.append(img_sec)
 
-    from kungfu.tensorflow.ops import run_barrier
-    sess.run(barrier())
     # Results
     img_sec_mean = np.mean(img_secs)
     img_sec_conf = 1.96 * np.std(img_secs)
