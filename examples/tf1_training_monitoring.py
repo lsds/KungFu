@@ -181,7 +181,7 @@ def model_function(features, labels, mode):
         #get custom Ada optimizer
         #TODO: fix this and enable it
         spec = importlib.util.spec_from_file_location("CustomAdaSGD", 
-            os.path.join(home,"KungFu/experimental/net_monitoring/CustomAdaSGD.py"))
+            os.path.join(home,"KungFu/experimental/net_monitoring/CustomAdaSGD.py")) 
         CustomAda = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(CustomAda)
 
@@ -225,7 +225,7 @@ def model_function(features, labels, mode):
     return estimator_spec
 
 def getModelDr():
-    md = os.getenv("KUNGFU_SELF_SPEC")
+    md = os.getenv("KUNGFU_MODEL_DIR")
 
     if md is None:
         return FLAGS.model_dir
@@ -238,18 +238,18 @@ def main(_):
     # model_dir  = "~/repos/KungFu/mnist/model"
 
     #TODO: check if estimator session necessary
-    # save_checkpoints_steps = 100
-    # save_summary_steps = 10 
-    # config = tf.estimator.RunConfig(
-    #     model_dir=model_dir,
-    #     save_checkpoints_steps=save_checkpoints_steps,
-    #     save_summary_steps=save_summary_steps)
+    save_checkpoints_steps = 100
+    save_summary_steps = 1 
+    config = tf.estimator.RunConfig(
+        model_dir=model_dir,
+        save_checkpoints_steps=save_checkpoints_steps,
+        save_summary_steps=save_summary_steps)
 
-    # mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-    #                                           model_dir=model_dir,
-    #                                           config=config)
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-                                              model_dir=model_dir)
+                                              model_dir=model_dir,
+                                              config=config)
+    # mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
+    #                                           model_dir=model_dir)
 
     num_train_steps = 10000
     
