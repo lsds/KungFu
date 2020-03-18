@@ -30,6 +30,10 @@ parser.add_argument('--batch-size',
                     type=int,
                     default=32,
                     help='input batch size')
+parser.add_argument('--spotnik-timeout',
+                    type=str,
+                    default="5s",
+                    help='timeout of Spotnik')
 parser.add_argument(
     '--num-warmup-batches',
     type=int,
@@ -194,6 +198,8 @@ def run(sess, benchmark_step):
             log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
             img_secs.append(img_sec)
 
+    from kungfu.tensorflow.ops import run_barrier
+    sess.run(run_barrier())
     # Results
     img_sec_mean = np.mean(img_secs)
     img_sec_conf = 1.96 * np.std(img_secs)

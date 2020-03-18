@@ -2,6 +2,7 @@ package kungfu
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"sync"
 	"time"
@@ -14,7 +15,8 @@ import (
 )
 
 const defaultRoot = 0
-const timeoutDuration = 20 * time.Second
+
+var timeoutDuration = flag.Duration("spotnik-timeout", 5*time.Second, "")
 
 // A strategy is a pair of dataflow graphs
 type strategy struct {
@@ -218,7 +220,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 
 	var lock sync.Mutex
 	recvOnto := func(peer plan.PeerID) error {
-		return timeoutHelper(sess.kf, timeoutDuration, func() {
+		return timeoutHelper(sess.kf, *timeoutDuration, func() {
 			m := sess.router.Collective.Recv(peer.WithName(w.Name))
 			b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 			lock.Lock()
@@ -234,7 +236,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	}
 
 	recvInto := func(peer plan.PeerID) error {
-		return timeoutHelper(sess.kf, timeoutDuration, func() {
+		return timeoutHelper(sess.kf, *timeoutDuration, func() {
 			sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 			recvCount++
 		}, func() error { return healthCheck(sess.kf, sess.self, peer) })
