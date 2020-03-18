@@ -199,7 +199,7 @@ def run(sess, benchmark_step):
             img_secs.append(img_sec)
 
     from kungfu.tensorflow.ops import run_barrier
-    sess.run(barrier()())
+    sess.run(barrier())
     # Results
     img_sec_mean = np.mean(img_secs)
     img_sec_conf = 1.96 * np.std(img_secs)
