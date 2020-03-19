@@ -192,9 +192,9 @@ def run(sess, benchmark_step):
         for _ in range(args.num_batches_per_iter):
             if need_sync:
                 print("before all reduce")
-                sess.run(spotnik_all_reduce(trained_samples, op='max'))
+                # sess.run(spotnik_all_reduce(trained_samples, op='max'))
                 print("before broadcast")
-                sess.run(broadcast_op)
+                # sess.run(broadcast_op)
                 print("after boardcast")
                 need_sync = False
             
