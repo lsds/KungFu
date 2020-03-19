@@ -143,7 +143,7 @@ def log_to_file(num_workers, images_second):
     result["timestamp"] = time.time()
     
     with open(args.log_file_path, "a") as file:
-        file.write(json.dumps(result))
+        file.write(json.dumps(result) + "\n")
 
 
 log('Model: %s' % args.model)
