@@ -11,18 +11,18 @@ import numpy as np
 import tensorflow as tf
 from six.moves import urllib
 
+home = os.getenv("HOME")
+
 flags = tf.app.flags
 flags.DEFINE_string(
-    'data_dir', os.path.join(home,"KungFu/scripts/mnist/data"), 'Directory where mnist data will be downloaded'
+    'data_dir', './mnist/data', 'Directory where mnist data will be downloaded'
     ' if the data is not already there')
-flags.DEFINE_string('model_dir', os.path.join(home,"KungFu/scripts/mnist/model"),
+flags.DEFINE_string('model_dir', './mnist/model',
                     'Directory where all models are saved')
 flags.DEFINE_string('kf_optimizer', 'sync_sgd', 'KungFu optimizer')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('num_epochs', 1, 'Num of batches to train (epochs).')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning Rate')
-
-home = os.getenv("HOME")
 
 FLAGS = flags.FLAGS
 
@@ -246,7 +246,7 @@ def main(_):
     #     save_summary_steps=save_summary_steps)
 
     # mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-    #                                           model_dir=model_dir,
+    #                                           model_dir=FLAGS.model_dir,
     #                                           config=config)
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
                                               model_dir=FLAGS.model_dir)
