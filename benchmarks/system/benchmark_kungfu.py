@@ -177,12 +177,12 @@ def run(sess, benchmark_step):
     need_sync = True
     trained_samples = 0
     # Warm-up
-    log('Running warmup...')
-    for x in range(args.num_warmup_batches):
-        time = timeit.timeit(lambda: sess.run(benchmark_step), number=1)
-        img_sec = args.batch_size / time
-        log('Warmup Step #%d: %.1f img/sec per %s, took %.3fs' %
-            (x, img_sec, device, time))
+    # log('Running warmup...')
+    # for x in range(args.num_warmup_batches):
+    #     time = timeit.timeit(lambda: sess.run(benchmark_step), number=1)
+    #     img_sec = args.batch_size / time
+    #     log('Warmup Step #%d: %.1f img/sec per %s, took %.3fs' %
+    #         (x, img_sec, device, time))
 
     # Benchmark
     log('Running benchmark...')
