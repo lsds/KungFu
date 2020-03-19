@@ -219,25 +219,14 @@ def run(sess, benchmark_step):
 loss = loss_function()
 train_opt = opt.minimize(loss)
 
-if tf.executing_eagerly():
-    with tf.device(device):
-        run(lambda: opt.minimize(loss_function,
-                                 var_list=model.trainable_variables))
-else:
-    init = tf.global_variables_initializer()
-    bcast_op = None
-    if args.kf_optimizer:
-        from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
-        bcast_op = BroadcastGlobalVariablesOp()
-    with tf.Session(config=config) as session:
-        from kungfu._utils import measure
-        duration, _ = measure(lambda: session.run(init))
-        log('init took %.3fs' % (duration))
-        if bcast_op:
-            duration, _ = measure(lambda: session.run(bcast_op))
-            log('bcast_op took %.3fs' % (duration))
 
-        run(session, train_opt)
+init = tf.global_variables_initializer()
+with tf.Session(config=config) as session:
+    from kungfu._utils import measure
+    duration, _ = measure(lambda: session.run(init))
+    log('init took %.3fs' % (duration))
 
-        if barrier_op is not None:
-            session.run(barrier_op)
+    run(session, train_opt)
+
+    if barrier_op is not None:
+        session.run(barrier_op)
