@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"reflect"
 	"unsafe"
@@ -23,6 +24,7 @@ var kungfu *kf.Kungfu
 
 //export GoKungfuInit
 func GoKungfuInit() int {
+	flag.Parse()
 	var err error
 	kungfu, err = kf.New()
 	if err != nil {
