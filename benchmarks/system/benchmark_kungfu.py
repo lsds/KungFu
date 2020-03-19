@@ -32,10 +32,10 @@ parser.add_argument('--batch-size',
                     type=int,
                     default=32,
                     help='input batch size')
-parser.add_argument('--spotnik-timeout',
+parser.add_argument('--log-file-path',
                     type=str,
-                    default="5s",
-                    help='timeout of Spotnik')
+                    default="./training_output/throughput.json",
+                    help='path to throughput log file')
 parser.add_argument(
     '--num-warmup-batches',
     type=int,
@@ -137,13 +137,12 @@ def log(s, nl=True):
     print(s, end='\n' if nl else '')
 
 def log_to_file(num_workers, images_second):
-    file_name = "throughput.json"
     result = dict()
     result["num_workers"] = num_workers
     result["images_second"] = images_second
     result["timestamp"] = time.time()
     
-    with open(file_name, "a") as file:
+    with open(args.log_file_path, "a") as file:
         file.write(json.dumps(result))
 
 
