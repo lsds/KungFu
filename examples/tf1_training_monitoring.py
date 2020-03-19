@@ -13,9 +13,9 @@ from six.moves import urllib
 
 flags = tf.app.flags
 flags.DEFINE_string(
-    'data_dir', './mnist/data', 'Directory where mnist data will be downloaded'
+    'data_dir', os.path.join(home,"KungFu/scripts/mnist/data"), 'Directory where mnist data will be downloaded'
     ' if the data is not already there')
-flags.DEFINE_string('model_dir', './mnist/model',
+flags.DEFINE_string('model_dir', os.path.join(home,"KungFu/scripts/mnist/model"),
                     'Directory where all models are saved')
 flags.DEFINE_string('kf_optimizer', 'sync_sgd', 'KungFu optimizer')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
@@ -234,8 +234,8 @@ def getModelDr():
 
 def main(_):
 
-    model_dir = getModelDr()
-    # model_dir  = "~/repos/KungFu/mnist/model"
+    # model_dir = getModelDr()
+    # model_dir  = FLAGS.model_dir
 
     #TODO: check if estimator session necessary
     # save_checkpoints_steps = 100
@@ -249,7 +249,7 @@ def main(_):
     #                                           model_dir=model_dir,
     #                                           config=config)
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-                                              model_dir=model_dir)
+                                              model_dir=FLAGS.model_dir)
 
     num_train_steps = 10000
     

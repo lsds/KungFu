@@ -176,7 +176,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
         pass
 
     def __setup_summary_writer(self):
-        cma_log_dir = 'mnist/model'
+        cma_log_dir = 'log'
         self._cma_summary_writer = tf.summary.FileWriter(cma_log_dir)
 
     # def __cma_allreduce(self, run_context):
