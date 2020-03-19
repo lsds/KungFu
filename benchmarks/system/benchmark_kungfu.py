@@ -172,7 +172,7 @@ def log_final_result(value, error):
 
 def run(sess, benchmark_step):
     import sys
-    from kungfu.tensorflow.ops import spotnik_all_reduce, current_cluster_size, resize_cluster_from_url
+    from kungfu.tensorflow.ops import current_cluster_size, resize_cluster_from_url
     from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
     need_sync = True
     trained_samples = 0
@@ -191,11 +191,7 @@ def run(sess, benchmark_step):
     for x in range(args.num_iters):
         for _ in range(args.num_batches_per_iter):
             if need_sync:
-                print("before all reduce")
-                # sess.run(spotnik_all_reduce(trained_samples, op='max'))
-                print("before broadcast")
-                # sess.run(broadcast_op)
-                print("after boardcast")
+                print("sync")
                 need_sync = False
             
             time = timeit.timeit(lambda: sess.run(benchmark_step), number=1)
