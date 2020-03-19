@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -23,6 +25,11 @@ var (
 	hostlist     = flag.String("H", "127.0.0.1:4", "")
 )
 
+func readJSON(r io.Reader, i interface{}) error {
+	d := json.NewDecoder(r)
+	return d.Decode(&i)
+}
+
 func main() {
 	flag.Parse()
 	u, err := url.Parse(*configServer)
@@ -35,8 +42,23 @@ func main() {
 		ctx, cancel = context.WithTimeout(ctx, *ttl)
 		defer cancel()
 	}
-	peer := plan.PeerID{IPv4: 2130706433, Port: 10000}
-	removeWorker(peer, *u)
+
+	initFileName := "addWorkers.json"
+	var f *os.File
+	f, err = os.Open(initFileName)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	defer f.Close()
+	var peers []plan.PeerID
+	if err := readJSON(f, &peers); err != nil {
+		utils.ExitErr(err)
+	}
+
+	for _, peer := range peers {
+		removeWorker(peer, *u)
+		time.Sleep(1 * time.Minute)
+	}
 }
 
 var client = http.Client{
