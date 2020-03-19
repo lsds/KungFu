@@ -1,7 +1,7 @@
 import tensorflow as tf
 from kungfu.tensorflow.compat import _tf_assign, _tf_mod
-from kungfu.tensorflow.ops import (barrier, counter, current_cluster_size,
-                                   current_rank, defuse, fuse,
+from kungfu.tensorflow.ops import (barrier, counter, peer_info,
+                                   defuse, fuse,
                                    request_variable,
                                    spotnik_request_variable_with_template,
                                    save_variable)
@@ -108,7 +108,7 @@ class _PairAveraging(_KungFuAlgorithm):
             return barrier()
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
-        np, rank = current_cluster_size(), current_rank()
+        rank, np = peer_info()
         target = get_random_peer(np, rank)
         gradients, variables = list(zip(*grads_and_vars))
 
