@@ -177,6 +177,7 @@ def run(sess, benchmark_step):
     # Benchmark
     log('Running benchmark...')
     img_secs = []
+    last_num_workers = current_cluster_size()
     for x in range(args.num_iters):
         for _ in range(args.num_batches_per_iter):
             if need_sync:
@@ -197,6 +198,14 @@ def run(sess, benchmark_step):
             img_sec = args.batch_size / time
             log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
             img_secs.append(img_sec)
+
+            if num_workers != last_num_workers:
+                print("with %d workser" % (last_num_workers))
+                img_sec_mean = np.mean(img_secs)
+                img_sec_conf = 1.96 * np.std(img_secs)
+                log_final_result(img_sec_mean, img_sec_conf)
+                img_secs = []
+                last_num_workers = num_workers
 
     # Results
     img_sec_mean = np.mean(img_secs)
