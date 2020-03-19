@@ -187,14 +187,19 @@ def run(sess, benchmark_step):
     # Benchmark
     log('Running benchmark...')
     img_secs = []
+    broadcast_op = BroadcastGlobalVariablesOp()
     for x in range(args.num_iters):
         for _ in range(args.num_batches_per_iter):
             if need_sync:
+                print("before all reduce")
                 sess.run(spotnik_all_reduce(trained_samples, op='max'))
-                sess.run(BroadcastGlobalVariablesOp())
+                print("before broadcast")
+                sess.run(broadcast_op)
+                print("after boardcast")
                 need_sync = False
             
             time = timeit.timeit(lambda: sess.run(benchmark_step), number=1)
+            print("after benchmark_step")
             
             num_workers = current_cluster_size()
             trained_samples += args.batch_size * num_workers
