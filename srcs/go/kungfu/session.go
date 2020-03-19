@@ -2,8 +2,8 @@ package kungfu
 
 import (
 	"errors"
-	"flag"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -16,7 +16,7 @@ import (
 
 const defaultRoot = 0
 
-var timeoutDuration = flag.Duration("spotnik-timeout", 5*time.Second, "")
+var timeoutDuration, _ = time.ParseDuration(os.Getenv("SPOTNIK_TIMEOUT"))
 
 // A strategy is a pair of dataflow graphs
 type strategy struct {
