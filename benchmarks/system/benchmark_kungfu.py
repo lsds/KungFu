@@ -9,6 +9,8 @@ from __future__ import absolute_import, division, print_function
 import argparse
 import os
 import timeit
+import time
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -134,6 +136,16 @@ def log(s, nl=True):
         return
     print(s, end='\n' if nl else '')
 
+def log_to_file(num_workers, images_second):
+    file_name = "throughput.json"
+    result = dict()
+    result["num_workers"] = num_workers
+    result["images_second"] = images_second
+    result["timestamp"] = time.time()
+    
+    with open(file_name, "a") as file:
+        file.write(json.dumps(result))
+
 
 log('Model: %s' % args.model)
 log('Batch size: %d' % args.batch_size)
@@ -141,7 +153,6 @@ device = '/gpu:0' if args.cuda else 'CPU'
 
 
 def log_detailed_result(value, error, attrs):
-    import json
     attr_str = json.dumps(attrs, separators=(',', ':'))
     print('RESULT: %f +-%f %s' % (value, error, attr_str))  # grep RESULT *.log
 
@@ -196,11 +207,12 @@ def run(sess, benchmark_step):
                 need_sync = True
 
             img_sec = args.batch_size / time
+            log_to_file(num_workers, img_sec)
             log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
             img_secs.append(img_sec)
 
             if num_workers != last_num_workers:
-                print("with %d workser" % (last_num_workers))
+                print("with %d worker" % (last_num_workers))
                 img_sec_mean = np.mean(img_secs)
                 img_sec_conf = 1.96 * np.std(img_secs)
                 log_final_result(img_sec_mean, img_sec_conf)
