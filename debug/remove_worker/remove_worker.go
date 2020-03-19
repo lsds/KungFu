@@ -43,7 +43,7 @@ func main() {
 		defer cancel()
 	}
 
-	initFileName := "addWorkers.json"
+	initFileName := "remove_workers.json"
 	var f *os.File
 	f, err = os.Open(initFileName)
 	if err != nil {
