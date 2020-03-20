@@ -126,8 +126,8 @@ def loss_function():
 
 def log(s, nl=True):
     from kungfu.tensorflow.ops import current_rank
-    if current_rank() != 0:
-        return
+    #if current_rank() != 0:
+    #    return
     print(s, end='\n' if nl else '')
 
 
