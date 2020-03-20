@@ -24,6 +24,10 @@ parser = argparse.ArgumentParser(
     description='TensorFlow Synthetic Benchmark',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+parser.add_argument('--log-file-path',
+                    type=str,
+                    default="./training_output/throughput.json",
+                    help='path to throughput log file')
 parser.add_argument('--model',
                     type=str,
                     default='ResNet50',
