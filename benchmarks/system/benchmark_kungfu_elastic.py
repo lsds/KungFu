@@ -178,6 +178,7 @@ def run(sess, train_op, bcast_op):
             if bcast_op:
                 duration, _ = measure(lambda: session.run(bcast_op))
                 log('bcast_op took %.3fs' % (duration))
+            need_sync = False
         step += 1
         time = timeit.timeit(lambda: sess.run(train_op),
                              number=args.num_batches_per_iter)
