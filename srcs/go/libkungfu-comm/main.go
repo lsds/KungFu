@@ -7,6 +7,7 @@ import (
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -60,14 +61,14 @@ func GoKungfuLocalRank() int {
 }
 
 //export GoKungfuRequest
-func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+func GoKungfuRequest(rank int, pName *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+	name := C.GoString(pName) // copy *C.char into go string before entering closure
 	sess := kungfu.CurrentSession()
-	goName := C.GoString(name) // copy *C.char into go string before entering closure
 	b := toVector(buf, count, dtype)
 	op := func() error {
-		ok, err := sess.Request(rank, "", goName, b)
+		ok, err := sess.Request(rank, "", name, b)
 		if !ok {
-			log.Warnf("Request %s not found", goName)
+			log.Warnf("Request %s not found", name)
 		}
 		return err
 	}
@@ -75,15 +76,15 @@ func GoKungfuRequest(rank int, name *C.char, buf unsafe.Pointer, count int, dtyp
 }
 
 //export GoKungfuRequestVersion
-func GoKungfuRequestVersion(rank int, version, name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+func GoKungfuRequestVersion(rank int, version, pName *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
+	name := C.GoString(pName) // copy *C.char into go string before entering closure
 	sess := kungfu.CurrentSession()
 	goVersion := C.GoString(version)
-	goName := C.GoString(name)
 	b := toVector(buf, count, dtype)
 	op := func() error {
-		ok, err := sess.Request(rank, goVersion, goName, b)
+		ok, err := sess.Request(rank, goVersion, name, b)
 		if !ok {
-			log.Warnf("RequestVersion %s@%s not found", goName, goVersion)
+			log.Warnf("RequestVersion %s@%s not found", name, goVersion)
 		}
 		return err
 	}
@@ -152,9 +153,15 @@ func boolToChar(v bool) C.char {
 
 func callOP(name string, op func() error, done *C.callback_t) int {
 	if done == nil {
+		if kc.EnableStallDetection {
+			defer utils.InstallStallDetector(name).Stop()
+		}
 		return errorCode(name, op())
 	}
 	go func() {
+		if kc.EnableStallDetection {
+			defer utils.InstallStallDetector(name).Stop()
+		}
 		errorCode(name, op()) // FIXME: pass error code to done
 		C.invoke_callback(done)
 		C.delete_callback(done)
