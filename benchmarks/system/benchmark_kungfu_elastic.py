@@ -37,7 +37,7 @@ parser.add_argument(
     help='number of warm-up batches that don\'t count towards benchmark')
 parser.add_argument('--num-batches-per-iter',
                     type=int,
-                    default=10,
+                    default=1,
                     help='number of batches per benchmark iteration')
 parser.add_argument('--num-iters',
                     type=int,
@@ -157,28 +157,39 @@ def log_final_result(value, error):
 
 
 def run(sess, train_op, bcast_op):
-    from kungfu.tensorflow.ops import current_cluster_size, resize_cluster_from_url
+    if args.num_batches_per_iter > 1:
+        print('--num-batches-per-iter == 1 is highly recommended, using %d' %
+              (args.num_batches_per_iter))
+    from kungfu.tensorflow.ops import all_reduce, resize_cluster_from_url
+    step_place = tf.placeholder(dtype=tf.int32, shape=())
+    sync_step_op = all_reduce(step_place, op='max')
     resize_op = resize_cluster_from_url()
     # Benchmark
     log('Running benchmark...')
     img_secs = []
     need_sync = True
-    for x in range(args.num_iters):
-        for _ in range(args.num_batches_per_iter):
-            if need_sync:
-                if bcast_op:
-                    duration, _ = measure(lambda: session.run(bcast_op))
-                    log('bcast_op took %.3fs' % (duration))
-            time = timeit.timeit(lambda: sess.run(train_op), number=1)
-            img_sec = args.batch_size / time
-            log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
-            img_secs.append(img_sec)
+    step = 0
+    while step < args.num_iters:
+        if need_sync:
+            new_step = sess.run(sync_step_op, feed_dict={step_place: step})
+            if new_step != step:
+                print('sync step : %d -> %d' % (step, new_step))
+            step = new_step
+            if bcast_op:
+                duration, _ = measure(lambda: session.run(bcast_op))
+                log('bcast_op took %.3fs' % (duration))
+        step += 1
+        time = timeit.timeit(lambda: sess.run(train_op),
+                             number=args.num_batches_per_iter)
+        img_sec = args.batch_size / time
+        log('Iter #%d: %.1f img/sec per %s' % (step, img_sec, device))
+        img_secs.append(img_sec)
 
-            changed, keep = sess.run(resize_op)
-            if not keep:
-                return
-            if changed:
-                need_sync = True
+        changed, keep = sess.run(resize_op)
+        if not keep:
+            return
+        if changed:
+            need_sync = True
 
     img_sec_mean = np.mean(img_secs)
     img_sec_conf = 1.96 * np.std(img_secs)
@@ -199,3 +210,4 @@ with tf.Session(config=config) as session:
     duration, _ = measure(lambda: session.run(init))
     log('init took %.3fs' % (duration))
     run(session, train_op, bcast_op)
+print('stopped')
