@@ -16,6 +16,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import applications
 from tensorflow.python.util import deprecation
+from kungfu.tensorflow.ops import all_reduce, resize_cluster_from_url, current_rank, current_cluster_size
+from kungfu._utils import measure
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
@@ -131,7 +133,6 @@ def loss_function():
 
 
 def log(s, nl=True):
-    from kungfu.tensorflow.ops import current_rank
     #if current_rank() != 0:
     #    return
     print(s, end='\n' if nl else '')
@@ -153,13 +154,11 @@ def log_to_file(num_workers, images_second):
 
 
 def log_detailed_result(value, error, attrs):
-    import json
     attr_str = json.dumps(attrs, separators=(',', ':'))
     print('RESULT: %f +-%f %s' % (value, error, attr_str))  # grep RESULT *.log
 
 
 def log_final_result(value, error):
-    from kungfu.tensorflow.ops import current_rank, current_cluster_size
     if current_rank() != 0:
         return
     attrs = {
@@ -176,7 +175,6 @@ def run(sess, train_op, bcast_op):
     if args.num_batches_per_iter > 1:
         print('--num-batches-per-iter == 1 is highly recommended, using %d' %
               (args.num_batches_per_iter))
-    from kungfu.tensorflow.ops import all_reduce, resize_cluster_from_url
     step_place = tf.placeholder(dtype=tf.int32, shape=())
     sync_step_op = all_reduce(step_place, op='max')
     resize_op = resize_cluster_from_url()
@@ -200,7 +198,7 @@ def run(sess, train_op, bcast_op):
                              number=args.num_batches_per_iter)
         img_sec = args.batch_size / time
         log('Iter #%d: %.1f img/sec per %s' % (step, img_sec, device))
-        log_to_file(num_workers, img_sec)
+        log_to_file(current_cluster_size(), img_sec)
         img_secs.append(img_sec)
 
         changed, keep = sess.run(resize_op)
@@ -224,7 +222,6 @@ if args.kf_optimizer:
     bcast_op = BroadcastGlobalVariablesOp()
 init = tf.global_variables_initializer()
 with tf.Session(config=config) as session:
-    from kungfu._utils import measure
     duration, _ = measure(lambda: session.run(init))
     log('init took %.3fs' % (duration))
     run(session, train_op, bcast_op)
