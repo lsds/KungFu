@@ -9,6 +9,8 @@ from __future__ import absolute_import, division, print_function
 import argparse
 import os
 import timeit
+import time
+import json
 
 import numpy as np
 import tensorflow as tf
@@ -136,6 +138,16 @@ log('Batch size: %d' % args.batch_size)
 device = '/gpu:0' if args.cuda else 'CPU'
 
 
+def log_to_file(num_workers, images_second):
+    result = dict()
+    result["num_workers"] = num_workers
+    result["images_second"] = images_second
+    result["timestamp"] = time.time()
+    
+    with open(args.log_file_path, "a") as file:
+        file.write(json.dumps(result) + "\n")
+
+
 def log_detailed_result(value, error, attrs):
     import json
     attr_str = json.dumps(attrs, separators=(',', ':'))
@@ -184,6 +196,7 @@ def run(sess, train_op, bcast_op):
                              number=args.num_batches_per_iter)
         img_sec = args.batch_size / time
         log('Iter #%d: %.1f img/sec per %s' % (step, img_sec, device))
+        log_to_file(num_workers, img_sec)
         img_secs.append(img_sec)
 
         changed, keep = sess.run(resize_op)
