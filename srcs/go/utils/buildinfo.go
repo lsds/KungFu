@@ -18,6 +18,10 @@ func init() {
 }
 
 func ShowBuildInfo() {
+	if len(buildtimeString) == 0 {
+		fmt.Printf("unknown build time\n")
+		return
+	}
 	bt := time.Unix(buildtime, 0)
 	fmt.Printf("built %s ago\n", time.Since(bt))
 }

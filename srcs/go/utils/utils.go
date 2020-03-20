@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -65,7 +66,9 @@ func LogAllEnvs() {
 }
 
 func ExitErr(err error) {
-	fmt.Printf("exit on error: %v\n", err)
+	pc, fn, line, _ := runtime.Caller(1)
+	loc := fmt.Sprintf("%v:%s:%d", pc, fn, line)
+	fmt.Printf("exit on error: %v at %s\n", err, loc)
 	os.Exit(1)
 }
 
