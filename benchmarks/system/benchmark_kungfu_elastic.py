@@ -149,7 +149,7 @@ def log_to_file(num_workers, images_second):
     result["images_second"] = images_second
     result["timestamp"] = time.time()
     
-    with open(args.log_file_path, "a") as file:
+    with open(os.path.join(args.log_file_path, "throughput.json"), "a") as file:
         file.write(json.dumps(result) + "\n")
 
 
