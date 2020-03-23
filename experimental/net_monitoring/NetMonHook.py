@@ -46,8 +46,11 @@ class NetMonHook(tf.estimator.SessionRunHook):
 
         #get Ada optimizer cond variable handle 
         self._cond_var_Ada = tf.get_default_graph().get_tensor_by_name('cond_var_Ada:0')
-        self._cond_var_Ada_setTrue = tf.assign(self._cond_var_Ada, True)
-        self._cond_var_Ada_setFalse = tf.assign(self._cond_var_Ada, False)
+        self._cond_var_Ada_setSSGD = tf.assign(self._cond_var_Ada, 0)
+        self._cond_var_Ada_setSMA = tf.assign(self._cond_var_Ada, 1)
+        self._cond_var_Ada_setASGD = tf.assign(self._cond_var_Ada, 2)
+        # self._cond_var_Ada_setTrue = tf.assign(self._cond_var_Ada, True)
+        # self._cond_var_Ada_setFalse = tf.assign(self._cond_var_Ada, False)
 
         #create AllReduce tensor
         self._cong_tensor = tf.Variable(0,trainable=False)
@@ -82,7 +85,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
                 #Synchronize model across all workers
                 run_context.session.run(self._broadcastOp)
 
-                run_context.session.run(self._cond_var_Ada_setFalse)
+                run_context.session.run(self._cond_var_Ada_setSSGD)
 
                 #reset backoff limit
                 self._backOff_timer = 0 
@@ -138,7 +141,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
                 self._congestion_flag = True
 
                 #TODO: change for more intricate triggering algorithm
-                run_context.session.run(self._cond_var_Ada_setTrue)
+                run_context.session.run(self._cond_var_Ada_setSMA)
 
                 #increment backoff counter
                 self._backOff_timer += 1
