@@ -31,7 +31,7 @@ class _CustomAdaSGD(_KungFuAlgorithm):
         self._num_workers = current_cluster_size()
         self._alpha = alpha
         self._global_step = tf.train.get_or_create_global_step()
-        self._cond_var_Ada_var = tf.Variable(False, trainable=False, name='cond_var_Ada')
+        self._cond_var_Ada_var = tf.Variable(0, trainable=False, name='cond_var_Ada')
         self._step = counter()
         self._fuse_requests = fuse_requests
         self._fused_model_name = fused_model_name
@@ -129,6 +129,8 @@ class _CustomAdaSGD(_KungFuAlgorithm):
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         g, v = list(zip(*grads_and_vars))
 
-        return tf.cond(self._cond_var_Ada_var,
-                       lambda: self._sma(apply_grads_func, g, v, **kwargs),
-                       lambda: self._ssgd(apply_grads_func, g, v, **kwargs))
+        return tf.cond(tf.equal(self._cond_var_Ada_var, 0),
+                       lambda: self._ssgd(apply_grads_func, g, v, **kwargs),
+                       tf.cond(tf.equal(self._cond_var_Ada_var, 1),
+                                lambda: self._sma(apply_grads_func, g, v, **kwargs),
+                                lambda: self._async_sgd(apply_grads_func, g, v ,**kwargs)))
