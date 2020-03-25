@@ -23,7 +23,7 @@ func NewCollectiveEndpoint() *CollectiveEndpoint {
 // Handle implements ConnHandler.Handle interface
 func (e *CollectiveEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
 	if t != connection.ConnCollective {
-		return ErrInvalidConnectionType
+		return connection.ErrInvalidConnectionType
 	}
 	_, err := Stream(conn, remote, e.accept, e.handle)
 	return err

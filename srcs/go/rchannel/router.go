@@ -1,11 +1,10 @@
 package rchannel
 
 import (
-	"errors"
 	"net"
 
-	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 )
 
@@ -13,16 +12,14 @@ type Router struct {
 	self       plan.PeerID
 	Collective *CollectiveEndpoint // FIXME: move it out of Router
 	P2P        *PeerToPeerEndpoint
-	connPool   *ConnectionPool
-	monitor    monitor.Monitor
+	client     *client.Client
 }
 
 func NewRouter(self plan.PeerID) *Router {
 	router := &Router{
 		self:       self,
 		Collective: NewCollectiveEndpoint(),
-		connPool:   newConnectionPool(), // out-going connections
-		monitor:    monitor.GetMonitor(),
+		client:     client.New(self),
 	}
 	router.P2P = NewPeerToPeerEndpoint(router) // FIXME: remove mutual membership
 	return router
@@ -33,31 +30,13 @@ func (r *Router) Self() plan.PeerID {
 }
 
 func (r *Router) ResetConnections(keeps plan.PeerList, token uint32) {
-	r.connPool.reset(keeps, token)
+	r.client.ResetConnections(keeps, token)
 }
 
 // Send sends data in buf to given Addr
 func (r *Router) Send(a plan.Addr, buf []byte, t connection.ConnType, flags uint32) error {
-	msg := connection.Message{
-		Length: uint32(len(buf)),
-		Data:   buf,
-	}
-	if err := r.send(a, msg, t, flags); err != nil {
-		return err
-	}
-	r.monitor.Egress(int64(msg.Length), a.NetAddr())
-	return nil
+	return r.client.Send(a, buf, t, flags)
 }
-
-func (r *Router) send(a plan.Addr, msg connection.Message, t connection.ConnType, flags uint32) error {
-	conn := r.connPool.get(a.Peer(), r.self, t)
-	if err := conn.Send(a.Name, msg, flags); err != nil {
-		return err
-	}
-	return nil
-}
-
-var ErrInvalidConnectionType = errors.New("invalid connection type")
 
 // Handle implements Handle method of ConnHandler interface
 func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
@@ -70,6 +49,6 @@ func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnTyp
 		var h controlHandler
 		return h.Handle(conn, remote, t)
 	default:
-		return ErrInvalidConnectionType
+		return connection.ErrInvalidConnectionType
 	}
 }

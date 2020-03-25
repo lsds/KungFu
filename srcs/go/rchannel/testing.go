@@ -21,7 +21,7 @@ func (h *controlHandler) Handle(conn net.Conn, remote plan.NetAddr, t connection
 		}
 		return nil
 	default:
-		return ErrInvalidConnectionType
+		return connection.ErrInvalidConnectionType
 	}
 }
 

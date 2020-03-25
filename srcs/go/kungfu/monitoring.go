@@ -6,7 +6,7 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 )
 
 func (sess *session) GetPeerLatencies() []time.Duration {
@@ -28,7 +28,7 @@ func (sess *session) GetPeerLatencies() []time.Duration {
 }
 
 func getLatency(self, peer plan.PeerID) time.Duration {
-	client := rch.NewClient(self)
+	client := client.New(self)
 	d, err := client.Ping(peer)
 	if err != nil {
 		log.Errorf("ping(%s) failed, error ignored!", peer)

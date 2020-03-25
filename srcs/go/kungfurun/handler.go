@@ -73,7 +73,7 @@ func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnTy
 		}
 		return nil
 	default:
-		return fmt.Errorf("%v: %s from %s", rch.ErrInvalidConnectionType, t, remote)
+		return fmt.Errorf("%v: %s from %s", connection.ErrInvalidConnectionType, t, remote)
 	}
 }
 

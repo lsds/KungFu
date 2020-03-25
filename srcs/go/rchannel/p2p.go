@@ -32,7 +32,7 @@ func NewPeerToPeerEndpoint(router *Router) *PeerToPeerEndpoint {
 // Handle implements ConnHandler.Handle interface
 func (e *PeerToPeerEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
 	if t != connection.ConnPeerToPeer {
-		return ErrInvalidConnectionType
+		return connection.ErrInvalidConnectionType
 	}
 	_, err := Stream(conn, remote, e.accept, e.handle)
 	return err

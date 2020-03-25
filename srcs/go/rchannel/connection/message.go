@@ -16,6 +16,10 @@ const (
 	ConnPeerToPeer ConnType = iota
 )
 
+var (
+	ErrInvalidConnectionType = errors.New("invalid connection type")
+)
+
 func (t ConnType) String() string {
 	switch t {
 	case ConnPing:
