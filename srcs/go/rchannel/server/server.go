@@ -1,4 +1,4 @@
-package rchannel
+package server
 
 import (
 	"fmt"
@@ -23,8 +23,8 @@ type Server interface {
 	SetToken(uint32)
 }
 
-// NewServer creates a new Server
-func NewServer(endpoint handler.Endpoint) Server {
+// New creates a new Server
+func New(endpoint handler.Endpoint) Server {
 	tcpServer := newTCPServer(endpoint)
 	var unixServer *server
 	if kc.UseUnixSock {
@@ -189,24 +189,10 @@ func (s *server) handle(conn net.Conn) error {
 		return err
 	}
 	if t == connection.ConnPing {
-		return s.handlePing(remote, conn)
+		var h handler.PingHandler
+		return h.Handle(conn, remote, t)
 	}
 	return s.endpoint.Handle(conn, remote, t)
-}
-
-func (s *server) handlePing(remote plan.NetAddr, conn net.Conn) error {
-	var mh connection.MessageHeader
-	if err := mh.ReadFrom(conn); err != nil {
-		return err
-	}
-	var empty connection.Message
-	if err := empty.ReadFrom(conn); err != nil {
-		return err
-	}
-	if err := mh.WriteTo(conn); err != nil {
-		return err
-	}
-	return empty.WriteTo(conn)
 }
 
 // check if error is internal/poll.ErrNetClosing

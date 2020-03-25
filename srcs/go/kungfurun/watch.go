@@ -12,14 +12,14 @@ import (
 	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/rchannel/server"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
 type watcher struct {
-	server  rch.Server
+	server  server.Server
 	parent  plan.PeerID
 	parents plan.PeerList
 
@@ -109,7 +109,7 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 		log.Infof("debug server: http://127.0.0.1:%d/", debugPort)
 		go http.ListenAndServe(net.JoinHostPort("", strconv.Itoa(debugPort)), handler)
 	}
-	server := rch.NewServer(handler)
+	server := server.New(handler)
 	if err := server.Start(); err != nil {
 		utils.ExitErr(err)
 	}

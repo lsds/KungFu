@@ -17,6 +17,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
+	"github.com/lsds/KungFu/srcs/go/rchannel/server"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -31,7 +32,7 @@ type Kungfu struct {
 	strategy           kb.Strategy
 	single             bool
 	router             *rch.Router
-	server             rch.Server
+	server             server.Server
 	client             http.Client
 
 	// dynamic
@@ -51,7 +52,7 @@ func New() (*Kungfu, error) {
 
 func NewFromConfig(config *plan.Config) (*Kungfu, error) {
 	router := rch.NewRouter(config.Self)
-	server := rch.NewServer(router)
+	server := server.New(router)
 	var initClusterVersion int
 	if len(config.InitClusterVersion) > 0 {
 		var err error
