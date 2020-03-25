@@ -36,7 +36,7 @@ func (p *Peer) ProposeNewSize(newSize int) error {
 		return err
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", p.self))
-	resp, err := p.client.Do(req)
+	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return err
 	}

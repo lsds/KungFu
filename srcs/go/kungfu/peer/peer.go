@@ -17,7 +17,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/rchannel/server"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -33,9 +32,9 @@ type Peer struct {
 	self               plan.PeerID
 	strategy           kb.Strategy
 	single             bool
-	router             *rch.Router
+	router             *router
 	server             server.Server
-	client             http.Client
+	httpClient         http.Client
 
 	// dynamic
 	clusterVersion int
@@ -53,7 +52,7 @@ func New() (*Peer, error) {
 }
 
 func NewFromConfig(config *plan.Config) (*Peer, error) {
-	router := rch.NewRouter(config.Self)
+	router := NewRouter(config.Self)
 	server := server.New(router)
 	var initClusterVersion int
 	if len(config.InitClusterVersion) > 0 {
@@ -146,7 +145,7 @@ func (p *Peer) updateTo(pl plan.PeerList) bool {
 	}
 	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", p.clusterVersion, len(pl), pl)
 	p.router.ResetConnections(pl, uint32(p.clusterVersion))
-	sess, exist := session.New(p.strategy, p.self, pl, p.router)
+	sess, exist := session.New(p.strategy, p.self, pl, p.router.client, p.router.Collective, p.router.P2P)
 	if !exist {
 		return false
 	}
@@ -245,7 +244,7 @@ func (p *Peer) getClusterConfig(url string) (*plan.Cluster, error) {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", p.self))
-	resp, err := p.client.Do(req)
+	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

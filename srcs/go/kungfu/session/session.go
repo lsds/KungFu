@@ -8,8 +8,9 @@ import (
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
+	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -23,16 +24,18 @@ type strategy struct {
 
 // Session contains the immutable topology and strategies for a given period of logical duration
 type Session struct {
-	strategies   []strategy
-	self         plan.PeerID
-	peers        plan.PeerList
-	rank         int
-	localRank    int
-	router       *rch.Router
-	strategyHash strategyHashFunc
+	strategies        []strategy
+	self              plan.PeerID
+	peers             plan.PeerList
+	rank              int
+	localRank         int
+	client            *client.Client
+	collectiveHandler *handler.CollectiveEndpoint
+	p2pHandler        *handler.PeerToPeerEndpoint
+	strategyHash      strategyHashFunc
 }
 
-func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*Session, bool) {
+func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint, p2pHandler *handler.PeerToPeerEndpoint) (*Session, bool) {
 	rank, ok := pl.Rank(self)
 	if !ok {
 		return nil, false
@@ -45,13 +48,15 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.R
 		strategy = autoSelect(pl)
 	}
 	sess := &Session{
-		strategies:   partitionStrategies[strategy](pl),
-		self:         self,
-		peers:        pl,
-		rank:         rank,
-		localRank:    localRank,
-		router:       router,
-		strategyHash: getStrategyHash(),
+		strategies:        partitionStrategies[strategy](pl),
+		self:              self,
+		peers:             pl,
+		rank:              rank,
+		localRank:         localRank,
+		client:            client,
+		collectiveHandler: collectiveHandler,
+		p2pHandler:        p2pHandler,
+		strategyHash:      getStrategyHash(),
 	}
 	return sess, true
 }
@@ -147,7 +152,7 @@ func (sess *Session) Request(rank int, version, name string, buf *kb.Vector) (bo
 		return false, errInvalidRank
 	}
 	peer := sess.peers[rank]
-	return sess.router.P2P.Request(peer.WithName(name), version, asMessage(buf))
+	return sess.p2pHandler.Request(peer.WithName(name), version, asMessage(buf))
 }
 
 func asMessage(b *kb.Vector) connection.Message {
@@ -160,7 +165,7 @@ func asMessage(b *kb.Vector) connection.Message {
 func (sess *Session) runGather(w Workspace) error {
 	if sess.rank != defaultRoot {
 		peer := sess.peers[defaultRoot]
-		return sess.router.Send(peer.WithName(w.Name), w.SendBuf.Data, connection.ConnCollective, connection.NoFlag)
+		return sess.client.Send(peer.WithName(w.Name), w.SendBuf.Data, connection.ConnCollective, connection.NoFlag)
 	}
 	var wg sync.WaitGroup
 	count := w.SendBuf.Count
@@ -170,7 +175,7 @@ func (sess *Session) runGather(w Workspace) error {
 			if rank == sess.rank {
 				recvBuf.CopyFrom(w.SendBuf)
 			} else {
-				m := sess.router.Collective.Recv(peer.WithName(w.Name))
+				m := sess.collectiveHandler.Recv(peer.WithName(w.Name))
 				b := &kb.Vector{Data: m.Data, Count: recvBuf.Count, Type: recvBuf.Type}
 				recvBuf.CopyFrom(b)
 			}
@@ -195,15 +200,15 @@ func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return w.RecvBuf.Data
 	}
 	sendOnto := func(peer plan.PeerID) error {
-		return sess.router.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.NoFlag)
+		return sess.client.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.NoFlag)
 	}
 	sendInto := func(peer plan.PeerID) error {
-		return sess.router.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.WaitRecvBuf)
+		return sess.client.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.WaitRecvBuf)
 	}
 
 	var lock sync.Mutex
 	recvOnto := func(peer plan.PeerID) error {
-		m := sess.router.Collective.Recv(peer.WithName(w.Name))
+		m := sess.collectiveHandler.Recv(peer.WithName(w.Name))
 		b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
 		defer lock.Unlock()
@@ -218,7 +223,7 @@ func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	}
 
 	recvInto := func(peer plan.PeerID) error {
-		sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
+		sess.collectiveHandler.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 		recvCount++
 		return nil
 	}
