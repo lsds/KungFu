@@ -199,15 +199,15 @@ func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		}
 		return w.RecvBuf.Data
 	}
-	sendOnto := func(peer plan.PeerID) error {
+	var sendOnto execution.PeerFunc = func(peer plan.PeerID) error {
 		return sess.client.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.NoFlag)
 	}
-	sendInto := func(peer plan.PeerID) error {
+	var sendInto execution.PeerFunc = func(peer plan.PeerID) error {
 		return sess.client.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.WaitRecvBuf)
 	}
 
 	var lock sync.Mutex
-	recvOnto := func(peer plan.PeerID) error {
+	var recvOnto execution.PeerFunc = func(peer plan.PeerID) error {
 		m := sess.collectiveHandler.Recv(peer.WithName(w.Name))
 		b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
@@ -222,7 +222,7 @@ func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return nil
 	}
 
-	recvInto := func(peer plan.PeerID) error {
+	var recvInto execution.PeerFunc = func(peer plan.PeerID) error {
 		sess.collectiveHandler.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 		recvCount++
 		return nil
@@ -232,10 +232,10 @@ func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		prevs := sess.peers.Select(g.Prevs(sess.rank))
 		nexts := sess.peers.Select(g.Nexts(sess.rank))
 		if g.IsSelfLoop(sess.rank) {
-			if err := execution.Par(prevs, recvOnto); err != nil {
+			if err := recvOnto.Par(prevs); err != nil {
 				return err
 			}
-			if err := execution.Par(nexts, sendOnto); err != nil {
+			if err := sendOnto.Par(nexts); err != nil {
 				return err
 			}
 		} else {
@@ -245,11 +245,11 @@ func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			if len(prevs) == 0 && recvCount == 0 {
 				w.RecvBuf.CopyFrom(w.SendBuf)
 			} else {
-				if err := execution.Seq(prevs, recvInto); err != nil { // len(prevs) == 1 is expected
+				if err := recvInto.Seq(prevs); err != nil { // len(prevs) == 1 is expected
 					return err
 				}
 			}
-			if err := execution.Par(nexts, sendInto); err != nil {
+			if err := sendInto.Par(nexts); err != nil {
 				return err
 			}
 		}

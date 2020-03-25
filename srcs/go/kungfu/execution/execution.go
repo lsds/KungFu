@@ -7,8 +7,10 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
+type PeerFunc func(plan.PeerID) error
+
 // Par runs a function for a list of Peers in parallel
-func Par(ps plan.PeerList, f func(plan.PeerID) error) error {
+func (f PeerFunc) Par(ps plan.PeerList) error {
 	errs := make([]error, len(ps))
 	var wg sync.WaitGroup
 	for i, p := range ps {
@@ -23,9 +25,9 @@ func Par(ps plan.PeerList, f func(plan.PeerID) error) error {
 }
 
 // Seq runs a function for a list of Peers sequentially
-func Seq(ps plan.PeerList, op func(plan.PeerID) error) error {
+func (f PeerFunc) Seq(ps plan.PeerList) error {
 	for _, p := range ps {
-		if err := op(p); err != nil {
+		if err := f(p); err != nil {
 			return err
 		}
 	}

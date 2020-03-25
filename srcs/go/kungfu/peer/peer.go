@@ -189,9 +189,10 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 			Cluster: cluster,
 		}
 		// FIXME: assuming runners are up and running
-		if err := execution.Par(cluster.Runners, func(ctrl plan.PeerID) error {
+		var notify execution.PeerFunc = func(ctrl plan.PeerID) error {
 			return p.router.Send(ctrl.WithName("update"), stage.Encode(), connection.ConnControl, 0)
-		}); err != nil {
+		}
+		if err := notify.Par(cluster.Runners); err != nil {
 			utils.ExitErr(err)
 		}
 	}
