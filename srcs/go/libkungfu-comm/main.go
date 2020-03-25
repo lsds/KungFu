@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -20,50 +20,50 @@ import (
 */
 import "C"
 
-var kungfu *kf.Kungfu
+var defaultPeer *peer.Peer
 
 //export GoKungfuInit
 func GoKungfuInit() int {
 	var err error
-	kungfu, err = kf.New()
+	defaultPeer, err = peer.New()
 	if err != nil {
 		return errorCode("New", err)
 	}
-	return errorCode("Start", kungfu.Start())
+	return errorCode("Start", defaultPeer.Start())
 }
 
 //export GoKungfuFinalize
 func GoKungfuFinalize() int {
-	return errorCode("Close", kungfu.Close())
+	return errorCode("Close", defaultPeer.Close())
 }
 
 //export GoKungfuUID
 func GoKungfuUID() uint64 {
-	return kungfu.UID()
+	return defaultPeer.UID()
 }
 
 //export GoKungfuClusterSize
 func GoKungfuClusterSize() int {
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return sess.ClusterSize()
 }
 
 //export GoKungfuRank
 func GoKungfuRank() int {
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return sess.Rank()
 }
 
 //export GoKungfuLocalRank
 func GoKungfuLocalRank() int {
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return sess.LocalRank()
 }
 
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, pName *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	name := C.GoString(pName) // copy *C.char into go string before entering closure
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	b := toVector(buf, count, dtype)
 	op := func() error {
 		ok, err := sess.Request(rank, "", name, b)
@@ -78,7 +78,7 @@ func GoKungfuRequest(rank int, pName *C.char, buf unsafe.Pointer, count int, dty
 //export GoKungfuRequestVersion
 func GoKungfuRequestVersion(rank int, version, pName *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	name := C.GoString(pName) // copy *C.char into go string before entering closure
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	goVersion := C.GoString(version)
 	b := toVector(buf, count, dtype)
 	op := func() error {
@@ -95,7 +95,7 @@ func GoKungfuRequestVersion(rank int, version, pName *C.char, buf unsafe.Pointer
 func GoKungfuSave(name *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	goName := C.GoString(name)
 	b := toVector(buf, count, dtype)
-	op := func() error { return kungfu.Save(goName, b) }
+	op := func() error { return defaultPeer.Save(goName, b) }
 	return callOP("Save", op, done)
 }
 
@@ -104,14 +104,14 @@ func GoKungfuSaveVersion(version, name *C.char, buf unsafe.Pointer, count int, d
 	goVersion := C.GoString(version)
 	goName := C.GoString(name)
 	b := toVector(buf, count, dtype)
-	op := func() error { return kungfu.SaveVersion(goVersion, goName, b) }
+	op := func() error { return defaultPeer.SaveVersion(goVersion, goName, b) }
 	return callOP("SaveVersion", op, done)
 }
 
 //export GoKungfuGetPeerLatencies
 func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype) int {
 	results := toVector(recvBuf, recvCount, recvDtype).AsF32()
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	latencies := sess.GetPeerLatencies()
 	// FIXME: check length
 	for i := range results {

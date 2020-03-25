@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -20,18 +20,17 @@ var (
 
 func main() {
 	flag.Parse()
-	kungfu, err := kf.New()
+	peer, err := peer.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	kungfu.Start()
-	defer kungfu.Close()
-
-	fakeTrainLoop(kungfu)
+	peer.Start()
+	defer peer.Close()
+	fakeTrainLoop(peer)
 }
 
-func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {
-	sess := kungfu.CurrentSession()
+func fakeTrainStep(peer *peer.Peer, m *fakemodel.FakeModel, step int) {
+	sess := peer.CurrentSession()
 	np := sess.ClusterSize()
 	rank := sess.Rank()
 	t0 := time.Now()
@@ -53,7 +52,7 @@ func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {
 	}
 }
 
-func fakeTrainLoop(kungfu *kf.Kungfu) {
+func fakeTrainLoop(peer *peer.Peer) {
 	model := fakemodel.New([]int{1}, kb.F32, false)
 
 	// BEGIN tf.train.SessionRunHook::begin
@@ -63,7 +62,7 @@ func fakeTrainLoop(kungfu *kf.Kungfu) {
 	for step := 0; step < *maxStep; step++ {
 		// BEGIN tf.train.SessionRunHook::before_run
 		if shouldSync {
-			newStep := syncStep(kungfu, step)
+			newStep := syncStep(peer, step)
 			fmt.Printf("sync step: %d -> %d\n", step, newStep)
 			step = newStep
 			// TODO: broadcast from the oldest
@@ -72,11 +71,11 @@ func fakeTrainLoop(kungfu *kf.Kungfu) {
 		// END tf.train.SessionRunHook::before_run
 
 		if *runTrain {
-			fakeTrainStep(kungfu, model, step)
+			fakeTrainStep(peer, model, step)
 		}
 
 		// BEGIN tf.train.SessionRunHook::after_run
-		changed, keep := resize(kungfu)
+		changed, keep := resize(peer)
 		if !keep {
 			break
 		}
@@ -88,8 +87,8 @@ func fakeTrainLoop(kungfu *kf.Kungfu) {
 	log.Infof("finished")
 }
 
-func syncStep(kungfu *kf.Kungfu, step int) int {
-	sess := kungfu.CurrentSession()
+func syncStep(peer *peer.Peer, step int) int {
+	sess := peer.CurrentSession()
 	x := kb.NewVector(1, kb.I64)
 	y := kb.NewVector(1, kb.I64)
 	x.AsI64()[0] = int64(step)
@@ -103,18 +102,18 @@ func syncStep(kungfu *kf.Kungfu, step int) int {
 	return int(y.AsI64()[0])
 }
 
-func resize(kungfu *kf.Kungfu) (bool, bool) {
-	sess := kungfu.CurrentSession()
+func resize(peer *peer.Peer) (bool, bool) {
+	sess := peer.CurrentSession()
 	oldRank := sess.Rank()
 	oldSize := sess.ClusterSize()
 	t0 := time.Now()
-	changed, keep, err := kungfu.ResizeClusterFromURL()
+	changed, keep, err := peer.ResizeClusterFromURL()
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	if changed {
 		if keep {
-			sess := kungfu.CurrentSession()
+			sess := peer.CurrentSession()
 			newRank := sess.Rank()
 			newSize := sess.ClusterSize()
 			log.Infof("resize %d -> %d took %s, rank %d -> %d", oldSize, newSize, time.Since(t0), oldRank, newRank)

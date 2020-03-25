@@ -9,7 +9,7 @@ import "C"
 
 //export GoKungfuResizeClusterFromURL
 func GoKungfuResizeClusterFromURL(pChanged, pKeep *C.char) int {
-	changed, keep, err := kungfu.ResizeClusterFromURL()
+	changed, keep, err := defaultPeer.ResizeClusterFromURL()
 	if err != nil {
 		utils.ExitErr(err)
 	}
@@ -20,7 +20,7 @@ func GoKungfuResizeClusterFromURL(pChanged, pKeep *C.char) int {
 
 //export GoKungfuProposeNewSize
 func GoKungfuProposeNewSize(newSize int) int {
-	err := kungfu.ProposeNewSize(newSize)
+	err := defaultPeer.ProposeNewSize(newSize)
 	if err != nil {
 		log.Warnf("ProposeNewSize failed: %v", err)
 	}

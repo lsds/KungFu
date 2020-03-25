@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -25,22 +25,22 @@ var (
 
 func main() {
 	flag.Parse()
-	kungfu, err := kf.New()
+	p, err := peer.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	kungfu.Start()
-	defer kungfu.Close()
+	p.Start()
+	defer p.Close()
 	sizes, ok := fakemodel.Models[*model]
 	if !ok {
 		log.Exitf("invalid model name: %s", *model)
 	}
 	m := fakemodel.New(sizes, kb.F32, *fuse)
-	benchAllReduce(kungfu, m)
+	benchAllReduce(p, m)
 }
 
-func benchAllReduce(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
-	sess := kungfu.CurrentSession()
+func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
+	sess := peer.CurrentSession()
 	rank := sess.Rank()
 
 	if rank == 0 {

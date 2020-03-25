@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -13,13 +13,13 @@ import (
 
 func main() {
 	flag.Parse()
-	kungfu, err := kf.New()
+	p, err := peer.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	kungfu.Start()
-	defer kungfu.Close()
-	tests := []func(*kf.Kungfu){
+	p.Start()
+	defer p.Close()
+	tests := []func(*peer.Peer){
 		// TODO: more tests
 		testAllReduce,
 		testGetPeerLatencies,
@@ -27,12 +27,12 @@ func main() {
 	}
 	for i, t := range tests {
 		fmt.Printf("# test: %d\n", i)
-		t(kungfu)
+		t(p)
 	}
 }
 
-func testGetPeerLatencies(kungfu *kf.Kungfu) {
-	sess := kungfu.CurrentSession()
+func testGetPeerLatencies(peer *peer.Peer) {
+	sess := peer.CurrentSession()
 	latencies := sess.GetPeerLatencies()
 	fmt.Printf("rank: %d\n", sess.Rank())
 	for _, d := range latencies {
@@ -43,9 +43,9 @@ func testGetPeerLatencies(kungfu *kf.Kungfu) {
 	fmt.Printf("%s OK\n", `testGetPeerLatencies`)
 }
 
-func testAllReduce(kungfu *kf.Kungfu) {
+func testAllReduce(peer *peer.Peer) {
 	const step = 20
-	sess := kungfu.CurrentSession()
+	sess := peer.CurrentSession()
 	np := sess.ClusterSize()
 	for i := 0; i < step; i++ {
 		fmt.Printf("step: %d\n", i)
@@ -83,10 +83,10 @@ func testAllReduce(kungfu *kf.Kungfu) {
 	fmt.Printf("%s OK\n", `testAllReduce`)
 }
 
-func testP2P(kungfu *kf.Kungfu) {
+func testP2P(peer *peer.Peer) {
 	const step = 20
 	const count = 10
-	sess := kungfu.CurrentSession()
+	sess := peer.CurrentSession()
 	np := sess.ClusterSize()
 	rank := sess.Rank()
 	name := "weight"
@@ -107,7 +107,7 @@ func testP2P(kungfu *kf.Kungfu) {
 		if err := sess.Barrier(); err != nil {
 			utils.ExitErr(err)
 		}
-		if err := kungfu.Save(name, a); err != nil {
+		if err := peer.Save(name, a); err != nil {
 			utils.ExitErr(err)
 		}
 		if err := sess.Barrier(); err != nil {

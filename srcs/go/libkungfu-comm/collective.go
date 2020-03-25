@@ -16,7 +16,7 @@ import "C"
 
 //export GoKungfuBarrier
 func GoKungfuBarrier(done *C.callback_t) int {
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return callOP("Barrier", sess.Barrier, done)
 }
 
@@ -28,7 +28,7 @@ func GoKungfuConsensus(buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, p
 		RecvBuf: toVector(unsafe.Pointer(pOK), 1, C.KungFu_Datatype(kb.I8)),
 		Name:    name,
 	}
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return callCollectiveOP("Consensus", name, sess.Consensus, w, done)
 }
 
@@ -41,7 +41,7 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 		OP:      kb.OP(op),
 		Name:    name,
 	}
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return callCollectiveOP("AllReduce", name, sess.AllReduce, w, done)
 }
 
@@ -54,7 +54,7 @@ func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_D
 		OP:      kb.OP(op),
 		Name:    name,
 	}
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return callCollectiveOP("Reduce", name, sess.Reduce, w, done)
 }
 
@@ -66,7 +66,7 @@ func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 		RecvBuf: toVector(recvBuf, count, dtype),
 		Name:    name,
 	}
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return callCollectiveOP("Broadcast", name, sess.Broadcast, w, done)
 }
 
@@ -78,7 +78,7 @@ func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Da
 		RecvBuf: toVector(recvBuf, recvCount, recvDtype),
 		Name:    name,
 	}
-	sess := kungfu.CurrentSession()
+	sess := defaultPeer.CurrentSession()
 	return callCollectiveOP("Gather", name, sess.Gather, w, done)
 }
 

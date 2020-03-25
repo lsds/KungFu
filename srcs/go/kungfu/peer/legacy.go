@@ -1,4 +1,4 @@
-package kungfu
+package peer
 
 import (
 	"bytes"
@@ -10,14 +10,14 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-func (kf *Kungfu) getCurrentCluster() plan.Cluster {
-	kf.Lock()
-	defer kf.Unlock()
-	return kf.currentCluster.Clone()
+func (p *Peer) getCurrentCluster() plan.Cluster {
+	p.Lock()
+	defer p.Unlock()
+	return p.currentCluster.Clone()
 }
 
-func (kf *Kungfu) ProposeNewSize(newSize int) error {
-	cluster := kf.getCurrentCluster()
+func (p *Peer) ProposeNewSize(newSize int) error {
+	cluster := p.getCurrentCluster()
 	newCluster, err := cluster.Resize(newSize)
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func (kf *Kungfu) ProposeNewSize(newSize int) error {
 	if err := json.NewEncoder(buf).Encode(newCluster); err != nil {
 		return err
 	}
-	u, err := url.Parse(kf.configServerURL)
+	u, err := url.Parse(p.configServerURL)
 	if err != nil {
 		return err
 	}
@@ -35,8 +35,8 @@ func (kf *Kungfu) ProposeNewSize(newSize int) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", kf.self))
-	resp, err := kf.client.Do(req)
+	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", p.self))
+	resp, err := p.client.Do(req)
 	if err != nil {
 		return err
 	}

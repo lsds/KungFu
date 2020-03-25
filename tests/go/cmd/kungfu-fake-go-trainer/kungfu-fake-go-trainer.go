@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -26,19 +26,19 @@ var (
 func main() {
 	flag.Parse()
 	log.Printf("[%s]", os.Args[0])
-	kungfu, err := kf.New()
+	peer, err := peer.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	kungfu.Start()
-	defer kungfu.Close()
+	peer.Start()
+	defer peer.Close()
 
 	model := fakemodel.New(fakemodel.Models[*model], kb.F32, false)
-	fakeTrain(kungfu, model)
+	fakeTrain(peer, model)
 }
 
-func getClusterSize(kungfu *kf.Kungfu) int {
-	sess := kungfu.CurrentSession()
+func getClusterSize(peer *peer.Peer) int {
+	sess := peer.CurrentSession()
 	return sess.ClusterSize()
 }
 
@@ -48,22 +48,22 @@ func logEstimatedSpeed(batches int, batchSize int, d time.Duration, np int) {
 		imgPerSec, imgPerSec*float64(np), np)
 }
 
-func fakeTrain(kungfu *kf.Kungfu, model *fakemodel.FakeModel) {
+func fakeTrain(peer *peer.Peer, model *fakemodel.FakeModel) {
 	var step int
 	t0 := time.Now()
 	for i := 0; i < *nIters; i++ {
 		for j := 0; j < *stepPerIter; j++ {
 			step++
-			trainStep(kungfu, model)
+			trainStep(peer, model)
 		}
 		fmt.Printf("after %d steps\n", step)
 	}
-	np := getClusterSize(kungfu)
+	np := getClusterSize(peer)
 	logEstimatedSpeed(*nIters**stepPerIter, *batchSize,
 		time.Since(t0), np)
 }
 
-func trainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
+func trainStep(peer *peer.Peer, m *fakemodel.FakeModel) {
 	for _, name := range m.Names {
 		b := m.Buffers[name]
 		w := session.Workspace{
@@ -72,7 +72,7 @@ func trainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 			OP:      kb.SUM,
 			Name:    name,
 		}
-		sess := kungfu.CurrentSession()
+		sess := peer.CurrentSession()
 		sess.AllReduce(w)
 	}
 }
