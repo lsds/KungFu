@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"

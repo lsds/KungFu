@@ -3,8 +3,8 @@ package main
 import (
 	"unsafe"
 
-	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 )
 
 /*

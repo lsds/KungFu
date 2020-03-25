@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
-	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
