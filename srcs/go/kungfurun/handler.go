@@ -12,8 +12,8 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
+	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -45,7 +45,7 @@ type Handler struct {
 	ch       chan Stage
 	cancel   context.CancelFunc
 
-	controlHandlers map[string]rch.MsgHandleFunc
+	controlHandlers map[string]handler.MsgHandleFunc
 }
 
 func (h *Handler) Self() plan.PeerID {
@@ -58,7 +58,7 @@ func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Han
 		versions:        make(map[int]Stage),
 		ch:              ch,
 		cancel:          cancel,
-		controlHandlers: make(map[string]rch.MsgHandleFunc),
+		controlHandlers: make(map[string]handler.MsgHandleFunc),
 	}
 	h.controlHandlers["update"] = h.handleContrlUpdate
 	h.controlHandlers["exit"] = h.handleContrlExit
@@ -68,7 +68,7 @@ func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Han
 func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
 	switch t {
 	case connection.ConnControl:
-		if n, err := rch.Stream(conn, remote, rch.Accept, h.handleControl); err != nil {
+		if n, err := handler.Stream(conn, remote, handler.Accept, h.handleControl); err != nil {
 			return fmt.Errorf("stream error after handled %d messages: %v", n, err)
 		}
 		return nil

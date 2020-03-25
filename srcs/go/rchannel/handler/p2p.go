@@ -1,10 +1,11 @@
-package rchannel
+package handler
 
 import (
 	"net"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/store"
 )
@@ -16,16 +17,16 @@ type PeerToPeerEndpoint struct {
 	store          *store.Store
 	waitQ          *BufferPool
 	recvQ          *BufferPool
-	router         *Router
+	client         *client.Client
 }
 
-func NewPeerToPeerEndpoint(router *Router) *PeerToPeerEndpoint {
+func NewPeerToPeerEndpoint(client *client.Client) *PeerToPeerEndpoint {
 	return &PeerToPeerEndpoint{
 		versionedStore: store.NewVersionedStore(defaultVersionCount),
 		store:          store.NewStore(),
 		waitQ:          newBufferPool(1),
 		recvQ:          newBufferPool(1),
-		router:         router,
+		client:         client,
 	}
 }
 
@@ -40,7 +41,7 @@ func (e *PeerToPeerEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t connec
 
 func (e *PeerToPeerEndpoint) Request(a plan.Addr, version string, m connection.Message) (bool, error) {
 	e.waitQ.require(a) <- &m
-	if err := e.router.Send(a, []byte(version), connection.ConnPeerToPeer, connection.NoFlag); err != nil {
+	if err := e.client.Send(a, []byte(version), connection.ConnPeerToPeer, connection.NoFlag); err != nil {
 		<-e.waitQ.require(a)
 		return false, err // FIXME: allow send to fail
 	}
@@ -121,5 +122,5 @@ func (e *PeerToPeerEndpoint) response(name string, version []byte, remote plan.N
 	} else {
 		flags |= connection.RequestFailed
 	}
-	return e.router.Send(remote.WithName(name), buf, connection.ConnPeerToPeer, flags)
+	return e.client.Send(remote.WithName(name), buf, connection.ConnPeerToPeer, flags)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
+	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -23,7 +24,7 @@ type Server interface {
 }
 
 // NewServer creates a new Server
-func NewServer(endpoint Endpoint) Server {
+func NewServer(endpoint handler.Endpoint) Server {
 	tcpServer := newTCPServer(endpoint)
 	var unixServer *server
 	if kc.UseUnixSock {
@@ -86,12 +87,12 @@ func (s *composedServer) Close() {
 type server struct {
 	listen   func() (net.Listener, error)
 	listener net.Listener
-	endpoint Endpoint
+	endpoint handler.Endpoint
 	token    uint32
 	unix     bool
 }
 
-func newTCPServer(endpoint Endpoint) *server {
+func newTCPServer(endpoint handler.Endpoint) *server {
 	return &server{
 		listen: func() (net.Listener, error) {
 			listenAddr := endpoint.Self()
@@ -115,7 +116,7 @@ func fileExists(filename string) (bool, time.Duration) {
 }
 
 // newUnixServer creates a new Server listening Unix socket
-func newUnixServer(endpoint Endpoint) *server {
+func newUnixServer(endpoint handler.Endpoint) *server {
 	listen := func() (net.Listener, error) {
 		sockFile := endpoint.Self().SockFile()
 		if ok, age := fileExists(sockFile); ok {

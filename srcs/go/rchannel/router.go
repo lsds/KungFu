@@ -6,22 +6,24 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
+	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 )
 
 type Router struct {
 	self       plan.PeerID
-	Collective *CollectiveEndpoint // FIXME: move it out of Router
-	P2P        *PeerToPeerEndpoint
+	Collective *handler.CollectiveEndpoint // FIXME: move it out of Router
+	P2P        *handler.PeerToPeerEndpoint
 	client     *client.Client
 }
 
 func NewRouter(self plan.PeerID) *Router {
+	client := client.New(self)
 	router := &Router{
 		self:       self,
-		Collective: NewCollectiveEndpoint(),
-		client:     client.New(self),
+		Collective: handler.NewCollectiveEndpoint(),
+		P2P:        handler.NewPeerToPeerEndpoint(client),
+		client:     client,
 	}
-	router.P2P = NewPeerToPeerEndpoint(router) // FIXME: remove mutual membership
 	return router
 }
 
@@ -46,7 +48,7 @@ func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnTyp
 	case connection.ConnPeerToPeer:
 		return r.P2P.Handle(conn, remote, t)
 	case connection.ConnControl:
-		var h controlHandler
+		var h handler.ControlHandler
 		return h.Handle(conn, remote, t)
 	default:
 		return connection.ErrInvalidConnectionType
