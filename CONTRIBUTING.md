@@ -27,9 +27,18 @@ All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 
 ### Concepts
 
-* PeerID: PeerID is the unique identifier of a peer, it tells the runner how to start the peer and also tells all peers how to find each other.
+* Peer: the basic unit that participates in cluster. Usually a peer coressponds to one system process.
 
-* PeerList: PeerList is the ordered list of **PeerID** from all peers in the cluster. It is a common constant shared among all peers in the cluster.
+* PeerID: PeerID is the unique identifier of a **Peer**, it tells the runner how to start the Peer and also tells all peers how to find each other. **PeerID** is immutable during the life cycle of a Peer.
+
+* Session: a group of Peers interconnected by Connections.
+
+* PeerList: PeerList is the ordered list of **PeerID** from all peers in a **Session**.
+  All peers in the same Session have the same PeerList, which allows Rank to be defined.
+
+* Connection: the communication channel connecting two peers.
+
+* Message: the basic unit of information sent over Connections.
 
 * HostSpec: HostSpec is the metadata that describes a host machine.
 
