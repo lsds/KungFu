@@ -1,4 +1,4 @@
-package kungfubase
+package base
 
 // #include "kungfu/dtype.h"
 import "C"

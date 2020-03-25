@@ -3,7 +3,7 @@ package session
 import (
 	"fmt"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"

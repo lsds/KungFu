@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )

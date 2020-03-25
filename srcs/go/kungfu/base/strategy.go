@@ -1,4 +1,4 @@
-package kungfubase
+package base
 
 import "errors"
 

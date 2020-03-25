@@ -3,7 +3,7 @@ package plan
 import (
 	"os"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 )
 
 type Config struct {

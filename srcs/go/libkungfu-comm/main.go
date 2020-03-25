@@ -6,7 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"

@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 )
 
 // PeerList is an ordered list of PeerIDs

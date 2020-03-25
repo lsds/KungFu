@@ -11,7 +11,7 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"

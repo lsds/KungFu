@@ -4,7 +4,7 @@ import (
 	"unsafe"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 )
 
 /*
