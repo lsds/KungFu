@@ -19,7 +19,7 @@ type Connection interface {
 	Read(msgName string, m Message) error
 }
 
-func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
+func newPingConnection(remote, local plan.NetAddr) (Connection, error) {
 	c := newConnection(remote, local, ConnPing, 0) // FIXME: use token
 	if err := c.initOnce(); err != nil {
 		return nil, err
@@ -70,6 +70,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpCon
 		remote:    remote,
 		init:      init,
 		initRetry: initRetry,
+		connType:  t,
 	}
 }
 
@@ -79,6 +80,7 @@ type tcpConnection struct {
 	init      func() (net.Conn, error)
 	conn      net.Conn
 	initRetry int
+	connType  ConnType
 }
 
 var errCantEstablishConnection = errors.New("can't establish connection")
@@ -93,7 +95,7 @@ func (c *tcpConnection) initOnce() error {
 	for i := 0; i <= c.initRetry; i++ {
 		var err error
 		if c.conn, err = c.init(); err == nil {
-			log.Debugf("connection to #<%s> established after %d trials, took %s", c.remote, i+1, time.Since(t0))
+			log.Debugf("%s connection to #<%s> established after %d trials, took %s", c.connType, c.remote, i+1, time.Since(t0))
 			return nil
 		}
 		log.Debugf("failed to establish connection to #<%s> for %d times: %v", c.remote, i+1, err)

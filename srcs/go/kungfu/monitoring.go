@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
 )
@@ -27,15 +28,11 @@ func (sess *session) GetPeerLatencies() []time.Duration {
 }
 
 func getLatency(self, peer plan.PeerID) time.Duration {
-	conn, err := rch.NewPingConnection(plan.NetAddr(peer), plan.NetAddr(self))
+	client := rch.NewClient(self)
+	d, err := client.Ping(peer)
 	if err != nil {
+		log.Errorf("ping(%s) failed, error ignored!", peer)
 		// TODO handle error
 	}
-	defer conn.Close()
-	t0 := time.Now()
-	var empty rch.Message
-	conn.Send("ping", empty, rch.NoFlag)
-	conn.Read("ping", empty)
-	// FIXME: handle timeout
-	return time.Since(t0)
+	return d
 }
