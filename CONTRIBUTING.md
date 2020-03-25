@@ -20,29 +20,37 @@ your own machine learning framework.
 
 All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 
-### Components
+### Libraries
 
-* kungfu-comm: a C library implemented in Golang
-* kungfu: the public C/C++ library based on kungfu-comm
+* libkungfu-comm: a C library implemented in Golang
+* libkungfu: the public C/C++ library based on kungfu-comm
 
 ### Concepts
 
-* Peer: the basic unit that participates in cluster. Usually a peer coressponds to one system process.
+* Peer: the basic unit that participates in cluster. Usually a **Peer** corresponds to one system process.
 
-* PeerID: PeerID is the unique identifier of a **Peer**, it tells the runner how to start the Peer and also tells all peers how to find each other. **PeerID** is immutable during the life cycle of a Peer.
+* PeerID: **PeerID** is the unique identifier of a **Peer**, it tells the runner how to start the **Peer** and also tells all peers how to find each other. **PeerID** is immutable during the life cycle of a **Peer**.
 
-* Session: a group of Peers interconnected by Connections.
+* Session: a group of **Peer**s interconnected by **Connection**s. Currently a **Peer** can be in at most one **Session** at the same time. **Peer**s in the a **Session** can perform collective operations, such as _allreduce_, _broadcast_.
 
-* PeerList: PeerList is the ordered list of **PeerID** from all peers in a **Session**.
-  All peers in the same Session have the same PeerList, which allows Rank to be defined.
+* PeerList: a **PeerList** is an ordered list of **PeerID** from all peers in a **Session**.
+  All **Peer**s in the same **Session** have the same **PeerList**, which allows Rank to be defined.
 
-* Connection: the communication channel connecting two peers.
+* Connection: the communication channel connecting two **Peer**s. A **Connection** can be upgraded from a TCP connection.
 
-* Message: the basic unit of information sent over Connections.
+* Message: the basic unit of information sent over **Connection**s.
 
 * HostSpec: HostSpec is the metadata that describes a host machine.
 
 * Graph: A directed graph, which may contain self loops. The vertices are numbered from 0 to n - 1.
+
+### Components
+
+* Server: A TCP server that accepts **Connection**s
+
+* Client: A TCP client that can send **Connection**s
+
+* Handler: A TCP connection handler that can handle **Connection**s
 
 ## Useful commands
 
