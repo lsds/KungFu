@@ -3,7 +3,7 @@ package main
 import (
 	"unsafe"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
@@ -23,7 +23,7 @@ func GoKungfuBarrier(done *C.callback_t) int {
 //export GoKungfuConsensus
 func GoKungfuConsensus(buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pOK *C.char, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
-	w := kf.Workspace{
+	w := session.Workspace{
 		SendBuf: toVector(buf, count, dtype),
 		RecvBuf: toVector(unsafe.Pointer(pOK), 1, C.KungFu_Datatype(kb.I8)),
 		Name:    name,
@@ -35,7 +35,7 @@ func GoKungfuConsensus(buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, p
 //export GoKungfuAllReduce
 func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
-	w := kf.Workspace{
+	w := session.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
 		OP:      kb.OP(op),
@@ -48,7 +48,7 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 //export GoKungfuReduce
 func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
-	w := kf.Workspace{
+	w := session.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
 		OP:      kb.OP(op),
@@ -61,7 +61,7 @@ func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_D
 //export GoKungfuBroadcast
 func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
-	w := kf.Workspace{
+	w := session.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
 		Name:    name,
@@ -73,7 +73,7 @@ func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 //export GoKungfuGather
 func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype, recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
-	w := kf.Workspace{
+	w := session.Workspace{
 		SendBuf: toVector(sendBuf, sendCount, sendDtype),
 		RecvBuf: toVector(recvBuf, recvCount, recvDtype),
 		Name:    name,
@@ -82,6 +82,6 @@ func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Da
 	return callCollectiveOP("Gather", name, sess.Gather, w, done)
 }
 
-func callCollectiveOP(opName, name string, op func(kf.Workspace) error, w kf.Workspace, done *C.callback_t) int {
+func callCollectiveOP(opName, name string, op func(session.Workspace) error, w session.Workspace, done *C.callback_t) int {
 	return callOP(opName+"("+name+")", func() error { return op(w) }, done)
 }

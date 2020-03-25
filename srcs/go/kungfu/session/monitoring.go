@@ -1,4 +1,4 @@
-package kungfu
+package session
 
 import (
 	"sync"
@@ -9,7 +9,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 )
 
-func (sess *session) GetPeerLatencies() []time.Duration {
+func (sess *Session) GetPeerLatencies() []time.Duration {
 	results := make([]time.Duration, len(sess.peers))
 	var wg sync.WaitGroup
 	for rank, peer := range sess.peers {

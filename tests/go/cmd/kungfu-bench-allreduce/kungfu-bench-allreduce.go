@@ -6,6 +6,7 @@ import (
 	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -53,7 +54,7 @@ func benchAllReduce(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 	for _, name := range m.Names {
 		func(name string, b fakemodel.DoubleBuffer) {
 			g.Add(func() {
-				w := kf.Workspace{
+				w := session.Workspace{
 					SendBuf: b.SendBuf,
 					RecvBuf: b.RecvBuf,
 					OP:      kb.SUM,

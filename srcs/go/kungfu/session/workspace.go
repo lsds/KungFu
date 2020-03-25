@@ -1,4 +1,4 @@
-package kungfu
+package session
 
 import (
 	"fmt"

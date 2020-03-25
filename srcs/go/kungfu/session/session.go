@@ -1,8 +1,7 @@
-package kungfu
+package session
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
@@ -21,8 +20,8 @@ type strategy struct {
 	bcastGraph  *plan.Graph
 }
 
-// session contains the immutable topology and strategies for a given period of logical duration
-type session struct {
+// Session contains the immutable topology and strategies for a given period of logical duration
+type Session struct {
 	strategies   []strategy
 	self         plan.PeerID
 	peers        plan.PeerList
@@ -32,7 +31,7 @@ type session struct {
 	strategyHash strategyHashFunc
 }
 
-func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*session, bool) {
+func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router *rch.Router) (*Session, bool) {
 	rank, ok := pl.Rank(self)
 	if !ok {
 		return nil, false
@@ -44,7 +43,7 @@ func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router
 	if strategy == kb.Auto {
 		strategy = autoSelect(pl)
 	}
-	sess := &session{
+	sess := &Session{
 		strategies:   partitionStrategies[strategy](pl),
 		self:         self,
 		peers:        pl,
@@ -56,23 +55,19 @@ func newSession(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, router
 	return sess, true
 }
 
-func (sess *session) ClusterSize() int {
+func (sess *Session) ClusterSize() int {
 	return len(sess.peers)
 }
 
-func (sess *session) Rank() int {
+func (sess *Session) Rank() int {
 	return sess.rank
 }
 
-func (sess *session) LocalRank() int {
+func (sess *Session) LocalRank() int {
 	return sess.localRank
 }
 
-func (sess *session) Barrier() error {
-	return sess.barrier()
-}
-
-func (sess *session) barrier() error {
+func (sess *Session) Barrier() error {
 	k := len(sess.peers)
 	count := k * 1
 	dtype := kb.U8
@@ -85,7 +80,7 @@ func (sess *session) barrier() error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
-func (sess *session) Consensus(w Workspace) error {
+func (sess *Session) Consensus(w Workspace) error {
 	ok, err := sess.BytesConsensus(w.SendBuf.Data, w.Name)
 	if err != nil {
 		return err
@@ -94,7 +89,7 @@ func (sess *session) Consensus(w Workspace) error {
 	return nil
 }
 
-func (sess *session) BytesConsensus(bs []byte, name string) (bool, error) {
+func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 	n := len(bs)
 	{
 		x := kb.NewVector(1, kb.I32)
@@ -127,26 +122,26 @@ func (sess *session) BytesConsensus(bs []byte, name string) (bool, error) {
 	return true, nil
 }
 
-func (sess *session) AllReduce(w Workspace) error {
+func (sess *Session) AllReduce(w Workspace) error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
-func (sess *session) Reduce(w Workspace) error {
+func (sess *Session) Reduce(w Workspace) error {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
 	return sess.runGraphs(w, strategy.reduceGraph)
 }
 
-func (sess *session) Broadcast(w Workspace) error {
+func (sess *Session) Broadcast(w Workspace) error {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
 	return sess.runGraphs(w, strategy.bcastGraph)
 }
 
-func (sess *session) Gather(w Workspace) error {
+func (sess *Session) Gather(w Workspace) error {
 	// TODO: validate input
 	return sess.runGather(w)
 }
 
-func (sess *session) Request(rank int, version, name string, buf *kb.Vector) (bool, error) {
+func (sess *Session) Request(rank int, version, name string, buf *kb.Vector) (bool, error) {
 	if rank < 0 || len(sess.peers) <= rank {
 		return false, errInvalidRank
 	}
@@ -161,7 +156,7 @@ func asMessage(b *kb.Vector) connection.Message {
 	}
 }
 
-func (sess *session) runGather(w Workspace) error {
+func (sess *Session) runGather(w Workspace) error {
 	if sess.rank != defaultRoot {
 		peer := sess.peers[defaultRoot]
 		return sess.router.Send(peer.WithName(w.Name), w.SendBuf.Data, connection.ConnCollective, connection.NoFlag)
@@ -185,7 +180,7 @@ func (sess *session) runGather(w Workspace) error {
 	return nil // FIXME: handle errors
 }
 
-func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
+func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 	if len(sess.peers) == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)
 		return nil
@@ -237,7 +232,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			}(i, rank)
 		}
 		wg.Wait()
-		return mergeErrors(errs, "par")
+		return utils.MergeErrors(errs, "par")
 	}
 
 	seq := func(ranks []int, op func(plan.PeerID)) {
@@ -284,7 +279,7 @@ func ceilDiv(a, b int) int {
 	return a/b + 1
 }
 
-func (sess *session) runStrategiesWithHash(w Workspace, p partitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
+func (sess *Session) runStrategiesWithHash(w Workspace, p partitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
 	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
 	errs := make([]error, k)
 	var wg sync.WaitGroup
@@ -296,34 +291,16 @@ func (sess *session) runStrategiesWithHash(w Workspace, p partitionFunc, strateg
 		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
 	}
 	wg.Wait()
-	return mergeErrors(errs, "runStrategies")
+	return utils.MergeErrors(errs, "runStrategies")
 }
 
-func (sess *session) runStrategies(w Workspace, p partitionFunc, strategies strategyList) error {
+func (sess *Session) runStrategies(w Workspace, p partitionFunc, strategies strategyList) error {
 	return sess.runStrategiesWithHash(w, p, strategies, sess.strategyHash)
 }
 
 var (
 	errInvalidRank = errors.New("invalid rank")
 )
-
-func mergeErrors(errs []error, hint string) error {
-	var msg string
-	var failed int
-	for _, e := range errs {
-		if e != nil {
-			failed++
-			if len(msg) > 0 {
-				msg += ", "
-			}
-			msg += e.Error()
-		}
-	}
-	if failed == 0 {
-		return nil
-	}
-	return fmt.Errorf("%s failed with %s: %s", hint, utils.Pluralize(failed, "error", "errors"), msg)
-}
 
 func boolToInt8(v bool) int8 {
 	if v {

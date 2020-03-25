@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	run "github.com/lsds/KungFu/srcs/go/kungfurun"
@@ -37,7 +38,7 @@ type Kungfu struct {
 
 	// dynamic
 	clusterVersion int
-	currentSession *session
+	currentSession *session.Session
 	currentCluster *plan.Cluster
 	updated        bool
 }
@@ -117,7 +118,7 @@ func (kf *Kungfu) UID() uint64 {
 
 var errSelfNotInCluster = errors.New("self not in cluster")
 
-func (kf *Kungfu) CurrentSession() *session {
+func (kf *Kungfu) CurrentSession() *session.Session {
 	kf.Lock()
 	defer kf.Unlock()
 	if kf.currentSession == nil {
@@ -144,11 +145,11 @@ func (kf *Kungfu) updateTo(pl plan.PeerList) bool {
 	}
 	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", kf.clusterVersion, len(pl), pl)
 	kf.router.ResetConnections(pl, uint32(kf.clusterVersion))
-	sess, exist := newSession(kf.strategy, kf.self, pl, kf.router)
+	sess, exist := session.New(kf.strategy, kf.self, pl, kf.router)
 	if !exist {
 		return false
 	}
-	if err := sess.barrier(); err != nil {
+	if err := sess.Barrier(); err != nil {
 		utils.ExitErr(fmt.Errorf("barrier failed after newSession: %v", err))
 	}
 	kf.currentSession = sess
@@ -175,7 +176,7 @@ func par(ps plan.PeerList, f func(plan.PeerID) error) error {
 		}(i, p)
 	}
 	wg.Wait()
-	return mergeErrors(errs, "par")
+	return utils.MergeErrors(errs, "par")
 }
 
 func (kf *Kungfu) consensus(bs []byte) bool {

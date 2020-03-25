@@ -1,4 +1,4 @@
-package kungfu
+package session
 
 import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"

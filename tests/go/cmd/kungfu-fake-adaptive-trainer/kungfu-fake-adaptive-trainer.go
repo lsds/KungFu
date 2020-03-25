@@ -6,6 +6,7 @@ import (
 	"time"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -36,7 +37,7 @@ func fakeTrainStep(kungfu *kf.Kungfu, m *fakemodel.FakeModel, step int) {
 	t0 := time.Now()
 	for _, name := range m.Names {
 		b := m.Buffers[name]
-		w := kf.Workspace{
+		w := session.Workspace{
 			SendBuf: b.SendBuf,
 			RecvBuf: b.RecvBuf,
 			OP:      kb.SUM,
@@ -92,7 +93,7 @@ func syncStep(kungfu *kf.Kungfu, step int) int {
 	x := kb.NewVector(1, kb.I64)
 	y := kb.NewVector(1, kb.I64)
 	x.AsI64()[0] = int64(step)
-	w := kf.Workspace{
+	w := session.Workspace{
 		SendBuf: x,
 		RecvBuf: y,
 		OP:      kb.MAX,

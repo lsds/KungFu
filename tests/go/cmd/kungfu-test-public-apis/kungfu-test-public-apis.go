@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -54,7 +55,7 @@ func testAllReduce(kungfu *kf.Kungfu) {
 			z := kb.NewVector(1, kb.I32)
 			x.AsI32()[0] = 1
 			z.AsI32()[0] = int32(np)
-			w := kf.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
+			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
 			sess.AllReduce(w)
 			if !utils.BytesEq(y.Data, z.Data) {
 				utils.ExitErr(fmt.Errorf("%s failed", `testAllReduce`))
@@ -65,7 +66,7 @@ func testAllReduce(kungfu *kf.Kungfu) {
 			n := len(bs)
 			x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 			y := kb.NewVector(n, kb.U8)
-			w := kf.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "1"}
+			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "1"}
 			sess.AllReduce(w)
 		}
 		{
@@ -75,7 +76,7 @@ func testAllReduce(kungfu *kf.Kungfu) {
 			n := len(bs)
 			x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 			y := kb.NewVector(n, kb.U8)
-			w := kf.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "2"}
+			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "2"}
 			sess.AllReduce(w)
 		}
 	}
