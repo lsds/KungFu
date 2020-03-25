@@ -19,11 +19,11 @@ type Connection interface {
 	Read(msgName string, m Message) error
 }
 
-func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
+func NewPingConnection(remote, local plan.PeerID) (Connection, error) {
 	return newPingConnection(remote, local)
 }
 
-func newPingConnection(remote, local plan.NetAddr) (Connection, error) {
+func newPingConnection(remote, local plan.PeerID) (Connection, error) {
 	c := newConnection(remote, local, ConnPing, 0) // FIXME: use token
 	if err := c.initOnce(); err != nil {
 		return nil, err
@@ -33,11 +33,11 @@ func newPingConnection(remote, local plan.NetAddr) (Connection, error) {
 
 var errInvalidToken = errors.New("invalid token")
 
-func NewConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpConnection {
+func NewConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConnection {
 	return newConnection(remote, local, t, token)
 }
 
-func newConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpConnection {
+func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConnection {
 	init := func() (net.Conn, error) {
 		conn, err := func() (net.Conn, error) {
 			if kc.UseUnixSock && remote.ColocatedWith(local) {
@@ -84,7 +84,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpCon
 
 type tcpConnection struct {
 	sync.Mutex
-	remote    plan.NetAddr
+	remote    plan.PeerID
 	init      func() (net.Conn, error)
 	conn      net.Conn
 	initRetry int

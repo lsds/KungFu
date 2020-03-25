@@ -8,7 +8,7 @@ import (
 )
 
 type connKey struct {
-	a plan.NetAddr
+	a plan.PeerID
 	t connection.ConnType
 }
 
@@ -24,7 +24,7 @@ func newConnectionPool() *ConnectionPool {
 	}
 }
 
-func (p *ConnectionPool) get(remote, local plan.NetAddr, t connection.ConnType) connection.Connection {
+func (p *ConnectionPool) get(remote, local plan.PeerID, t connection.ConnType) connection.Connection {
 	p.Lock()
 	defer p.Unlock()
 	key := connKey{remote, t}

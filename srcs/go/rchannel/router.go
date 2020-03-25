@@ -10,7 +10,7 @@ import (
 )
 
 type Router struct {
-	localAddr  plan.NetAddr
+	self       plan.PeerID
 	Collective *CollectiveEndpoint // FIXME: move it out of Router
 	P2P        *PeerToPeerEndpoint
 	connPool   *ConnectionPool
@@ -19,7 +19,7 @@ type Router struct {
 
 func NewRouter(self plan.PeerID) *Router {
 	router := &Router{
-		localAddr:  plan.NetAddr(self),
+		self:       self,
 		Collective: NewCollectiveEndpoint(),
 		connPool:   newConnectionPool(), // out-going connections
 		monitor:    monitor.GetMonitor(),
@@ -29,7 +29,7 @@ func NewRouter(self plan.PeerID) *Router {
 }
 
 func (r *Router) Self() plan.PeerID {
-	return plan.PeerID(r.localAddr)
+	return r.self
 }
 
 func (r *Router) ResetConnections(keeps plan.PeerList, token uint32) {
@@ -50,7 +50,7 @@ func (r *Router) Send(a plan.Addr, buf []byte, t connection.ConnType, flags uint
 }
 
 func (r *Router) send(a plan.Addr, msg connection.Message, t connection.ConnType, flags uint32) error {
-	conn := r.connPool.get(a.NetAddr(), r.localAddr, t)
+	conn := r.connPool.get(a.Peer(), r.self, t)
 	if err := conn.Send(a.Name, msg, flags); err != nil {
 		return err
 	}

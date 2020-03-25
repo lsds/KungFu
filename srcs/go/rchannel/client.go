@@ -19,7 +19,7 @@ func NewClient(self plan.PeerID) *Client {
 
 func (c *Client) Ping(target plan.PeerID) (time.Duration, error) {
 	t0 := time.Now()
-	conn, err := connection.NewPingConnection(plan.NetAddr(target), plan.NetAddr(c.self))
+	conn, err := connection.NewPingConnection(target, c.self)
 	if err != nil {
 		return time.Since(t0), err
 	}

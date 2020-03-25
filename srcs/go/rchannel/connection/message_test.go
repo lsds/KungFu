@@ -6,7 +6,7 @@ import (
 )
 
 func Test_connectionHeader(t *testing.T) {
-	ch := connectionHeader{
+	ch := ConnectionHeader{
 		Type:    uint16(ConnCollective),
 		SrcPort: 9999,
 		SrcIPv4: 0x7f080808,
@@ -15,7 +15,7 @@ func Test_connectionHeader(t *testing.T) {
 	if err := ch.WriteTo(b); err != nil {
 		t.Errorf("failed to write message header: %v", err)
 	}
-	var ch2 connectionHeader
+	var ch2 ConnectionHeader
 	if err := ch2.ReadFrom(b); err != nil {
 		t.Errorf("failed to read message header: %v", err)
 	}
@@ -82,7 +82,7 @@ func Test_messageHeader(t *testing.T) {
 	b := &bytes.Buffer{}
 	{
 		bs := []byte("123456")
-		h := messageHeader{
+		h := MessageHeader{
 			NameLength: uint32(len(bs)),
 			Name:       bs,
 		}
@@ -91,7 +91,7 @@ func Test_messageHeader(t *testing.T) {
 		}
 	}
 	{
-		var h messageHeader
+		var h MessageHeader
 		if err := h.ReadFrom(b); err != nil {
 			t.Errorf("Message::ReadFrom failed: %v", err)
 		}
