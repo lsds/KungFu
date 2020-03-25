@@ -1,4 +1,4 @@
-package rchannel
+package connection
 
 import (
 	"sync"

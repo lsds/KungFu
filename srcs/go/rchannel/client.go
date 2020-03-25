@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 )
 
 type Client struct {
@@ -18,13 +19,13 @@ func NewClient(self plan.PeerID) *Client {
 
 func (c *Client) Ping(target plan.PeerID) (time.Duration, error) {
 	t0 := time.Now()
-	conn, err := newPingConnection(plan.NetAddr(target), plan.NetAddr(c.self))
+	conn, err := connection.NewPingConnection(plan.NetAddr(target), plan.NetAddr(c.self))
 	if err != nil {
 		return time.Since(t0), err
 	}
 	defer conn.Close()
-	var empty Message
-	if err := conn.Send("ping", empty, NoFlag); err != nil {
+	var empty connection.Message
+	if err := conn.Send("ping", empty, connection.NoFlag); err != nil {
 		return time.Since(t0), err
 	}
 	if err := conn.Read("ping", empty); err != nil {

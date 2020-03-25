@@ -4,33 +4,34 @@ import (
 	"sync"
 
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 )
 
 type connKey struct {
 	a plan.NetAddr
-	t ConnType
+	t connection.ConnType
 }
 
 type ConnectionPool struct {
 	sync.Mutex
-	conns map[connKey]Connection
+	conns map[connKey]connection.Connection
 	token uint32
 }
 
 func newConnectionPool() *ConnectionPool {
 	return &ConnectionPool{
-		conns: make(map[connKey]Connection),
+		conns: make(map[connKey]connection.Connection),
 	}
 }
 
-func (p *ConnectionPool) get(remote, local plan.NetAddr, t ConnType) Connection {
+func (p *ConnectionPool) get(remote, local plan.NetAddr, t connection.ConnType) connection.Connection {
 	p.Lock()
 	defer p.Unlock()
 	key := connKey{remote, t}
 	if conn, ok := p.conns[key]; ok {
 		return conn
 	}
-	conn := newConnection(remote, local, t, p.token)
+	conn := connection.NewConnection(remote, local, t, p.token)
 	p.conns[key] = conn
 	return conn
 }

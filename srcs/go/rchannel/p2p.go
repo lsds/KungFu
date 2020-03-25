@@ -5,6 +5,7 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/store"
 )
 
@@ -29,25 +30,25 @@ func NewPeerToPeerEndpoint(router *Router) *PeerToPeerEndpoint {
 }
 
 // Handle implements ConnHandler.Handle interface
-func (e *PeerToPeerEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error {
-	if t != ConnPeerToPeer {
+func (e *PeerToPeerEndpoint) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
+	if t != connection.ConnPeerToPeer {
 		return ErrInvalidConnectionType
 	}
 	_, err := Stream(conn, remote, e.accept, e.handle)
 	return err
 }
 
-func (e *PeerToPeerEndpoint) Request(a plan.Addr, version string, m Message) (bool, error) {
+func (e *PeerToPeerEndpoint) Request(a plan.Addr, version string, m connection.Message) (bool, error) {
 	e.waitQ.require(a) <- &m
-	if err := e.router.Send(a, []byte(version), ConnPeerToPeer, NoFlag); err != nil {
+	if err := e.router.Send(a, []byte(version), connection.ConnPeerToPeer, connection.NoFlag); err != nil {
 		<-e.waitQ.require(a)
 		return false, err // FIXME: allow send to fail
 	}
 	pm := <-e.recvQ.require(a)
-	if !m.same(pm) {
+	if !m.Same(pm) {
 		return false, errRegisteredBufferNotUsed
 	}
-	return !pm.hasFlag(RequestFailed), nil
+	return !pm.HasFlag(connection.RequestFailed), nil
 }
 
 func (e *PeerToPeerEndpoint) Save(name string, buf *kb.Vector) error {
@@ -66,17 +67,17 @@ func (e *PeerToPeerEndpoint) SaveVersion(version, name string, buf *kb.Vector) e
 	return blob.CopyFrom(buf.Data)
 }
 
-func (e *PeerToPeerEndpoint) accept(conn net.Conn, remote plan.NetAddr) (string, *Message, error) {
-	var mh messageHeader
+func (e *PeerToPeerEndpoint) accept(conn net.Conn, remote plan.NetAddr) (string, *connection.Message, error) {
+	var mh connection.MessageHeader
 	if err := mh.ReadFrom(conn); err != nil {
 		return "", nil, err
 	}
 	name := string(mh.Name)
-	if mh.HasFlag(IsResponse) {
+	if mh.HasFlag(connection.IsResponse) {
 		m := <-e.waitQ.require(remote.WithName(name))
-		m.flags = mh.Flags
-		if mh.HasFlag(RequestFailed) {
-			var empty Message
+		m.Flags = mh.Flags
+		if mh.HasFlag(connection.RequestFailed) {
+			var empty connection.Message
 			if err := empty.ReadInto(conn); err != nil {
 				return "", nil, err
 			}
@@ -87,16 +88,16 @@ func (e *PeerToPeerEndpoint) accept(conn net.Conn, remote plan.NetAddr) (string,
 		}
 		return name, m, nil
 	}
-	var m Message
-	m.flags = mh.Flags
+	var m connection.Message
+	m.Flags = mh.Flags
 	if err := m.ReadFrom(conn); err != nil {
 		return "", nil, err
 	}
 	return name, &m, nil
 }
 
-func (e *PeerToPeerEndpoint) handle(name string, msg *Message, conn net.Conn, remote plan.NetAddr) {
-	if msg.hasFlag(IsResponse) {
+func (e *PeerToPeerEndpoint) handle(name string, msg *connection.Message, conn net.Conn, remote plan.NetAddr) {
+	if msg.HasFlag(connection.IsResponse) {
 		e.recvQ.require(remote.WithName(name)) <- msg
 		return
 	}
@@ -111,14 +112,14 @@ func (e *PeerToPeerEndpoint) response(name string, version []byte, remote plan.N
 	} else {
 		blob, err = e.versionedStore.Get(string(version), name)
 	}
-	flags := IsResponse
+	flags := connection.IsResponse
 	var buf []byte
 	if err == nil {
 		blob.RLock()
 		defer blob.RUnlock()
 		buf = blob.Data
 	} else {
-		flags |= RequestFailed
+		flags |= connection.RequestFailed
 	}
-	return e.router.Send(remote.WithName(name), buf, ConnPeerToPeer, flags)
+	return e.router.Send(remote.WithName(name), buf, connection.ConnPeerToPeer, flags)
 }

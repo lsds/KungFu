@@ -6,10 +6,11 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 )
 
 type ConnHandler interface {
-	Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error
+	Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error
 }
 
 type Endpoint interface {
@@ -17,17 +18,17 @@ type Endpoint interface {
 	ConnHandler
 }
 
-type acceptFunc func(conn net.Conn, remote plan.NetAddr) (string, *Message, error)
+type acceptFunc func(conn net.Conn, remote plan.NetAddr) (string, *connection.Message, error)
 
-type MsgHandleFunc func(name string, msg *Message, conn net.Conn, remote plan.NetAddr)
+type MsgHandleFunc func(name string, msg *connection.Message, conn net.Conn, remote plan.NetAddr)
 
 // Accept accepts one message from connection
-func Accept(conn net.Conn, _remote plan.NetAddr) (string, *Message, error) {
-	var mh messageHeader
+func Accept(conn net.Conn, _remote plan.NetAddr) (string, *connection.Message, error) {
+	var mh connection.MessageHeader
 	if err := mh.ReadFrom(conn); err != nil {
 		return "", nil, err
 	}
-	var msg Message // FIXME: don't use buf
+	var msg connection.Message // FIXME: don't use buf
 	if err := msg.ReadFrom(conn); err != nil {
 		return "", nil, err
 	}

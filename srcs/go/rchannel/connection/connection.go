@@ -1,4 +1,4 @@
-package rchannel
+package connection
 
 import (
 	"errors"
@@ -19,6 +19,10 @@ type Connection interface {
 	Read(msgName string, m Message) error
 }
 
+func NewPingConnection(remote, local plan.NetAddr) (Connection, error) {
+	return newPingConnection(remote, local)
+}
+
 func newPingConnection(remote, local plan.NetAddr) (Connection, error) {
 	c := newConnection(remote, local, ConnPing, 0) // FIXME: use token
 	if err := c.initOnce(); err != nil {
@@ -28,6 +32,10 @@ func newPingConnection(remote, local plan.NetAddr) (Connection, error) {
 }
 
 var errInvalidToken = errors.New("invalid token")
+
+func NewConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpConnection {
+	return newConnection(remote, local, t, token)
+}
 
 func newConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpConnection {
 	init := func() (net.Conn, error) {
@@ -41,7 +49,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpCon
 		if err != nil {
 			return nil, err
 		}
-		h := connectionHeader{
+		h := ConnectionHeader{
 			Type:    uint16(t),
 			SrcIPv4: local.IPv4,
 			SrcPort: local.Port,
@@ -49,7 +57,7 @@ func newConnection(remote, local plan.NetAddr, t ConnType, token uint32) *tcpCon
 		if err := h.WriteTo(conn); err != nil {
 			return nil, err
 		}
-		var ack connectionACK
+		var ack ConnectionACK
 		if err := ack.ReadFrom(conn); err != nil {
 			return nil, err
 		}
@@ -111,7 +119,7 @@ func (c *tcpConnection) Send(msgName string, m Message, flags uint32) error {
 	c.Lock()
 	defer c.Unlock()
 	bs := []byte(msgName)
-	mh := messageHeader{
+	mh := MessageHeader{
 		NameLength: uint32(len(bs)),
 		Name:       bs,
 		Flags:      flags,
@@ -128,7 +136,7 @@ func (c *tcpConnection) Read(msgName string, m Message) error {
 	}
 	c.Lock()
 	defer c.Unlock()
-	var mh messageHeader
+	var mh MessageHeader
 	if err := mh.ReadFromLike(c.conn, msgName); err != nil {
 		return err
 	}

@@ -11,6 +11,7 @@ import (
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -175,29 +176,29 @@ func (s *server) Close() {
 
 func (s *server) handle(conn net.Conn) error {
 	defer conn.Close()
-	var ch connectionHeader
+	var ch connection.ConnectionHeader
 	if err := ch.ReadFrom(conn); err != nil {
 		return err
 	}
 	remote := plan.NetAddr{IPv4: ch.SrcIPv4, Port: ch.SrcPort}
-	t := ConnType(ch.Type)
+	t := connection.ConnType(ch.Type)
 	log.Debugf("got new connection of type %s from: %s", t, remote)
-	ack := connectionACK{Token: atomic.LoadUint32(&s.token)}
+	ack := connection.ConnectionACK{Token: atomic.LoadUint32(&s.token)}
 	if err := ack.WriteTo(conn); err != nil {
 		return err
 	}
-	if t == ConnPing {
+	if t == connection.ConnPing {
 		return s.handlePing(remote, conn)
 	}
 	return s.endpoint.Handle(conn, remote, t)
 }
 
 func (s *server) handlePing(remote plan.NetAddr, conn net.Conn) error {
-	var mh messageHeader
+	var mh connection.MessageHeader
 	if err := mh.ReadFrom(conn); err != nil {
 		return err
 	}
-	var empty Message
+	var empty connection.Message
 	if err := empty.ReadFrom(conn); err != nil {
 		return err
 	}

@@ -1,4 +1,4 @@
-package rchannel
+package connection
 
 import (
 	"encoding/binary"
@@ -35,29 +35,29 @@ var endian = binary.LittleEndian
 
 var errUnexpectedEnd = errors.New("Unexpected End")
 
-type connectionHeader struct {
+type ConnectionHeader struct {
 	Type    uint16
 	SrcPort uint16
 	SrcIPv4 uint32
 }
 
-func (h connectionHeader) WriteTo(w io.Writer) error {
+func (h ConnectionHeader) WriteTo(w io.Writer) error {
 	return binary.Write(w, endian, &h)
 }
 
-func (h *connectionHeader) ReadFrom(r io.Reader) error {
+func (h *ConnectionHeader) ReadFrom(r io.Reader) error {
 	return binary.Read(r, endian, h)
 }
 
-type connectionACK struct {
+type ConnectionACK struct {
 	Token uint32
 }
 
-func (a connectionACK) WriteTo(w io.Writer) error {
+func (a ConnectionACK) WriteTo(w io.Writer) error {
 	return binary.Write(w, endian, &a)
 }
 
-func (a *connectionACK) ReadFrom(r io.Reader) error {
+func (a *ConnectionACK) ReadFrom(r io.Reader) error {
 	return binary.Read(r, endian, a)
 }
 
@@ -70,17 +70,17 @@ const (
 	RequestFailed uint32 = 1 << iota // This is a response meesage for failed request
 )
 
-type messageHeader struct {
+type MessageHeader struct {
 	NameLength uint32
 	Name       []byte
 	Flags      uint32 // TODO: meaning of flags should be based on conn Type
 }
 
-func (h *messageHeader) HasFlag(flag uint32) bool {
+func (h *MessageHeader) HasFlag(flag uint32) bool {
 	return h.Flags&flag == flag
 }
 
-func (h *messageHeader) WriteTo(w io.Writer) error {
+func (h *MessageHeader) WriteTo(w io.Writer) error {
 	if err := binary.Write(w, endian, h.NameLength); err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (h *messageHeader) WriteTo(w io.Writer) error {
 
 // ReadFrom reads the messageHeader from a reader into new buffer.
 // The name length is obtained from the reader and should be trusted.
-func (h *messageHeader) ReadFrom(r io.Reader) error {
+func (h *MessageHeader) ReadFrom(r io.Reader) error {
 	if err := binary.Read(r, endian, &h.NameLength); err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (h *messageHeader) ReadFrom(r io.Reader) error {
 
 // ReadFromLike reads the messageHeader from a reader into new buffer.
 // The result Name should be checked against hint.
-func (h *messageHeader) ReadFromLike(r io.Reader, hint string) error {
+func (h *MessageHeader) ReadFromLike(r io.Reader, hint string) error {
 	if err := binary.Read(r, endian, &h.NameLength); err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func (h *messageHeader) ReadFromLike(r io.Reader, hint string) error {
 	return nil
 }
 
-func (h messageHeader) String() string {
+func (h MessageHeader) String() string {
 	return fmt.Sprintf("messageHeader{length=%d,name=%s}", h.NameLength, string(h.Name))
 }
 
@@ -139,15 +139,15 @@ func (h messageHeader) String() string {
 type Message struct {
 	Length uint32
 	Data   []byte
-	flags  uint32 // copied from Header, shouldn't be used during Read or Write
+	Flags  uint32 // copied from Header, shouldn't be used during Read or Write
 }
 
-func (m *Message) same(pm *Message) bool {
+func (m *Message) Same(pm *Message) bool {
 	return &m.Data[0] == &pm.Data[0]
 }
 
-func (m *Message) hasFlag(flag uint32) bool {
-	return m.flags&flag == flag
+func (m *Message) HasFlag(flag uint32) bool {
+	return m.Flags&flag == flag
 }
 
 func (m Message) WriteTo(w io.Writer) error {

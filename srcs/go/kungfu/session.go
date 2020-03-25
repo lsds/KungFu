@@ -9,6 +9,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -153,8 +154,8 @@ func (sess *session) Request(rank int, version, name string, buf *kb.Vector) (bo
 	return sess.router.P2P.Request(peer.WithName(name), version, asMessage(buf))
 }
 
-func asMessage(b *kb.Vector) rch.Message {
-	return rch.Message{
+func asMessage(b *kb.Vector) connection.Message {
+	return connection.Message{
 		Length: uint32(len(b.Data)),
 		Data:   b.Data,
 	}
@@ -163,7 +164,7 @@ func asMessage(b *kb.Vector) rch.Message {
 func (sess *session) runGather(w Workspace) error {
 	if sess.rank != defaultRoot {
 		peer := sess.peers[defaultRoot]
-		return sess.router.Send(peer.WithName(w.Name), w.SendBuf.Data, rch.ConnCollective, rch.NoFlag)
+		return sess.router.Send(peer.WithName(w.Name), w.SendBuf.Data, connection.ConnCollective, connection.NoFlag)
 	}
 	var wg sync.WaitGroup
 	count := w.SendBuf.Count
@@ -198,10 +199,10 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return w.RecvBuf.Data
 	}
 	sendOnto := func(peer plan.PeerID) error {
-		return sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.NoFlag)
+		return sess.router.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.NoFlag)
 	}
 	sendInto := func(peer plan.PeerID) error {
-		return sess.router.Send(peer.WithName(w.Name), effectiveData(), rch.ConnCollective, rch.WaitRecvBuf)
+		return sess.router.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.WaitRecvBuf)
 	}
 
 	var lock sync.Mutex
@@ -216,7 +217,7 @@ func (sess *session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			kb.Transform(w.RecvBuf, b, w.OP)
 		}
 		recvCount++
-		rch.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
+		connection.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
 		return nil
 	}
 

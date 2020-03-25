@@ -13,6 +13,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -56,7 +57,7 @@ func main() {
 
 func terminate(target plan.PeerID) {
 	router := rch.NewRouter(plan.PeerID{}) // FIXME: don't retry connect
-	if err := router.Send(target.WithName("exit"), nil, rch.ConnControl, rch.NoFlag); err != nil {
+	if err := router.Send(target.WithName("exit"), nil, connection.ConnControl, connection.NoFlag); err != nil {
 		log.Errorf("failed to send exit signal sent to %s", target)
 		return
 	}

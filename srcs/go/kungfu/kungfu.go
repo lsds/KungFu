@@ -16,6 +16,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -201,7 +202,7 @@ func (kf *Kungfu) propose(cluster plan.Cluster) (bool, bool) {
 		}
 		// FIXME: assuming runners are up and running
 		if err := par(cluster.Runners, func(ctrl plan.PeerID) error {
-			return kf.router.Send(ctrl.WithName("update"), stage.Encode(), rch.ConnControl, 0)
+			return kf.router.Send(ctrl.WithName("update"), stage.Encode(), connection.ConnControl, 0)
 		}); err != nil {
 			utils.ExitErr(err)
 		}

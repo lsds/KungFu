@@ -13,6 +13,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -64,9 +65,9 @@ func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Han
 	return h
 }
 
-func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t rch.ConnType) error {
+func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
 	switch t {
-	case rch.ConnControl:
+	case connection.ConnControl:
 		if n, err := rch.Stream(conn, remote, rch.Accept, h.handleControl); err != nil {
 			return fmt.Errorf("stream error after handled %d messages: %v", n, err)
 		}
@@ -76,7 +77,7 @@ func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t rch.ConnType) err
 	}
 }
 
-func (h *Handler) handleControl(name string, msg *rch.Message, conn net.Conn, remote plan.NetAddr) {
+func (h *Handler) handleControl(name string, msg *connection.Message, conn net.Conn, remote plan.NetAddr) {
 	log.Debugf("got control message from %s, name: %s, length: %d", remote, name, msg.Length)
 	handle, ok := h.controlHandlers[name]
 	if !ok {
@@ -87,7 +88,7 @@ func (h *Handler) handleControl(name string, msg *rch.Message, conn net.Conn, re
 
 var errInconsistentUpdate = errors.New("inconsistent update detected")
 
-func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.Conn, remote plan.NetAddr) {
+func (h *Handler) handleContrlUpdate(_name string, msg *connection.Message, _conn net.Conn, remote plan.NetAddr) {
 	var s Stage
 	if err := s.Decode(msg.Data); err != nil {
 		log.Warnf("invalid update message: %v", err)
@@ -108,7 +109,7 @@ func (h *Handler) handleContrlUpdate(_name string, msg *rch.Message, _conn net.C
 	}()
 }
 
-func (h *Handler) handleContrlExit(_name string, msg *rch.Message, _conn net.Conn, remote plan.NetAddr) {
+func (h *Handler) handleContrlExit(_name string, msg *connection.Message, _conn net.Conn, remote plan.NetAddr) {
 	log.Infof("exit control message received.")
 	h.cancel()
 }

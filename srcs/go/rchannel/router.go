@@ -6,6 +6,7 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 )
 
 type Router struct {
@@ -36,8 +37,8 @@ func (r *Router) ResetConnections(keeps plan.PeerList, token uint32) {
 }
 
 // Send sends data in buf to given Addr
-func (r *Router) Send(a plan.Addr, buf []byte, t ConnType, flags uint32) error {
-	msg := Message{
+func (r *Router) Send(a plan.Addr, buf []byte, t connection.ConnType, flags uint32) error {
+	msg := connection.Message{
 		Length: uint32(len(buf)),
 		Data:   buf,
 	}
@@ -48,7 +49,7 @@ func (r *Router) Send(a plan.Addr, buf []byte, t ConnType, flags uint32) error {
 	return nil
 }
 
-func (r *Router) send(a plan.Addr, msg Message, t ConnType, flags uint32) error {
+func (r *Router) send(a plan.Addr, msg connection.Message, t connection.ConnType, flags uint32) error {
 	conn := r.connPool.get(a.NetAddr(), r.localAddr, t)
 	if err := conn.Send(a.Name, msg, flags); err != nil {
 		return err
@@ -59,13 +60,13 @@ func (r *Router) send(a plan.Addr, msg Message, t ConnType, flags uint32) error 
 var ErrInvalidConnectionType = errors.New("invalid connection type")
 
 // Handle implements Handle method of ConnHandler interface
-func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error {
+func (r *Router) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
 	switch t {
-	case ConnCollective:
+	case connection.ConnCollective:
 		return r.Collective.Handle(conn, remote, t)
-	case ConnPeerToPeer:
+	case connection.ConnPeerToPeer:
 		return r.P2P.Handle(conn, remote, t)
-	case ConnControl:
+	case connection.ConnControl:
 		var h controlHandler
 		return h.Handle(conn, remote, t)
 	default:

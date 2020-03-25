@@ -7,14 +7,15 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 )
 
 type controlHandler struct {
 }
 
-func (h *controlHandler) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) error {
+func (h *controlHandler) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
 	switch t {
-	case ConnControl:
+	case connection.ConnControl:
 		if n, err := Stream(conn, remote, Accept, h.handleControl); err != nil {
 			return fmt.Errorf("stream error after handled %d messages: %v", n, err)
 		}
@@ -24,7 +25,7 @@ func (h *controlHandler) Handle(conn net.Conn, remote plan.NetAddr, t ConnType) 
 	}
 }
 
-func (h *controlHandler) handleControl(name string, msg *Message, _conn net.Conn, remote plan.NetAddr) {
+func (h *controlHandler) handleControl(name string, msg *connection.Message, _conn net.Conn, remote plan.NetAddr) {
 	if name == "exit" {
 		log.Errorf("exit control message received.")
 		os.Exit(0)
