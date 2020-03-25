@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
-	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )

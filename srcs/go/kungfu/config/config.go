@@ -1,4 +1,4 @@
-package kungfuconfig
+package config
 
 import (
 	"os"
