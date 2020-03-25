@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -216,38 +217,20 @@ func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 		return nil
 	}
 
-	recvInto := func(peer plan.PeerID) {
+	recvInto := func(peer plan.PeerID) error {
 		sess.router.Collective.RecvInto(peer.WithName(w.Name), asMessage(w.RecvBuf))
 		recvCount++
-	}
-
-	par := func(ranks []int, op func(plan.PeerID) error) error {
-		errs := make([]error, len(ranks))
-		var wg sync.WaitGroup
-		for i, rank := range ranks {
-			wg.Add(1)
-			go func(i, rank int) {
-				errs[i] = op(sess.peers[rank])
-				wg.Done()
-			}(i, rank)
-		}
-		wg.Wait()
-		return utils.MergeErrors(errs, "par")
-	}
-
-	seq := func(ranks []int, op func(plan.PeerID)) {
-		for _, rank := range ranks {
-			op(sess.peers[rank])
-		}
+		return nil
 	}
 
 	for _, g := range graphs {
-		prevs := g.Prevs(sess.rank)
+		prevs := sess.peers.Select(g.Prevs(sess.rank))
+		nexts := sess.peers.Select(g.Nexts(sess.rank))
 		if g.IsSelfLoop(sess.rank) {
-			if err := par(prevs, recvOnto); err != nil {
+			if err := execution.Par(prevs, recvOnto); err != nil {
 				return err
 			}
-			if err := par(g.Nexts(sess.rank), sendOnto); err != nil {
+			if err := execution.Par(nexts, sendOnto); err != nil {
 				return err
 			}
 		} else {
@@ -257,9 +240,11 @@ func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
 			if len(prevs) == 0 && recvCount == 0 {
 				w.RecvBuf.CopyFrom(w.SendBuf)
 			} else {
-				seq(prevs, recvInto) // len(prevs) == 1 is expected
+				if err := execution.Seq(prevs, recvInto); err != nil { // len(prevs) == 1 is expected
+					return err
+				}
 			}
-			if err := par(g.Nexts(sess.rank), sendInto); err != nil {
+			if err := execution.Par(nexts, sendInto); err != nil {
 				return err
 			}
 		}

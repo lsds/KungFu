@@ -61,6 +61,14 @@ func (pl PeerList) LocalRank(q PeerID) (int, bool) {
 	return -1, false
 }
 
+func (pl PeerList) Select(ranks []int) PeerList {
+	var ql PeerList
+	for _, rank := range ranks {
+		ql = append(ql, pl[rank])
+	}
+	return ql
+}
+
 func (pl PeerList) Contains(p PeerID) bool {
 	_, ok := pl.Rank(p)
 	return ok

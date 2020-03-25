@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 	kc "github.com/lsds/KungFu/srcs/go/kungfuconfig"
@@ -165,20 +166,6 @@ func (p *Peer) Save(name string, buf *kb.Vector) error {
 	return p.router.P2P.Save(name, buf)
 }
 
-func par(ps plan.PeerList, f func(plan.PeerID) error) error {
-	errs := make([]error, len(ps))
-	var wg sync.WaitGroup
-	for i, p := range ps {
-		wg.Add(1)
-		go func(i int, p plan.PeerID) {
-			errs[i] = f(p)
-			wg.Done()
-		}(i, p)
-	}
-	wg.Wait()
-	return utils.MergeErrors(errs, "par")
-}
-
 func (p *Peer) consensus(bs []byte) bool {
 	sess := p.CurrentSession()
 	ok, err := sess.BytesConsensus(bs, "")
@@ -203,7 +190,7 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 			Cluster: cluster,
 		}
 		// FIXME: assuming runners are up and running
-		if err := par(cluster.Runners, func(ctrl plan.PeerID) error {
+		if err := execution.Par(cluster.Runners, func(ctrl plan.PeerID) error {
 			return p.router.Send(ctrl.WithName("update"), stage.Encode(), connection.ConnControl, 0)
 		}); err != nil {
 			utils.ExitErr(err)
