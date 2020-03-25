@@ -12,8 +12,8 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
+	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -184,7 +184,7 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 		return false, true
 	}
 	{
-		stage := run.Stage{
+		stage := runner.Stage{
 			Version: p.clusterVersion + 1,
 			Cluster: cluster,
 		}

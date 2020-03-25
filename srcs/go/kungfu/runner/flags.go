@@ -1,4 +1,4 @@
-package kungfurun
+package runner
 
 import (
 	"errors"

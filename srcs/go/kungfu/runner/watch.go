@@ -1,4 +1,4 @@
-package kungfurun
+package runner
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/server"
 	"github.com/lsds/KungFu/srcs/go/utils"
-	runner "github.com/lsds/KungFu/srcs/go/utils/runner/local"
+	"github.com/lsds/KungFu/srcs/go/utils/runner/local"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
@@ -133,7 +133,7 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 }
 
 func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version int, logDir string) {
-	r := &runner.Runner{
+	r := &local.Runner{
 		Name:          proc.Name,
 		LogDir:        logDir,
 		LogFilePrefix: fmt.Sprintf("%s@%d", proc.Name, version),
