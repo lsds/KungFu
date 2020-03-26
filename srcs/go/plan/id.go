@@ -20,6 +20,13 @@ func (p PeerID) WithName(name string) Addr {
 	return NetAddr(p).WithName(name)
 }
 
+func (p PeerID) ListenAddr(strict bool) NetAddr {
+	if strict {
+		return NetAddr{IPv4: p.IPv4, Port: p.Port}
+	}
+	return NetAddr{IPv4: 0, Port: p.Port}
+}
+
 func (p PeerID) SockFile() string {
 	return NetAddr(p).SockFile()
 }

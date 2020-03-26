@@ -109,7 +109,7 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 		log.Infof("debug server: http://127.0.0.1:%d/", debugPort)
 		go http.ListenAndServe(net.JoinHostPort("", strconv.Itoa(debugPort)), handler)
 	}
-	server := server.New(handler)
+	server := server.New(self, handler)
 	if err := server.Start(); err != nil {
 		utils.ExitErr(err)
 	}

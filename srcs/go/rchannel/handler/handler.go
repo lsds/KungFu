@@ -4,18 +4,8 @@ import (
 	"io"
 
 	"github.com/lsds/KungFu/srcs/go/log"
-	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 )
-
-type ConnHandler interface {
-	Handle(conn connection.Connection) (int, error)
-}
-
-type Endpoint interface {
-	Self() plan.PeerID
-	ConnHandler
-}
 
 type acceptFunc func(conn connection.Connection) (string, *connection.Message, error)
 

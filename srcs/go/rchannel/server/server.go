@@ -12,7 +12,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
-	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -24,11 +23,11 @@ type Server interface {
 }
 
 // New creates a new Server
-func New(endpoint handler.Endpoint) Server {
-	tcpServer := newTCPServer(endpoint)
+func New(self plan.PeerID, handler connection.Handler) Server {
+	tcpServer := newTCPServer(self, handler)
 	var unixServer *server
 	if kc.UseUnixSock {
-		unixServer = newUnixServer(endpoint)
+		unixServer = newUnixServer(self, handler)
 	}
 	return &composedServer{
 		tcpServer:  tcpServer,
@@ -88,21 +87,20 @@ type server struct {
 	listen   func() (net.Listener, error)
 	listener net.Listener
 	self     plan.PeerID
-	endpoint handler.Endpoint
+	handler  connection.Handler
 	token    uint32
 	unix     bool
 }
 
-func newTCPServer(endpoint handler.Endpoint) *server {
+func newTCPServer(self plan.PeerID, handler connection.Handler) *server {
 	return &server{
 		listen: func() (net.Listener, error) {
-			listenAddr := endpoint.Self()
-			listenAddr.IPv4 = 0
+			listenAddr := self.ListenAddr(false)
 			log.Debugf("listening: %s", listenAddr)
 			return net.Listen("tcp", listenAddr.String())
 		},
-		self:     endpoint.Self(),
-		endpoint: endpoint,
+		self:    self,
+		handler: handler,
 	}
 }
 
@@ -118,9 +116,9 @@ func fileExists(filename string) (bool, time.Duration) {
 }
 
 // newUnixServer creates a new Server listening Unix socket
-func newUnixServer(endpoint handler.Endpoint) *server {
+func newUnixServer(self plan.PeerID, handler connection.Handler) *server {
 	listen := func() (net.Listener, error) {
-		sockFile := endpoint.Self().SockFile()
+		sockFile := self.SockFile()
 		if ok, age := fileExists(sockFile); ok {
 			if age > 0 {
 				log.Warnf("%s already exists for %s, trying to remove", sockFile, age)
@@ -134,9 +132,10 @@ func newUnixServer(endpoint handler.Endpoint) *server {
 		return net.ListenUnix("unix", &net.UnixAddr{Name: sockFile, Net: "unix"})
 	}
 	return &server{
-		listen:   listen,
-		endpoint: endpoint,
-		unix:     true,
+		listen:  listen,
+		self:    self,
+		handler: handler,
+		unix:    true,
 	}
 }
 
@@ -181,13 +180,13 @@ func (s *server) Close() {
 	// TODO: to be graceful
 	s.listener.Close()
 	if s.unix {
-		os.Remove(s.endpoint.Self().SockFile())
+		os.Remove(s.self.SockFile())
 	}
 }
 
 func (s *server) handle(conn connection.Connection) {
 	defer conn.Close()
-	if n, err := s.endpoint.Handle(conn); err != nil {
+	if n, err := s.handler.Handle(conn); err != nil {
 		log.Warnf("handle conn err: %v after handled %d messages", err, n)
 	}
 }

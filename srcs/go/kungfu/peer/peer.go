@@ -54,7 +54,7 @@ func New() (*Peer, error) {
 
 func NewFromConfig(config *env.Config) (*Peer, error) {
 	router := NewRouter(config.Self)
-	server := server.New(router)
+	server := server.New(config.Self, router)
 	var initClusterVersion int
 	if len(config.InitClusterVersion) > 0 {
 		var err error
