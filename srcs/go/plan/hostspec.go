@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 )
 
 var ErrInvalidHostSpec = errors.New("Invalid HostSpec")
@@ -187,9 +187,9 @@ func (hl HostList) GenPeerList(np int, pr PortRange) (PeerList, error) {
 }
 
 func getHostListFromEnv() (HostList, error) {
-	val, ok := os.LookupEnv(kb.HostListEnvKey)
+	val, ok := os.LookupEnv(env.HostListEnvKey)
 	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.HostListEnvKey)
+		return nil, fmt.Errorf("%s not set", env.HostListEnvKey)
 	}
 	return ParseHostList(val)
 }

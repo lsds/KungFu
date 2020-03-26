@@ -7,6 +7,7 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -26,16 +27,16 @@ type Job struct {
 
 func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl plan.PeerList) Proc {
 	envs := Envs{
-		kb.SelfSpecEnvKey:           peer.String(),
-		kb.HostListEnvKey:           j.HostList.String(),
-		kb.ParentIDEnvKey:           j.Parent.String(),
-		kb.PeerListEnvKey:           pl.String(),
-		kb.InitClusterVersionEnvKey: strconv.Itoa(initClusterVersion),
-		kb.AllReduceStrategyEnvKey:  j.Strategy.String(),
-		kb.ConfigServerEnvKey:       j.ConfigServer,
+		env.SelfSpecEnvKey:           peer.String(),
+		env.HostListEnvKey:           j.HostList.String(),
+		env.ParentIDEnvKey:           j.Parent.String(),
+		env.PeerListEnvKey:           pl.String(),
+		env.InitClusterVersionEnvKey: strconv.Itoa(initClusterVersion),
+		env.AllReduceStrategyEnvKey:  j.Strategy.String(),
+		env.ConfigServerEnvKey:       j.ConfigServer,
 	}
 	if len(j.ConfigServer) > 0 {
-		envs[kb.ConfigServerEnvKey] = j.ConfigServer
+		envs[env.ConfigServerEnvKey] = j.ConfigServer
 	}
 	cudaIdx := strconv.Itoa(getCudaIndex(gpuID))
 	envs[`KUNGFU_`+cudaVisibleDevicesKey] = cudaIdx

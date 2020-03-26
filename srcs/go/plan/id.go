@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 )
 
 // PeerID is the unique identifier of a peer.
@@ -51,17 +51,17 @@ func ParsePeerID(val string) (*PeerID, error) {
 }
 
 func getSelfFromEnv() (*PeerID, error) {
-	config, ok := os.LookupEnv(kb.SelfSpecEnvKey)
+	config, ok := os.LookupEnv(env.SelfSpecEnvKey)
 	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.SelfSpecEnvKey)
+		return nil, fmt.Errorf("%s not set", env.SelfSpecEnvKey)
 	}
 	return ParsePeerID(config)
 }
 
 func getParentFromEnv() (*PeerID, error) {
-	val, ok := os.LookupEnv(kb.ParentIDEnvKey)
+	val, ok := os.LookupEnv(env.ParentIDEnvKey)
 	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.ParentIDEnvKey)
+		return nil, fmt.Errorf("%s not set", env.ParentIDEnvKey)
 	}
 	return ParsePeerID(val)
 }

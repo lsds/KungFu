@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 )
 
 // PeerList is an ordered list of PeerIDs
@@ -148,9 +148,9 @@ func parsePeerList(val string) (PeerList, error) {
 }
 
 func getInitPeersFromEnv() (PeerList, error) {
-	val, ok := os.LookupEnv(kb.PeerListEnvKey)
+	val, ok := os.LookupEnv(env.PeerListEnvKey)
 	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.PeerListEnvKey)
+		return nil, fmt.Errorf("%s not set", env.PeerListEnvKey)
 	}
 	return parsePeerList(val)
 }

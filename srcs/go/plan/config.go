@@ -4,6 +4,7 @@ import (
 	"os"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 )
 
 type Config struct {
@@ -20,7 +21,7 @@ type Config struct {
 }
 
 func ParseConfigFromEnv() (*Config, error) {
-	if _, ok := os.LookupEnv(kb.SelfSpecEnvKey); !ok {
+	if _, ok := os.LookupEnv(env.SelfSpecEnvKey); !ok {
 		return singleEnv(), nil
 	}
 	self, err := getSelfFromEnv()
@@ -39,7 +40,7 @@ func ParseConfigFromEnv() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	strategy, err := kb.ParseStrategy(os.Getenv(kb.AllReduceStrategyEnvKey))
+	strategy, err := kb.ParseStrategy(os.Getenv(env.AllReduceStrategyEnvKey))
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +51,7 @@ func ParseConfigFromEnv() (*Config, error) {
 		Parents:            getParentIDs(hostList, *parent),
 		InitPeers:          initPeers,
 		Strategy:           *strategy,
-		InitClusterVersion: os.Getenv(kb.InitClusterVersionEnvKey),
+		InitClusterVersion: os.Getenv(env.InitClusterVersionEnvKey),
 	}, nil
 }
 
@@ -73,5 +74,5 @@ func singleEnv() *Config {
 }
 
 func getConfigServerFromEnv() string {
-	return os.Getenv(kb.ConfigServerEnvKey)
+	return os.Getenv(env.ConfigServerEnvKey)
 }
