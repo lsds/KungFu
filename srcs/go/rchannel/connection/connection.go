@@ -15,8 +15,33 @@ import (
 // Connection is a simplex logical connection from one peer to another
 type Connection interface {
 	io.Closer
-	Send(msgName string, m Message, flags uint32) error
-	Read(msgName string, m Message) error
+
+	Conn() net.Conn // FIXME: don't allow access net.Conn
+	Type() ConnType
+	Src() plan.PeerID
+	Dest() plan.PeerID
+	Send(name string, m Message, flags uint32) error
+	Read(name string, m Message) error
+}
+
+// UpgradeFrom performs the server side operations to upgrade a TCP connection to a Connection
+func UpgradeFrom(conn net.Conn, self plan.PeerID, token uint32) (Connection, error) {
+	var ch connectionHeader
+	if err := ch.ReadFrom(conn); err != nil {
+		return nil, err
+	}
+	ack := connectionACK{
+		Token: token,
+	}
+	if err := ack.WriteTo(conn); err != nil {
+		return nil, err
+	}
+	return &tcpConnection{
+		src:      plan.PeerID{IPv4: ch.SrcIPv4, Port: ch.SrcPort},
+		dest:     self,
+		connType: ConnType(ch.Type),
+		conn:     conn,
+	}, nil
 }
 
 func NewPingConnection(remote, local plan.PeerID) (Connection, error) {
@@ -49,7 +74,7 @@ func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConn
 		if err != nil {
 			return nil, err
 		}
-		h := ConnectionHeader{
+		h := connectionHeader{
 			Type:    uint16(t),
 			SrcIPv4: local.IPv4,
 			SrcPort: local.Port,
@@ -57,7 +82,7 @@ func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConn
 		if err := h.WriteTo(conn); err != nil {
 			return nil, err
 		}
-		var ack ConnectionACK
+		var ack connectionACK
 		if err := ack.ReadFrom(conn); err != nil {
 			return nil, err
 		}
@@ -75,8 +100,9 @@ func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConn
 		initRetry = kc.ConnRetryCount
 	}
 	return &tcpConnection{
-		remote:    remote,
 		init:      init,
+		src:       local,
+		dest:      remote,
 		initRetry: initRetry,
 		connType:  t,
 	}
@@ -84,7 +110,7 @@ func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConn
 
 type tcpConnection struct {
 	sync.Mutex
-	remote    plan.PeerID
+	src, dest plan.PeerID
 	init      func() (net.Conn, error)
 	conn      net.Conn
 	initRetry int
@@ -92,6 +118,22 @@ type tcpConnection struct {
 }
 
 var errCantEstablishConnection = errors.New("can't establish connection")
+
+func (c *tcpConnection) Conn() net.Conn {
+	return c.conn
+}
+
+func (c *tcpConnection) Type() ConnType {
+	return c.connType
+}
+
+func (c *tcpConnection) Src() plan.PeerID {
+	return c.src
+}
+
+func (c *tcpConnection) Dest() plan.PeerID {
+	return c.dest
+}
 
 func (c *tcpConnection) initOnce() error {
 	c.Lock()
@@ -103,10 +145,10 @@ func (c *tcpConnection) initOnce() error {
 	for i := 0; i <= c.initRetry; i++ {
 		var err error
 		if c.conn, err = c.init(); err == nil {
-			log.Debugf("%s connection to #<%s> established after %d trials, took %s", c.connType, c.remote, i+1, time.Since(t0))
+			log.Debugf("%s connection to #<%s> established after %d trials, took %s", c.connType, c.dest, i+1, time.Since(t0))
 			return nil
 		}
-		log.Debugf("failed to establish connection to #<%s> for %d times: %v", c.remote, i+1, err)
+		log.Debugf("failed to establish connection to #<%s> for %d times: %v", c.dest, i+1, err)
 		time.Sleep(kc.ConnRetryPeriod)
 	}
 	return errCantEstablishConnection

@@ -39,29 +39,29 @@ var endian = binary.LittleEndian
 
 var errUnexpectedEnd = errors.New("Unexpected End")
 
-type ConnectionHeader struct {
+type connectionHeader struct {
 	Type    uint16
 	SrcPort uint16
 	SrcIPv4 uint32
 }
 
-func (h ConnectionHeader) WriteTo(w io.Writer) error {
+func (h connectionHeader) WriteTo(w io.Writer) error {
 	return binary.Write(w, endian, &h)
 }
 
-func (h *ConnectionHeader) ReadFrom(r io.Reader) error {
+func (h *connectionHeader) ReadFrom(r io.Reader) error {
 	return binary.Read(r, endian, h)
 }
 
-type ConnectionACK struct {
+type connectionACK struct {
 	Token uint32
 }
 
-func (a ConnectionACK) WriteTo(w io.Writer) error {
+func (a connectionACK) WriteTo(w io.Writer) error {
 	return binary.Write(w, endian, &a)
 }
 
-func (a *ConnectionACK) ReadFrom(r io.Reader) error {
+func (a *connectionACK) ReadFrom(r io.Reader) error {
 	return binary.Read(r, endian, a)
 }
 

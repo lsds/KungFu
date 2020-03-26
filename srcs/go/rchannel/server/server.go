@@ -87,6 +87,7 @@ func (s *composedServer) Close() {
 type server struct {
 	listen   func() (net.Listener, error)
 	listener net.Listener
+	self     plan.PeerID
 	endpoint handler.Endpoint
 	token    uint32
 	unix     bool
@@ -100,6 +101,7 @@ func newTCPServer(endpoint handler.Endpoint) *server {
 			log.Debugf("listening: %s", listenAddr)
 			return net.Listen("tcp", listenAddr.String())
 		},
+		self:     endpoint.Self(),
 		endpoint: endpoint,
 	}
 }
@@ -148,9 +150,21 @@ func (s *server) Listen() error {
 	return err
 }
 
+func (s *server) accept() (connection.Connection, error) {
+	tcpConn, err := s.listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	conn, err := connection.UpgradeFrom(tcpConn, s.self, atomic.LoadUint32(&s.token))
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
+}
+
 func (s *server) Serve() {
 	for {
-		conn, err := s.listener.Accept()
+		conn, err := s.accept()
 		if err != nil {
 			if isNetClosingErr(err) {
 				break
@@ -158,11 +172,7 @@ func (s *server) Serve() {
 			log.Infof("Accept failed: %v", err)
 			continue
 		}
-		go func(conn net.Conn) {
-			if err := s.handle(conn); err != nil {
-				log.Warnf("handle conn err: %v", err)
-			}
-		}(conn)
+		go s.handle(conn)
 	}
 }
 
@@ -175,24 +185,11 @@ func (s *server) Close() {
 	}
 }
 
-func (s *server) handle(conn net.Conn) error {
+func (s *server) handle(conn connection.Connection) {
 	defer conn.Close()
-	var ch connection.ConnectionHeader
-	if err := ch.ReadFrom(conn); err != nil {
-		return err
+	if n, err := s.endpoint.Handle(conn); err != nil {
+		log.Warnf("handle conn err: %v after handled %d messages", err, n)
 	}
-	remote := plan.NetAddr{IPv4: ch.SrcIPv4, Port: ch.SrcPort}
-	t := connection.ConnType(ch.Type)
-	log.Debugf("got new connection of type %s from: %s", t, remote)
-	ack := connection.ConnectionACK{Token: atomic.LoadUint32(&s.token)}
-	if err := ack.WriteTo(conn); err != nil {
-		return err
-	}
-	if t == connection.ConnPing {
-		var h handler.PingHandler
-		return h.Handle(conn, remote, t)
-	}
-	return s.endpoint.Handle(conn, remote, t)
 }
 
 // check if error is internal/poll.ErrNetClosing
