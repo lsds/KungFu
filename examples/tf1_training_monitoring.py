@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 from tensorflow.python.util import deprecation
+from kungfu import current_rank
 
 import gzip
 import os
@@ -237,19 +238,19 @@ def main(_):
     # model_dir = getModelDr()
     # model_dir  = FLAGS.model_dir
 
-    #TODO: check if estimator session necessary
-    # save_checkpoints_steps = 100
-    # save_summary_steps = 1 
-    # config = tf.estimator.RunConfig(
-    #     model_dir=model_dir,
-    #     save_checkpoints_steps=save_checkpoints_steps,
-    #     save_summary_steps=save_summary_steps)
+    if current_rank() == 0:
+        save_checkpoints_steps = 100
+        save_summary_steps = 1 
+        config = tf.estimator.RunConfig(
+            model_dir=FLAGS.model_dir,
+            save_checkpoints_steps=save_checkpoints_steps,
+            save_summary_steps=save_summary_steps)
+    else: 
+        config=None
 
-    # mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-    #                                           model_dir=FLAGS.model_dir,
-    #                                           config=config)
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-                                              model_dir=FLAGS.model_dir)
+                                            model_dir=FLAGS.model_dir,
+                                            config=config)
 
     num_train_steps = 10000
     
