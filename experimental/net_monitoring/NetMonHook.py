@@ -136,12 +136,13 @@ class NetMonHook(tf.estimator.SessionRunHook):
             global_cong = run_context.session.run(self._cong_allreduce_op)
 
             if global_cong >= (self._cluster_size * self.cluster_congestion_threshold):
-                print("WARNINIG: Cluster network congestion detected !\n Changing to SMA.")
+                print("WARNINIG: Cluster network congestion detected !\n Changing to less communication intensive synchronisation algorithm.")
 
                 self._congestion_flag = True
 
                 #TODO: change for more intricate triggering algorithm
-                run_context.session.run(self._cond_var_Ada_setSMA)
+                # run_context.session.run(self._cond_var_Ada_setSMA)
+                run_context.session.run(self._cond_var_Ada_setASGD)
 
                 #increment backoff counter
                 self._backOff_timer += 1

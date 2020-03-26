@@ -19,6 +19,22 @@ def CustomAdaSGDOptimizer(optimizer,
                          use_locking=False,
                          with_keras=False):
 
+    if fused_model_name is None:
+        if hasattr(optimizer, 'get_name'):
+            # tf.train.Optimizer
+            fused_model_name = optimizer.get_name()
+        else:
+            try:
+                # tf.keras.optimizers.Optimizer has name since tf1.15
+                fused_model_name = optimizer.get_config()['name']
+                print("DEBUG:: fused_model_name=", fused_model_name)
+            except:
+                # keras optimizer does not have name
+                fused_model_name = 'PairAveragingOptimizer'
+                print(
+                    'WARNING: You must give a unique name if using parallel PairAveragingOptimizers.'
+                )
+
     algo = _CustomAdaSGD(alpha, fuse_requests, fused_model_name)
     if not with_keras:
         return _create_kungfu_optimizer(optimizer, algo, name, use_locking)
@@ -66,15 +82,18 @@ class _CustomAdaSGD(_KungFuAlgorithm):
         sum_grads = group_all_reduce(gradients)
         avg_grads = map_maybe(lambda g: g / self._num_workers, sum_grads)
 
+        # TODO:remove, only for debug purposes
         # print_op = tf.print("Inside SSGD")
 
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         grads_and_vars = zip(avg_grads, variables)
 
+        # with tf.control_dependencies([print_op]):
         return apply_grads_func(grads_and_vars, **kwargs)
 
     def _sma(self, apply_grads_func, gradients, variables, **kwargs):
         # It is important to apply model averaging every iteration [2]
+        # TODO:remove, only for debug purposes
         # print_op = tf.print("Inside SMA")
 
         sum_vars = group_all_reduce(variables)
@@ -91,9 +110,13 @@ class _CustomAdaSGD(_KungFuAlgorithm):
 
         # We can overlap model averaging and local SGD [2].
         with tf.control_dependencies(assign_ops):
+        # with tf.control_dependencies(assign_ops + [print_op]):
             return apply_grads_func(grads_and_vars, **kwargs)
     
     def _async_sgd(self, apply_grads_func, gradients, variables, **kwargs):
+        # TODO:remove, only for debug purposes
+        # print_op = tf.print("Inside A-SGD")
+
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
 
@@ -121,6 +144,7 @@ class _CustomAdaSGD(_KungFuAlgorithm):
         new_grads_and_vars = zip(gradients, variables)
         apply_op = apply_grads_func(new_grads_and_vars, **kwargs)
 
+        # with tf.control_dependencies(assign_ops + [print_op]):
         with tf.control_dependencies(assign_ops):
             with tf.control_dependencies([apply_op]):
                 with tf.control_dependencies([save_model_op]):
@@ -131,6 +155,6 @@ class _CustomAdaSGD(_KungFuAlgorithm):
 
         return tf.cond(tf.equal(self._cond_var_Ada_var, 0),
                        lambda: self._ssgd(apply_grads_func, g, v, **kwargs),
-                       tf.cond(tf.equal(self._cond_var_Ada_var, 1),
+                       lambda: tf.cond(tf.equal(self._cond_var_Ada_var, 1),
                                 lambda: self._sma(apply_grads_func, g, v, **kwargs),
                                 lambda: self._async_sgd(apply_grads_func, g, v ,**kwargs)))
