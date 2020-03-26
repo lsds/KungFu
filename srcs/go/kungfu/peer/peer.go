@@ -11,6 +11,7 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/kungfu/session"
@@ -44,14 +45,14 @@ type Peer struct {
 }
 
 func New() (*Peer, error) {
-	config, err := plan.ParseConfigFromEnv()
+	config, err := env.ParseConfigFromEnv()
 	if err != nil {
 		return nil, err
 	}
 	return NewFromConfig(config)
 }
 
-func NewFromConfig(config *plan.Config) (*Peer, error) {
+func NewFromConfig(config *env.Config) (*Peer, error) {
 	router := NewRouter(config.Self)
 	server := server.New(router)
 	var initClusterVersion int
