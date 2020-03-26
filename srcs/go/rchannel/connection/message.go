@@ -113,20 +113,20 @@ func (h *MessageHeader) ReadFrom(r io.Reader) error {
 	return nil
 }
 
-// ReadFromLike reads the messageHeader from a reader into new buffer.
-// The result Name should be checked against hint.
-func (h *MessageHeader) ReadFromLike(r io.Reader, hint string) error {
+// Expect reads the messageHeader from a reader into new buffer.
+// The result Name should be checked against name.
+func (h *MessageHeader) Expect(r io.Reader, name string) error {
 	if err := binary.Read(r, endian, &h.NameLength); err != nil {
 		return err
 	}
-	if int(h.NameLength) != len(hint) {
+	if int(h.NameLength) != len(name) {
 		return fmt.Errorf("unexpected name length: %d", h.NameLength)
 	}
 	h.Name = make([]byte, h.NameLength)
 	if err := readN(r, h.Name, int(h.NameLength)); err != nil {
 		return err
 	}
-	if string(h.Name) != hint {
+	if string(h.Name) != name {
 		return fmt.Errorf("unexpected name %s", h.Name)
 	}
 	if err := binary.Read(r, endian, &h.Flags); err != nil {

@@ -112,13 +112,13 @@ func (c *tcpConnection) initOnce() error {
 	return errCantEstablishConnection
 }
 
-func (c *tcpConnection) Send(msgName string, m Message, flags uint32) error {
+func (c *tcpConnection) Send(name string, m Message, flags uint32) error {
 	if err := c.initOnce(); err != nil {
 		return err
 	}
 	c.Lock()
 	defer c.Unlock()
-	bs := []byte(msgName)
+	bs := []byte(name)
 	mh := MessageHeader{
 		NameLength: uint32(len(bs)),
 		Name:       bs,
@@ -130,14 +130,14 @@ func (c *tcpConnection) Send(msgName string, m Message, flags uint32) error {
 	return m.WriteTo(c.conn)
 }
 
-func (c *tcpConnection) Read(msgName string, m Message) error {
+func (c *tcpConnection) Read(name string, m Message) error {
 	if err := c.initOnce(); err != nil {
 		return err
 	}
 	c.Lock()
 	defer c.Unlock()
 	var mh MessageHeader
-	if err := mh.ReadFromLike(c.conn, msgName); err != nil {
+	if err := mh.Expect(c.conn, name); err != nil {
 		return err
 	}
 	return m.ReadInto(c.conn)
