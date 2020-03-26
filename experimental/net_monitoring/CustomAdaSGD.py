@@ -85,11 +85,19 @@ class _CustomAdaSGD(_KungFuAlgorithm):
         # TODO:remove, only for debug purposes
         # print_op = tf.print("Inside SSGD")
 
+        filtered_variables = [
+            var for (grad, var) in list(zip(gradients, variables))
+            if grad is not None
+        ]
+        
+        save_model_op = self._build_save_op(filtered_variables)
+
         # We need to re-zip gradients and variables as grads_and_vars can be only unzipped once.
         grads_and_vars = zip(avg_grads, variables)
 
         # with tf.control_dependencies([print_op]):
-        return apply_grads_func(grads_and_vars, **kwargs)
+        with tf.control_dependencies([save_model_op]):
+            return apply_grads_func(grads_and_vars, **kwargs)
 
     def _sma(self, apply_grads_func, gradients, variables, **kwargs):
         # It is important to apply model averaging every iteration [2]
