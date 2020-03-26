@@ -237,6 +237,8 @@ def main(_):
 
     # model_dir = getModelDr()
     # model_dir  = FLAGS.model_dir
+    print(FLAGS.model_dir)
+    print(FLAGS.data_dir)
 
     if current_rank() == 0:
         save_checkpoints_steps = 100
