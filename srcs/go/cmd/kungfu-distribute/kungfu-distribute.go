@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/job"
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
+	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
-	runner "github.com/lsds/KungFu/srcs/go/utils/runner/remote"
+	"github.com/lsds/KungFu/srcs/go/utils/runner/remote"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
@@ -57,7 +57,7 @@ func main() {
 		highlight := xterm.Yellow.S("`") + xterm.Blue.S(strings.Join(args, " ")) + xterm.Yellow.S("`")
 		log.Infof("%s %s took %s", prog, highlight, time.Since(t0))
 	}(progName())
-	hl, err := run.ParseHostList(*hostList)
+	hl, err := runner.ParseHostList(*hostList)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
@@ -73,7 +73,7 @@ func main() {
 	}
 }
 
-func distribute(ctx context.Context, hl []run.HostSpec, prog string, args []string) error {
+func distribute(ctx context.Context, hl []runner.HostSpec, prog string, args []string) error {
 	var ps []job.Proc
 	for _, h := range hl {
 		proc := job.Proc{
@@ -84,5 +84,5 @@ func distribute(ctx context.Context, hl []run.HostSpec, prog string, args []stri
 		}
 		ps = append(ps, proc)
 	}
-	return runner.RemoteRunAll(ctx, *user, ps, *verboseLog, *logDir)
+	return remote.RemoteRunAll(ctx, *user, ps, *verboseLog, *logDir)
 }

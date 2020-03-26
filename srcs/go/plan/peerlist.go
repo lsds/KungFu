@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 )
 
 // PeerList is an ordered list of PeerIDs
@@ -59,6 +59,14 @@ func (pl PeerList) LocalRank(q PeerID) (int, bool) {
 		}
 	}
 	return -1, false
+}
+
+func (pl PeerList) Select(ranks []int) PeerList {
+	var ql PeerList
+	for _, rank := range ranks {
+		ql = append(ql, pl[rank])
+	}
+	return ql
 }
 
 func (pl PeerList) Contains(p PeerID) bool {

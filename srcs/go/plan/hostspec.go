@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 )
 
 var ErrInvalidHostSpec = errors.New("Invalid HostSpec")

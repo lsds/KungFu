@@ -12,7 +12,8 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
-	rch "github.com/lsds/KungFu/srcs/go/rchannel"
+	"github.com/lsds/KungFu/srcs/go/rchannel/client"
+	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -55,19 +56,18 @@ func main() {
 }
 
 func terminate(target plan.PeerID) {
-	router := rch.NewRouter(plan.PeerID{}) // FIXME: don't retry connect
-	if err := router.Send(target.WithName("exit"), nil, rch.ConnControl, rch.NoFlag); err != nil {
+	client := client.New(plan.PeerID{}) // FIXME: don't retry connect
+	if err := client.Send(target.WithName("exit"), nil, connection.ConnControl, connection.NoFlag); err != nil {
 		log.Errorf("failed to send exit signal sent to %s", target)
 		return
 	}
 	log.Infof("exit signal sent to %s", target)
 }
 
-var client = http.Client{
-	Timeout: 1 * time.Second,
-}
-
 func postConfig(clustr plan.Cluster, endpoint url.URL) {
+	client := http.Client{
+		Timeout: 1 * time.Second,
+	}
 	reqBody, err := json.Marshal(clustr)
 	if err != nil {
 		fmt.Println("Cannot marshal peer list")

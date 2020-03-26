@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lsds/KungFu/srcs/go/kungfuconfig"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
@@ -52,7 +52,7 @@ func New() *Logger {
 		outWriter: os.Stdout,
 		errWriter: os.Stderr,
 		t0:        time.Now(),
-		level:     parseLogLevel(kungfuconfig.LogLevel),
+		level:     parseLogLevel(config.LogLevel),
 	}
 	return l
 }

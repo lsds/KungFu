@@ -10,16 +10,16 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/job"
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
+	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
-var f run.FlagSet
+var f runner.FlagSet
 
-func init() { run.Init(&f) }
+func init() { runner.Init(&f) }
 
 func main() {
 	if logfile := f.Logfile; len(logfile) > 0 {
@@ -39,7 +39,7 @@ func main() {
 	}
 	t0 := time.Now()
 	defer func(prog string) { log.Debugf("%s finished, took %s", prog, time.Since(t0)) }(utils.ProgName())
-	localhostIPv4, err := run.InferSelfIPv4(f.Self, f.NIC)
+	localhostIPv4, err := runner.InferSelfIPv4(f.Self, f.NIC)
 	if err != nil {
 		utils.ExitErr(err)
 	}
@@ -49,7 +49,7 @@ func main() {
 	var peers plan.PeerList
 	var runners plan.PeerList
 	if len(f.HostList) > 0 {
-		hl, err = run.ResolveHostList(f.HostList, f.NIC)
+		hl, err = runner.ResolveHostList(f.HostList, f.NIC)
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 		}
@@ -62,7 +62,7 @@ func main() {
 			utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
 		}
 	} else {
-		peers, err = run.ResolvePeerList(localhostIPv4, uint16(f.Port), f.PeerList)
+		peers, err = runner.ResolvePeerList(localhostIPv4, uint16(f.Port), f.PeerList)
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to resolve peers: %v", err))
 		}
@@ -85,11 +85,11 @@ func main() {
 		defer cancel()
 	}
 	if f.Watch {
-		ch := make(chan run.Stage, 1)
+		ch := make(chan runner.Stage, 1)
 		if f.InitVersion < 0 {
 			log.Infof(xterm.Blue.S("waiting to be initialized"))
 		} else {
-			ch <- run.Stage{
+			ch <- runner.Stage{
 				Cluster: plan.Cluster{
 					Runners: runners,
 					Workers: peers,
@@ -98,9 +98,9 @@ func main() {
 			}
 		}
 		j.ConfigServer = f.ConfigServer
-		run.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
+		runner.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
 	} else {
-		run.SimpleRun(ctx, localhostIPv4, peers, j, f.VerboseLog)
+		runner.SimpleRun(ctx, localhostIPv4, peers, j, f.VerboseLog)
 	}
 }
 

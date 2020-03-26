@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
+	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -28,7 +28,7 @@ var (
 func main() {
 	t0 := time.Now()
 	flag.Parse()
-	hl, err := run.ResolveHostList(*hostlist, "")
+	hl, err := runner.ResolveHostList(*hostlist, "")
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
 	}
