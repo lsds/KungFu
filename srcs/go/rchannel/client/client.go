@@ -9,22 +9,24 @@ import (
 )
 
 type Client struct {
-	self     plan.PeerID
-	connPool *ConnectionPool
-	monitor  monitor.Monitor
+	self        plan.PeerID
+	useUnixSock bool
+	connPool    *connectionPool
+	monitor     monitor.Monitor
 }
 
-func New(self plan.PeerID) *Client {
+func New(self plan.PeerID, useUnixSock bool) *Client {
 	return &Client{
-		self:     self,
-		connPool: newConnectionPool(),
-		monitor:  monitor.GetMonitor(),
+		self:        self,
+		useUnixSock: useUnixSock,
+		connPool:    newConnectionPool(useUnixSock),
+		monitor:     monitor.GetMonitor(),
 	}
 }
 
 func (c *Client) Ping(target plan.PeerID) (time.Duration, error) {
 	t0 := time.Now()
-	conn, err := connection.NewPingConnection(target, c.self)
+	conn, err := connection.Open(target, c.self, connection.ConnPing, 0, c.useUnixSock)
 	if err != nil {
 		return time.Since(t0), err
 	}

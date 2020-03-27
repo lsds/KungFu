@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 
 	"github.com/lsds/KungFu/srcs/go/job"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/server"
@@ -109,7 +110,7 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 		log.Infof("debug server: http://127.0.0.1:%d/", debugPort)
 		go http.ListenAndServe(net.JoinHostPort("", strconv.Itoa(debugPort)), handler)
 	}
-	server := server.New(handler)
+	server := server.New(self, handler, config.UseUnixSock)
 	if err := server.Start(); err != nil {
 		utils.ExitErr(err)
 	}

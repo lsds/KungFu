@@ -1,12 +1,8 @@
 package plan
 
 import (
-	"fmt"
 	"net"
-	"os"
 	"strconv"
-
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 )
 
 // PeerID is the unique identifier of a peer.
@@ -22,6 +18,13 @@ func (p PeerID) ColocatedWith(q PeerID) bool {
 
 func (p PeerID) WithName(name string) Addr {
 	return NetAddr(p).WithName(name)
+}
+
+func (p PeerID) ListenAddr(strict bool) NetAddr {
+	if strict {
+		return NetAddr{IPv4: p.IPv4, Port: p.Port}
+	}
+	return NetAddr{IPv4: 0, Port: p.Port}
 }
 
 func (p PeerID) SockFile() string {
@@ -48,20 +51,4 @@ func ParsePeerID(val string) (*PeerID, error) {
 		IPv4: ipv4,
 		Port: uint16(port),
 	}, nil
-}
-
-func getSelfFromEnv() (*PeerID, error) {
-	config, ok := os.LookupEnv(kb.SelfSpecEnvKey)
-	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.SelfSpecEnvKey)
-	}
-	return ParsePeerID(config)
-}
-
-func getParentFromEnv() (*PeerID, error) {
-	val, ok := os.LookupEnv(kb.ParentIDEnvKey)
-	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.ParentIDEnvKey)
-	}
-	return ParsePeerID(val)
 }

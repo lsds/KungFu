@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/client"
@@ -28,7 +29,7 @@ func (sess *Session) GetPeerLatencies() []time.Duration {
 }
 
 func getLatency(self, peer plan.PeerID) time.Duration {
-	client := client.New(self)
+	client := client.New(self, config.UseUnixSock)
 	d, err := client.Ping(peer)
 	if err != nil {
 		log.Errorf("ping(%s) failed, error ignored!", peer)

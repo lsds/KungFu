@@ -6,14 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"sync"
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
-	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -45,7 +43,7 @@ type Handler struct {
 	ch       chan Stage
 	cancel   context.CancelFunc
 
-	controlHandlers map[string]handler.MsgHandleFunc
+	controlHandlers map[string]connection.MsgHandleFunc
 }
 
 func (h *Handler) Self() plan.PeerID {
@@ -58,37 +56,34 @@ func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Han
 		versions:        make(map[int]Stage),
 		ch:              ch,
 		cancel:          cancel,
-		controlHandlers: make(map[string]handler.MsgHandleFunc),
+		controlHandlers: make(map[string]connection.MsgHandleFunc),
 	}
 	h.controlHandlers["update"] = h.handleContrlUpdate
 	h.controlHandlers["exit"] = h.handleContrlExit
 	return h
 }
 
-func (h *Handler) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
-	switch t {
+func (h *Handler) Handle(conn connection.Connection) (int, error) {
+	switch t := conn.Type(); t {
 	case connection.ConnControl:
-		if n, err := handler.Stream(conn, remote, handler.Accept, h.handleControl); err != nil {
-			return fmt.Errorf("stream error after handled %d messages: %v", n, err)
-		}
-		return nil
+		return connection.Stream(conn, connection.Accept, h.handleControl)
 	default:
-		return fmt.Errorf("%v: %s from %s", connection.ErrInvalidConnectionType, t, remote)
+		return 0, fmt.Errorf("%v: %s from %s", connection.ErrInvalidConnectionType, t, conn.Src())
 	}
 }
 
-func (h *Handler) handleControl(name string, msg *connection.Message, conn net.Conn, remote plan.NetAddr) {
-	log.Debugf("got control message from %s, name: %s, length: %d", remote, name, msg.Length)
+func (h *Handler) handleControl(name string, msg *connection.Message, conn connection.Connection) {
+	log.Debugf("got control message from %s, name: %s, length: %d", conn.Src(), name, msg.Length)
 	handle, ok := h.controlHandlers[name]
 	if !ok {
 		log.Warnf("invalid control messaeg: %s", name)
 	}
-	handle(name, msg, conn, remote)
+	handle(name, msg, conn)
 }
 
 var errInconsistentUpdate = errors.New("inconsistent update detected")
 
-func (h *Handler) handleContrlUpdate(_name string, msg *connection.Message, _conn net.Conn, remote plan.NetAddr) {
+func (h *Handler) handleContrlUpdate(_name string, msg *connection.Message, _conn connection.Connection) {
 	var s Stage
 	if err := s.Decode(msg.Data); err != nil {
 		log.Warnf("invalid update message: %v", err)
@@ -109,7 +104,7 @@ func (h *Handler) handleContrlUpdate(_name string, msg *connection.Message, _con
 	}()
 }
 
-func (h *Handler) handleContrlExit(_name string, msg *connection.Message, _conn net.Conn, remote plan.NetAddr) {
+func (h *Handler) handleContrlExit(_name string, msg *connection.Message, _conn connection.Connection) {
 	log.Infof("exit control message received.")
 	h.cancel()
 }

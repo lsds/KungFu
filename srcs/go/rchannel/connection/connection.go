@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -15,32 +15,49 @@ import (
 // Connection is a simplex logical connection from one peer to another
 type Connection interface {
 	io.Closer
-	Send(msgName string, m Message, flags uint32) error
-	Read(msgName string, m Message) error
+
+	Conn() net.Conn // FIXME: don't allow access net.Conn
+	Type() ConnType
+	Src() plan.PeerID
+	Dest() plan.PeerID
+	Send(name string, m Message, flags uint32) error
+	Read(name string, m Message) error
 }
 
-func NewPingConnection(remote, local plan.PeerID) (Connection, error) {
-	return newPingConnection(remote, local)
-}
-
-func newPingConnection(remote, local plan.PeerID) (Connection, error) {
-	c := newConnection(remote, local, ConnPing, 0) // FIXME: use token
-	if err := c.initOnce(); err != nil {
+// UpgradeFrom performs the server side operations to upgrade a TCP connection to a Connection
+func UpgradeFrom(conn net.Conn, self plan.PeerID, token uint32) (Connection, error) {
+	var ch connectionHeader
+	if err := ch.ReadFrom(conn); err != nil {
 		return nil, err
 	}
-	return c, nil
+	ack := connectionACK{
+		Token: token,
+	}
+	if err := ack.WriteTo(conn); err != nil {
+		return nil, err
+	}
+	return &tcpConnection{
+		src:      plan.PeerID{IPv4: ch.SrcIPv4, Port: ch.SrcPort},
+		dest:     self,
+		connType: ConnType(ch.Type),
+		conn:     conn,
+	}, nil
 }
 
 var errInvalidToken = errors.New("invalid token")
 
-func NewConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConnection {
-	return newConnection(remote, local, t, token)
+func Open(remote, local plan.PeerID, t ConnType, token uint32, useUnixSock bool) (*tcpConnection, error) {
+	conn := New(remote, local, t, token, useUnixSock)
+	if err := conn.initOnce(); err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
 
-func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConnection {
+func New(remote, local plan.PeerID, t ConnType, token uint32, useUnixSock bool) *tcpConnection {
 	init := func() (net.Conn, error) {
 		conn, err := func() (net.Conn, error) {
-			if kc.UseUnixSock && remote.ColocatedWith(local) {
+			if useUnixSock && remote.ColocatedWith(local) {
 				addr := net.UnixAddr{Name: remote.SockFile(), Net: "unix"}
 				return net.DialUnix(addr.Net, nil, &addr)
 			}
@@ -49,7 +66,7 @@ func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConn
 		if err != nil {
 			return nil, err
 		}
-		h := ConnectionHeader{
+		h := connectionHeader{
 			Type:    uint16(t),
 			SrcIPv4: local.IPv4,
 			SrcPort: local.Port,
@@ -57,7 +74,7 @@ func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConn
 		if err := h.WriteTo(conn); err != nil {
 			return nil, err
 		}
-		var ack ConnectionACK
+		var ack connectionACK
 		if err := ack.ReadFrom(conn); err != nil {
 			return nil, err
 		}
@@ -72,11 +89,12 @@ func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConn
 	}
 	var initRetry int
 	if t == ConnCollective || t == ConnPeerToPeer {
-		initRetry = kc.ConnRetryCount
+		initRetry = config.ConnRetryCount
 	}
 	return &tcpConnection{
-		remote:    remote,
 		init:      init,
+		src:       local,
+		dest:      remote,
 		initRetry: initRetry,
 		connType:  t,
 	}
@@ -84,7 +102,7 @@ func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConn
 
 type tcpConnection struct {
 	sync.Mutex
-	remote    plan.PeerID
+	src, dest plan.PeerID
 	init      func() (net.Conn, error)
 	conn      net.Conn
 	initRetry int
@@ -92,6 +110,22 @@ type tcpConnection struct {
 }
 
 var errCantEstablishConnection = errors.New("can't establish connection")
+
+func (c *tcpConnection) Conn() net.Conn {
+	return c.conn
+}
+
+func (c *tcpConnection) Type() ConnType {
+	return c.connType
+}
+
+func (c *tcpConnection) Src() plan.PeerID {
+	return c.src
+}
+
+func (c *tcpConnection) Dest() plan.PeerID {
+	return c.dest
+}
 
 func (c *tcpConnection) initOnce() error {
 	c.Lock()
@@ -103,11 +137,11 @@ func (c *tcpConnection) initOnce() error {
 	for i := 0; i <= c.initRetry; i++ {
 		var err error
 		if c.conn, err = c.init(); err == nil {
-			log.Debugf("%s connection to #<%s> established after %d trials, took %s", c.connType, c.remote, i+1, time.Since(t0))
+			log.Debugf("%s connection to #<%s> established after %d trials, took %s", c.connType, c.dest, i+1, time.Since(t0))
 			return nil
 		}
-		log.Debugf("failed to establish connection to #<%s> for %d times: %v", c.remote, i+1, err)
-		time.Sleep(kc.ConnRetryPeriod)
+		log.Debugf("failed to establish connection to #<%s> for %d times: %v", c.dest, i+1, err)
+		time.Sleep(config.ConnRetryPeriod)
 	}
 	return errCantEstablishConnection
 }

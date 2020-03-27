@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
-	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -60,7 +60,7 @@ func nameBasedHash(i int, name string) uint64 {
 }
 
 func getStrategyHash() strategyHashFunc {
-	if kc.StrategyHashMethod == `NAME` {
+	if config.StrategyHashMethod == `NAME` {
 		log.Debugf("using name based hash")
 		return nameBasedHash
 	}

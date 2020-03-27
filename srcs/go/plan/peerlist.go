@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"os"
 	"strings"
-
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 )
 
 // PeerList is an ordered list of PeerIDs
@@ -134,7 +131,7 @@ func (pl PeerList) On(host uint32) PeerList {
 	return ql
 }
 
-func parsePeerList(val string) (PeerList, error) {
+func ParsePeerList(val string) (PeerList, error) {
 	parts := strings.Split(val, ",")
 	var pl PeerList
 	for _, p := range parts {
@@ -145,12 +142,4 @@ func parsePeerList(val string) (PeerList, error) {
 		pl = append(pl, *id)
 	}
 	return pl, nil
-}
-
-func getInitPeersFromEnv() (PeerList, error) {
-	val, ok := os.LookupEnv(kb.PeerListEnvKey)
-	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.PeerListEnvKey)
-	}
-	return parsePeerList(val)
 }

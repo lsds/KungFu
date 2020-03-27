@@ -6,7 +6,7 @@ import (
 )
 
 func Test_connectionHeader(t *testing.T) {
-	ch := ConnectionHeader{
+	ch := connectionHeader{
 		Type:    uint16(ConnCollective),
 		SrcPort: 9999,
 		SrcIPv4: 0x7f080808,
@@ -15,7 +15,7 @@ func Test_connectionHeader(t *testing.T) {
 	if err := ch.WriteTo(b); err != nil {
 		t.Errorf("failed to write message header: %v", err)
 	}
-	var ch2 ConnectionHeader
+	var ch2 connectionHeader
 	if err := ch2.ReadFrom(b); err != nil {
 		t.Errorf("failed to read message header: %v", err)
 	}

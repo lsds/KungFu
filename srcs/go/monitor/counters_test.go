@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"testing"
 
-	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 func Test_rateAccumulator(t *testing.T) {
-	kc.EnableMonitoring = true // FIXME: don't modify global variable
+	config.EnableMonitoring = true // FIXME: don't modify global variable
 	var b bytes.Buffer
 	var a plan.NetAddr
 	nm := newMonitor(0)

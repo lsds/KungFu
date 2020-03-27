@@ -1,8 +1,7 @@
 package peer
 
 import (
-	"net"
-
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
@@ -10,19 +9,23 @@ import (
 )
 
 type router struct {
-	self       plan.PeerID
-	Collective *handler.CollectiveEndpoint // FIXME: move it out of Router
-	P2P        *handler.PeerToPeerEndpoint
-	client     *client.Client
+	self        plan.PeerID
+	Collective  *handler.CollectiveEndpoint
+	P2P         *handler.PeerToPeerEndpoint
+	ctrlHandler *handler.ControlHandler
+	pingHandler *handler.PingHandler
+	client      *client.Client
 }
 
 func NewRouter(self plan.PeerID) *router {
-	client := client.New(self)
+	client := client.New(self, config.UseUnixSock)
 	router := &router{
-		self:       self,
-		Collective: handler.NewCollectiveEndpoint(),
-		P2P:        handler.NewPeerToPeerEndpoint(client),
-		client:     client,
+		self:        self,
+		Collective:  handler.NewCollectiveEndpoint(),
+		P2P:         handler.NewPeerToPeerEndpoint(client),
+		ctrlHandler: &handler.ControlHandler{},
+		pingHandler: &handler.PingHandler{},
+		client:      client,
 	}
 	return router
 }
@@ -41,16 +44,17 @@ func (r *router) Send(a plan.Addr, buf []byte, t connection.ConnType, flags uint
 }
 
 // Handle implements Handle method of ConnHandler interface
-func (r *router) Handle(conn net.Conn, remote plan.NetAddr, t connection.ConnType) error {
-	switch t {
+func (r *router) Handle(conn connection.Connection) (int, error) {
+	switch t := conn.Type(); t {
 	case connection.ConnCollective:
-		return r.Collective.Handle(conn, remote, t)
+		return r.Collective.Handle(conn)
 	case connection.ConnPeerToPeer:
-		return r.P2P.Handle(conn, remote, t)
+		return r.P2P.Handle(conn)
 	case connection.ConnControl:
-		var h handler.ControlHandler
-		return h.Handle(conn, remote, t)
+		return r.ctrlHandler.Handle(conn)
+	case connection.ConnPing:
+		return r.pingHandler.Handle(conn)
 	default:
-		return connection.ErrInvalidConnectionType
+		return 0, connection.ErrInvalidConnectionType
 	}
 }

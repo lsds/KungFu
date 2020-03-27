@@ -1,4 +1,4 @@
-package base
+package env
 
 // Internal environment variables set by kungfu-run, users should not set them.
 const (
