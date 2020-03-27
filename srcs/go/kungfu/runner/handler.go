@@ -12,7 +12,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
-	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -44,7 +43,7 @@ type Handler struct {
 	ch       chan Stage
 	cancel   context.CancelFunc
 
-	controlHandlers map[string]handler.MsgHandleFunc
+	controlHandlers map[string]connection.MsgHandleFunc
 }
 
 func (h *Handler) Self() plan.PeerID {
@@ -57,7 +56,7 @@ func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Han
 		versions:        make(map[int]Stage),
 		ch:              ch,
 		cancel:          cancel,
-		controlHandlers: make(map[string]handler.MsgHandleFunc),
+		controlHandlers: make(map[string]connection.MsgHandleFunc),
 	}
 	h.controlHandlers["update"] = h.handleContrlUpdate
 	h.controlHandlers["exit"] = h.handleContrlExit
@@ -67,7 +66,7 @@ func NewHandler(self plan.PeerID, ch chan Stage, cancel context.CancelFunc) *Han
 func (h *Handler) Handle(conn connection.Connection) (int, error) {
 	switch t := conn.Type(); t {
 	case connection.ConnControl:
-		return handler.Stream(conn, handler.Accept, h.handleControl)
+		return connection.Stream(conn, connection.Accept, h.handleControl)
 	default:
 		return 0, fmt.Errorf("%v: %s from %s", connection.ErrInvalidConnectionType, t, conn.Src())
 	}

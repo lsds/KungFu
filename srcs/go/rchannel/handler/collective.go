@@ -21,7 +21,7 @@ func NewCollectiveEndpoint() *CollectiveEndpoint {
 
 // Handle implements ConnHandler.Handle interface
 func (e *CollectiveEndpoint) Handle(conn connection.Connection) (int, error) {
-	return Stream(conn, e.accept, e.handle)
+	return connection.Stream(conn, e.accept, e.handle)
 }
 
 func (e *CollectiveEndpoint) Recv(a plan.Addr) connection.Message {

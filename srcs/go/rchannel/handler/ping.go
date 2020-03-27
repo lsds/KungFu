@@ -8,7 +8,7 @@ type PingHandler struct {
 }
 
 func (h *PingHandler) Handle(conn connection.Connection) (int, error) {
-	name, msg, err := Accept(conn)
+	name, msg, err := connection.Accept(conn)
 	if err != nil {
 		return 0, err
 	}

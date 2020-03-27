@@ -11,7 +11,7 @@ type ControlHandler struct {
 }
 
 func (h *ControlHandler) Handle(conn connection.Connection) (int, error) {
-	return Stream(conn, Accept, h.handleControl)
+	return connection.Stream(conn, connection.Accept, h.handleControl)
 }
 
 func (h *ControlHandler) handleControl(name string, msg *connection.Message, _conn connection.Connection) {

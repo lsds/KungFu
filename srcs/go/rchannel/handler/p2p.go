@@ -30,7 +30,7 @@ func NewPeerToPeerEndpoint(client *client.Client) *PeerToPeerEndpoint {
 
 // Handle implements ConnHandler.Handle interface
 func (e *PeerToPeerEndpoint) Handle(conn connection.Connection) (int, error) {
-	return Stream(conn, e.accept, e.handle)
+	return connection.Stream(conn, e.accept, e.handle)
 }
 
 func (e *PeerToPeerEndpoint) Request(a plan.Addr, version string, m connection.Message) (bool, error) {
