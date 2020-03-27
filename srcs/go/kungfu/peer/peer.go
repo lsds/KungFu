@@ -10,7 +10,7 @@ import (
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
-	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
@@ -52,30 +52,30 @@ func New() (*Peer, error) {
 	return NewFromConfig(config)
 }
 
-func NewFromConfig(config *env.Config) (*Peer, error) {
-	router := NewRouter(config.Self)
-	server := server.New(config.Self, router, kc.UseUnixSock)
+func NewFromConfig(cfg *env.Config) (*Peer, error) {
+	router := NewRouter(cfg.Self)
+	server := server.New(cfg.Self, router, config.UseUnixSock)
 	var initClusterVersion int
-	if len(config.InitClusterVersion) > 0 {
+	if len(cfg.InitClusterVersion) > 0 {
 		var err error
-		initClusterVersion, err = strconv.Atoi(config.InitClusterVersion)
+		initClusterVersion, err = strconv.Atoi(cfg.InitClusterVersion)
 		if err != nil {
 			return nil, err
 		}
 	}
 	currentCluster := &plan.Cluster{
-		Runners: config.Parents,
-		Workers: config.InitPeers,
+		Runners: cfg.Parents,
+		Workers: cfg.InitPeers,
 	}
 	return &Peer{
-		configServerURL:    config.ConfigServer,
-		parent:             config.Parent,
+		configServerURL:    cfg.ConfigServer,
+		parent:             cfg.Parent,
 		currentCluster:     currentCluster,
-		self:               config.Self,
-		strategy:           config.Strategy,
+		self:               cfg.Self,
+		strategy:           cfg.Strategy,
 		initClusterVersion: initClusterVersion,
 		clusterVersion:     initClusterVersion,
-		single:             config.Single,
+		single:             cfg.Single,
 		router:             router,
 		server:             server,
 	}, nil
@@ -86,7 +86,7 @@ func (p *Peer) Start() error {
 		if err := p.server.Start(); err != nil {
 			return err
 		}
-		if kc.EnableMonitoring {
+		if config.EnableMonitoring {
 			monitoringPort := p.self.Port + 10000
 			monitor.StartServer(int(monitoringPort))
 			monitorAddr := plan.NetAddr{
@@ -102,7 +102,7 @@ func (p *Peer) Start() error {
 
 func (p *Peer) Close() error {
 	if !p.single {
-		if kc.EnableMonitoring {
+		if config.EnableMonitoring {
 			monitor.StopServer()
 		}
 		p.server.Close() // TODO: check error
@@ -135,7 +135,7 @@ func (p *Peer) Update() bool {
 }
 
 func (p *Peer) updateTo(pl plan.PeerList) bool {
-	if kc.EnableStallDetection {
+	if config.EnableStallDetection {
 		name := fmt.Sprintf("updateTo(%s)", pl.DebugString())
 		defer utils.InstallStallDetector(name).Stop()
 	}

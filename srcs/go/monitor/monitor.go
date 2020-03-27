@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
@@ -25,7 +25,7 @@ type Monitor interface {
 var monitor Monitor
 
 func init() {
-	monitor = newMonitor(kc.MonitoringPeriod)
+	monitor = newMonitor(config.MonitoringPeriod)
 }
 
 func GetMonitor() Monitor {
@@ -49,7 +49,7 @@ type netMetrics struct {
 }
 
 func newMonitor(p time.Duration) Monitor {
-	if !kc.EnableMonitoring {
+	if !config.EnableMonitoring {
 		return &noopMonitor{}
 	}
 	m := &netMetrics{

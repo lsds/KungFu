@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -89,7 +89,7 @@ func New(remote, local plan.PeerID, t ConnType, token uint32, useUnixSock bool) 
 	}
 	var initRetry int
 	if t == ConnCollective || t == ConnPeerToPeer {
-		initRetry = kc.ConnRetryCount
+		initRetry = config.ConnRetryCount
 	}
 	return &tcpConnection{
 		init:      init,
@@ -141,7 +141,7 @@ func (c *tcpConnection) initOnce() error {
 			return nil
 		}
 		log.Debugf("failed to establish connection to #<%s> for %d times: %v", c.dest, i+1, err)
-		time.Sleep(kc.ConnRetryPeriod)
+		time.Sleep(config.ConnRetryPeriod)
 	}
 	return errCantEstablishConnection
 }

@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
-	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -88,7 +88,7 @@ func (j Job) CreateProcs(pl plan.PeerList, host uint32) []Proc {
 
 func getConfigEnvs() Envs {
 	envs := make(Envs)
-	for _, k := range kc.ConfigEnvKeys {
+	for _, k := range config.ConfigEnvKeys {
 		if val := os.Getenv(k); len(val) > 0 {
 			envs[k] = val
 		}

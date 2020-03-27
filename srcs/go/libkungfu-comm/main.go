@@ -6,7 +6,7 @@ import (
 	"unsafe"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
-	kc "github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -153,13 +153,13 @@ func boolToChar(v bool) C.char {
 
 func callOP(name string, op func() error, done *C.callback_t) int {
 	if done == nil {
-		if kc.EnableStallDetection {
+		if config.EnableStallDetection {
 			defer utils.InstallStallDetector(name).Stop()
 		}
 		return errorCode(name, op())
 	}
 	go func() {
-		if kc.EnableStallDetection {
+		if config.EnableStallDetection {
 			defer utils.InstallStallDetector(name).Stop()
 		}
 		errorCode(name, op()) // FIXME: pass error code to done
