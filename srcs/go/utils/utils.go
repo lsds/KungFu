@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -63,13 +62,6 @@ func LogAllEnvs() {
 	for _, e := range envs {
 		fmt.Printf("[env] %s\n", e)
 	}
-}
-
-func ExitErr(err error) {
-	pc, fn, line, _ := runtime.Caller(1)
-	loc := fmt.Sprintf("%v:%s:%d", pc, fn, line)
-	fmt.Printf("exit on error: %v at %s\n", err, loc)
-	os.Exit(1)
 }
 
 func Measure(f func() error) (time.Duration, error) {

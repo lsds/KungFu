@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"path"
-	"syscall"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/job"
@@ -105,12 +103,9 @@ func main() {
 }
 
 func trap(cancel context.CancelFunc) {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		sig := <-c
+	utils.Trap(func(sig os.Signal) {
 		log.Warnf("%s trapped", sig)
 		cancel()
 		log.Debugf("cancelled")
-	}()
+	})
 }

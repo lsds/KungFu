@@ -1,6 +1,17 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"runtime"
+)
+
+func ExitErr(err error) {
+	pc, fn, line, _ := runtime.Caller(1)
+	loc := fmt.Sprintf("%v:%s:%d", pc, fn, line)
+	fmt.Printf("exit on error: %v at %s\n", err, loc)
+	os.Exit(1)
+}
 
 func MergeErrors(errs []error, hint string) error {
 	var msg string

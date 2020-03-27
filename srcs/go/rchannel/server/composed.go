@@ -1,11 +1,13 @@
 package server
 
 import (
+	"os"
 	"sync"
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 // Server receives messages from remove endpoints
@@ -79,6 +81,7 @@ func (s *composedServer) Start() error {
 		return nil
 	}
 	go s.serve()
+	utils.Trap(func(os.Signal) { s.Close() })
 	return nil
 }
 
