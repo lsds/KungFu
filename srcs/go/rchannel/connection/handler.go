@@ -1,14 +1,14 @@
 package connection
 
-import (
-	"io"
-
-	"github.com/lsds/KungFu/srcs/go/log"
-)
+import "io"
 
 type Handler interface {
 	Handle(conn Connection) (int, error)
 }
+
+type HandlerFunc func(Connection) (int, error)
+
+func (f HandlerFunc) Handle(c Connection) (int, error) { return f(c) }
 
 type acceptFunc func(conn Connection) (string, *Message, error)
 
@@ -34,7 +34,6 @@ func Stream(conn Connection, accept acceptFunc, handle MsgHandleFunc) (int, erro
 			if err == io.EOF {
 				return i, nil
 			}
-			log.Warnf("accept message error: %v", err)
 			return i, err
 		}
 		handle(name, msg, conn)
