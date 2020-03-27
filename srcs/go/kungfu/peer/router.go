@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
@@ -17,7 +18,7 @@ type router struct {
 }
 
 func NewRouter(self plan.PeerID) *router {
-	client := client.New(self)
+	client := client.New(self, config.UseUnixSock)
 	router := &router{
 		self:        self,
 		Collective:  handler.NewCollectiveEndpoint(),

@@ -12,31 +12,33 @@ type connKey struct {
 	t connection.ConnType
 }
 
-type ConnectionPool struct {
+type connectionPool struct {
 	sync.Mutex
-	conns map[connKey]connection.Connection
-	token uint32
+	useUnixSock bool
+	conns       map[connKey]connection.Connection
+	token       uint32
 }
 
-func newConnectionPool() *ConnectionPool {
-	return &ConnectionPool{
-		conns: make(map[connKey]connection.Connection),
+func newConnectionPool(useUnixSock bool) *connectionPool {
+	return &connectionPool{
+		useUnixSock: useUnixSock,
+		conns:       make(map[connKey]connection.Connection),
 	}
 }
 
-func (p *ConnectionPool) get(remote, local plan.PeerID, t connection.ConnType) connection.Connection {
+func (p *connectionPool) get(remote, local plan.PeerID, t connection.ConnType) connection.Connection {
 	p.Lock()
 	defer p.Unlock()
 	key := connKey{remote, t}
 	if conn, ok := p.conns[key]; ok {
 		return conn
 	}
-	conn := connection.NewConnection(remote, local, t, p.token)
+	conn := connection.New(remote, local, t, p.token, p.useUnixSock)
 	p.conns[key] = conn
 	return conn
 }
 
-func (p *ConnectionPool) reset(keeps plan.PeerList, token uint32) {
+func (p *connectionPool) reset(keeps plan.PeerList, token uint32) {
 	m := keeps.Set()
 	p.Lock()
 	defer p.Unlock()

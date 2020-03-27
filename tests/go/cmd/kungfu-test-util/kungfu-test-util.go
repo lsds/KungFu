@@ -56,7 +56,7 @@ func main() {
 }
 
 func terminate(target plan.PeerID) {
-	client := client.New(plan.PeerID{}) // FIXME: don't retry connect
+	client := client.New(plan.PeerID{}, false) // FIXME: don't retry connect
 	if err := client.Send(target.WithName("exit"), nil, connection.ConnControl, connection.NoFlag); err != nil {
 		log.Errorf("failed to send exit signal sent to %s", target)
 		return

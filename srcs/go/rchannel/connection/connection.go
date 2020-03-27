@@ -44,28 +44,20 @@ func UpgradeFrom(conn net.Conn, self plan.PeerID, token uint32) (Connection, err
 	}, nil
 }
 
-func NewPingConnection(remote, local plan.PeerID) (Connection, error) {
-	return newPingConnection(remote, local)
-}
-
-func newPingConnection(remote, local plan.PeerID) (Connection, error) {
-	c := newConnection(remote, local, ConnPing, 0) // FIXME: use token
-	if err := c.initOnce(); err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
 var errInvalidToken = errors.New("invalid token")
 
-func NewConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConnection {
-	return newConnection(remote, local, t, token)
+func Open(remote, local plan.PeerID, t ConnType, token uint32, useUnixSock bool) (*tcpConnection, error) {
+	conn := New(remote, local, t, token, useUnixSock)
+	if err := conn.initOnce(); err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
 
-func newConnection(remote, local plan.PeerID, t ConnType, token uint32) *tcpConnection {
+func New(remote, local plan.PeerID, t ConnType, token uint32, useUnixSock bool) *tcpConnection {
 	init := func() (net.Conn, error) {
 		conn, err := func() (net.Conn, error) {
-			if kc.UseUnixSock && remote.ColocatedWith(local) {
+			if useUnixSock && remote.ColocatedWith(local) {
 				addr := net.UnixAddr{Name: remote.SockFile(), Net: "unix"}
 				return net.DialUnix(addr.Net, nil, &addr)
 			}
