@@ -16,7 +16,7 @@ type Server interface {
 }
 
 // New creates a new Server
-func New(self plan.PeerID, handler connection.Handler, useUnixSock bool) Server {
+func New(self plan.PeerID, handler connection.Handler, useUnixSock bool) *composedServer {
 	tcpServer := newTCPServer(self, handler)
 	var unixServer *server
 	if useUnixSock {
@@ -41,7 +41,7 @@ func (s *composedServer) SetToken(token uint32) {
 	}
 }
 
-func (s *composedServer) Start() error {
+func (s *composedServer) listen() error {
 	for _, srv := range []*server{s.tcpServer, s.unixServer} {
 		if srv != nil {
 			if err := srv.Listen(); err != nil {
@@ -49,7 +49,6 @@ func (s *composedServer) Start() error {
 			}
 		}
 	}
-	go s.serve()
 	return nil
 }
 
@@ -65,6 +64,22 @@ func (s *composedServer) serve() {
 		}
 	}
 	wg.Wait()
+}
+
+func (s *composedServer) ListenAndServe() error {
+	if err := s.listen(); err != nil {
+		return nil
+	}
+	s.serve()
+	return nil
+}
+
+func (s *composedServer) Start() error {
+	if err := s.listen(); err != nil {
+		return nil
+	}
+	go s.serve()
+	return nil
 }
 
 func (s *composedServer) Close() {
