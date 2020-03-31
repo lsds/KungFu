@@ -1,5 +1,5 @@
 #include <kungfu/tensorflow/ops.h>
-
+#include <kungfu/utils/ema.hpp>
 #include <kungfu/utils/trace.hpp>
 
 namespace tensorflow
@@ -130,9 +130,10 @@ REGISTER_KUNGFU_KERNEL_BUILDER(Broadcast, DEVICE_CPU);
 
 REGISTER_KUNGFU_OP(NoiseScale)
     .Attr("alpha: float")
-    .Input("g_biased: float32")
-    .Input("s_biased: float32")
-    .Output("output: float32")
+    .Attr("T: {float32}")
+    .Input("g_biased: T")
+    .Input("s_biased: T")
+    .Output("output: T")
     .SetShapeFn([](shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
         return Status::OK();
@@ -140,22 +141,21 @@ REGISTER_KUNGFU_OP(NoiseScale)
 
 class NoiseScale : public OpKernel
 {
-    using OpKernel::OpKernel;
+    using T     = float;
+    using ema_t = kungfu::ExponentialMovingAverage<T>;
 
-    float alpha_;
-    float g_ema_;
-    float s_ema_;
-
-    bool init_;
+    std::unique_ptr<ema_t> g_ema_;
+    std::unique_ptr<ema_t> s_ema_;
 
   public:
-    explicit NoiseScale(OpKernelConstruction *context)
-        : OpKernel(context), g_ema_(0), s_ema_(0)
+    explicit NoiseScale(OpKernelConstruction *context) : OpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha_));
-        OP_REQUIRES(context, alpha_ > 0,
+        T alpha;
+        OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha));
+        OP_REQUIRES(context, alpha > 0,
                     errors::InvalidArgument("alpha must be greater than zero"));
-        init_ = false;
+        g_ema_.reset(new ema_t(alpha));
+        s_ema_.reset(new ema_t(alpha));
     }
 
     void Compute(OpKernelContext *context) override
@@ -164,27 +164,12 @@ class NoiseScale : public OpKernel
 
         const Tensor &g_biased_tensor = context->input(0);
         const Tensor &s_biased_tensor = context->input(1);
-
-        Tensor *output = nullptr;
+        Tensor *output                = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(
                                     0, g_biased_tensor.shape(), &output));
-
-        float g_current = g_biased_tensor.scalar<float>()();
-        float s_current = s_biased_tensor.scalar<float>()();
-
-        if (!init_) {
-            g_ema_ = g_current;
-            s_ema_ = s_current;
-            init_  = true;
-        } else {
-            g_ema_ = alpha_ * g_current + (1 - alpha_) * g_ema_;
-            s_ema_ = alpha_ * s_current + (1 - alpha_) * s_ema_;
-        }
-
-        float noise_scale = s_ema_ / g_ema_;
-
-        float *y = const_cast<float *>(output->scalar<float>().data());
-        y[0]     = noise_scale;
+        const T g_ema         = g_ema_->update(g_biased_tensor.scalar<T>()());
+        const T s_ema         = s_ema_->update(s_biased_tensor.scalar<T>()());
+        output->scalar<T>()() = s_ema / g_ema;
     }
 };
 
