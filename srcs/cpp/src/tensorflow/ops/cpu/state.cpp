@@ -1,4 +1,5 @@
 #include <kungfu/tensorflow/ops.h>
+#include <kungfu/utils/ema.hpp>
 
 namespace tensorflow
 {
@@ -51,29 +52,25 @@ REGISTER_KUNGFU_OP(ExponentialMovingAverage)
 
 class ExponentialMovingAverage : public OpKernel
 {
-    float alpha_;
-    float count_;
-    float value_;
+    using T     = float;
+    using ema_t = kungfu::ExponentialMovingAverage<T>;
+    std::unique_ptr<ema_t> ema_;
 
   public:
     explicit ExponentialMovingAverage(OpKernelConstruction *context)
-        : OpKernel(context), count_(0), value_(0)
+        : OpKernel(context)
     {
-        OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha_));
+        T alpha;
+        OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha));
+        ema_.reset(new ema_t(alpha));
     }
 
     void Compute(OpKernelContext *context) override
     {
-        const float x  = context->input(0).scalar<float>()();
         Tensor *output = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &output));
-        if (count_++ == 0) {
-            value_ = x;
-        } else {
-            value_ = alpha_ * value_ + (1 - alpha_) * x;
-        }
-        output->scalar<float>()() = value_;
+        output->scalar<T>()() = ema_->update(context->input(0).scalar<T>()());
     }
 };
 
