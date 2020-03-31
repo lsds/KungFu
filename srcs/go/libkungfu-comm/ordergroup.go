@@ -3,7 +3,7 @@ package main
 import (
 	"unsafe"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	og "github.com/lsds/KungFu/srcs/go/ordergroup"
 )
 

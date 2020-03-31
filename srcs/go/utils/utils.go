@@ -64,11 +64,6 @@ func LogAllEnvs() {
 	}
 }
 
-func ExitErr(err error) {
-	fmt.Printf("exit on error: %v\n", err)
-	os.Exit(1)
-}
-
 func Measure(f func() error) (time.Duration, error) {
 	t0 := time.Now()
 	err := f()

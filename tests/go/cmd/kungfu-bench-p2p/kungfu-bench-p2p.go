@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/tests/go/fakemodel"
@@ -25,22 +26,22 @@ var (
 func main() {
 	log.SetFlags(0)
 	flag.Parse()
-	kungfu, err := kf.New()
+	peer, err := peer.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	kungfu.Start()
-	defer kungfu.Close()
+	peer.Start()
+	defer peer.Close()
 	sizes, ok := fakemodel.Models[*model]
 	if !ok {
 		log.Exitf("invalid model name: %s", *model)
 	}
 	m := fakemodel.New(sizes, kb.F32, *fuse)
-	benchPeerToPeer(kungfu, m)
+	benchPeerToPeer(peer, m)
 }
 
-func benchPeerToPeer(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
-	sess := kungfu.CurrentSession()
+func benchPeerToPeer(peer *peer.Peer, m *fakemodel.FakeModel) {
+	sess := peer.CurrentSession()
 	rank := sess.Rank()
 
 	if rank == 0 {
@@ -53,7 +54,7 @@ func benchPeerToPeer(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 
 	for _, name := range m.Names {
 		b := m.Buffers[name]
-		kungfu.Save(name, b.SendBuf)
+		peer.Save(name, b.SendBuf)
 	}
 
 	np := sess.ClusterSize()
@@ -67,7 +68,7 @@ func benchPeerToPeer(kungfu *kf.Kungfu, m *fakemodel.FakeModel) {
 	for _, name := range m.Names {
 		func(name string, b fakemodel.DoubleBuffer) {
 			g.Add(func() {
-				w := kf.Workspace{
+				w := session.Workspace{
 					SendBuf: b.SendBuf,
 					RecvBuf: b.RecvBuf,
 					OP:      kb.SUM,

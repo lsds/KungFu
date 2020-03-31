@@ -37,6 +37,8 @@ kungfu_world::kungfu_world()
 
 kungfu_world::~kungfu_world() { GoKungfuFinalize(); }
 
+uint64_t kungfu_world::Uid() const { return GoKungfuUID(); }
+
 int kungfu_world::Rank() const { return GoKungfuRank(); }
 
 int kungfu_world::LocalRank() const { return GoKungfuLocalRank(); }
@@ -221,11 +223,14 @@ int kungfu_world::GetPeerLatencies(float *recvbuf, int recv_count)
 }
 
 // control APIs
-int kungfu_world::ResizeCluster(const char *init_step, int new_size,
-                                bool *changed, bool *keep)
+int kungfu_world::ResizeClusterFromURL(bool *changed, bool *keep)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
-    return GoKungfuResizeCluster(const_cast<char *>(init_step), GoInt(new_size),
-                                 reinterpret_cast<char *>(changed),
-                                 reinterpret_cast<char *>(keep));
+    return GoKungfuResizeClusterFromURL(reinterpret_cast<char *>(changed),
+                                        reinterpret_cast<char *>(keep));
+}
+
+int kungfu_world::ProposeNewSize(int new_size)
+{
+    return GoKungfuProposeNewSize(GoInt(new_size));
 }

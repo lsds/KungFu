@@ -1,6 +1,9 @@
 package plan
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 // FIXME: make members private, public is required by JSON encoding for now
 
@@ -65,16 +68,23 @@ func (g Graph) Reverse() *Graph {
 	return r
 }
 
-func (g *Graph) Debug() {
-	fmt.Print("graph {\n")
-	for i, n := range g.Nodes {
-		fmt.Printf("\t%d;\n", n.Rank)
+func (g *Graph) DebugString() string {
+	b := &bytes.Buffer{}
+	fmt.Fprintf(b, "[%d]{", len(g.Nodes))
+	for i := range g.Nodes {
 		if g.IsSelfLoop(i) {
-			fmt.Printf("\t%d -> %d\n", i, i)
-		}
-		for _, j := range n.Nexts {
-			fmt.Printf("\t%d -> %d;\n", i, j)
+			fmt.Fprintf(b, "(%d)", i)
 		}
 	}
-	fmt.Print("}\n")
+	for i, n := range g.Nodes {
+		for _, j := range n.Nexts {
+			fmt.Fprintf(b, "(%d->%d)", i, j)
+		}
+	}
+	fmt.Fprintf(b, "}")
+	return b.String()
+}
+
+func (g *Graph) Debug() {
+	fmt.Printf("%s", g.DebugString())
 }

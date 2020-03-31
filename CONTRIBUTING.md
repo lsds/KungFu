@@ -3,11 +3,10 @@
 ## Intro
 
 KungFu is a distributed machine learning framework implemented in Golang and C++.
-It also provides Python binding for TensorFlow.
+It provides Python binding for TensorFlow.
 
 KungFu can be integrated into existing TensorFlow programs as easy as Horovod.
-And it also be used as a standalone C/C++/Golang library if you are building
-your own machine learning framework.
+It can be used as a standalone collective communication library for C/C++/Golang programs, similar to MPI.
 
 ## Requirements
 
@@ -20,20 +19,37 @@ your own machine learning framework.
 
 All source code are under `./srcs/<lang>/` where `<lang> := cpp | go | python`.
 
-### Components
+### Libraries
 
-* kungfu-comm: a C library implemented in Golang
-* kungfu: the public C/C++ library based on kungfu-comm
+* libkungfu-comm: a C library implemented in Golang
+* libkungfu: the public C/C++ library based on kungfu-comm
 
 ### Concepts
 
-* PeerID: PeerID is the unique identifier of a peer, it tells the runner how to start the peer and also tells all peers how to find each other.
+* Peer: the basic unit in a KungFu cluster. A **Peer** usually represents a system process.
 
-* PeerList: PeerList is the ordered list of **PeerID** from all peers in the cluster. It is a common constant shared among all peers in the cluster.
+* PeerID: **PeerID** is the unique identifier of a **Peer**. It tells the KungFu runner how to start the **Peer** and let peers to locate each other. **PeerID** is immutable during the life cycle of a **Peer**.
+
+* Session: a group of **Peer**s interconnected by **Connection**s. Currently a **Peer** can be in at most one **Session** at the same time. **Peer**s in a **Session** can perform collective commuication operations, such as _allreduce_, _broadcast_.
+
+* PeerList: a **PeerList** is an ordered list of **PeerID** from all peers in a **Session**.
+  All **Peer**s in the same **Session** have the same **PeerList**, which allows Rank to be defined.
+
+* Connection: the communication channel between two **Peer**s. A **Connection** is the high-level abstraction of a network connection, usually TCP.
+
+* Message: the basic communication element in a **Connection**.
 
 * HostSpec: HostSpec is the metadata that describes a host machine.
 
-* Graph: A directed graph, which may contain self loops. The vertices are numbered from 0 to n - 1.
+* Graph: A directed communication graph of peers. A graph may contain self loops. The vertices are numbered from 0 to n - 1.
+
+### Components
+
+* Server: A TCP-based server that accepts **Connection**s
+
+* Client: A TCP-based client that can send data using **Connection**s
+
+* Handler: A TCP-based connection handler that can handle **Connection**s
 
 ## Useful commands
 

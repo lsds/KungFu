@@ -5,16 +5,16 @@ import (
 	"fmt"
 
 	"github.com/lsds/KungFu/srcs/go/job"
-	run "github.com/lsds/KungFu/srcs/go/kungfurun"
+	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
-	runner "github.com/lsds/KungFu/srcs/go/utils/runner/remote"
+	"github.com/lsds/KungFu/srcs/go/utils/runner/remote"
 )
 
-var f run.FlagSet
+var f runner.FlagSet
 
-func init() { run.Init(&f) }
+func init() { runner.Init(&f) }
 
 func main() {
 	hl, err := plan.ParseHostList(f.HostList)
@@ -40,7 +40,7 @@ func main() {
 		defer cancel()
 	}
 	d, err := utils.Measure(func() error {
-		return runner.RemoteRunAll(ctx, f.User, procs, f.VerboseLog, f.LogDir)
+		return remote.RemoteRunAll(ctx, f.User, procs, f.VerboseLog, f.LogDir)
 	})
 	log.Infof("all %d peers finished, took %s", len(procs), d)
 	if err != nil {

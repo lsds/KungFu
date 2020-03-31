@@ -5,20 +5,21 @@ import (
 	"flag"
 	"fmt"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 func main() {
 	flag.Parse()
-	kungfu, err := kf.New()
+	p, err := peer.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	kungfu.Start()
-	defer kungfu.Close()
-	tests := []func(*kf.Kungfu){
+	p.Start()
+	defer p.Close()
+	tests := []func(*peer.Peer){
 		// TODO: more tests
 		testAllReduce,
 		testGetPeerLatencies,
@@ -26,12 +27,12 @@ func main() {
 	}
 	for i, t := range tests {
 		fmt.Printf("# test: %d\n", i)
-		t(kungfu)
+		t(p)
 	}
 }
 
-func testGetPeerLatencies(kungfu *kf.Kungfu) {
-	sess := kungfu.CurrentSession()
+func testGetPeerLatencies(peer *peer.Peer) {
+	sess := peer.CurrentSession()
 	latencies := sess.GetPeerLatencies()
 	fmt.Printf("rank: %d\n", sess.Rank())
 	for _, d := range latencies {
@@ -42,9 +43,9 @@ func testGetPeerLatencies(kungfu *kf.Kungfu) {
 	fmt.Printf("%s OK\n", `testGetPeerLatencies`)
 }
 
-func testAllReduce(kungfu *kf.Kungfu) {
+func testAllReduce(peer *peer.Peer) {
 	const step = 20
-	sess := kungfu.CurrentSession()
+	sess := peer.CurrentSession()
 	np := sess.ClusterSize()
 	for i := 0; i < step; i++ {
 		fmt.Printf("step: %d\n", i)
@@ -54,7 +55,7 @@ func testAllReduce(kungfu *kf.Kungfu) {
 			z := kb.NewVector(1, kb.I32)
 			x.AsI32()[0] = 1
 			z.AsI32()[0] = int32(np)
-			w := kf.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
+			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
 			sess.AllReduce(w)
 			if !utils.BytesEq(y.Data, z.Data) {
 				utils.ExitErr(fmt.Errorf("%s failed", `testAllReduce`))
@@ -65,7 +66,7 @@ func testAllReduce(kungfu *kf.Kungfu) {
 			n := len(bs)
 			x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 			y := kb.NewVector(n, kb.U8)
-			w := kf.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "1"}
+			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "1"}
 			sess.AllReduce(w)
 		}
 		{
@@ -75,17 +76,17 @@ func testAllReduce(kungfu *kf.Kungfu) {
 			n := len(bs)
 			x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 			y := kb.NewVector(n, kb.U8)
-			w := kf.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "2"}
+			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "2"}
 			sess.AllReduce(w)
 		}
 	}
 	fmt.Printf("%s OK\n", `testAllReduce`)
 }
 
-func testP2P(kungfu *kf.Kungfu) {
+func testP2P(peer *peer.Peer) {
 	const step = 20
 	const count = 10
-	sess := kungfu.CurrentSession()
+	sess := peer.CurrentSession()
 	np := sess.ClusterSize()
 	rank := sess.Rank()
 	name := "weight"
@@ -106,7 +107,7 @@ func testP2P(kungfu *kf.Kungfu) {
 		if err := sess.Barrier(); err != nil {
 			utils.ExitErr(err)
 		}
-		if err := kungfu.Save(name, a); err != nil {
+		if err := peer.Save(name, a); err != nil {
 			utils.ExitErr(err)
 		}
 		if err := sess.Barrier(); err != nil {

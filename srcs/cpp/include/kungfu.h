@@ -38,6 +38,7 @@ class kungfu_world
     ~kungfu_world();
 
     // metadata APIs
+    uint64_t Uid() const;
     int Rank() const;
     int LocalRank() const;
     int ClusterSize() const;
@@ -127,8 +128,9 @@ class kungfu_world
     int GetPeerLatencies(float *recvbuf, int recv_count);
 
     // control APIs
-    int ResizeCluster(const char *init_step, int new_size, bool *changed,
-                      bool *keep);
+    int ResizeClusterFromURL(bool *changed, bool *keep);
+
+    int ProposeNewSize(int new_size);
 };
 
 #endif

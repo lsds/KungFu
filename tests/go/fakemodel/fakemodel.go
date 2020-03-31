@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
+	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/tests/go/testutils"
 )
