@@ -7,7 +7,6 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
-	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -55,7 +54,7 @@ func testAllReduce(peer *peer.Peer) {
 			z := kb.NewVector(1, kb.I32)
 			x.AsI32()[0] = 1
 			z.AsI32()[0] = int32(np)
-			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
+			w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
 			sess.AllReduce(w)
 			if !utils.BytesEq(y.Data, z.Data) {
 				utils.ExitErr(fmt.Errorf("%s failed", `testAllReduce`))
@@ -66,7 +65,7 @@ func testAllReduce(peer *peer.Peer) {
 			n := len(bs)
 			x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 			y := kb.NewVector(n, kb.U8)
-			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "1"}
+			w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "1"}
 			sess.AllReduce(w)
 		}
 		{
@@ -76,7 +75,7 @@ func testAllReduce(peer *peer.Peer) {
 			n := len(bs)
 			x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 			y := kb.NewVector(n, kb.U8)
-			w := session.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "2"}
+			w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "2"}
 			sess.AllReduce(w)
 		}
 	}

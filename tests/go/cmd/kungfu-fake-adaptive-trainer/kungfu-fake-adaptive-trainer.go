@@ -7,7 +7,6 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
-	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/tests/go/fakemodel"
@@ -36,7 +35,7 @@ func fakeTrainStep(peer *peer.Peer, m *fakemodel.FakeModel, step int) {
 	t0 := time.Now()
 	for _, name := range m.Names {
 		b := m.Buffers[name]
-		w := session.Workspace{
+		w := kb.Workspace{
 			SendBuf: b.SendBuf,
 			RecvBuf: b.RecvBuf,
 			OP:      kb.SUM,
@@ -92,7 +91,7 @@ func syncStep(peer *peer.Peer, step int) int {
 	x := kb.NewVector(1, kb.I64)
 	y := kb.NewVector(1, kb.I64)
 	x.AsI64()[0] = int64(step)
-	w := session.Workspace{
+	w := kb.Workspace{
 		SendBuf: x,
 		RecvBuf: y,
 		OP:      kb.MAX,
