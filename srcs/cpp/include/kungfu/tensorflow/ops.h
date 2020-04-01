@@ -33,10 +33,17 @@ inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
 
 template <typename... Dims> TensorShape MakeTensorShape(const Dims &... dims)
 {
-    std::array<int, sizeof...(Dims)> ds({static_cast<int>(dims)...});
+    const std::array<int, sizeof...(Dims)> ds({static_cast<int>(dims)...});
     TensorShape shape;
     for (auto d : ds) { shape.AddDim(d); }
     return shape;
+}
+
+inline TensorShape BatchTensorShape(const TensorShape &shape, const int bs)
+{
+    TensorShape new_shape(shape);
+    new_shape.InsertDim(0, bs);
+    return new_shape;
 }
 
 #define REGISTER_KUNGFU_OP(T)                                                  \

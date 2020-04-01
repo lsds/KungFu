@@ -101,6 +101,37 @@ class AllReduce : public AsyncOpKernel
 
 REGISTER_KUNGFU_KERNEL_BUILDER(AllReduce, DEVICE_CPU);
 
+REGISTER_KUNGFU_OP(AllGather)
+    .Attr("T: {int32, int64, float16, float32, float64, bool}")
+    .Input("input: T")
+    .Output("output: T");
+// .SetShapeFn(shape_inference::UnchangedShape);
+
+class AllGather : public AsyncOpKernel
+{
+    using AsyncOpKernel::AsyncOpKernel;
+
+  public:
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        const Tensor &input = context->input(0);
+        Tensor *output      = nullptr;
+        const int np        = _kungfu_world->ClusterSize();
+        OP_REQUIRES_OK_ASYNC(
+            context,
+            context->allocate_output(0, BatchTensorShape(input.shape(), np),
+                                     &output),
+            done);
+        _kungfu_world->AllGather(
+            input.tensor_data().data(), input.NumElements(),
+            to_kungfu_type(input.dtype()),
+            const_cast<char *>(output->tensor_data().data()), name().c_str(),
+            done);
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(AllGather, DEVICE_CPU);
+
 REGISTER_KUNGFU_OP(Broadcast)
     .Attr("T: {int32, int64, float16, float32, float64, bool}")
     .Input("input: T")

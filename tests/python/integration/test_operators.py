@@ -1,9 +1,14 @@
 import tensorflow as tf
-from kungfu.tensorflow.ops import (broadcast, barrier, counter, group_all_reduce,
-                                   peer_info, request_variable, save_variable)
+from tensorflow.python.util import deprecation
+
+from kungfu.tensorflow.ops import barrier
 from kungfu import current_rank
 
+deprecation._PRINT_DEPRECATION_WARNINGS = False
+
+
 def test_broadcast():
+    from kungfu.tensorflow.ops import broadcast
     v = tf.Variable(True if current_rank() == 0 else False)
     u = broadcast(v)
 
@@ -11,7 +16,9 @@ def test_broadcast():
         sess.run(tf.global_variables_initializer())
         x = sess.run(v)
         y = sess.run(u)
-        print(x,y)
+        # print(x, y)
+        assert (y == True)
+
 
 def test_barrier():
     with tf.Session() as sess:
@@ -19,6 +26,7 @@ def test_barrier():
 
 
 def test_group_all_reduce():
+    from kungfu.tensorflow.ops import group_all_reduce
     sizes = [i % 5 for i in range(10)]
     xs = [tf.Variable(tf.ones([n], tf.int32)) if n else None for n in sizes]
     ys = group_all_reduce(xs)
@@ -28,7 +36,23 @@ def test_group_all_reduce():
         sess.run(op)
 
 
+def test_group_all_gather():
+    from kungfu import current_cluster_size, current_rank
+    from kungfu.tensorflow.ops import all_gather
+    rank = current_rank()
+    np = current_cluster_size()
+    sizes = [i + 1 for i in range(5)]
+    xs = [(rank + 1) * tf.Variable(tf.ones([n], tf.int32)) for n in sizes]
+    ys = [all_gather(x) for x in xs]
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        for i, y in enumerate(ys):
+            v = sess.run(y)
+            assert (v.sum() == (np + 1) * np / 2 * (i + 1))
+
+
 def test_peer_info():
+    from kungfu.tensorflow.ops import peer_info
     info = peer_info()
     with tf.Session() as sess:
         rank, np = sess.run(info)
@@ -36,6 +60,7 @@ def test_peer_info():
 
 
 def test_save_and_request():
+    from kungfu.tensorflow.ops import request_variable, save_variable
     global_step = tf.Variable(tf.constant(0, dtype=tf.int64))
     target = tf.Variable(tf.constant(0, dtype=tf.int32))
 
@@ -81,6 +106,7 @@ def test_consensus():
 
 def test_all():
     test_barrier()
+    test_group_all_gather()
     test_group_all_reduce()
     test_peer_info()
     test_save_and_request()

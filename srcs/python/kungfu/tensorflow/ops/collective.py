@@ -24,6 +24,11 @@ def all_reduce(t, op='sum'):
     return _op_lib.kungfu_all_reduce(t, op=op)
 
 
+def all_gather(t):
+    """Create a new all_gather operator for given tensor."""
+    return _op_lib.kungfu_all_gather(t)
+
+
 def _maybe_group_all_reduce(ts, group_all_reduce_fn):
     # a helper function to bypass all_reduce for np = 1
     _rank, np = peer_info()
