@@ -146,7 +146,7 @@ func (p *Peer) updateTo(pl plan.PeerList) bool {
 	}
 	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", p.clusterVersion, len(pl), pl)
 	p.router.ResetConnections(pl, uint32(p.clusterVersion))
-	sess, exist := session.New(p.strategy, p.self, pl, p.router.client, p.router.Collective, p.router.P2P)
+	sess, exist := session.New(p.strategy, p.self, pl, p.router.client, p.router.Collective)
 	if !exist {
 		return false
 	}
@@ -156,14 +156,6 @@ func (p *Peer) updateTo(pl plan.PeerList) bool {
 	p.currentSession = sess
 	p.updated = true
 	return true
-}
-
-func (p *Peer) SaveVersion(version, name string, buf *kb.Vector) error {
-	return p.router.P2P.SaveVersion(version, name, buf)
-}
-
-func (p *Peer) Save(name string, buf *kb.Vector) error {
-	return p.router.P2P.Save(name, buf)
 }
 
 func (p *Peer) consensus(bs []byte) bool {

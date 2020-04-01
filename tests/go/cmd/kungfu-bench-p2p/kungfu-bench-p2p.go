@@ -73,7 +73,7 @@ func benchPeerToPeer(peer *peer.Peer, m *fakemodel.FakeModel) {
 					OP:      kb.SUM,
 					Name:    name,
 				}
-				sess.Request(target, "", w.Name, w.RecvBuf)
+				peer.RequestRank(target, "", w.Name, w.RecvBuf)
 			})
 		}(name, m.Buffers[name])
 	}

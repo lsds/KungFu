@@ -1,7 +1,6 @@
 package session
 
 import (
-	"errors"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
@@ -31,11 +30,10 @@ type Session struct {
 	localRank         int
 	client            *client.Client
 	collectiveHandler *handler.CollectiveEndpoint
-	p2pHandler        *handler.PeerToPeerEndpoint
 	strategyHash      strategyHashFunc
 }
 
-func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint, p2pHandler *handler.PeerToPeerEndpoint) (*Session, bool) {
+func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint) (*Session, bool) {
 	rank, ok := pl.Rank(self)
 	if !ok {
 		return nil, false
@@ -55,7 +53,6 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 		localRank:         localRank,
 		client:            client,
 		collectiveHandler: collectiveHandler,
-		p2pHandler:        p2pHandler,
 		strategyHash:      getStrategyHash(),
 	}
 	return sess, true
@@ -67,6 +64,10 @@ func (sess *Session) Size() int {
 
 func (sess *Session) Rank() int {
 	return sess.rank
+}
+
+func (sess *Session) Peer(rank int) plan.PeerID {
+	return sess.peers[rank]
 }
 
 func (sess *Session) LocalRank() int {
@@ -149,14 +150,6 @@ func (sess *Session) AllGather(w kb.Workspace) error {
 func (sess *Session) Gather(w kb.Workspace) error {
 	// TODO: validate input
 	return sess.runGather(w)
-}
-
-func (sess *Session) Request(rank int, version, name string, buf *kb.Vector) (bool, error) {
-	if rank < 0 || len(sess.peers) <= rank {
-		return false, errInvalidRank
-	}
-	peer := sess.peers[rank]
-	return sess.p2pHandler.Request(peer.WithName(name), version, asMessage(buf))
 }
 
 func asMessage(b *kb.Vector) connection.Message {
@@ -291,10 +284,6 @@ func (sess *Session) runStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, s
 func (sess *Session) runStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {
 	return sess.runStrategiesWithHash(w, p, strategies, sess.strategyHash)
 }
-
-var (
-	errInvalidRank = errors.New("invalid rank")
-)
 
 func boolToInt8(v bool) int8 {
 	if v {

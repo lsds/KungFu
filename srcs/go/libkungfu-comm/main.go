@@ -63,10 +63,9 @@ func GoKungfuLocalRank() int {
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, pName *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	name := C.GoString(pName) // copy *C.char into go string before entering closure
-	sess := defaultPeer.CurrentSession()
 	b := toVector(buf, count, dtype)
 	op := func() error {
-		ok, err := sess.Request(rank, "", name, b)
+		ok, err := defaultPeer.RequestRank(rank, "", name, b)
 		if !ok {
 			log.Warnf("Request %s not found", name)
 		}
@@ -78,11 +77,10 @@ func GoKungfuRequest(rank int, pName *C.char, buf unsafe.Pointer, count int, dty
 //export GoKungfuRequestVersion
 func GoKungfuRequestVersion(rank int, version, pName *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	name := C.GoString(pName) // copy *C.char into go string before entering closure
-	sess := defaultPeer.CurrentSession()
 	goVersion := C.GoString(version)
 	b := toVector(buf, count, dtype)
 	op := func() error {
-		ok, err := sess.Request(rank, goVersion, name, b)
+		ok, err := defaultPeer.RequestRank(rank, goVersion, name, b)
 		if !ok {
 			log.Warnf("RequestVersion %s@%s not found", name, goVersion)
 		}
