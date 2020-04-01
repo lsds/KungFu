@@ -45,7 +45,7 @@ func GoKungfuUID() uint64 {
 //export GoKungfuClusterSize
 func GoKungfuClusterSize() int {
 	sess := defaultPeer.CurrentSession()
-	return sess.ClusterSize()
+	return sess.Size()
 }
 
 //export GoKungfuRank

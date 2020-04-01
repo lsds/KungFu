@@ -64,7 +64,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 		}(name, m.Buffers[name])
 	}
 
-	np := sess.ClusterSize()
+	np := sess.Size()
 	multiplier := 4 * (np - 1)
 	workload := int64(*epochs) * int64(multiplier) * int64(m.Size())
 

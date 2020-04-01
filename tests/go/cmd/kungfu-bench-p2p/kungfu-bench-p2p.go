@@ -56,7 +56,7 @@ func benchPeerToPeer(peer *peer.Peer, m *fakemodel.FakeModel) {
 		peer.Save(name, b.SendBuf)
 	}
 
-	np := sess.ClusterSize()
+	np := sess.Size()
 	target := rank
 	s := &selector{n: np}
 	if np > 1 {

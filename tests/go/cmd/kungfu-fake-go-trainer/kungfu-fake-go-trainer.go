@@ -38,7 +38,7 @@ func main() {
 
 func getClusterSize(peer *peer.Peer) int {
 	sess := peer.CurrentSession()
-	return sess.ClusterSize()
+	return sess.Size()
 }
 
 func logEstimatedSpeed(batches int, batchSize int, d time.Duration, np int) {

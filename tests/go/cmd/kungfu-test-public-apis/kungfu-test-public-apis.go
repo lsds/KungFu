@@ -47,7 +47,7 @@ func testGetPeerLatencies(peer *peer.Peer) {
 func testAllReduce(peer *peer.Peer) {
 	const step = 20
 	sess := peer.CurrentSession()
-	np := sess.ClusterSize()
+	np := sess.Size()
 	for i := 0; i < step; i++ {
 		fmt.Printf("step: %d\n", i)
 		{
@@ -86,7 +86,7 @@ func testAllReduce(peer *peer.Peer) {
 
 func testAllGather(peer *peer.Peer) {
 	sess := peer.CurrentSession()
-	np := sess.ClusterSize()
+	np := sess.Size()
 	rank := sess.Rank()
 	count := 1024
 	w := kb.Workspace{
@@ -114,7 +114,7 @@ func testP2P(peer *peer.Peer) {
 	const step = 20
 	const count = 10
 	sess := peer.CurrentSession()
-	np := sess.ClusterSize()
+	np := sess.Size()
 	rank := sess.Rank()
 	name := "weight"
 

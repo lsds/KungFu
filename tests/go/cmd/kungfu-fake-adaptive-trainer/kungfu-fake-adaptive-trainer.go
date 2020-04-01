@@ -30,7 +30,7 @@ func main() {
 
 func fakeTrainStep(peer *peer.Peer, m *fakemodel.FakeModel, step int) {
 	sess := peer.CurrentSession()
-	np := sess.ClusterSize()
+	np := sess.Size()
 	rank := sess.Rank()
 	t0 := time.Now()
 	for _, name := range m.Names {
@@ -104,7 +104,7 @@ func syncStep(peer *peer.Peer, step int) int {
 func resize(peer *peer.Peer) (bool, bool) {
 	sess := peer.CurrentSession()
 	oldRank := sess.Rank()
-	oldSize := sess.ClusterSize()
+	oldSize := sess.Size()
 	t0 := time.Now()
 	changed, keep, err := peer.ResizeClusterFromURL()
 	if err != nil {
@@ -114,7 +114,7 @@ func resize(peer *peer.Peer) (bool, bool) {
 		if keep {
 			sess := peer.CurrentSession()
 			newRank := sess.Rank()
-			newSize := sess.ClusterSize()
+			newSize := sess.Size()
 			log.Infof("resize %d -> %d took %s, rank %d -> %d", oldSize, newSize, time.Since(t0), oldRank, newRank)
 		} else {
 			log.Infof("resize took %s, I'm not in the cluster of %d peers any more.", time.Since(t0), oldSize)
