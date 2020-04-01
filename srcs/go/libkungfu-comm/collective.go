@@ -44,6 +44,18 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 	return callCollectiveOP("AllReduce", name, sess.AllReduce, w, done)
 }
 
+//export GoKungfuAllGather
+func GoKungfuAllGather(sendBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, recvBuf unsafe.Pointer, pName *C.char, done *C.callback_t) int {
+	name := C.GoString(pName)
+	sess := defaultPeer.CurrentSession()
+	w := kb.Workspace{
+		SendBuf: toVector(sendBuf, count, dtype),
+		RecvBuf: toVector(recvBuf, count*sess.Size(), dtype),
+		Name:    name,
+	}
+	return callCollectiveOP("AllGather", name, sess.AllGather, w, done)
+}
+
 //export GoKungfuReduce
 func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
