@@ -142,6 +142,10 @@ func (sess *Session) Broadcast(w kb.Workspace) error {
 	return sess.runGraphs(w, strategy.bcastGraph)
 }
 
+func (sess *Session) AllGather(w kb.Workspace) error {
+	return sess.runAllGather(w)
+}
+
 func (sess *Session) Gather(w kb.Workspace) error {
 	// TODO: validate input
 	return sess.runGather(w)
