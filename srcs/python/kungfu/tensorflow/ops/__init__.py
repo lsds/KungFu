@@ -12,7 +12,7 @@ from .state import counter, exponential_moving_average
 from .topology import peer_info
 
 __all__ = [
-    # 'all_gather',
+    'all_gather',
     'barrier',
     'broadcast',
     'group_all_reduce',

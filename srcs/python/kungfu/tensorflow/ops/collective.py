@@ -25,7 +25,15 @@ def all_reduce(t, op='sum'):
 
 
 def all_gather(t):
-    """Create a new all_gather operator for given tensor."""
+    """Create a new all_gather operator for given tensor.
+
+    Inputs:
+        A tensor of any shape. The shape must be consistent on all peers.
+
+    Returns:
+        A tensor with leading dimension equal to the number of peers,
+        and the rest dimensions equal to the dimensions in the original shape.
+    """
     return _op_lib.kungfu_all_gather(t)
 
 
