@@ -7,7 +7,7 @@ from kungfu._utils import map_maybe
 from kungfu.tensorflow.compat import _tf_assign, _tf_hook
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, counter, current_cluster_size,
-                                   group_all_reduce)
+                                   group_all_reduce, current_rank)
 from kungfu.tensorflow.optimizers.core import _KungFuAlgorithm
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 
@@ -45,12 +45,13 @@ class NetMonHook(tf.estimator.SessionRunHook):
         self._cma_assign_op = tf.assign(self._avg_step_dur_tensor, self._cma_place)
 
         #get Ada optimizer cond variable handle 
-        self._cond_var_Ada = tf.get_default_graph().get_tensor_by_name('cond_var_Ada:0')
-        self._cond_var_Ada_setSSGD = tf.assign(self._cond_var_Ada, 0)
-        self._cond_var_Ada_setSMA = tf.assign(self._cond_var_Ada, 1)
-        self._cond_var_Ada_setASGD = tf.assign(self._cond_var_Ada, 2)
-        # self._cond_var_Ada_setTrue = tf.assign(self._cond_var_Ada, True)
-        # self._cond_var_Ada_setFalse = tf.assign(self._cond_var_Ada, False)
+        self._sync_ctrl = tf.get_default_graph().get_tensor_by_name('sync_ctrl:0')
+        self._sync_ctrl_setSSGD = tf.assign(self._sync_ctrl, 0)
+        self._sync_ctrl_setSMA = tf.assign(self._sync_ctrl, 1)
+        self._sync_ctrl_setASGD = tf.assign(self._sync_ctrl, 2)
+
+        # self._sync_ctrl_setTrue = tf.assign(self._sync_ctrl, True)
+        # self._sync_ctrl_setFalse = tf.assign(self._sync_ctrl, False)
 
         #create AllReduce tensor
         self._cong_tensor = tf.Variable(0,trainable=False)
@@ -72,9 +73,12 @@ class NetMonHook(tf.estimator.SessionRunHook):
 
     def after_run(self, run_context, run_values):
 
+
         if self._congestion_flag:
             #increment backoff timer
             self._backOff_timer += 1
+
+            print("Worker-", current_rank(), ": congestedFlag true, backofftimer=", self._backOff_timer)
 
             #if backoff limit reached, switch back to S-SGD
             if self._backOff_timer >= self.backoff_limit:
@@ -85,7 +89,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
                 #Synchronize model across all workers
                 run_context.session.run(self._broadcastOp)
 
-                run_context.session.run(self._cond_var_Ada_setSSGD)
+                run_context.session.run(self._sync_ctrl_setSSGD)
 
                 #reset backoff limit
                 self._backOff_timer = 0 
@@ -136,13 +140,14 @@ class NetMonHook(tf.estimator.SessionRunHook):
             global_cong = run_context.session.run(self._cong_allreduce_op)
 
             if global_cong >= (self._cluster_size * self.cluster_congestion_threshold):
-                print("WARNINIG: Cluster network congestion detected !\n Changing to less communication intensive synchronisation algorithm.")
+                print("""WARNINIG: Cluster network congestion detected !
+                Changing to less communication intensive synchronisation algorithm => A-SGD.""")
 
                 self._congestion_flag = True
 
                 #TODO: change for more intricate triggering algorithm
-                # run_context.session.run(self._cond_var_Ada_setSMA)
-                run_context.session.run(self._cond_var_Ada_setASGD)
+                # run_context.session.run(self._sync_ctrl_setSMA)
+                run_context.session.run(self._sync_ctrl_setASGD)
 
                 #increment backoff counter
                 self._backOff_timer += 1
@@ -165,9 +170,6 @@ class NetMonHook(tf.estimator.SessionRunHook):
             run_context.session.run(self._net_cong_mon_assign_op, feed_dict={
                 self._net_cong_mon_place: 0,
             })
-
-            #TODO: change for more intricate triggering algorithm
-            #run_context.session.run(self._cond_var_Ada_setFalse)
 
         #Calculate and update Cumulative Moving Average (CMA)
         self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + step_dur) / self._cur_step

@@ -47,7 +47,7 @@ class _CustomAdaSGD(_KungFuAlgorithm):
         self._num_workers = current_cluster_size()
         self._alpha = alpha
         self._global_step = tf.train.get_or_create_global_step()
-        self._cond_var_Ada_var = tf.Variable(0, trainable=False, name='cond_var_Ada')
+        self._sync_ctrl = tf.Variable(0, trainable=False, name='sync_ctrl')
         self._step = counter()
         self._fuse_requests = fuse_requests
         self._fused_model_name = fused_model_name
@@ -102,7 +102,7 @@ class _CustomAdaSGD(_KungFuAlgorithm):
     def _sma(self, apply_grads_func, gradients, variables, **kwargs):
         # It is important to apply model averaging every iteration [2]
         # TODO:remove, only for debug purposes
-        # print_op = tf.print("Inside SMA")
+        #print_op = tf.print("Inside SMA")
 
         sum_vars = group_all_reduce(variables)
         avg_vars = [v / self._num_workers for v in sum_vars]
@@ -123,7 +123,7 @@ class _CustomAdaSGD(_KungFuAlgorithm):
     
     def _async_sgd(self, apply_grads_func, gradients, variables, **kwargs):
         # TODO:remove, only for debug purposes
-        # print_op = tf.print("Inside A-SGD")
+        #print_op = tf.print("Inside A-SGD")
 
         np, rank = current_cluster_size(), current_rank()
         target = get_random_peer(np, rank)
@@ -161,8 +161,11 @@ class _CustomAdaSGD(_KungFuAlgorithm):
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
         g, v = list(zip(*grads_and_vars))
 
-        return tf.cond(tf.equal(self._cond_var_Ada_var, 0),
-                       lambda: self._ssgd(apply_grads_func, g, v, **kwargs),
-                       lambda: tf.cond(tf.equal(self._cond_var_Ada_var, 1),
+        # print_op = tf.print("Inside apply_gradients with cond_var = ", self._sync_ctrl)
+        
+        # with tf.control_dependencies([print_op]):
+        return tf.cond(tf.equal(self._sync_ctrl, 0),
+                    lambda: self._ssgd(apply_grads_func, g, v, **kwargs),
+                    lambda: tf.cond(tf.equal(self._sync_ctrl, 1),
                                 lambda: self._sma(apply_grads_func, g, v, **kwargs),
                                 lambda: self._async_sgd(apply_grads_func, g, v ,**kwargs)))
