@@ -3,7 +3,7 @@ from kungfu.ext import (_get_other_ranks, current_cluster_size,
 
 from ._tf_oplib import _op_lib
 from .adapt import resize_cluster_from_url, step_based_schedule
-from .collective import (all_reduce, barrier, broadcast, consensus,
+from .collective import (all_gather, all_reduce, barrier, broadcast, consensus,
                          group_all_reduce, group_nccl_all_reduce)
 from .local import save_variable, save_variables
 from .monitor import global_noise_scale
@@ -12,6 +12,7 @@ from .state import counter, exponential_moving_average
 from .topology import peer_info
 
 __all__ = [
+    'all_gather',
     'barrier',
     'broadcast',
     'group_all_reduce',

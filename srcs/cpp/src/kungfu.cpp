@@ -159,6 +159,23 @@ int kungfu_world::AllReduce(const void *sendbuf, void *recvbuf, int count,
                              new CallbackWrapper(done));
 }
 
+int kungfu_world::AllGather(const void *sendbuf, int count,
+                            KungFu_Datatype dtype, void *recvbuf,
+                            const char *name)
+{
+    return GoKungfuAllGather(const_cast<void *>(sendbuf), GoInt(count), dtype,
+                             recvbuf, const_cast<char *>(name), nullptr);
+}
+
+int kungfu_world::AllGather(const void *sendbuf, int count,
+                            KungFu_Datatype dtype, void *recvbuf,
+                            const char *name, const DoneCallback &done)
+{
+    return GoKungfuAllGather(const_cast<void *>(sendbuf), GoInt(count), dtype,
+                             recvbuf, const_cast<char *>(name),
+                             new CallbackWrapper(done));
+}
+
 int kungfu_world::Broadcast(const void *sendbuf, void *recvbuf, int count,
                             KungFu_Datatype dtype, const char *name)
 {

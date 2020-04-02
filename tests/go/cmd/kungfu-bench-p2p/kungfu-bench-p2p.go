@@ -7,7 +7,6 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
-	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/tests/go/fakemodel"
@@ -57,7 +56,7 @@ func benchPeerToPeer(peer *peer.Peer, m *fakemodel.FakeModel) {
 		peer.Save(name, b.SendBuf)
 	}
 
-	np := sess.ClusterSize()
+	np := sess.Size()
 	target := rank
 	s := &selector{n: np}
 	if np > 1 {
@@ -68,13 +67,13 @@ func benchPeerToPeer(peer *peer.Peer, m *fakemodel.FakeModel) {
 	for _, name := range m.Names {
 		func(name string, b fakemodel.DoubleBuffer) {
 			g.Add(func() {
-				w := session.Workspace{
+				w := kb.Workspace{
 					SendBuf: b.SendBuf,
 					RecvBuf: b.RecvBuf,
 					OP:      kb.SUM,
 					Name:    name,
 				}
-				sess.Request(target, "", w.Name, w.RecvBuf)
+				peer.RequestRank(target, "", w.Name, w.RecvBuf)
 			})
 		}(name, m.Buffers[name])
 	}

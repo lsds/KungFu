@@ -66,6 +66,16 @@ func (pl PeerList) Select(ranks []int) PeerList {
 	return ql
 }
 
+func (pl PeerList) Others(self PeerID) PeerList {
+	var ql PeerList
+	for _, p := range pl {
+		if p != self {
+			ql = append(ql, p)
+		}
+	}
+	return ql
+}
+
 func (pl PeerList) Contains(p PeerID) bool {
 	_, ok := pl.Rank(p)
 	return ok

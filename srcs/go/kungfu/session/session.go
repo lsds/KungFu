@@ -1,7 +1,6 @@
 package session
 
 import (
-	"errors"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
@@ -31,11 +30,10 @@ type Session struct {
 	localRank         int
 	client            *client.Client
 	collectiveHandler *handler.CollectiveEndpoint
-	p2pHandler        *handler.PeerToPeerEndpoint
 	strategyHash      strategyHashFunc
 }
 
-func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint, p2pHandler *handler.PeerToPeerEndpoint) (*Session, bool) {
+func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint) (*Session, bool) {
 	rank, ok := pl.Rank(self)
 	if !ok {
 		return nil, false
@@ -55,18 +53,21 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 		localRank:         localRank,
 		client:            client,
 		collectiveHandler: collectiveHandler,
-		p2pHandler:        p2pHandler,
 		strategyHash:      getStrategyHash(),
 	}
 	return sess, true
 }
 
-func (sess *Session) ClusterSize() int {
+func (sess *Session) Size() int {
 	return len(sess.peers)
 }
 
 func (sess *Session) Rank() int {
 	return sess.rank
+}
+
+func (sess *Session) Peer(rank int) plan.PeerID {
+	return sess.peers[rank]
 }
 
 func (sess *Session) LocalRank() int {
@@ -77,7 +78,7 @@ func (sess *Session) Barrier() error {
 	k := len(sess.peers)
 	count := k * 1
 	dtype := kb.U8
-	w := Workspace{
+	w := kb.Workspace{
 		SendBuf: kb.NewVector(count, dtype),
 		RecvBuf: kb.NewVector(count, dtype),
 		OP:      kb.SUM,
@@ -86,7 +87,7 @@ func (sess *Session) Barrier() error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
-func (sess *Session) Consensus(w Workspace) error {
+func (sess *Session) Consensus(w kb.Workspace) error {
 	ok, err := sess.BytesConsensus(w.SendBuf.Data, w.Name)
 	if err != nil {
 		return err
@@ -102,8 +103,8 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		y := kb.NewVector(1, kb.I32)
 		z := kb.NewVector(1, kb.I32)
 		x.AsI32()[0] = int32(n)
-		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:len:min:" + name}
-		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max:" + name}
+		w1 := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:len:min:" + name}
+		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max:" + name}
 		sess.AllReduce(w1)
 		sess.AllReduce(w2)
 		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
@@ -117,8 +118,8 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 		y := kb.NewVector(n, kb.U8)
 		z := kb.NewVector(n, kb.U8)
-		w1 := Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min:" + name}
-		w2 := Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max:" + name}
+		w1 := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min:" + name}
+		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max:" + name}
 		sess.AllReduce(w1)
 		sess.AllReduce(w2)
 		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
@@ -128,31 +129,27 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 	return true, nil
 }
 
-func (sess *Session) AllReduce(w Workspace) error {
+func (sess *Session) AllReduce(w kb.Workspace) error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
-func (sess *Session) Reduce(w Workspace) error {
+func (sess *Session) Reduce(w kb.Workspace) error {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
 	return sess.runGraphs(w, strategy.reduceGraph)
 }
 
-func (sess *Session) Broadcast(w Workspace) error {
+func (sess *Session) Broadcast(w kb.Workspace) error {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
 	return sess.runGraphs(w, strategy.bcastGraph)
 }
 
-func (sess *Session) Gather(w Workspace) error {
-	// TODO: validate input
-	return sess.runGather(w)
+func (sess *Session) AllGather(w kb.Workspace) error {
+	return sess.runAllGather(w)
 }
 
-func (sess *Session) Request(rank int, version, name string, buf *kb.Vector) (bool, error) {
-	if rank < 0 || len(sess.peers) <= rank {
-		return false, errInvalidRank
-	}
-	peer := sess.peers[rank]
-	return sess.p2pHandler.Request(peer.WithName(name), version, asMessage(buf))
+func (sess *Session) Gather(w kb.Workspace) error {
+	// TODO: validate input
+	return sess.runGather(w)
 }
 
 func asMessage(b *kb.Vector) connection.Message {
@@ -162,7 +159,7 @@ func asMessage(b *kb.Vector) connection.Message {
 	}
 }
 
-func (sess *Session) runGather(w Workspace) error {
+func (sess *Session) runGather(w kb.Workspace) error {
 	if sess.rank != defaultRoot {
 		peer := sess.peers[defaultRoot]
 		return sess.client.Send(peer.WithName(w.Name), w.SendBuf.Data, connection.ConnCollective, connection.NoFlag)
@@ -186,7 +183,7 @@ func (sess *Session) runGather(w Workspace) error {
 	return nil // FIXME: handle errors
 }
 
-func (sess *Session) runGraphs(w Workspace, graphs ...*plan.Graph) error {
+func (sess *Session) runGraphs(w kb.Workspace, graphs ...*plan.Graph) error {
 	if len(sess.peers) == 1 {
 		w.RecvBuf.CopyFrom(w.SendBuf)
 		return nil
@@ -269,13 +266,13 @@ func ceilDiv(a, b int) int {
 	return a/b + 1
 }
 
-func (sess *Session) runStrategiesWithHash(w Workspace, p partitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
+func (sess *Session) runStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
 	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
 	errs := make([]error, k)
 	var wg sync.WaitGroup
-	for i, w := range w.split(p, k) {
+	for i, w := range w.Split(p, k) {
 		wg.Add(1)
-		go func(i int, w Workspace, s strategy) {
+		go func(i int, w kb.Workspace, s strategy) {
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			wg.Done()
 		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
@@ -284,13 +281,9 @@ func (sess *Session) runStrategiesWithHash(w Workspace, p partitionFunc, strateg
 	return utils.MergeErrors(errs, "runStrategies")
 }
 
-func (sess *Session) runStrategies(w Workspace, p partitionFunc, strategies strategyList) error {
+func (sess *Session) runStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {
 	return sess.runStrategiesWithHash(w, p, strategies, sess.strategyHash)
 }
-
-var (
-	errInvalidRank = errors.New("invalid rank")
-)
 
 func boolToInt8(v bool) int8 {
 	if v {

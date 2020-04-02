@@ -7,7 +7,6 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
-	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/tests/go/fakemodel"
@@ -54,7 +53,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 	for _, name := range m.Names {
 		func(name string, b fakemodel.DoubleBuffer) {
 			g.Add(func() {
-				w := session.Workspace{
+				w := kb.Workspace{
 					SendBuf: b.SendBuf,
 					RecvBuf: b.RecvBuf,
 					OP:      kb.SUM,
@@ -65,7 +64,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 		}(name, m.Buffers[name])
 	}
 
-	np := sess.ClusterSize()
+	np := sess.Size()
 	multiplier := 4 * (np - 1)
 	workload := int64(*epochs) * int64(multiplier) * int64(m.Size())
 

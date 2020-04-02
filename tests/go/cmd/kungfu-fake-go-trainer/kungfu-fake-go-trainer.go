@@ -10,7 +10,6 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
-	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/tests/go/fakemodel"
 )
@@ -39,7 +38,7 @@ func main() {
 
 func getClusterSize(peer *peer.Peer) int {
 	sess := peer.CurrentSession()
-	return sess.ClusterSize()
+	return sess.Size()
 }
 
 func logEstimatedSpeed(batches int, batchSize int, d time.Duration, np int) {
@@ -66,7 +65,7 @@ func fakeTrain(peer *peer.Peer, model *fakemodel.FakeModel) {
 func trainStep(peer *peer.Peer, m *fakemodel.FakeModel) {
 	for _, name := range m.Names {
 		b := m.Buffers[name]
-		w := session.Workspace{
+		w := kb.Workspace{
 			SendBuf: b.SendBuf,
 			RecvBuf: b.RecvBuf,
 			OP:      kb.SUM,
