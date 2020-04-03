@@ -78,7 +78,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
             #increment backoff timer
             self._backOff_timer += 1
 
-            print("Worker-", current_rank(), ": congestedFlag true, backofftimer=", self._backOff_timer)
+            # print("Worker-", current_rank(), ": congestedFlag true, backofftimer=", self._backOff_timer)
 
             #if backoff limit reached, switch back to S-SGD
             if self._backOff_timer >= self.backoff_limit:
@@ -136,40 +136,36 @@ class NetMonHook(tf.estimator.SessionRunHook):
                 self._cong_tensor_place: 1,
             })
 
-            #perform allreduce to communicate congestion tensor between peers
-            global_cong = run_context.session.run(self._cong_allreduce_op)
-
-            if global_cong >= (self._cluster_size * self.cluster_congestion_threshold):
-                print("""WARNINIG: Cluster network congestion detected !
-                Changing to less communication intensive synchronisation algorithm => A-SGD.""")
-
-                self._congestion_flag = True
-
-                #TODO: change for more intricate triggering algorithm
-                # run_context.session.run(self._sync_ctrl_setSMA)
-                run_context.session.run(self._sync_ctrl_setASGD)
-
-                #increment backoff counter
-                self._backOff_timer += 1
-
             #update network congestion monitor
             run_context.session.run(self._net_cong_mon_assign_op, feed_dict={
                 self._net_cong_mon_place: 1,
             })
         else:
-
             #update congestion tensor for performing all reduce 
             run_context.session.run(self._cong_tensor_place_assign_op, feed_dict={
                 self._cong_tensor_place: 0,
             })
-
-            #perform allreduce to communicate congestion tensor between peers
-            global_cong = run_context.session.run(self._cong_allreduce_op)
             
             #update network congestion monitor
             run_context.session.run(self._net_cong_mon_assign_op, feed_dict={
                 self._net_cong_mon_place: 0,
             })
+        
+        #perform allreduce to communicate congestion tensor between peers
+        global_cong = run_context.session.run(self._cong_allreduce_op)
+
+        if global_cong >= (self._cluster_size * self.cluster_congestion_threshold):
+            print("Worker-", current_rank(), """\t:WARNINIG: Cluster network congestion detected !
+            \tChanging to less communication intensive synchronisation algorithm => A-SGD.""")
+
+            self._congestion_flag = True
+
+            #TODO: change for more intricate triggering algorithm
+            # run_context.session.run(self._sync_ctrl_setSMA)
+            run_context.session.run(self._sync_ctrl_setASGD)
+
+            #increment backoff counter
+            self._backOff_timer += 1
 
         #Calculate and update Cumulative Moving Average (CMA)
         self._avg_step_dur = ((self._avg_step_dur * (self._cur_step-1)) + step_dur) / self._cur_step

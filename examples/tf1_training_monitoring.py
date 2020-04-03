@@ -225,20 +225,9 @@ def model_function(features, labels, mode):
 
     return estimator_spec
 
-def getModelDr():
-    md = os.getenv("KUNGFU_MODEL_DIR")
-
-    if md is None:
-        return FLAGS.model_dir
-    else:
-        return md
-
 def main(_):
-
-    # model_dir = getModelDr()
-    # model_dir  = FLAGS.model_dir
-    print(FLAGS.model_dir)
-    print(FLAGS.data_dir)
+    # print(FLAGS.model_dir)
+    # print(FLAGS.data_dir)
 
     if current_rank() == 0:
         save_checkpoints_steps = 100
