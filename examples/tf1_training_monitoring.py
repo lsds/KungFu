@@ -20,6 +20,8 @@ flags.DEFINE_string(
     ' if the data is not already there')
 flags.DEFINE_string('model_dir', './mnist/model',
                     'Directory where all models are saved')
+flags.DEFINE_string('log_dir', '/tmp/tensorflow/mnist_estimator/logs/mnist_estimator_with_summaries',
+                    'Directory where all logs are saved')
 flags.DEFINE_string('kf_optimizer', 'sync_sgd', 'KungFu optimizer')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('num_epochs', 1, 'Num of batches to train (epochs).')
@@ -169,11 +171,14 @@ def model_function(features, labels, mode):
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels,
                                                       logits=logits)
         tf.identity(loss, 'train_loss')
+        tf.summary.scalar('TrainLoss', loss)
 
         # record the accuracy and name it
         accuracy = tf.metrics.accuracy(labels=labels,
                                        predictions=tf.argmax(logits, axis=1))
         tf.identity(accuracy[1], name='train_accuracy')
+
+        tf.summary.scalar('TrainAccuracy', accuracy[1])
 
         # use Adam to optimize
         optimizer = tf.train.AdamOptimizer(learning_rate=FLAGS.learning_rate)
@@ -185,6 +190,13 @@ def model_function(features, labels, mode):
             os.path.join(home,"KungFu/experimental/net_monitoring/CustomAdaSGD.py")) 
         CustomAda = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(CustomAda)
+
+            # Create a hook to print acc, loss & global step every 100 iter.   
+        # train_hook_list= []
+        # train_tensors_log = {'TrainAccuracy': accuracy[1],
+        #                     'TrainLoss': loss}
+        # train_hook_list.append(tf.train.LoggingTensorHook(
+        #     tensors=train_tensors_log, every_n_iter=1))
 
         #KungFu: Wrap the tf.train.optimizer with KungFu optimizers
         # if FLAGS.kf_optimizer == 'sync_sgd':
@@ -221,7 +233,7 @@ def model_function(features, labels, mode):
         estimator_spec = tf.estimator.EstimatorSpec(
             mode=tf.estimator.ModeKeys.EVAL,
             loss=loss,
-            eval_metric_ops={'accuracy': accuracy})
+            eval_metric_ops={'EvalAccuracy': accuracy})
 
     return estimator_spec
 
@@ -231,7 +243,7 @@ def main(_):
 
     if current_rank() == 0:
         save_checkpoints_steps = 100
-        save_summary_steps = 1 
+        save_summary_steps = 10 
         config = tf.estimator.RunConfig(
             model_dir=FLAGS.model_dir,
             save_checkpoints_steps=save_checkpoints_steps,
@@ -252,7 +264,7 @@ def main(_):
 
     # from tensorflow.python.training.basic_session_run_hooks import StepCounterHook
 
-    hooks=[NetMon.NetMonHook()]
+    hooks=[NetMon.NetMonHook(FLAGS.log_dir)]
     # hooks=[StepCounterHook(8)]
 
     train_spec = tf.estimator.TrainSpec(input_fn=train_data, max_steps=num_train_steps, hooks=hooks)

@@ -23,11 +23,12 @@ class NetMonHook(tf.estimator.SessionRunHook):
     cluster_congestion_threshold = 0.5
     backoff_limit = 100
 
-    def __init__(self):
+    def __init__(self, log_dir):
         self._cur_step = 0
         self._avg_step_dur = 0
         self._backOff_timer = 0
         self._congestion_flag = False
+        self._log_dir=log_dir
 
 
     def begin(self):
@@ -39,6 +40,7 @@ class NetMonHook(tf.estimator.SessionRunHook):
         self._net_cong_mon_tensor = tf.Variable(np.int32(0), trainable=False)
         tf.summary.scalar(name='CMA', tensor=self._avg_step_dur_tensor)
         tf.summary.scalar(name='congestion', tensor=self._net_cong_mon_tensor)
+        self._merged = tf.summary.merge_all()
         self._net_cong_mon_place = tf.placeholder(tf.int32)
         self._cma_place = tf.placeholder(tf.float32)
         self._net_cong_mon_assign_op = tf.assign(self._net_cong_mon_tensor, self._net_cong_mon_place)
@@ -77,8 +79,6 @@ class NetMonHook(tf.estimator.SessionRunHook):
         if self._congestion_flag:
             #increment backoff timer
             self._backOff_timer += 1
-
-            # print("Worker-", current_rank(), ": congestedFlag true, backofftimer=", self._backOff_timer)
 
             #if backoff limit reached, switch back to S-SGD
             if self._backOff_timer >= self.backoff_limit:
@@ -173,16 +173,12 @@ class NetMonHook(tf.estimator.SessionRunHook):
         run_context.session.run(self._cma_assign_op, feed_dict={
             self._cma_place: self._avg_step_dur,
         })
+
+        # summary = run_context.session.run(self._merged)
+        # self._cma_summary_writer.add_summary(summary, self._cur_step)
     
     def end(self, sess):
-        pass
+        self._cma_summary_writer.close()
 
     def __setup_summary_writer(self):
-        cma_log_dir = 'log'
-        self._cma_summary_writer = tf.summary.FileWriter(cma_log_dir)
-
-    # def __cma_allreduce(self, run_context):
-    #     cluster_size = current_cluster_size()
-
-    #     #perform CMA AllReduce
-    #     return (run_context.session.run(self._global_avg_step_dur_allreduce_op)) / cluster_size
+        self._cma_summary_writer = tf.summary.FileWriter(self._log_dir)
