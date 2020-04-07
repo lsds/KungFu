@@ -24,7 +24,7 @@ flags.DEFINE_string('log_dir', '/tmp/tensorflow/mnist_estimator/logs/mnist_estim
                     'Directory where all logs are saved')
 flags.DEFINE_string('kf_optimizer', 'sync_sgd', 'KungFu optimizer')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
-flags.DEFINE_integer('num_epochs', 1, 'Num of batches to train (epochs).')
+flags.DEFINE_integer('num_epochs', 5, 'Num of batches to train (epochs).')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning Rate')
 
 FLAGS = flags.FLAGS
@@ -255,7 +255,7 @@ def main(_):
                                             model_dir=FLAGS.model_dir,
                                             config=config)
 
-    num_train_steps = 10000
+    num_train_steps = 1000
     
     #from ./experimental.net_monitoring.NetMonHook import NetMonHook
     spec = importlib.util.spec_from_file_location("NetMonHook", os.path.join(home,"KungFu/experimental/net_monitoring/NetMonHook.py"))
