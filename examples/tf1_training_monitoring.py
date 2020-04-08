@@ -26,6 +26,7 @@ flags.DEFINE_string('kf_optimizer', 'sync_sgd', 'KungFu optimizer')
 flags.DEFINE_integer('batch_size', 100, 'Batch size.')
 flags.DEFINE_integer('num_epochs', 5, 'Num of batches to train (epochs).')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning Rate')
+flags.DEFINE_bool('ada', False, 'Synchronization primitive adaptation')
 
 FLAGS = flags.FLAGS
 
@@ -195,10 +196,7 @@ def model_function(features, labels, mode):
 
         #get custom Ada optimizer
         #TODO: fix this and enable it
-        spec = importlib.util.spec_from_file_location("CustomAdaSGD", 
-            os.path.join(home,"KungFu/experimental/net_monitoring/CustomAdaSGD.py")) 
-        CustomAda = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(CustomAda)
+        
 
         # Create a hook to print acc, loss & global step every 100 iter.   
         # train_hook_list= []
@@ -208,16 +206,22 @@ def model_function(features, labels, mode):
         #     tensors=train_tensors_log, every_n_iter=1))
 
         #KungFu: Wrap the tf.train.optimizer with KungFu optimizers
-        # if FLAGS.kf_optimizer == 'sync_sgd':
-        #     from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
-        #     optimizer = SynchronousSGDOptimizer(optimizer)
-        # elif FLAGS.kf_optimizer == 'async_sgd':
-        #     from kungfu.tensorflow.optimizers import PairAveragingOptimizer
-        #     optimizer = PairAveragingOptimizer(optimizer)
-        # else:
-        #     raise RuntimeError('Unknown kungfu optimizer')
+        if FLAGS.ada:
+            spec = importlib.util.spec_from_file_location("CustomAdaSGD", 
+            os.path.join(home,"KungFu/experimental/net_monitoring/CustomAdaSGD.py")) 
+            CustomAda = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(CustomAda)
 
-        optimizer = CustomAda.CustomAdaSGDOptimizer(optimizer)
+            optimizer = CustomAda.CustomAdaSGDOptimizer(optimizer)
+        else:
+            if FLAGS.kf_optimizer == 'sync_sgd':
+                from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+                optimizer = SynchronousSGDOptimizer(optimizer)
+            elif FLAGS.kf_optimizer == 'async_sgd':
+                from kungfu.tensorflow.optimizers import PairAveragingOptimizer
+                optimizer = PairAveragingOptimizer(optimizer)
+            else:
+                raise RuntimeError('Unknown kungfu optimizer')
 
         # create an estimator spec to optimize the loss
         estimator_spec = tf.estimator.EstimatorSpec(
@@ -271,13 +275,16 @@ def main(_):
     num_train_steps = (FLAGS.num_epochs * dataset_size)/(current_cluster_size() * FLAGS.batch_size)
     
     #from ./experimental.net_monitoring.NetMonHook import NetMonHook
-    spec = importlib.util.spec_from_file_location("NetMonHook", os.path.join(home,"KungFu/experimental/net_monitoring/NetMonHook.py"))
-    NetMon = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(NetMon)
+    if FLAGS.ada:
+        spec = importlib.util.spec_from_file_location("NetMonHook", os.path.join(home,"repos/KungFu/experimental/net_monitoring/NetMonHook.py"))
+        NetMon = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(NetMon)
+
+        hooks=[NetMon.NetMonHook(FLAGS.log_dir)]
+    else:
+        hooks = None
 
     # from tensorflow.python.training.basic_session_run_hooks import StepCounterHook
-
-    hooks=[NetMon.NetMonHook(FLAGS.log_dir)]
     # hooks=[StepCounterHook(8)]
 
     train_spec = tf.estimator.TrainSpec(input_fn=train_data, max_steps=num_train_steps, hooks=hooks)
