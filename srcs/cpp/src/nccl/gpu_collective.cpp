@@ -98,7 +98,7 @@ class gpu_collective_nccl : public gpu_collective
     }
 };
 
-gpu_collective *new_gpu_collective(kungfu_world &world)
+gpu_collective *new_gpu_collective(kungfu::Peer &world)
 {
     ncclUniqueId id;
     const int root = 0;

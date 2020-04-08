@@ -12,7 +12,7 @@
 
 DEFINE_TRACE_CONTEXTS;
 
-void test_AllReduce(kungfu_world &world, int np)
+void test_AllReduce(kungfu::Peer &world, int np)
 {
     TRACE_SCOPE(__func__);
     using T     = int32_t;
@@ -43,7 +43,7 @@ void test_AllReduce(kungfu_world &world, int np)
     }
 }
 
-void bench_Reduce(kungfu_world &world, int n, int m)
+void bench_Reduce(kungfu::Peer &world, int n, int m)
 {
     TRACE_SCOPE(__func__);
 
@@ -63,7 +63,7 @@ void bench_Reduce(kungfu_world &world, int n, int m)
     }
 }
 
-void bench_AllReduce(kungfu_world &world, int n, int m)
+void bench_AllReduce(kungfu::Peer &world, int n, int m)
 {
     TRACE_SCOPE(__func__);
 
@@ -81,7 +81,7 @@ void bench_AllReduce(kungfu_world &world, int n, int m)
     }
 }
 
-void test_Gather(kungfu_world &world, int m)
+void test_Gather(kungfu::Peer &world, int m)
 {
     const int np       = world.ClusterSize();
     const int rank     = world.Rank();
@@ -117,7 +117,7 @@ template <typename T1, typename T2> class fake_transform
     }
 };
 
-void test_AllGatherTransform(kungfu_world &world)
+void test_AllGatherTransform(kungfu::Peer &world)
 {
     const int rank = world.Rank();
     const int np   = world.ClusterSize();
@@ -144,7 +144,7 @@ void test_AllGatherTransform(kungfu_world &world)
     }
 }
 
-void test_MST(kungfu_world &world)
+void test_MST(kungfu::Peer &world)
 {
     const int rank = world.Rank();
     const int np   = world.ClusterSize();
@@ -177,30 +177,30 @@ void test_MST(kungfu_world &world)
 int main(int argc, char *argv[])
 {
     TRACE_SCOPE(__func__);
-    kungfu_world _kungfu_world;
+    kungfu::Peer _default_peer;
     {
-        const int np = _kungfu_world.ClusterSize();
-        test_AllReduce(_kungfu_world, np);
+        const int np = _default_peer.ClusterSize();
+        test_AllReduce(_default_peer, np);
     }
     {
         const int n = 100;
         const int m = 100;
-        bench_Reduce(_kungfu_world, n, m);
+        bench_Reduce(_default_peer, n, m);
     }
     {
         const int n = 100;
         const int m = 100;
-        bench_AllReduce(_kungfu_world, n, m);
+        bench_AllReduce(_default_peer, n, m);
     }
     {
         const int m = 100;
-        test_Gather(_kungfu_world, m);
+        test_Gather(_default_peer, m);
     }
     {
-        test_AllGatherTransform(_kungfu_world);
+        test_AllGatherTransform(_default_peer);
     }
     {
-        test_MST(_kungfu_world);
+        test_MST(_default_peer);
     }
     return 0;
 }

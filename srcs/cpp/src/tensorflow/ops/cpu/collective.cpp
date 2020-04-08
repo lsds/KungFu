@@ -13,7 +13,7 @@ class Barrier : public AsyncOpKernel
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        _kungfu_world->Barrier(done);
+        _default_peer->Barrier(done);
     }
 };
 
@@ -45,7 +45,7 @@ class Consensus : public AsyncOpKernel
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, MakeTensorShape(), &output),
             done);
-        _kungfu_world->Consensus(
+        _default_peer->Consensus(
             input.tensor_data().data(), input.NumElements(),
             to_kungfu_type(input.dtype()),
             reinterpret_cast<bool *>(output->scalar<bool>().data()),
@@ -91,7 +91,7 @@ class AllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
-        _kungfu_world->AllReduce(
+        _default_peer->AllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), op_,
@@ -116,13 +116,13 @@ class AllGather : public AsyncOpKernel
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        const int np        = _kungfu_world->ClusterSize();
+        const int np        = _default_peer->ClusterSize();
         OP_REQUIRES_OK_ASYNC(
             context,
             context->allocate_output(0, BatchTensorShape(input.shape(), np),
                                      &output),
             done);
-        _kungfu_world->AllGather(
+        _default_peer->AllGather(
             input.tensor_data().data(), input.NumElements(),
             to_kungfu_type(input.dtype()),
             const_cast<char *>(output->tensor_data().data()), name().c_str(),
@@ -149,7 +149,7 @@ class Broadcast : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
-        _kungfu_world->Broadcast(
+        _default_peer->Broadcast(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), name().c_str(),

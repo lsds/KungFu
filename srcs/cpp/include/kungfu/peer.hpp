@@ -2,18 +2,20 @@
 #include <functional>
 #include <kungfu/dtype.hpp>
 
+namespace kungfu
+{
 using DoneCallback = std::function<void()>;
 
 using TransformFunc = std::function<void(
     const void *input, int input_count, KungFu_Datatype input_dtype,
     void *output, int output_count, KungFu_Datatype output_dtype)>;
 
-class kungfu_world
+class Peer
 {
   public:
-    kungfu_world();
+    Peer();
 
-    ~kungfu_world();
+    ~Peer();
 
     // metadata APIs
     uint64_t Uid() const;
@@ -121,3 +123,4 @@ class kungfu_world
 
     int ProposeNewSize(int new_size);
 };
+}  // namespace kungfu

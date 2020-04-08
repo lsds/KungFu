@@ -31,12 +31,12 @@ class SaveVariable : public AsyncOpKernel
         const int64_t version = context->input(0).scalar<int64_t>()();
         const Tensor &input   = context->input(1);
         if (use_version_) {
-            _kungfu_world->Save(std::to_string(version).c_str(),
+            _default_peer->Save(std::to_string(version).c_str(),
                                 input_tensor_name_.c_str(),
                                 input.tensor_data().data(), input.NumElements(),
                                 to_kungfu_type(input.dtype()), done);
         } else {
-            _kungfu_world->Save(input_tensor_name_.c_str(),
+            _default_peer->Save(input_tensor_name_.c_str(),
                                 input.tensor_data().data(), input.NumElements(),
                                 to_kungfu_type(input.dtype()), done);
         }
@@ -71,7 +71,7 @@ class SaveVariables : public AsyncOpKernel
         for (int i = 0; i < num_tensors_; ++i) {
             const Tensor &t = context->input(i);
             // TODO: get name from t
-            _kungfu_world->Save(names_.at(i).c_str(), t.tensor_data().data(),
+            _default_peer->Save(names_.at(i).c_str(), t.tensor_data().data(),
                                 t.NumElements(), to_kungfu_type(t.dtype()));
         }
         done();

@@ -1,11 +1,11 @@
 #include "testing.hpp"
 
-TEST(kungfu_world_test, test_construct)
+TEST(Peer_test, test_construct)
 {
     {
-        kungfu_world kf1;
+        kungfu::Peer p1;
     }
     {
-        kungfu_world kf2;
+        kungfu::Peer p2;
     }
 }

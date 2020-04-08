@@ -29,5 +29,5 @@ class gpu_collective
     }
 };
 
-extern gpu_collective *new_gpu_collective(kungfu_world &world);
+extern gpu_collective *new_gpu_collective(kungfu::Peer &);
 }  // namespace kungfu
