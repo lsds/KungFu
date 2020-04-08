@@ -276,7 +276,7 @@ def main(_):
     
     #from ./experimental.net_monitoring.NetMonHook import NetMonHook
     if FLAGS.ada:
-        spec = importlib.util.spec_from_file_location("NetMonHook", os.path.join(home,"repos/KungFu/experimental/net_monitoring/NetMonHook.py"))
+        spec = importlib.util.spec_from_file_location("NetMonHook", os.path.join(home,"KungFu/experimental/net_monitoring/NetMonHook.py"))
         NetMon = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(NetMon)
 
