@@ -4,10 +4,10 @@
 
 #include <kungfu.h>
 
-void test_versioned_store(kungfu_world &world)
+void test_versioned_store(kungfu::Peer &world)
 {
     const int rank = world.Rank();
-    const int np   = world.ClusterSize();
+    const int np   = world.Size();
 
     using T     = int;
     const int n = 10;
@@ -39,7 +39,7 @@ void test_versioned_store(kungfu_world &world)
 
 int main(int argc, char *argv[])
 {
-    kungfu_world _kungfu_world;
-    test_versioned_store(_kungfu_world);
+    kungfu::Peer self;
+    test_versioned_store(self);
     return 0;
 }

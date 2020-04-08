@@ -1,6 +1,6 @@
 #include "testing.hpp"
 
-template <typename T> void test_allreduce(kungfu_world &kf, const int count)
+template <typename T> void test_allreduce(kungfu::Peer &kf, const int count)
 {
     const auto dtype = kungfu::type_encoder::value<T>();
     std::vector<T> x(count);
@@ -19,16 +19,16 @@ template <typename T> void test_allreduce(kungfu_world &kf, const int count)
 
 TEST(kungfu_AllReduce_test, test_global_step)
 {
-    kungfu_world kf;
+    kungfu::Peer kf;
     test_allreduce<int32_t>(kf, 10);
     test_allreduce<int32_t>(kf, 100);
 }
 
-template <typename T> void test_allgather(kungfu_world &kf, const int count)
+template <typename T> void test_allgather(kungfu::Peer &kf, const int count)
 {
     const auto dtype = kungfu::type_encoder::value<T>();
     std::vector<T> x(count);
-    std::vector<T> y(count * kf.ClusterSize());
+    std::vector<T> y(count * kf.Size());
 
     std::iota(x.begin(), x.end(), 1);
     std::fill(y.begin(), y.end(), 0);
@@ -43,7 +43,7 @@ template <typename T> void test_allgather(kungfu_world &kf, const int count)
 
 TEST(kungfu_AllGather_test, test_global_step)
 {
-    kungfu_world kf;
+    kungfu::Peer kf;
     test_allgather<int32_t>(kf, 10);
     test_allgather<int32_t>(kf, 100);
 }
