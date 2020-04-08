@@ -23,10 +23,11 @@ class Peer
     // https://www.open-mpi.org/doc/v4.0/man3/MPI_Comm_rank.3.php
     int Rank() const;
 
-    int LocalRank() const;
-
     // https://www.open-mpi.org/doc/v4.0/man3/MPI_Comm_size.3.php
     int ClusterSize() const;
+
+    int LocalRank() const;
+    int LocalSize() const;
 
     // local API
     int Save(const char *name, const void *buf, int count,

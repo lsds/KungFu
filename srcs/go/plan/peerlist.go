@@ -45,6 +45,16 @@ func (pl PeerList) Rank(q PeerID) (int, bool) {
 	return -1, false
 }
 
+func (pl PeerList) LocalSize(q PeerID) int {
+	var n int
+	for _, p := range pl {
+		if p.ColocatedWith(q) {
+			n++
+		}
+	}
+	return n
+}
+
 func (pl PeerList) LocalRank(q PeerID) (int, bool) {
 	var i int
 	for _, p := range pl {

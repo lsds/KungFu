@@ -43,6 +43,11 @@ def current_cluster_size():
     return _python_lib.kungfu_cluster_size()
 
 
+def current_local_size():
+    """Get the number of local peers in the current cluster."""
+    return _python_lib.kungfu_local_size()
+
+
 def _get_cuda_index():
     return _python_lib.kungfu_get_cuda_index()
 

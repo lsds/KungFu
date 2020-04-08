@@ -7,9 +7,11 @@ namespace kungfu
 {
 int Peer::Rank() const { return GoKungfuRank(); }
 
+int Peer::ClusterSize() const { return GoKungfuClusterSize(); }
+
 int Peer::LocalRank() const { return GoKungfuLocalRank(); }
 
-int Peer::ClusterSize() const { return GoKungfuClusterSize(); }
+int Peer::LocalSize() const { return GoKungfuLocalSize(); }
 
 int Peer::Barrier() { return GoKungfuBarrier(nullptr); }
 

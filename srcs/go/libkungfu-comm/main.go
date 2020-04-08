@@ -60,6 +60,12 @@ func GoKungfuLocalRank() int {
 	return sess.LocalRank()
 }
 
+//export GoKungfuLocalSize
+func GoKungfuLocalSize() int {
+	sess := defaultPeer.CurrentSession()
+	return sess.LocalSize()
+}
+
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, pName *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	name := C.GoString(pName) // copy *C.char into go string before entering closure

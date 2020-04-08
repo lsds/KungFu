@@ -16,9 +16,11 @@ uint64_t kungfu_uid() { return _default_peer->Uid(); }
 
 int kungfu_rank() { return _default_peer->Rank(); }
 
+int kungfu_cluster_size() { return _default_peer->ClusterSize(); }
+
 int kungfu_local_rank() { return _default_peer->LocalRank(); }
 
-int kungfu_cluster_size() { return _default_peer->ClusterSize(); }
+int kungfu_local_size() { return _default_peer->LocalSize(); }
 
 void kungfu_barrier() { _default_peer->Barrier(); }
 

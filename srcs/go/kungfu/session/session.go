@@ -28,6 +28,7 @@ type Session struct {
 	peers             plan.PeerList
 	rank              int
 	localRank         int
+	localSize         int
 	client            *client.Client
 	collectiveHandler *handler.CollectiveEndpoint
 	strategyHash      strategyHashFunc
@@ -51,6 +52,7 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 		peers:             pl,
 		rank:              rank,
 		localRank:         localRank,
+		localSize:         pl.LocalSize(self),
 		client:            client,
 		collectiveHandler: collectiveHandler,
 		strategyHash:      getStrategyHash(),
@@ -66,12 +68,16 @@ func (sess *Session) Rank() int {
 	return sess.rank
 }
 
-func (sess *Session) Peer(rank int) plan.PeerID {
-	return sess.peers[rank]
-}
-
 func (sess *Session) LocalRank() int {
 	return sess.localRank
+}
+
+func (sess *Session) LocalSize() int {
+	return sess.localSize
+}
+
+func (sess *Session) Peer(rank int) plan.PeerID {
+	return sess.peers[rank]
 }
 
 func (sess *Session) Barrier() error {
