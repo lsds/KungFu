@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 from tensorflow.python.util import deprecation
-from kungfu import current_rank
+from kungfu import (current_rank, current_cluster_size)
 
 import gzip
 import os
@@ -28,6 +28,8 @@ flags.DEFINE_integer('num_epochs', 5, 'Num of batches to train (epochs).')
 flags.DEFINE_float('learning_rate', 0.001, 'Learning Rate')
 
 FLAGS = flags.FLAGS
+
+dataset_size = 60000
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
@@ -126,6 +128,13 @@ def train_data():
     data = train(FLAGS.data_dir)
     data = data.batch(FLAGS.batch_size)
     data = data.repeat()
+    
+    # shuffle data amongst workers 
+    data = data.shuffle(buffer_size=1000, reshuffle_each_iteration=True)
+
+    cluster_size = current_cluster_size()
+    idx = current_rank()
+    data = data.shard(num_shards=cluster_size, index=idx)
     return data
 
 
@@ -191,7 +200,7 @@ def model_function(features, labels, mode):
         CustomAda = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(CustomAda)
 
-            # Create a hook to print acc, loss & global step every 100 iter.   
+        # Create a hook to print acc, loss & global step every 100 iter.   
         # train_hook_list= []
         # train_tensors_log = {'TrainAccuracy': accuracy[1],
         #                     'TrainLoss': loss}
@@ -241,21 +250,25 @@ def main(_):
     # print(FLAGS.model_dir)
     # print(FLAGS.data_dir)
 
-    if current_rank() == 0:
-        save_checkpoints_steps = 100
-        save_summary_steps = 10 
-        config = tf.estimator.RunConfig(
-            model_dir=FLAGS.model_dir,
-            save_checkpoints_steps=save_checkpoints_steps,
-            save_summary_steps=save_summary_steps)
-    else: 
-        config=None
+    # if current_rank() == 0:
+    save_checkpoints_steps = 100
+    save_summary_steps = 1
+    model_dir = FLAGS.model_dir + "/"+str(current_rank())
+    config = tf.estimator.RunConfig(
+        model_dir=model_dir,
+        save_checkpoints_steps=save_checkpoints_steps,
+        save_summary_steps=save_summary_steps)
+    # else: 
+    #     config=None
 
     mnist_classifier = tf.estimator.Estimator(model_fn=model_function,
-                                            model_dir=FLAGS.model_dir,
+                                            model_dir=model_dir,
                                             config=config)
 
-    num_train_steps = 1000
+    # TODO: CAUTION: number calculated based on batch size and is needed to prevent any fault
+    # caused by dataset sharding 
+    # num_train_steps = 1000
+    num_train_steps = (FLAGS.num_epochs * dataset_size)/(current_cluster_size() * FLAGS.batch_size)
     
     #from ./experimental.net_monitoring.NetMonHook import NetMonHook
     spec = importlib.util.spec_from_file_location("NetMonHook", os.path.join(home,"KungFu/experimental/net_monitoring/NetMonHook.py"))

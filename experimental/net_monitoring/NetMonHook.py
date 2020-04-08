@@ -35,12 +35,12 @@ class NetMonHook(tf.estimator.SessionRunHook):
         # get the cluster size 
         self._cluster_size = current_cluster_size()
 
-        self.__setup_summary_writer()
+        # self.__setup_summary_writer()
         self._avg_step_dur_tensor = tf.Variable(0.,trainable=False)
         self._net_cong_mon_tensor = tf.Variable(np.int32(0), trainable=False)
         tf.summary.scalar(name='CMA', tensor=self._avg_step_dur_tensor)
         tf.summary.scalar(name='congestion', tensor=self._net_cong_mon_tensor)
-        self._merged = tf.summary.merge_all()
+        # self._merged = tf.summary.merge_all()
         self._net_cong_mon_place = tf.placeholder(tf.int32)
         self._cma_place = tf.placeholder(tf.float32)
         self._net_cong_mon_assign_op = tf.assign(self._net_cong_mon_tensor, self._net_cong_mon_place)
@@ -75,6 +75,9 @@ class NetMonHook(tf.estimator.SessionRunHook):
 
     def after_run(self, run_context, run_values):
 
+        # summary = run_context.session.run(self._merged)
+        # self._cma_summary_writer.add_summary(summary, self._cur_step)
+        # self._cma_summary_writer.flush()
 
         if self._congestion_flag:
             #increment backoff timer
@@ -173,12 +176,10 @@ class NetMonHook(tf.estimator.SessionRunHook):
         run_context.session.run(self._cma_assign_op, feed_dict={
             self._cma_place: self._avg_step_dur,
         })
-
-        # summary = run_context.session.run(self._merged)
-        # self._cma_summary_writer.add_summary(summary, self._cur_step)
     
     def end(self, sess):
-        self._cma_summary_writer.close()
+        # self._cma_summary_writer.close()
+        pass
 
     def __setup_summary_writer(self):
         self._cma_summary_writer = tf.summary.FileWriter(self._log_dir)
