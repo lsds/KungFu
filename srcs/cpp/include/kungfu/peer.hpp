@@ -24,7 +24,7 @@ class Peer
     int Rank() const;
 
     // https://www.open-mpi.org/doc/v4.0/man3/MPI_Comm_size.3.php
-    int ClusterSize() const;
+    int Size() const;
 
     int LocalRank() const;
     int LocalSize() const;

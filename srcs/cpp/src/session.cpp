@@ -7,7 +7,7 @@ namespace kungfu
 {
 int Peer::Rank() const { return GoKungfuRank(); }
 
-int Peer::ClusterSize() const { return GoKungfuClusterSize(); }
+int Peer::Size() const { return GoKungfuSize(); }
 
 int Peer::LocalRank() const { return GoKungfuLocalRank(); }
 
@@ -120,7 +120,7 @@ int Peer::AllGatherTransform(const void *input, int input_count,
 {
     const bool is_root = Rank() == 0;  // FIXME: make sure 0 is root
     if (is_root) {
-        const int total_count = ClusterSize() * input_count;
+        const int total_count = Size() * input_count;
         std::vector<char> all_input(total_count *
                                     kungfu_type_size(input_dtype));
         Gather(input, input_count, input_dtype, all_input.data(), total_count,

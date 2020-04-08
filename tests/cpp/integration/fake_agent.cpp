@@ -83,7 +83,7 @@ void bench_AllReduce(kungfu::Peer &world, int n, int m)
 
 void test_Gather(kungfu::Peer &world, int m)
 {
-    const int np       = world.ClusterSize();
+    const int np       = world.Size();
     const int rank     = world.Rank();
     const bool is_root = rank == 0;
 
@@ -120,7 +120,7 @@ template <typename T1, typename T2> class fake_transform
 void test_AllGatherTransform(kungfu::Peer &world)
 {
     const int rank = world.Rank();
-    const int np   = world.ClusterSize();
+    const int np   = world.Size();
 
     const int m = 10;
     const int n = 3;
@@ -147,7 +147,7 @@ void test_AllGatherTransform(kungfu::Peer &world)
 void test_MST(kungfu::Peer &world)
 {
     const int rank = world.Rank();
-    const int np   = world.ClusterSize();
+    const int np   = world.Size();
 
     using Weight = float;
     using Vertex = int32_t;
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
     TRACE_SCOPE(__func__);
     kungfu::Peer _default_peer;
     {
-        const int np = _default_peer.ClusterSize();
+        const int np = _default_peer.Size();
         test_AllReduce(_default_peer, np);
     }
     {

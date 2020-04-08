@@ -28,7 +28,7 @@ template <typename T> void test_allgather(kungfu::Peer &kf, const int count)
 {
     const auto dtype = kungfu::type_encoder::value<T>();
     std::vector<T> x(count);
-    std::vector<T> y(count * kf.ClusterSize());
+    std::vector<T> y(count * kf.Size());
 
     std::iota(x.begin(), x.end(), 1);
     std::fill(y.begin(), y.end(), 0);

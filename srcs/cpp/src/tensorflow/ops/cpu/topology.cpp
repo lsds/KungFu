@@ -30,7 +30,7 @@ class GetPeerInfo : public AsyncOpKernel
             context->allocate_output(1, MakeTensorShape(), &cluster_size),
             done);
         rank->scalar<int32_t>()()         = _default_peer->Rank();
-        cluster_size->scalar<int32_t>()() = _default_peer->ClusterSize();
+        cluster_size->scalar<int32_t>()() = _default_peer->Size();
         done();
     }
 };

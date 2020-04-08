@@ -116,7 +116,7 @@ class AllGather : public AsyncOpKernel
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        const int np        = _default_peer->ClusterSize();
+        const int np        = _default_peer->Size();
         OP_REQUIRES_OK_ASYNC(
             context,
             context->allocate_output(0, BatchTensorShape(input.shape(), np),

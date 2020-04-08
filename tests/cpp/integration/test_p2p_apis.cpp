@@ -7,7 +7,7 @@
 void test_versioned_store(kungfu::Peer &world)
 {
     const int rank = world.Rank();
-    const int np   = world.ClusterSize();
+    const int np   = world.Size();
 
     using T     = int;
     const int n = 10;

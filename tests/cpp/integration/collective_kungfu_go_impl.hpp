@@ -18,7 +18,7 @@ class kungfu_go_collective
 
     int rank() const { return self_.Rank(); }
 
-    int cluster_size() const { return self_.ClusterSize(); }
+    int cluster_size() const { return self_.Size(); }
 
     template <typename T>
     void all_reduce(const T *send_buf, T *recv_buf, size_t count,
