@@ -34,6 +34,7 @@ def current_rank():
 
 
 def current_local_rank():
+    """Get the current local rank of this peer."""
     return _python_lib.kungfu_local_rank()
 
 
