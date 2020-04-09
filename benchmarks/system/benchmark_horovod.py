@@ -107,6 +107,31 @@ device = 'GPU' if args.cuda else 'CPU'
 log('Number of %ss: %d' % (device, hvd.size()))
 
 
+def log_detailed_result(value, error, attrs):
+    import json
+    attr_str = json.dumps(attrs, separators=(',', ':'))
+    # grep -o RESULT.* *.log
+    print('RESULT: %f +-%f %s' % (value, error, attr_str))
+
+
+def log_final_result(value, error):
+    if hvd.rank() > 0:
+        return
+    import horovod
+    attrs = {
+        'framework': 'horovod',
+        'version': horovod.__version__,
+        'np': hvd.size(),
+        'bs': args.batch_size,
+        'model': args.model,
+    }
+    try:
+        attrs['nccl_built'] = hvd.nccl_built()
+    except:
+        pass
+    log_detailed_result(value, error, attrs)
+
+
 def run(benchmark_step):
     # Warm-up
     log('Running warmup...')
@@ -128,6 +153,7 @@ def run(benchmark_step):
     log('Total img/sec on %d %s(s): %.1f +-%.1f' %
         (hvd.size(), device, hvd.size() * img_sec_mean,
          hvd.size() * img_sec_conf))
+    log_final_result(img_sec_mean, img_sec_conf)
 
 
 if tf.executing_eagerly():
