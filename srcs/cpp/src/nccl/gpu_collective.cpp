@@ -98,15 +98,15 @@ class gpu_collective_nccl : public gpu_collective
     }
 };
 
-gpu_collective *new_gpu_collective(kungfu::Peer &world)
+gpu_collective *new_gpu_collective(kungfu::Peer &self)
 {
     ncclUniqueId id;
     const int root = 0;
-    const int rank = world.Rank();
+    const int rank = self.Rank();
     KUNGFU_CHECK(cuda_checker) << cudaSetDevice(kungfu_get_cuda_index());
     if (rank == root) { KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id); }
-    world.Broadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
-                    "nccl id");
-    return new gpu_collective_nccl(id, world.ClusterSize(), rank);
+    self.Broadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
+                   "nccl id");
+    return new gpu_collective_nccl(id, self.Size(), rank);
 }
 }  // namespace kungfu
