@@ -139,7 +139,8 @@ device = '/gpu:0' if args.cuda else 'CPU'
 def log_detailed_result(value, error, attrs):
     import json
     attr_str = json.dumps(attrs, separators=(',', ':'))
-    print('RESULT: %f +-%f %s' % (value, error, attr_str))  # grep RESULT *.log
+    # grep -o RESULT.* *.log
+    print('RESULT: %f +-%f %s' % (value, error, attr_str))
 
 
 def log_final_result(value, error):
@@ -147,6 +148,7 @@ def log_final_result(value, error):
     if current_rank() != 0:
         return
     attrs = {
+        'framework': 'kungfu',
         'np': current_cluster_size(),
         'strategy': os.getenv('KUNGFU_ALLREDUCE_STRATEGY'),
         'bs': args.batch_size,
