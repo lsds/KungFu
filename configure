@@ -113,10 +113,11 @@ add_cmake_flags() {
     if [ ! -z ${PREFIX} ]; then
         add_cmake_flag CMAKE_INSTALL_PREFIX ${PREFIX}
     fi
-    if [ ! -z ${ENABLE_MPI} ]; then
+    if [ ${ENABLE_MPI} -gt 0 ]; then
         add_cmake_flag MPI_HOME ${MPI_HOME}
     fi
-    if [ ! -z ${ENABLE_NCCL} ]; then
+    if [ ${ENABLE_NCCL} -gt 0 ]; then
+        echo $ENABLE_NCCL
         add_cmake_flag NCCL_HOME ${NCCL_HOME}
         add_cmake_flag KUNGFU_ENABLE_NCCL 1
     fi
