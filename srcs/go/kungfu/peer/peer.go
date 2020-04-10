@@ -233,21 +233,13 @@ func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 }
 
 func (p *Peer) getClusterConfig(url string) (*plan.Cluster, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	f, err := p.openURL(url)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", p.self))
-	resp, err := p.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(resp.Status)
-	}
-	defer resp.Body.Close()
+	defer f.Close()
 	var cluster plan.Cluster
-	if err = json.NewDecoder(resp.Body).Decode(&cluster); err != nil {
+	if err = json.NewDecoder(f).Decode(&cluster); err != nil {
 		return nil, err
 	}
 	return &cluster, nil
