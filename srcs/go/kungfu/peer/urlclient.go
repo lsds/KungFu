@@ -36,6 +36,8 @@ func (p *Peer) openURL(url string) (io.ReadCloser, error) {
 	switch u.Scheme {
 	case "http":
 		return p.openHTTP(&p.httpClient, url)
+	case "https":
+		return p.openHTTP(&p.httpClient, url)
 	case "file":
 		// ignore u.Host
 		return os.Open(u.Path)
