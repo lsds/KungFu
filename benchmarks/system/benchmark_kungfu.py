@@ -154,6 +154,7 @@ def log_final_result(value, error):
         'bs': args.batch_size,
         'model': args.model,
         'kf-opt': args.kf_optimizer,
+        'fuse': args.fuse,
     }
     log_detailed_result(value, error, attrs)
 
