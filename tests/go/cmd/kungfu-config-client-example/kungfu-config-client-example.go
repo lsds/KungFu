@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
@@ -22,6 +23,7 @@ var (
 	ttl          = flag.Duration("ttl", 0, "time to live")
 	reset        = flag.Bool("reset", false, "reset config server")
 	clear        = flag.Bool("clear", false, "set peer list to empty")
+	example      = flag.Bool("example", false, "show example config")
 	hostlist     = flag.String("H", "127.0.0.1:4", "")
 )
 
@@ -42,6 +44,10 @@ func main() {
 	}
 	if *reset {
 		resetConfig(*u)
+		return
+	}
+	if *example {
+		showExample()
 		return
 	}
 	ctx := context.Background()
@@ -122,4 +128,28 @@ func periodically(ctx context.Context, p time.Duration, f func(int)) {
 			return
 		}
 	}
+}
+
+func showExample() {
+	hl := plan.HostList{
+		{
+			IPv4:  plan.MustParseIPv4(`192.168.1.11`),
+			Slots: 4,
+		},
+		{
+			IPv4:  plan.MustParseIPv4(`192.168.1.10`),
+			Slots: 4,
+		},
+	}
+	pl, err := hl.GenPeerList(hl.Cap(), plan.DefaultPortRange)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	c := plan.Cluster{
+		Runners: hl.GenRunnerList(plan.DefaultRunnerPort),
+		Workers: pl,
+	}
+	e := json.NewEncoder(os.Stdout)
+	e.SetIndent("", "    ")
+	e.Encode(c)
 }
