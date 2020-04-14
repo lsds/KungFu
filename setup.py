@@ -101,7 +101,7 @@ package_dir = './srcs/python'
 
 setup(
     name='kungfu',
-    version='0.2.1',
+    version='0.2.2',
     package_dir={'': package_dir},
     packages=find_packages(package_dir),
     description='KungFu distributed machine learning framework',

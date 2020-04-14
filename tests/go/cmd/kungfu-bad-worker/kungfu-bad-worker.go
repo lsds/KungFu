@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	kf "github.com/lsds/KungFu/srcs/go/kungfu"
+	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -18,13 +18,13 @@ var (
 
 func main() {
 	flag.Parse()
-	kungfu, err := kf.New()
+	peer, err := peer.New()
 	if err != nil {
 		utils.ExitErr(err)
 	}
-	kungfu.Start()
-	defer kungfu.Close()
-	rank := kungfu.CurrentSession().Rank()
+	peer.Start()
+	defer peer.Close()
+	rank := peer.CurrentSession().Rank()
 	fmt.Printf("OK, rank=%d.\n", rank)
 	fmt.Fprintf(os.Stderr, "Err, rank=%d!\n", rank)
 	ctx, cancel := context.WithCancel(context.Background())

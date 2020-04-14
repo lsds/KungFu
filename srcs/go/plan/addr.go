@@ -51,6 +51,13 @@ func (a Addr) NetAddr() NetAddr {
 	}
 }
 
+func (a Addr) Peer() PeerID {
+	return PeerID{
+		IPv4: a.IPv4,
+		Port: a.Port,
+	}
+}
+
 func FormatIPv4(ipv4 uint32) string {
 	ip := net.IPv4(byte(ipv4>>24), byte(ipv4>>16), byte(ipv4>>8), byte(ipv4))
 	return ip.String()

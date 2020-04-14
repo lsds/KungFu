@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"os"
 	"strings"
-
-	kb "github.com/lsds/KungFu/srcs/go/kungfubase"
 )
 
 // PeerList is an ordered list of PeerIDs
@@ -33,6 +30,12 @@ func (pl PeerList) Bytes() []byte {
 	return b.Bytes()
 }
 
+func (pl PeerList) Clone() PeerList {
+	ql := make(PeerList, len(pl))
+	copy(ql, pl)
+	return ql
+}
+
 func (pl PeerList) Rank(q PeerID) (int, bool) {
 	for i, p := range pl {
 		if p == q {
@@ -40,6 +43,16 @@ func (pl PeerList) Rank(q PeerID) (int, bool) {
 		}
 	}
 	return -1, false
+}
+
+func (pl PeerList) LocalSize(q PeerID) int {
+	var n int
+	for _, p := range pl {
+		if p.ColocatedWith(q) {
+			n++
+		}
+	}
+	return n
 }
 
 func (pl PeerList) LocalRank(q PeerID) (int, bool) {
@@ -53,6 +66,24 @@ func (pl PeerList) LocalRank(q PeerID) (int, bool) {
 		}
 	}
 	return -1, false
+}
+
+func (pl PeerList) Select(ranks []int) PeerList {
+	var ql PeerList
+	for _, rank := range ranks {
+		ql = append(ql, pl[rank])
+	}
+	return ql
+}
+
+func (pl PeerList) Others(self PeerID) PeerList {
+	var ql PeerList
+	for _, p := range pl {
+		if p != self {
+			ql = append(ql, p)
+		}
+	}
+	return ql
 }
 
 func (pl PeerList) Contains(p PeerID) bool {
@@ -120,23 +151,15 @@ func (pl PeerList) On(host uint32) PeerList {
 	return ql
 }
 
-func parsePeerList(val string) (PeerList, error) {
+func ParsePeerList(val string) (PeerList, error) {
 	parts := strings.Split(val, ",")
 	var pl PeerList
 	for _, p := range parts {
-		id, err := parseID(p)
+		id, err := ParsePeerID(p)
 		if err != nil {
 			return nil, err
 		}
 		pl = append(pl, *id)
 	}
 	return pl, nil
-}
-
-func getInitPeersFromEnv() (PeerList, error) {
-	val, ok := os.LookupEnv(kb.PeerListEnvKey)
-	if !ok {
-		return nil, fmt.Errorf("%s not set", kb.PeerListEnvKey)
-	}
-	return parsePeerList(val)
 }

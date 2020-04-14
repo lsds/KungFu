@@ -31,7 +31,8 @@ ENDIF()
 INCLUDE(cmake/cgo.cmake)
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 
-ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp)
+ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/peer.cpp
+                          srcs/cpp/src/session.cpp)
 TARGET_LINK_LIBRARIES(kungfu kungfu-comm)
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 ADD_CGO_DEPS(kungfu)
@@ -59,8 +60,9 @@ IF(KUNGFU_BUILD_TF_OPS)
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
 
     IF(KUNGFU_ENABLE_NCCL)
-        TARGET_SOURCES(kungfu_python PRIVATE srcs/cpp/src/python/nccl.cpp
-                       srcs/cpp/src/nccl/gpu_collective.cpp)
+        TARGET_SOURCES(
+            kungfu_python PRIVATE srcs/cpp/src/python/nccl.cpp
+                                  srcs/cpp/src/nccl/gpu_collective.cpp)
         USE_NCCL(kungfu_python)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${GPU_OP_SRCS})
     ENDIF()

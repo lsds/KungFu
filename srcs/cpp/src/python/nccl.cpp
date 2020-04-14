@@ -19,7 +19,7 @@ std::unique_ptr<nccl_controller> _nccl_controller;
 void nccl_controller::InitOnce()
 {
     if (_gpu_collective.get() == nullptr) {
-        _gpu_collective.reset(new_gpu_collective(*_kungfu_world));
+        _gpu_collective.reset(new_gpu_collective(*_default_peer));
     }
 }
 

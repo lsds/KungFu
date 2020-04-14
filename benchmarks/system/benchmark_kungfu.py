@@ -136,6 +136,29 @@ log('Batch size: %d' % args.batch_size)
 device = '/gpu:0' if args.cuda else 'CPU'
 
 
+def log_detailed_result(value, error, attrs):
+    import json
+    attr_str = json.dumps(attrs, separators=(',', ':'))
+    # grep -o RESULT.* *.log
+    print('RESULT: %f +-%f %s' % (value, error, attr_str))
+
+
+def log_final_result(value, error):
+    from kungfu.tensorflow.ops import current_rank, current_cluster_size
+    if current_rank() != 0:
+        return
+    attrs = {
+        'framework': 'kungfu',
+        'np': current_cluster_size(),
+        'strategy': os.getenv('KUNGFU_ALLREDUCE_STRATEGY'),
+        'bs': args.batch_size,
+        'model': args.model,
+        'kf-opt': args.kf_optimizer,
+        'fuse': args.fuse,
+    }
+    log_detailed_result(value, error, attrs)
+
+
 def run(benchmark_step):
     # Warm-up
     log('Running warmup...')
@@ -158,6 +181,7 @@ def run(benchmark_step):
     img_sec_mean = np.mean(img_secs)
     img_sec_conf = 1.96 * np.std(img_secs)
     log('Img/sec per %s: %.1f +-%.1f' % (device, img_sec_mean, img_sec_conf))
+    log_final_result(img_sec_mean, img_sec_conf)
 
 
 loss = loss_function()

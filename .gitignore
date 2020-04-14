@@ -36,7 +36,6 @@ CMakeCache.txt
 CMakeFiles/
 CTestTestfile.cmake
 docker-compose.yaml
-env*
 experiment-results.txt
 go.sum
 hosts.txt

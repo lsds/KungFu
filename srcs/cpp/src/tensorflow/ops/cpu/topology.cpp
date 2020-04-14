@@ -29,8 +29,8 @@ class GetPeerInfo : public AsyncOpKernel
             context,
             context->allocate_output(1, MakeTensorShape(), &cluster_size),
             done);
-        rank->scalar<int32_t>()()         = _kungfu_world->Rank();
-        cluster_size->scalar<int32_t>()() = _kungfu_world->ClusterSize();
+        rank->scalar<int32_t>()()         = _default_peer->Rank();
+        cluster_size->scalar<int32_t>()() = _default_peer->Size();
         done();
     }
 };
@@ -62,7 +62,7 @@ class GetPeerLatencies : public AsyncOpKernel
             context,
             context->allocate_output(0, MakeTensorShape(size_), &latencies),
             done);
-        _kungfu_world->GetPeerLatencies(
+        _default_peer->GetPeerLatencies(
             const_cast<float *>(latencies->vec<float>().data()),
             latencies->NumElements());
         done();
@@ -91,7 +91,7 @@ class MinimumSpanningTree : public AsyncOpKernel
             context->allocate_output(0, MakeTensorShape(n - 1, 2), &edges),
             done);
         using Weight = float;  // FIXME: use type switch on T
-        _kungfu_world->AllGatherTransform(
+        _default_peer->AllGatherTransform(
             weights.vec<Weight>().data(), n,  //
             const_cast<int32_t *>(edges->matrix<int32_t>().data()),
             2 * (n - 1),  //

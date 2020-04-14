@@ -6,21 +6,28 @@
 
 DEFINE_TRACE_CONTEXT(kungfu);
 
-std::unique_ptr<kungfu_world> _kungfu_world;
+std::unique_ptr<kungfu::Peer> _default_peer;
 
-void kungfu_python_init() { _kungfu_world.reset(new kungfu_world); }
+void kungfu_python_init() { _default_peer.reset(new kungfu::Peer); }
 
-void kungfu_python_finialize() { _kungfu_world.reset(nullptr); }
+void kungfu_python_finialize() { _default_peer.reset(nullptr); }
 
-uint64_t kungfu_uid() { return _kungfu_world->Uid(); }
+uint64_t kungfu_uid() { return _default_peer->Uid(); }
 
-int kungfu_rank() { return _kungfu_world->Rank(); }
+int kungfu_rank() { return _default_peer->Rank(); }
 
-int kungfu_local_rank() { return _kungfu_world->LocalRank(); }
+int kungfu_size() { return _default_peer->Size(); }
 
-int kungfu_cluster_size() { return _kungfu_world->ClusterSize(); }
+int kungfu_local_rank() { return _default_peer->LocalRank(); }
 
-void kungfu_barrier() { _kungfu_world->Barrier(); }
+int kungfu_local_size() { return _default_peer->LocalSize(); }
+
+void kungfu_barrier() { _default_peer->Barrier(); }
+
+int kungfu_propose_new_size(int new_size)
+{
+    return _default_peer->ProposeNewSize(new_size);
+}
 
 namespace kungfu
 {

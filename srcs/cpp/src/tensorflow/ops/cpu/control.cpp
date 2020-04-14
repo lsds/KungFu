@@ -27,7 +27,7 @@ class ResizeClusterFromURL : public OpKernel
         Tensor *keep = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(1, MakeTensorShape(), &keep));
-        _kungfu_world->ResizeClusterFromURL(changed->scalar<bool>().data(),
+        _default_peer->ResizeClusterFromURL(changed->scalar<bool>().data(),
                                             keep->scalar<bool>().data());
     }
 };

@@ -34,12 +34,18 @@ def current_rank():
 
 
 def current_local_rank():
+    """Get the current local rank of this peer."""
     return _python_lib.kungfu_local_rank()
 
 
 def current_cluster_size():
     """Get the number of peers in the current cluster."""
-    return _python_lib.kungfu_cluster_size()
+    return _python_lib.kungfu_size()
+
+
+def current_local_size():
+    """Get the number of local peers in the current cluster."""
+    return _python_lib.kungfu_local_size()
 
 
 def _get_cuda_index():
@@ -49,6 +55,11 @@ def _get_cuda_index():
 def run_barrier():
     """Run the barrier operation eagerly."""
     _python_lib.kungfu_barrier()
+
+
+def propose_new_size(new_size):
+    # FIXME: check ctypes
+    _python_lib.kungfu_propose_new_size(int(new_size))
 
 
 def _get_other_ranks():

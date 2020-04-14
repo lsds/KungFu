@@ -134,7 +134,7 @@ class ModelAveraging : public OpKernel
     {
         int destination = peer_selection_strategy_->Next();
 
-        _kungfu_world->Request(destination, MODEL_NAME, model_buf_->data(),
+        _default_peer->Request(destination, MODEL_NAME, model_buf_->data(),
                                total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
@@ -216,7 +216,7 @@ class AsyncModelAveraging : public OpKernel
         if (model_buf_.get() == nullptr) {
             model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, MODEL_NAME, model_buf_->data(),
+            _default_peer->Request(destination, MODEL_NAME, model_buf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetch_callback_ = [&, mb = model_buf_.get(),
@@ -233,7 +233,7 @@ class AsyncModelAveraging : public OpKernel
 
         if (!is_requesting_.load()) {
             is_requesting_ = true;
-            _kungfu_world->Request(
+            _default_peer->Request(
                 destination, MODEL_NAME, prefetch_buf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetch_callback_);
         }
@@ -316,7 +316,7 @@ class SaveModel : public OpKernel
             is_saving_ = true;
             std::string updateName =
                 "ModelStoreUpdateAtGlobalStep " + std::to_string(gs_);
-            _kungfu_world->Save(MODEL_NAME, model_buf_->data(), total_var_size_,
+            _default_peer->Save(MODEL_NAME, model_buf_->data(), total_var_size_,
                                 to_kungfu_type(context->input(0).dtype()),
                                 [&] { is_saving_ = false; });
         }
@@ -396,7 +396,7 @@ class RequestModel : public OpKernel
         int destination = peer_selection_strategy_->Next();
 
         // Fill in the model Buffer with response from random peer
-        _kungfu_world->Request(destination, MODEL_NAME,
+        _default_peer->Request(destination, MODEL_NAME,
                                (void *)model_buf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
@@ -488,7 +488,7 @@ class AsyncRequestModel : public OpKernel
         if (model_buf_.get() == nullptr) {
             model_buf_.reset(new ModelBuffer(var_sizes_, var_type_size_));
 
-            _kungfu_world->Request(destination, MODEL_NAME, model_buf_->data(),
+            _default_peer->Request(destination, MODEL_NAME, model_buf_->data(),
                                    total_var_size_,
                                    to_kungfu_type(context->input(0).dtype()));
             prefetch_callback_ = [&, mb = model_buf_.get(),
@@ -505,7 +505,7 @@ class AsyncRequestModel : public OpKernel
 
         if (!is_requesting_.load()) {
             is_requesting_ = true;
-            _kungfu_world->Request(
+            _default_peer->Request(
                 destination, MODEL_NAME, prefetch_buf_->data(), total_var_size_,
                 to_kungfu_type(context->input(0).dtype()), prefetch_callback_);
         }

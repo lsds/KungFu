@@ -36,7 +36,7 @@ class StartNcclScheduler : public OpKernel
                 const std::vector<int32_t> arrive_order =
                     kungfu::_nccl_order_group->Wait();
                 if (arrive_order.size() == order_.size()) {
-                    _kungfu_world->Broadcast(
+                    _default_peer->Broadcast(
                         arrive_order.data(), order_.data(), order_.size(),
                         to_kungfu_type(DT_INT32), name().c_str());
                 }
