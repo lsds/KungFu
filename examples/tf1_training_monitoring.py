@@ -131,7 +131,7 @@ def train_data():
     data = data.repeat()
     
     # shuffle data amongst workers 
-    data = data.shuffle(buffer_size=1000, reshuffle_each_iteration=True)
+    data = data.shuffle(buffer_size=1000, reshuffle_each_iteration=False)
 
     cluster_size = current_cluster_size()
     idx = current_rank()
