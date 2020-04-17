@@ -1,6 +1,9 @@
 package session
 
 import (
+	"fmt"
+	"time"
+
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -24,10 +27,13 @@ var partitionStrategies = map[kb.Strategy]partitionStrategy{
 }
 
 func simpleSingleGraphStrategy(bcastGraph *plan.Graph) []strategy {
+	var tt time.Duration
+	tt = 0
 	return []strategy{
 		{
 			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
 			bcastGraph:  bcastGraph,
+			duration:    &tt,
 		},
 	}
 }
@@ -54,12 +60,16 @@ func createBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
 
 func createMultiBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
 	var ss []strategy
+	var tt time.Duration
+	tt = 0
 	for _, bcastGraph := range plan.GenMultiBinaryTreeStar(peers) {
 		ss = append(ss, strategy{
 			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
 			bcastGraph:  bcastGraph,
+			duration:    &tt,
 		})
 	}
+	fmt.Println("DEV::creatingMultipleBinaryTreeStarStrategy:: created ", len(ss), "different strategies")
 	return ss
 }
 

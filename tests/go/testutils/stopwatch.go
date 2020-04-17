@@ -23,3 +23,7 @@ func (w *StopWatch) Stop(f func(time.Duration)) {
 	}
 	fmt.Printf("took %s\n", d)
 }
+
+func (w *StopWatch) StopAndSave(t *time.Duration) {
+	*t = time.Since(w.t0)
+}

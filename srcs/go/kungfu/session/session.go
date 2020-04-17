@@ -2,6 +2,7 @@ package session
 
 import (
 	"sync"
+	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
@@ -19,6 +20,7 @@ const defaultRoot = 0
 type strategy struct {
 	reduceGraph *plan.Graph
 	bcastGraph  *plan.Graph
+	duration    *time.Duration
 }
 
 // Session contains the immutable topology and strategies for a given period of logical duration

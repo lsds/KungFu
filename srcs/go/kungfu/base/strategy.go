@@ -18,7 +18,7 @@ const (
 	Auto                Strategy = C.KungFu_AUTO
 )
 
-const DefaultStrategy = BinaryTreeStar
+const DefaultStrategy = MultiBinaryTreeStar
 
 var (
 	strategyNames = map[Strategy]string{

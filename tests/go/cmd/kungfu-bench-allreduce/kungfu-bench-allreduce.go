@@ -59,7 +59,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 					OP:      kb.SUM,
 					Name:    name,
 				}
-				sess.AllReduce(w)
+				sess.SmartAllReduce(w)
 			})
 		}(name, m.Buffers[name])
 	}
@@ -102,5 +102,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 
 	if rank == 0 {
 		log.Infof("Result: model: %s, %s, mode: %s, rate: %s", *model, m.Info(), *mode, testutils.ShowRate(workload, duration))
+
+		sess.PrintSessionState()
 	}
 }
