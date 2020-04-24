@@ -73,6 +73,8 @@ func genBinaryTreeStar(peers PeerList, offset int) *Graph {
 			}
 		}
 	}
+
+	g.Master = masters[offset]
 	return g
 }
 
