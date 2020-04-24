@@ -52,6 +52,6 @@ func (sess *Session) PrintSessionState() {
 	fmt.Println("Available strategies: ", len(sess.strategies))
 
 	for i, s := range sess.strategies {
-		fmt.Println("Strategy #", i, " duration=", s.duration)
+		fmt.Println("Strategy #", i, " Master [", s.bcastGraph.Master, "] duration=", s.duration)
 	}
 }
