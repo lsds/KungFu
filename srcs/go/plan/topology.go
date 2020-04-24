@@ -53,11 +53,13 @@ func GenBinaryTree(k int) *Graph {
 func genBinaryTreeStar(peers PeerList, offset int) *Graph {
 	g := NewGraph(len(peers))
 	masters, hostMaster := getLocalMasters(peers)
+	//create star topology in each different machine
 	for rank, p := range peers {
 		if master := hostMaster[p.IPv4]; master != rank {
 			g.AddEdge(master, rank)
 		}
 	}
+	//create the tree between different machines
 	if k := len(masters); k > 1 {
 		idx := func(i int) int {
 			return (i + offset) % k

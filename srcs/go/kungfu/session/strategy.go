@@ -60,14 +60,21 @@ func createBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
 
 func createMultiBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
 	var ss []strategy
-	var tt time.Duration
-	tt = 0
-	for _, bcastGraph := range plan.GenMultiBinaryTreeStar(peers) {
+	//TODO: remove printing, just debug purpose
+	fmt.Println("DEV::createMultiBinaryTreeStarStrategies:: Going to print generated trees")
+	for i, bcastGraph := range plan.GenMultiBinaryTreeStar(peers) {
+		var tt time.Duration
+		tt = 0
 		ss = append(ss, strategy{
 			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
 			bcastGraph:  bcastGraph,
 			duration:    &tt,
 		})
+		fmt.Println("Printing strategy #", i)
+		fmt.Println("Bcast Tree:")
+		ss[len(ss)-1].bcastGraph.Debug()
+		fmt.Println("Reduce Tree:")
+		ss[len(ss)-1].reduceGraph.Debug()
 	}
 	fmt.Println("DEV::creatingMultipleBinaryTreeStarStrategy:: created ", len(ss), "different strategies")
 	return ss
