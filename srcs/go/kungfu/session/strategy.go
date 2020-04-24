@@ -73,7 +73,7 @@ func createMultiBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
 		fmt.Println("Printing strategy #", i)
 		fmt.Println("Bcast Tree:")
 		ss[len(ss)-1].bcastGraph.Debug()
-		fmt.Println("Reduce Tree:")
+		fmt.Println("\nReduce Tree:")
 		ss[len(ss)-1].reduceGraph.Debug()
 	}
 	fmt.Println("DEV::creatingMultipleBinaryTreeStarStrategy:: created ", len(ss), "different strategies")

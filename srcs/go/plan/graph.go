@@ -66,6 +66,7 @@ func (g Graph) Reverse() *Graph {
 			r.Nodes[j].Prevs.Append(i)
 		}
 	}
+	r.Master = g.Master
 	return r
 }
 
