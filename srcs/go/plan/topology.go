@@ -100,6 +100,7 @@ func GenStarBcastGraph(k, r int) *Graph {
 			g.AddEdge(r, i)
 		}
 	}
+	g.Master = r
 	return g
 }
 

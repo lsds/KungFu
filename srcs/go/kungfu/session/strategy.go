@@ -39,7 +39,12 @@ func simpleSingleGraphStrategy(bcastGraph *plan.Graph) []strategy {
 }
 
 func createStarStrategies(peers plan.PeerList) []strategy {
+
+	fmt.Println("DEV::createStarStrategies:: Going to print generated trees")
 	bcastGraph := plan.GenStarBcastGraph(len(peers), defaultRoot)
+	fmt.Println("Printing strategy #1")
+	fmt.Println("Bcast Tree:")
+	bcastGraph.Debug()
 	return simpleSingleGraphStrategy(bcastGraph)
 }
 
