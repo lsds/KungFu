@@ -253,9 +253,11 @@ def model_function(features, labels, mode):
 def main(_):
     # print(FLAGS.model_dir)
     # print(FLAGS.data_dir)
+    num_train_steps = (FLAGS.num_epochs * dataset_size)/(current_cluster_size() * FLAGS.batch_size)
 
     # if current_rank() == 0:
-    save_checkpoints_steps = 100
+    save_checkpoints_steps = num_train_steps / FLAGS.num_epochs
+
     save_summary_steps = 1
     model_dir = FLAGS.model_dir + "/"+str(current_rank())
     config = tf.estimator.RunConfig(
@@ -272,7 +274,7 @@ def main(_):
     # TODO: CAUTION: number calculated based on batch size and is needed to prevent any fault
     # caused by dataset sharding 
     # num_train_steps = 1000
-    num_train_steps = (FLAGS.num_epochs * dataset_size)/(current_cluster_size() * FLAGS.batch_size)
+
     
     #from ./experimental.net_monitoring.NetMonHook import NetMonHook
     if FLAGS.ada:
@@ -288,7 +290,7 @@ def main(_):
     # hooks=[StepCounterHook(8)]
 
     train_spec = tf.estimator.TrainSpec(input_fn=train_data, max_steps=num_train_steps, hooks=hooks)
-    eval_spec = tf.estimator.EvalSpec(input_fn=eval_data)
+    eval_spec = tf.estimator.EvalSpec(input_fn=eval_data, throttle_secs=10)
     tf.estimator.train_and_evaluate(mnist_classifier, train_spec, eval_spec)
 
 
