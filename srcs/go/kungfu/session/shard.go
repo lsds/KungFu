@@ -14,6 +14,11 @@ func simpleHash(i int, name string) uint64 {
 	return uint64(i)
 }
 
+func adaptHash() uint64 {
+	//TODO: fix this
+	return uint64(0)
+}
+
 func nameBasedHash(i int, name string) uint64 {
 	var h uint64
 	for _, c := range name {

@@ -101,6 +101,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 			}
 			runEpoch()
 			stats = append(stats, sess.LogStats(0))
+			sess.MonitorStrategies()
 		}
 	}()
 

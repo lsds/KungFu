@@ -12,6 +12,19 @@ type partitionStrategy func(plan.PeerList) []strategy
 type strategyList []strategy
 
 func (sl strategyList) choose(i int) strategy {
+
+	idx := i % len(sl)
+	j := idx
+	for sl[idx].stat.suspended {
+		i++
+		idx = i % len(sl)
+		if j == idx {
+			//TODO: fix this
+			//This shouldn't happen
+			panic("All strategies were suspended")
+		}
+	}
+
 	return sl[i%len(sl)]
 }
 
@@ -48,21 +61,20 @@ func createStarStrategies(peers plan.PeerList) []strategy {
 
 func createMultiStarStrategies(peers plan.PeerList) []strategy {
 	var ss []strategy
-
-	fmt.Println("DEV::createMultiStarStrategies:: Going to print generated trees")
-	for i, bcastGraph := range plan.GenMultiStar(peers) {
+	//fmt.Println("DEV::createMultiStarStrategies:: Going to print generated trees")
+	for _, bcastGraph := range plan.GenMultiStar(peers) {
 		ss = append(ss, strategy{
 			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
 			bcastGraph:  bcastGraph,
 			stat:        &StrategyStat{},
 		})
-		fmt.Println("Printing strategy #", i)
-		fmt.Println("Bcast Tree:")
-		ss[len(ss)-1].bcastGraph.Debug()
-		fmt.Println("\nReduce Tree:")
-		ss[len(ss)-1].reduceGraph.Debug()
+		// fmt.Println("Printing strategy #", i)
+		// fmt.Println("Bcast Tree:")
+		// ss[len(ss)-1].bcastGraph.Debug()
+		// fmt.Println("\nReduce Tree:")
+		// ss[len(ss)-1].reduceGraph.Debug()
 	}
-	fmt.Println("DEV::creatingMultipleStarStrategy:: created ", len(ss), "different strategies")
+	// fmt.Println("DEV::creatingMultipleStarStrategy:: created ", len(ss), "different strategies")
 	return ss
 }
 

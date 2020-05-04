@@ -11,6 +11,10 @@ import (
 	"github.com/lsds/KungFu/tests/go/testutils"
 )
 
+const (
+	interferenceThreshold = 1.2
+)
+
 //SmartAllReduce performs an optimized AllReduce operation over the given workspace parameter
 //by monitoring the performance of different concurrently executed collective communications
 //strategies and applying weights to optimize the choice between them based on the monitoring
@@ -54,5 +58,36 @@ func (sess *Session) PrintSessionState() {
 
 	for i, s := range sess.strategies {
 		fmt.Println("Strategy #", i, " Master [", s.bcastGraph.Master, "] avgDuration=", s.stat.AvgDuration, " CMA=", s.stat.CmaDuration)
+	}
+}
+
+func (sess *Session) MonitorStrategies() {
+	var count int
+	for _, s := range sess.strategies {
+		if !s.stat.suspended {
+			count++
+		}
+	}
+
+	if count < 2 {
+		return
+	}
+
+	//TODO: find more efficient way of doing this
+	for i, s := range sess.strategies {
+		var resAvg time.Duration
+		for j, ss := range sess.strategies {
+			if i == j || ss.stat.suspended {
+				continue
+			}
+			resAvg += ss.stat.AvgDuration
+		}
+		resAvg = time.Duration(float64(resAvg) / float64((len(sess.strategies) - 1)))
+
+		if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(resAvg))) {
+			//flag the strategy as deactivated
+			s.stat.suspended = true
+			fmt.Println("ATTENTION: Strategy #", i, " has been suspended due to detected communication overhead")
+		}
 	}
 }

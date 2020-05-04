@@ -21,6 +21,7 @@ type StrategyStat struct {
 	AvgDuration time.Duration
 	CmaDuration time.Duration
 	count       int
+	suspended   bool
 }
 
 func (ss *StrategyStat) Update(duration time.Duration) {
