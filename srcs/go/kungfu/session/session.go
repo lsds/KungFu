@@ -16,28 +16,29 @@ import (
 
 const defaultRoot = 0
 
-type strategyStat struct {
-	avgDuration time.Duration
-	cmaDuration time.Duration
+//StrategyStat holds statistical data for a specific strategy
+type StrategyStat struct {
+	AvgDuration time.Duration
+	CmaDuration time.Duration
 	count       int
 }
 
-func (ss *strategyStat) Update(duration time.Duration) {
+func (ss *StrategyStat) Update(duration time.Duration) {
 	if ss.count == 0 {
-		ss.avgDuration = duration
+		ss.AvgDuration = duration
 	} else {
-		ss.avgDuration = (ss.avgDuration + duration) / 2
+		ss.AvgDuration = (ss.AvgDuration + duration) / 2
 	}
-	tot := float64(ss.cmaDuration)*float64(ss.count) + float64(duration)
+	tot := float64(ss.CmaDuration)*float64(ss.count) + float64(duration)
 	ss.count++
-	ss.cmaDuration = time.Duration(tot / float64(ss.count))
+	ss.CmaDuration = time.Duration(tot / float64(ss.count))
 }
 
 // A strategy is a pair of dataflow graphs
 type strategy struct {
 	reduceGraph *plan.Graph
 	bcastGraph  *plan.Graph
-	stat        *strategyStat
+	stat        *StrategyStat
 }
 
 // Session contains the immutable topology and strategies for a given period of logical duration

@@ -30,7 +30,7 @@ func simpleSingleGraphStrategy(bcastGraph *plan.Graph) []strategy {
 		{
 			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
 			bcastGraph:  bcastGraph,
-			stat:        &strategyStat{},
+			stat:        &StrategyStat{},
 		},
 	}
 }
@@ -68,7 +68,7 @@ func createMultiBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
 		ss = append(ss, strategy{
 			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
 			bcastGraph:  bcastGraph,
-			stat:        &strategyStat{},
+			stat:        &StrategyStat{},
 		})
 		fmt.Println("Printing strategy #", i)
 		fmt.Println("Bcast Tree:")
@@ -89,7 +89,7 @@ func createCliqueStrategies(peers plan.PeerList) []strategy {
 		ss = append(ss, strategy{
 			reduceGraph: reduceGraph,
 			bcastGraph:  bcastGraph,
-			stat:        &strategyStat{},
+			stat:        &StrategyStat{},
 		})
 	}
 	return ss
@@ -103,7 +103,7 @@ func createRingStrategies(peers plan.PeerList) []strategy {
 		ss = append(ss, strategy{
 			reduceGraph: reduceGraph,
 			bcastGraph:  bcastGraph,
-			stat:        &strategyStat{},
+			stat:        &StrategyStat{},
 		})
 	}
 	return ss

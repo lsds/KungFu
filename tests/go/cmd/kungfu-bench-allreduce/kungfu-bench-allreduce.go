@@ -2,11 +2,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"strings"
 	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
+	"github.com/lsds/KungFu/srcs/go/kungfu/session"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/tests/go/fakemodel"
@@ -20,6 +22,7 @@ var (
 	fuse         = flag.Bool("fuse", false, "")
 	epochs       = flag.Int("epochs", 15, "")
 	warmupEpochs = flag.Int("warmup", 2, "warmup epochs")
+	stats        []session.StrategyStat
 )
 
 func main() {
@@ -97,6 +100,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 				log.Infof("epoch %d", i+1)
 			}
 			runEpoch()
+			stats = append(stats, sess.LogStats(0))
 		}
 	}()
 
@@ -104,5 +108,9 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 		log.Infof("Result: model: %s, %s, mode: %s, rate: %s", *model, m.Info(), *mode, testutils.ShowRate(workload, duration))
 
 		sess.PrintSessionState()
+
+		for i, ss := range stats {
+			fmt.Println("epoch #", i, ": Master[", 0, "] avgDuration=", ss.AvgDuration, " CMA=", ss.CmaDuration)
+		}
 	}
 }

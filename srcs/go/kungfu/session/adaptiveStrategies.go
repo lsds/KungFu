@@ -43,11 +43,16 @@ func (sess *Session) runAdaptStrategies(w kb.Workspace, p kb.PartitionFunc, stra
 	return sess.runAdaptStrategiesWithWeightedHash(w, p, strategies, sess.strategyHash)
 }
 
+//LogStats reports Stat object for a specific strategy
+func (sess *Session) LogStats(stratIdx int) StrategyStat {
+	return *sess.strategies[stratIdx].stat
+}
+
 func (sess *Session) PrintSessionState() {
 	fmt.Println("Printing current state of session strategies")
 	fmt.Println("Available strategies: ", len(sess.strategies))
 
 	for i, s := range sess.strategies {
-		fmt.Println("Strategy #", i, " Master [", s.bcastGraph.Master, "] avgDuration=", s.stat.avgDuration, " CMA=", s.stat.cmaDuration)
+		fmt.Println("Strategy #", i, " Master [", s.bcastGraph.Master, "] avgDuration=", s.stat.AvgDuration, " CMA=", s.stat.CmaDuration)
 	}
 }
