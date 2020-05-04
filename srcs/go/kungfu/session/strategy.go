@@ -2,7 +2,6 @@ package session
 
 import (
 	"fmt"
-	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -27,13 +26,11 @@ var partitionStrategies = map[kb.Strategy]partitionStrategy{
 }
 
 func simpleSingleGraphStrategy(bcastGraph *plan.Graph) []strategy {
-	var tt time.Duration
-	tt = 0
 	return []strategy{
 		{
 			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
 			bcastGraph:  bcastGraph,
-			duration:    &tt,
+			stat:        &strategyStat{},
 		},
 	}
 }
@@ -68,12 +65,10 @@ func createMultiBinaryTreeStarStrategies(peers plan.PeerList) []strategy {
 	//TODO: remove printing, just debug purpose
 	fmt.Println("DEV::createMultiBinaryTreeStarStrategies:: Going to print generated trees")
 	for i, bcastGraph := range plan.GenMultiBinaryTreeStar(peers) {
-		var tt time.Duration
-		tt = 0
 		ss = append(ss, strategy{
 			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
 			bcastGraph:  bcastGraph,
-			duration:    &tt,
+			stat:        &strategyStat{},
 		})
 		fmt.Println("Printing strategy #", i)
 		fmt.Println("Bcast Tree:")
@@ -94,6 +89,7 @@ func createCliqueStrategies(peers plan.PeerList) []strategy {
 		ss = append(ss, strategy{
 			reduceGraph: reduceGraph,
 			bcastGraph:  bcastGraph,
+			stat:        &strategyStat{},
 		})
 	}
 	return ss
@@ -107,6 +103,7 @@ func createRingStrategies(peers plan.PeerList) []strategy {
 		ss = append(ss, strategy{
 			reduceGraph: reduceGraph,
 			bcastGraph:  bcastGraph,
+			stat:        &strategyStat{},
 		})
 	}
 	return ss

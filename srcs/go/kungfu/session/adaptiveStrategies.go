@@ -30,11 +30,7 @@ func (sess *Session) runAdaptStrategiesWithWeightedHash(w kb.Workspace, p kb.Par
 			stpWatch := testutils.NewStopWatch()
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			stpWatch.StopAndSave(&dur)
-			if *s.duration == 0 {
-				*s.duration = dur
-			} else {
-				*s.duration = (*s.duration + dur) / 2
-			}
+			s.stat.Update(dur)
 			//fmt.Println("DEV::Iter::", i, "::Duration::", dur, "::SessStrategyDur::", s.duration)
 			wg.Done()
 		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
@@ -52,6 +48,6 @@ func (sess *Session) PrintSessionState() {
 	fmt.Println("Available strategies: ", len(sess.strategies))
 
 	for i, s := range sess.strategies {
-		fmt.Println("Strategy #", i, " Master [", s.bcastGraph.Master, "] duration=", s.duration)
+		fmt.Println("Strategy #", i, " Master [", s.bcastGraph.Master, "] avgDuration=", s.stat.avgDuration, " CMA=", s.stat.cmaDuration)
 	}
 }
