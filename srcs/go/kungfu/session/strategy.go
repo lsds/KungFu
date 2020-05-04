@@ -17,6 +17,7 @@ func (sl strategyList) choose(i int) strategy {
 
 var partitionStrategies = map[kb.Strategy]partitionStrategy{
 	kb.Star:                createStarStrategies,
+	kb.MultiStar:           createMultiStarStrategies,
 	kb.Clique:              createCliqueStrategies,
 	kb.Ring:                createRingStrategies,
 	kb.Tree:                createTreeStrategies,
@@ -43,6 +44,26 @@ func createStarStrategies(peers plan.PeerList) []strategy {
 	fmt.Println("Bcast Tree:")
 	bcastGraph.Debug()
 	return simpleSingleGraphStrategy(bcastGraph)
+}
+
+func createMultiStarStrategies(peers plan.PeerList) []strategy {
+	var ss []strategy
+
+	fmt.Println("DEV::createMultiStarStrategies:: Going to print generated trees")
+	for i, bcastGraph := range plan.GenMultiStar(peers) {
+		ss = append(ss, strategy{
+			reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
+			bcastGraph:  bcastGraph,
+			stat:        &StrategyStat{},
+		})
+		fmt.Println("Printing strategy #", i)
+		fmt.Println("Bcast Tree:")
+		ss[len(ss)-1].bcastGraph.Debug()
+		fmt.Println("\nReduce Tree:")
+		ss[len(ss)-1].reduceGraph.Debug()
+	}
+	fmt.Println("DEV::creatingMultipleStarStrategy:: created ", len(ss), "different strategies")
+	return ss
 }
 
 func createTreeStrategies(peers plan.PeerList) []strategy {

@@ -50,6 +50,28 @@ func GenBinaryTree(k int) *Graph {
 	return g
 }
 
+func genMultiStar(peers PeerList, root int) *Graph {
+	g := NewGraph(len(peers))
+	masters, hostMaster := getLocalMasters(peers)
+	//create star topology in each different machine
+	for rank, p := range peers {
+		if master := hostMaster[p.IPv4]; master != rank {
+			g.AddEdge(master, rank)
+		}
+	}
+	//create star topology between different machines
+	if k := len(masters); k > 1 {
+		for i := 0; i < k; i++ {
+			if i != root {
+				g.AddEdge(masters[root], masters[i])
+			}
+		}
+	}
+
+	g.Master = masters[root]
+	return g
+}
+
 func genBinaryTreeStar(peers PeerList, offset int) *Graph {
 	g := NewGraph(len(peers))
 	masters, hostMaster := getLocalMasters(peers)
@@ -88,6 +110,16 @@ func GenMultiBinaryTreeStar(peers PeerList) []*Graph {
 	m := len(masters)
 	for i := 0; i < m; i++ {
 		gs = append(gs, genBinaryTreeStar(peers, i))
+	}
+	return gs
+}
+
+func GenMultiStar(peers PeerList) []*Graph {
+	var gs []*Graph
+	masters, _ := getLocalMasters(peers)
+	m := len(masters)
+	for i := 0; i < m; i++ {
+		gs = append(gs, genMultiStar(peers, i))
 	}
 	return gs
 }
