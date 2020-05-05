@@ -60,9 +60,7 @@ func testAllReduce(peer *peer.Peer) {
 			z.AsI32()[0] = int32(np)
 			w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
 			assert.OK(sess.AllReduce(w))
-			if !utils.BytesEq(y.Data, z.Data) {
-				utils.ExitErr(fmt.Errorf("%s failed", `testAllReduce`))
-			}
+			assert.True(utils.BytesEq(y.Data, z.Data))
 		}
 		{
 			bs := make([]byte, 1)
@@ -102,9 +100,7 @@ func testAllReduceWith(peer *peer.Peer) {
 	fillI32(z.AsI32(), int32(np))
 	w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
 	assert.OK(sess.AllReduceWith(tree, w))
-	if !utils.BytesEq(y.Data, z.Data) {
-		utils.ExitErr(fmt.Errorf("%s failed", `testAllReduceWith`))
-	}
+	assert.True(utils.BytesEq(y.Data, z.Data))
 }
 
 func testAllGather(peer *peer.Peer) {
@@ -162,9 +158,7 @@ func testP2P(peer *peer.Peer) {
 		if ok, err := peer.RequestRank(target, "", name, b); !ok || err != nil {
 			utils.ExitErr(fmt.Errorf("%s failed", `testP2P`))
 		}
-		if !utils.BytesEq(b.Data, c.Data) {
-			utils.ExitErr(fmt.Errorf("%s failed", `testP2P`))
-		}
+		assert.True(utils.BytesEq(b.Data, c.Data))
 	}
 	assert.OK(sess.Barrier())
 	for i := 0; i < step; i++ {
