@@ -108,8 +108,10 @@ REGISTER_KUNGFU_OP(MonitoredAllReduce)
     .Input("input: T")
     .Input("tree: int32")
     .Output("output: T")
+    // .Output("metrics: T") // TODO: return monitoring metrics
     .SetShapeFn([](shape_inference::InferenceContext *c) {
         c->set_output(0, c->input(0));
+        // c->set_output(1, ?); // TODO(optional)
         return Status::OK();
     });
 
@@ -133,8 +135,12 @@ class MonitoredAllReduce : public AsyncOpKernel
         const Tensor &input = context->input(0);
         const Tensor &tree  = context->input(1);
         Tensor *output      = nullptr;
+        // Tensor *metrics     = nullptr; // TODO
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
+        // OP_REQUIRES_OK_ASYNC(
+        //     context, context->allocate_output(1, input.shape(), &metrics),
+        //     done);  // TODO
         _default_peer->MonitoredAllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),

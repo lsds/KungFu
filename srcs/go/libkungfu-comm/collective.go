@@ -45,7 +45,7 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 }
 
 //export GoKungfuMonitoredAllReduce
-func GoKungfuMonitoredAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pTree unsafe.Pointer, pName *C.char, done *C.callback_t) int {
+func GoKungfuMonitoredAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pTree unsafe.Pointer /* TODO: return monitoring data */, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
