@@ -8,6 +8,7 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/srcs/go/utils/assert"
 )
 
 func main() {
@@ -41,7 +42,7 @@ func testGetPeerLatencies(peer *peer.Peer) {
 		fmt.Printf("%12s", d)
 	}
 	fmt.Printf("\n")
-	assertOK(sess.Barrier())
+	assert.OK(sess.Barrier())
 	fmt.Printf("%s OK\n", `testGetPeerLatencies`)
 }
 
@@ -58,7 +59,7 @@ func testAllReduce(peer *peer.Peer) {
 			x.AsI32()[0] = 1
 			z.AsI32()[0] = int32(np)
 			w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
-			assertOK(sess.AllReduce(w))
+			assert.OK(sess.AllReduce(w))
 			if !utils.BytesEq(y.Data, z.Data) {
 				utils.ExitErr(fmt.Errorf("%s failed", `testAllReduce`))
 			}
@@ -69,7 +70,7 @@ func testAllReduce(peer *peer.Peer) {
 			x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 			y := kb.NewVector(n, kb.U8)
 			w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "1"}
-			assertOK(sess.AllReduce(w))
+			assert.OK(sess.AllReduce(w))
 		}
 		{
 			b := &bytes.Buffer{}
@@ -79,7 +80,7 @@ func testAllReduce(peer *peer.Peer) {
 			x := &kb.Vector{Data: bs, Count: n, Type: kb.U8}
 			y := kb.NewVector(n, kb.U8)
 			w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MAX, Name: "2"}
-			assertOK(sess.AllReduce(w))
+			assert.OK(sess.AllReduce(w))
 		}
 	}
 	fmt.Printf("%s OK\n", `testAllReduce`)
@@ -100,7 +101,7 @@ func testAllReduceWith(peer *peer.Peer) {
 	fillI32(x.AsI32(), 1)
 	fillI32(z.AsI32(), int32(np))
 	w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
-	assertOK(sess.AllReduceWith(tree, w))
+	assert.OK(sess.AllReduceWith(tree, w))
 	if !utils.BytesEq(y.Data, z.Data) {
 		utils.ExitErr(fmt.Errorf("%s failed", `testAllReduceWith`))
 	}
@@ -124,7 +125,7 @@ func testAllGather(peer *peer.Peer) {
 	ySum := int32(np * (np + 1) / 2 * count)
 	step := 10
 	for i := 0; i < step; i++ {
-		assertOK(sess.AllGather(w))
+		assert.OK(sess.AllGather(w))
 		if s := sumI32(y); s != ySum {
 			utils.ExitErr(fmt.Errorf("%s failed", "testAllGather"))
 		}
@@ -153,11 +154,11 @@ func testP2P(peer *peer.Peer) {
 			x[j] = int32(i * rank)
 			z[j] = int32(i * target)
 		}
-		assertOK(sess.Barrier())
+		assert.OK(sess.Barrier())
 		if err := peer.Save(name, a); err != nil {
 			utils.ExitErr(err)
 		}
-		assertOK(sess.Barrier())
+		assert.OK(sess.Barrier())
 		if ok, err := peer.RequestRank(target, "", name, b); !ok || err != nil {
 			utils.ExitErr(fmt.Errorf("%s failed", `testP2P`))
 		}
@@ -165,7 +166,7 @@ func testP2P(peer *peer.Peer) {
 			utils.ExitErr(fmt.Errorf("%s failed", `testP2P`))
 		}
 	}
-	assertOK(sess.Barrier())
+	assert.OK(sess.Barrier())
 	for i := 0; i < step; i++ {
 		target := (rank + 1) % np
 		fmt.Printf("step=%d, rank=%d, target=%d, should fail\n", i, rank, target)
@@ -173,7 +174,7 @@ func testP2P(peer *peer.Peer) {
 			utils.ExitErr(fmt.Errorf("%s failed", `testP2P`))
 		}
 	}
-	assertOK(sess.Barrier())
+	assert.OK(sess.Barrier())
 	fmt.Printf("%s OK\n", `testP2P`)
 }
 
@@ -183,12 +184,6 @@ func sumI32(xs []int32) int32 {
 		s += x
 	}
 	return s
-}
-
-func assertOK(err error) {
-	if err != nil {
-		utils.ExitErr(err)
-	}
 }
 
 func fillI32(xs []int32, x int32) {
