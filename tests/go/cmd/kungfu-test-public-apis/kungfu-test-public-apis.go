@@ -21,6 +21,7 @@ func main() {
 	tests := []func(*peer.Peer){
 		// TODO: more tests
 		testAllReduce,
+		testAllReduceWith,
 		testAllGather,
 		testGetPeerLatencies,
 		testP2P,
@@ -82,6 +83,27 @@ func testAllReduce(peer *peer.Peer) {
 		}
 	}
 	fmt.Printf("%s OK\n", `testAllReduce`)
+}
+
+func testAllReduceWith(peer *peer.Peer) {
+	sess := peer.CurrentSession()
+	np := sess.Size()
+	tree := make([]int32, np)
+	var root int32
+	for i := 0; i < np; i++ {
+		tree[i] = root
+	}
+	size := 1 << 20
+	x := kb.NewVector(size, kb.I32)
+	y := kb.NewVector(size, kb.I32)
+	z := kb.NewVector(size, kb.I32)
+	fillI32(x.AsI32(), 1)
+	fillI32(z.AsI32(), int32(np))
+	w := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.SUM, Name: "0"}
+	assertOK(sess.AllReduceWith(tree, w))
+	if !utils.BytesEq(y.Data, z.Data) {
+		utils.ExitErr(fmt.Errorf("%s failed", `testAllReduceWith`))
+	}
 }
 
 func testAllGather(peer *peer.Peer) {
@@ -166,5 +188,11 @@ func sumI32(xs []int32) int32 {
 func assertOK(err error) {
 	if err != nil {
 		utils.ExitErr(err)
+	}
+}
+
+func fillI32(xs []int32, x int32) {
+	for i := range xs {
+		xs[i] = x
 	}
 }

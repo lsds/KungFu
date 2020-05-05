@@ -24,6 +24,11 @@ def all_reduce(t, op='sum'):
     return _op_lib.kungfu_all_reduce(t, op=op)
 
 
+def monitored_all_reduce(t, tree, op='sum'):
+    """Create a new all_reduce operator for given tensor and topology."""
+    return _op_lib.kungfu_monitored_all_reduce(t, tree, op=op)
+
+
 def all_gather(t):
     """Create a new all_gather operator for given tensor.
 

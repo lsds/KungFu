@@ -34,6 +34,16 @@ func NewGraph(n int) *Graph {
 	}
 }
 
+func NewGraphFromTreeArray(tree []int32) *Graph {
+	g := NewGraph(len(tree))
+	for i, father := range tree {
+		if int32(i) != father {
+			g.AddEdge(int(father), int(i))
+		}
+	}
+	return g
+}
+
 func (g *Graph) AddEdge(i, j int) {
 	if i == j {
 		g.Nodes[i].SelfLoop = true

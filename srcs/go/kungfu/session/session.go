@@ -135,10 +135,6 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 	return true, nil
 }
 
-func (sess *Session) AllReduce(w kb.Workspace) error {
-	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
-}
-
 func (sess *Session) Reduce(w kb.Workspace) error {
 	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
 	return sess.runGraphs(w, strategy.reduceGraph)
