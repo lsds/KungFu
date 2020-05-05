@@ -105,10 +105,10 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 	workload := int64(*epochs) * int64(multiplier) * int64(m.Size())
 
 	var duration time.Duration
-	logRate := func(d time.Duration) {
-		duration = d
-		log.Infof("took %s, rate: %s\n", d, testutils.ShowRate(workload, duration))
-	}
+	// logRate := func(d time.Duration) {
+	// 	duration = d
+	// 	log.Infof("took %s, rate: %s\n", d, testutils.ShowRate(workload, duration))
+	// }
 
 	fns := map[string]func(){
 		"par": g.Par,
@@ -146,7 +146,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 			}
 		})
 
-		defer testutils.NewStopWatch().Stop(logRate)
+		// defer testutils.NewStopWatch().Stop(logRate)
 		for i := 0; i < *epochs; i++ {
 			if rank == 0 {
 				log.Infof("epoch %d", i+1)
