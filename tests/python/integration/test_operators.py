@@ -37,13 +37,13 @@ def test_monitored_all_reduce():
     init_tree = gen_tree(np, 0)
 
     tree = tf.Variable(init_tree, dtype=tf.int32)
-    x = tf.Variable(tf.ones([16 * 1024 * 1024]), dtype=tf.int64)
+    x = tf.Variable(tf.ones([16, 1024, 1024], dtype=tf.int64))
     y = monitored_all_reduce(x, tree)
     init = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init)
         v = sess.run(y)
-        assert (v.sum() == 16 * 1024 * 1024)
+        assert (v.sum() == np * 16 * 1024 * 1024)
 
 
 def test_group_all_reduce():
