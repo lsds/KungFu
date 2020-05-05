@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	interferenceThreshold = 1.2
+	interferenceThreshold = 1.5
 )
 
 //SmartAllReduce performs an optimized AllReduce operation over the given workspace parameter
@@ -73,16 +73,20 @@ func (sess *Session) MonitorStrategies() {
 		return
 	}
 
+	fmt.Println("MonitorStrategies: number of active strategies:", count)
+
 	//TODO: find more efficient way of doing this
 	for i, s := range sess.strategies {
 		var resAvg time.Duration
+		var resCount int
 		for j, ss := range sess.strategies {
 			if i == j || ss.stat.suspended {
 				continue
 			}
 			resAvg += ss.stat.AvgDuration
+			resCount++
 		}
-		resAvg = time.Duration(float64(resAvg) / float64((len(sess.strategies) - 1)))
+		resAvg = time.Duration(float64(resAvg) / float64(resCount))
 
 		if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(resAvg))) {
 			//flag the strategy as deactivated
