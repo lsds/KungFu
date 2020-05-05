@@ -61,7 +61,8 @@ func (sess *Session) PrintSessionState() {
 	}
 }
 
-func (sess *Session) MonitorStrategies() {
+func (sess *Session) MonitorStrategies(buff []int8) bool {
+
 	var count int
 	for _, s := range sess.strategies {
 		if !s.stat.suspended {
@@ -69,11 +70,18 @@ func (sess *Session) MonitorStrategies() {
 		}
 	}
 
+	fmt.Println("MonitorStrategies: number of active strategies:", count)
+
+	//if only 1 active strategy, don't do anything
 	if count < 2 {
-		return
+		return false
 	}
 
-	fmt.Println("MonitorStrategies: number of active strategies:", count)
+	for i := range buff {
+		buff[i] = 0
+	}
+
+	var change bool = false
 
 	//TODO: find more efficient way of doing this
 	for i, s := range sess.strategies {
@@ -90,8 +98,32 @@ func (sess *Session) MonitorStrategies() {
 
 		if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(resAvg))) {
 			//flag the strategy as deactivated
-			s.stat.suspended = true
-			fmt.Println("ATTENTION: Strategy #", i, " has been suspended due to detected communication overhead")
+			//s.stat.suspended = true
+			change = true
+			buff[i] = 1
+			fmt.Println("ATTENTION: Strategy #", i, " has been proposed for suspension due to detected communication overhead")
 		}
 	}
+
+	return change
+}
+
+func (sess *Session) ChangeStrategies(buff []int8) {
+	//TODO: volatile. check that not all strategies will
+	//be suspended all together.
+
+	for i := range buff {
+		if buff[i] > int8(sess.Size()) {
+			//reached consensus
+			fmt.Println("Session:: reached consensus on suspending strategy #", i)
+
+			sess.strategies[i].stat.suspended = true
+		}
+	}
+}
+
+//GetNumStrategies returns the number of different strategies
+//for a given session
+func (sess *Session) GetNumStrategies() int {
+	return len(sess.strategies)
 }
