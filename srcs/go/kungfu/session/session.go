@@ -11,6 +11,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/srcs/go/utils/assert"
 )
 
 const defaultRoot = 0
@@ -111,8 +112,8 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		x.AsI32()[0] = int32(n)
 		w1 := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:len:min:" + name}
 		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max:" + name}
-		sess.AllReduce(w1)
-		sess.AllReduce(w2)
+		assert.OK(sess.AllReduce(w1))
+		assert.OK(sess.AllReduce(w2))
 		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
 			return false, nil
 		}
@@ -126,17 +127,13 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		z := kb.NewVector(n, kb.U8)
 		w1 := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min:" + name}
 		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max:" + name}
-		sess.AllReduce(w1)
-		sess.AllReduce(w2)
+		assert.OK(sess.AllReduce(w1))
+		assert.OK(sess.AllReduce(w2))
 		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
 			return false, nil
 		}
 	}
 	return true, nil
-}
-
-func (sess *Session) AllReduce(w kb.Workspace) error {
-	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
 func (sess *Session) Reduce(w kb.Workspace) error {

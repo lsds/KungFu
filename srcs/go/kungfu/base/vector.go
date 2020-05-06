@@ -1,12 +1,11 @@
 package base
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"unsafe"
 
-	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/srcs/go/utils/assert"
 )
 
 type Vector struct {
@@ -34,9 +33,7 @@ func (b *Vector) Slice(begin, end int) *Vector {
 }
 
 func (b *Vector) CopyFrom(c *Vector) {
-	if err := b.copyFrom(c); err != nil {
-		utils.ExitErr(err)
-	}
+	assert.OK(b.copyFrom(c))
 }
 
 func (b *Vector) copyFrom(c *Vector) error {
@@ -59,32 +56,22 @@ func (b *Vector) sliceHeader() unsafe.Pointer {
 	return unsafe.Pointer(sh)
 }
 
-var errInvalidDataType = errors.New("invalid data type")
-
 func (b *Vector) AsF32() []float32 {
-	if b.Type != F32 {
-		utils.ExitErr(errInvalidDataType)
-	}
+	assert.True(b.Type == F32)
 	return *(*[]float32)(b.sliceHeader())
 }
 
 func (b *Vector) AsI8() []int8 {
-	if b.Type != I8 {
-		utils.ExitErr(errInvalidDataType)
-	}
+	assert.True(b.Type == I8)
 	return *(*[]int8)(b.sliceHeader())
 }
 
 func (b *Vector) AsI32() []int32 {
-	if b.Type != I32 {
-		utils.ExitErr(errInvalidDataType)
-	}
+	assert.True(b.Type == I32)
 	return *(*[]int32)(b.sliceHeader())
 }
 
 func (b *Vector) AsI64() []int64 {
-	if b.Type != I64 {
-		utils.ExitErr(errInvalidDataType)
-	}
+	assert.True(b.Type == I64)
 	return *(*[]int64)(b.sliceHeader())
 }
