@@ -134,7 +134,7 @@ func (sess *Session) ChangeStrategies(buff []int8) {
 	}
 }
 
-func (sess *Session) ChangeStrategy(buff []int8) {
+func (sess *Session) ChangeStrategy(buff []int8, off int) {
 	//TODO: volatile. check that not all strategies will
 	//be suspended all together.
 
@@ -144,7 +144,17 @@ func (sess *Session) ChangeStrategy(buff []int8) {
 
 		fmt.Println("Session:: switching to alternative strategy")
 
-		panic("Not implemented yet")
+		bcastGraph := plan.GenAlternativeStar(sess.peers, off)
+		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
+		ss := strategy{
+			reduceGraph: reduceGraph,
+			bcastGraph:  bcastGraph,
+			stat:        &StrategyStat{},
+		}
+
+		sess.strategies[0] = ss
+
+		fmt.Println("Session:: Switched to alternative strategy with master offset ", off)
 	}
 }
 

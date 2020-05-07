@@ -124,6 +124,16 @@ func GenMultiStar(peers PeerList) []*Graph {
 	return gs
 }
 
+func GenAlternativeStar(peers PeerList, off int) *Graph {
+	var gs []*Graph
+	masters, _ := getLocalMasters(peers)
+	m := len(masters)
+	for i := 0; i < m; i++ {
+		gs = append(gs, genMultiStar(peers, i))
+	}
+	return genMultiStar(peers, masters[off])
+}
+
 // GenStarBcastGraph generates a star shape graph with k vertices and centered at vertice r (0 <= r < k)
 func GenStarBcastGraph(k, r int) *Graph {
 	g := NewGraph(k)

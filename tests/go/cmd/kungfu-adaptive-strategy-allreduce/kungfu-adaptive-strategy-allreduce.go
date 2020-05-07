@@ -17,12 +17,13 @@ import (
 )
 
 var (
-	model        = flag.String("model", fakemodel.Names[0], strings.Join(fakemodel.Names, " | "))
-	mode         = flag.String("mode", "seq", "par | seq")
-	fuse         = flag.Bool("fuse", false, "")
-	epochs       = flag.Int("epochs", 15, "")
-	warmupEpochs = flag.Int("warmup", 2, "warmup epochs")
-	stats        []session.StrategyStat
+	model          = flag.String("model", fakemodel.Names[0], strings.Join(fakemodel.Names, " | "))
+	mode           = flag.String("mode", "seq", "par | seq")
+	fuse           = flag.Bool("fuse", false, "")
+	epochs         = flag.Int("epochs", 15, "")
+	warmupEpochs   = flag.Int("warmup", 2, "warmup epochs")
+	stats          []session.StrategyStat
+	strategyOffset = 1
 )
 
 func main() {
@@ -159,8 +160,8 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 			//else perform AllReduce to reach concensus on chaning changing strategies
 			fmt.Println("DEBUG:: about to synch strategies mon")
 			monTasks.Seq()
-
-			sess.ChangeStrategies(db.RecvBuf.AsI8())
+			fmt.Println("DEBUG:: monitoring synced")
+			sess.ChangeStrategy(db.RecvBuf.AsI8(), strategyOffset)
 		}
 	}()
 
