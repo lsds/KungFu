@@ -154,10 +154,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 			runEpoch()
 			stats = append(stats, sess.LogStats(0))
 
-			change := sess.MonitorStrategies(db.SendBuf.AsI8())
-			if !change {
-				continue
-			}
+			sess.MonitorStrategy(db.SendBuf.AsI8())
 
 			//else perform AllReduce to reach concensus on chaning changing strategies
 			fmt.Println("DEBUG:: about to synch strategies mon")

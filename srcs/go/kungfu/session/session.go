@@ -16,15 +16,28 @@ import (
 
 const defaultRoot = 0
 
+const strategyMonitorRefferenceWindow = 25
+
+type StrategyStatSnapshot struct {
+	AvgDuration time.Duration
+	CmaDuration time.Duration
+}
+
 //StrategyStat holds statistical data for a specific strategy
 type StrategyStat struct {
 	AvgDuration time.Duration
 	CmaDuration time.Duration
 	count       int
 	suspended   bool
+	refWindow   StrategyStatSnapshot
+	lock        sync.Mutex
 }
 
 func (ss *StrategyStat) Update(duration time.Duration) {
+
+	ss.lock.Lock()
+	defer ss.lock.Unlock()
+
 	if ss.count == 0 {
 		ss.AvgDuration = duration
 	} else {
@@ -33,6 +46,12 @@ func (ss *StrategyStat) Update(duration time.Duration) {
 	tot := float64(ss.CmaDuration)*float64(ss.count) + float64(duration)
 	ss.count++
 	ss.CmaDuration = time.Duration(tot / float64(ss.count))
+
+	if ss.count == strategyMonitorRefferenceWindow {
+		ss.refWindow.AvgDuration = ss.AvgDuration
+		ss.refWindow.CmaDuration = ss.CmaDuration
+	}
+
 }
 
 // A strategy is a pair of dataflow graphs

@@ -61,7 +61,19 @@ func (sess *Session) PrintSessionState() {
 	}
 }
 
-func (sess *Session) MonitorStrategies(buff []int8) bool {
+//MonitorStrategy examines whether the current communication strategy is experiencing
+//communication interference. It should not be invoked while the strategy is still
+//used in background communication operations. No locking of the underlying data
+//structure is used.
+func (sess *Session) MonitorStrategy(buff []int8) {
+	s := sess.strategies[0]
+	buff[0] = 0
+	if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))) {
+		buff[0] = 1
+	}
+}
+
+func (sess *Session) MonitorMultipleStrategies(buff []int8) bool {
 
 	var count int
 	for _, s := range sess.strategies {
@@ -119,6 +131,20 @@ func (sess *Session) ChangeStrategies(buff []int8) {
 
 			sess.strategies[i].stat.suspended = true
 		}
+	}
+}
+
+func (sess *Session) ChangeStrategy(buff []int8) {
+	//TODO: volatile. check that not all strategies will
+	//be suspended all together.
+
+	if buff[0] > int8(sess.Size()) {
+		//reached consensus
+		fmt.Println("Session:: reached consensus on changing strategy #", 0)
+
+		fmt.Println("Session:: switching to alternative strategy")
+
+		panic("Not implemented yet")
 	}
 }
 
