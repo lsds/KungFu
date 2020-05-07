@@ -55,6 +55,13 @@ class Consensus : public AsyncOpKernel
 
 REGISTER_KUNGFU_KERNEL_BUILDER(Consensus, DEVICE_CPU);
 
+static const std::map<std::string, KungFu_Op> kungfu_ops({
+    {"sum", KungFu_SUM},
+    {"min", KungFu_MIN},
+    {"max", KungFu_MAX},
+    {"prod", KungFu_PROD},
+});
+
 // The AllReduce operator takes a single tensor (e.g. the computed gradient),
 // and reduce (by taking sum) with the peers, and finally returns a tensor with
 // exactly the same shape.
@@ -74,15 +81,9 @@ class AllReduce : public AsyncOpKernel
     {
         std::string op;
         OP_REQUIRES_OK(context, context->GetAttr("op", &op));
-        static const std::map<std::string, KungFu_Op> kungfu_op({
-            {"sum", KungFu_SUM},
-            {"min", KungFu_MIN},
-            {"max", KungFu_MAX},
-            {"prod", KungFu_PROD},
-        });
-        OP_REQUIRES(context, kungfu_op.count(op) > 0,
+        OP_REQUIRES(context, kungfu_ops.count(op) > 0,
                     errors::InvalidArgument("invalid op"));
-        op_ = kungfu_op.at(op);
+        op_ = kungfu_ops.at(op);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -100,6 +101,55 @@ class AllReduce : public AsyncOpKernel
 };
 
 REGISTER_KUNGFU_KERNEL_BUILDER(AllReduce, DEVICE_CPU);
+
+REGISTER_KUNGFU_OP(MonitoredAllReduce)
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("op: string")
+    .Input("input: T")
+    .Input("tree: int32")
+    .Output("output: T")
+    // .Output("metrics: T") // TODO: return monitoring metrics
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        // c->set_output(1, ?); // TODO(optional)
+        return Status::OK();
+    });
+
+class MonitoredAllReduce : public AsyncOpKernel
+{
+    KungFu_Op op_;
+
+  public:
+    explicit MonitoredAllReduce(OpKernelConstruction *context)
+        : AsyncOpKernel(context)
+    {
+        std::string op;
+        OP_REQUIRES_OK(context, context->GetAttr("op", &op));
+        OP_REQUIRES(context, kungfu_ops.count(op) > 0,
+                    errors::InvalidArgument("invalid op"));
+        op_ = kungfu_ops.at(op);
+    }
+
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        const Tensor &input = context->input(0);
+        const Tensor &tree  = context->input(1);
+        Tensor *output      = nullptr;
+        // Tensor *metrics     = nullptr; // TODO
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, input.shape(), &output), done);
+        // OP_REQUIRES_OK_ASYNC(
+        //     context, context->allocate_output(1, input.shape(), &metrics),
+        //     done);  // TODO
+        _default_peer->MonitoredAllReduce(
+            input.tensor_data().data(),
+            const_cast<char *>(output->tensor_data().data()),
+            input.NumElements(), to_kungfu_type(input.dtype()), op_,
+            tree.vec<int32_t>().data(), name().c_str(), done);
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(MonitoredAllReduce, DEVICE_CPU);
 
 REGISTER_KUNGFU_OP(AllGather)
     .Attr("T: {int32, int64, float16, float32, float64, bool}")
@@ -175,12 +225,15 @@ class NoiseScale : public OpKernel
     using T     = float;
     using ema_t = kungfu::ExponentialMovingAverage<T>;
 
+    bool debug_;
     std::unique_ptr<ema_t> g_ema_;
     std::unique_ptr<ema_t> s_ema_;
 
   public:
     explicit NoiseScale(OpKernelConstruction *context) : OpKernel(context)
     {
+        OP_REQUIRES_OK(context, context->GetAttr("debug", &debug_));
+        if (debug_) { LOG(WARNING) << "NoiseScale created"; }
         T alpha;
         OP_REQUIRES_OK(context, context->GetAttr("alpha", &alpha));
         OP_REQUIRES(context, alpha > 0,

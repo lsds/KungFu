@@ -24,6 +24,20 @@ def all_reduce(t, op='sum'):
     return _op_lib.kungfu_all_reduce(t, op=op)
 
 
+def monitored_all_reduce(t, tree, op='sum'):
+    """Create a new all_reduce operator for given tensor and topology.
+
+    Inputs:
+        t: the tensor for allreduce
+        tree: an int32 tensor with shape [n], where
+            - n is the number of peers in the current cluster;
+            - tree[i] is the father of i if tree[i] != i;
+            - i is the root if tree[i] == i.
+    """
+    # TODO: return monitoring metrics
+    return _op_lib.kungfu_monitored_all_reduce(t, tree, op=op)
+
+
 def all_gather(t):
     """Create a new all_gather operator for given tensor.
 

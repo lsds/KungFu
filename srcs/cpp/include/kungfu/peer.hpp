@@ -72,6 +72,11 @@ class Peer
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   const DoneCallback &done);
 
+    int MonitoredAllReduce(const void *sendbuf, void *recvbuf, int count,
+                           KungFu_Datatype dtype, KungFu_Op op,
+                           const int32_t *tree, const char *name,
+                           const DoneCallback &done);
+
     // variant of https://www.open-mpi.org/doc/v4.0/man3/MPI_Allgather.3.php
     int AllGather(const void *sendbuf, int count, KungFu_Datatype dtype,
                   void *recvbuf, const char *name);

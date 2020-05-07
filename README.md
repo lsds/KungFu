@@ -80,6 +80,12 @@ pip3 install --no-index -U --user .
 KUNGFU_DOWNLOAD_GO=1 pip3 install --no-index -U --user .
 ```
 
+If you get `permission denied errors`, try install `kungfu-run` separately
+```bash
+KUNGFU_BUILD_TOOLS=OFF pip3 install --no-index -U --user . # disable install kungfu-run with pip
+GOBIN=<PATH> go install -v ./srcs/go/cmd/kungfu-run # install kungfu-run to <PATH>
+```
+
 KungFu provides ``kungfu-run`` to launch a KungFu process on a multi-GPU server.
 In a cluster, we need to launch ``kungfu-run`` on each node.
 
