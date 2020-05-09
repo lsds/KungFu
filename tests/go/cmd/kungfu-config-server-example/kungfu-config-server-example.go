@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"expvar"
 	"flag"
 	"fmt"
 	"io"
@@ -38,6 +39,7 @@ func (s *configServer) index(w http.ResponseWriter, req *http.Request) {
 		<li><a target="_blank">/put</a>: put new config</li>
 		<li><a target="_blank" href="/clear">/clear</a>: set config to empty list, and reject all later configs. Should cause all workers to stop.</li>
 		<li><a target="_blank" href="/reset">/reset</a>: set config to nil, and start accepting new configs. Workers should ignore nil config and keep using existing config.</li>
+		<li><a target="_blank" href="/debug/vars">/debug/vars</a></li>
 	<ul></body></html>`
 	w.Write([]byte(index))
 }
@@ -200,13 +202,14 @@ func main() {
 	mux.HandleFunc("/stop", http.HandlerFunc(h.stop))
 	mux.HandleFunc("/removeworker", http.HandlerFunc(h.removeWorker))
 	mux.HandleFunc("/addworker", http.HandlerFunc(h.addWorker))
+	mux.Handle("/debug/vars", expvar.Handler())
 	if *ttl > 0 {
 		ctx, cancel = context.WithTimeout(ctx, *ttl)
 		defer cancel()
 	}
 	srv := &http.Server{
 		Addr:    net.JoinHostPort("", strconv.Itoa(*port)),
-		Handler: mux,
+		Handler: logRequest(mux),
 	}
 	srv.SetKeepAlivesEnabled(false)
 	go func() {
@@ -216,10 +219,17 @@ func main() {
 	}()
 	<-ctx.Done()
 	srv.Close()
-	log.Infof("Stopped after %s", time.Since(t0))
+	log.Infof("%s stopped after %s", utils.ProgName(), time.Since(t0))
 }
 
 func readJSON(r io.Reader, i interface{}) error {
 	d := json.NewDecoder(r)
 	return d.Decode(&i)
+}
+
+func logRequest(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		log.Infof("%s %s", req.Method, req.URL.Path)
+		h.ServeHTTP(w, req)
+	})
 }
