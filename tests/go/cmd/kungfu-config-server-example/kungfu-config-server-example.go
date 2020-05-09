@@ -209,7 +209,11 @@ func main() {
 		Handler: mux,
 	}
 	srv.SetKeepAlivesEnabled(false)
-	go srv.ListenAndServe()
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			h.cancel()
+		}
+	}()
 	<-ctx.Done()
 	srv.Close()
 	log.Infof("Stopped after %s", time.Since(t0))
