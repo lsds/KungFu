@@ -61,6 +61,11 @@ func (b *Vector) AsF32() []float32 {
 	return *(*[]float32)(b.sliceHeader())
 }
 
+func (b *Vector) AsU8() []uint8 {
+	assert.True(b.Type == U8)
+	return *(*[]uint8)(b.sliceHeader())
+}
+
 func (b *Vector) AsI8() []int8 {
 	assert.True(b.Type == I8)
 	return *(*[]int8)(b.sliceHeader())
