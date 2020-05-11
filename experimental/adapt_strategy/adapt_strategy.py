@@ -13,7 +13,7 @@ from kungfu._utils import measure, one_based_range, map_maybe
 from kungfu.ext import _get_cuda_index
 from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
                                    group_all_reduce, group_nccl_all_reduce,
-                                   monitored_all_reduce, change_strategy)
+                                   monitored_all_reduce)
 from kungfu.tensorflow.v1.benchmarks import model_sizes
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
 from tensorflow.python.util import deprecation
@@ -106,6 +106,7 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
 
     # ys = _group_all_reduce_func[method](xs)
     ys = map_maybe(monitored_all_reduce, xs)
+    ys = [monitored_all_reduce(x, []) for x in xs]
 
     init = tf.global_variables_initializer()
 
