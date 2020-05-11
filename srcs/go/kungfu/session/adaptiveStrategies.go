@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	interferenceThreshold = 1.5
+	interferenceThreshold = 2
 )
 
 //SmartAllReduce performs an optimized AllReduce operation over the given workspace parameter
@@ -68,7 +68,9 @@ func (sess *Session) PrintSessionState() {
 func (sess *Session) MonitorStrategy(buff []int8) {
 	s := sess.strategies[0]
 	buff[0] = 0
+	fmt.Println("MonitorStrategy:: Checking AvgDur = ", s.stat.AvgDuration, " reff = ", time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))))
 	if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))) {
+		fmt.Println("MonitorStrategy:: Congestion detected.")
 		buff[0] = 1
 	}
 }
@@ -134,11 +136,14 @@ func (sess *Session) ChangeStrategies(buff []int8) {
 	}
 }
 
-func (sess *Session) ChangeStrategy(buff []int8, off int) {
+func (sess *Session) ChangeStrategy(buff []int8, off int) bool {
 	//TODO: volatile. check that not all strategies will
 	//be suspended all together.
+	var ret bool
 
-	if buff[0] > int8(sess.Size()) {
+	fmt.Println("ChangeStrategy:: rcved from cluster ", buff[0])
+
+	if buff[0] > int8(sess.Size()/2) {
 		//reached consensus
 		fmt.Println("Session:: reached consensus on changing strategy #", 0)
 
@@ -152,10 +157,15 @@ func (sess *Session) ChangeStrategy(buff []int8, off int) {
 			stat:        &StrategyStat{},
 		}
 
+		ss.stat.refWindow = sess.strategies[0].stat.refWindow
 		sess.strategies[0] = ss
 
 		fmt.Println("Session:: Switched to alternative strategy with master offset ", off)
+
+		ret = true
 	}
+
+	return ret
 }
 
 //GetNumStrategies returns the number of different strategies

@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 
 const defaultRoot = 0
 
-const strategyMonitorRefferenceWindow = 25
+const strategyMonitorRefferenceWindow = 800
 
 type StrategyStatSnapshot struct {
 	AvgDuration time.Duration
@@ -51,6 +52,10 @@ func (ss *StrategyStat) Update(duration time.Duration) {
 	if ss.count == strategyMonitorRefferenceWindow {
 		ss.refWindow.AvgDuration = ss.AvgDuration
 		ss.refWindow.CmaDuration = ss.CmaDuration
+
+		fmt.Println("DEBUG:: Taking reff window snapshot")
+		fmt.Println("DEBUG:: AvgDur = ", ss.refWindow.AvgDuration)
+		fmt.Println("DEBUG:: CmaDur = ", ss.refWindow.CmaDuration)
 	}
 
 }

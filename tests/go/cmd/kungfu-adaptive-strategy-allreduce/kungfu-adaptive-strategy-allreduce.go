@@ -22,6 +22,7 @@ var (
 	fuse           = flag.Bool("fuse", false, "")
 	epochs         = flag.Int("epochs", 15, "")
 	warmupEpochs   = flag.Int("warmup", 2, "warmup epochs")
+	adapt          = flag.Bool("adapt", false, "enable|disable adaptation")
 	stats          []session.StrategyStat
 	strategyOffset = 1
 )
@@ -129,6 +130,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 
 	func() {
 		var monTasks taskgroup.Group
+		var changed bool
 
 		db := fakemodel.NewDoubleBuffer(kb.I8, sess.GetNumStrategies())
 
@@ -155,13 +157,18 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 			runEpoch()
 			stats = append(stats, sess.LogStats(0))
 
-			sess.MonitorStrategy(db.SendBuf.AsI8())
+			if *adapt {
+				if changed {
+					continue
+				}
+				sess.MonitorStrategy(db.SendBuf.AsI8())
 
-			//else perform AllReduce to reach concensus on chaning changing strategies
-			fmt.Println("DEBUG:: about to synch strategies mon")
-			monTasks.Seq()
-			fmt.Println("DEBUG:: monitoring synced")
-			sess.ChangeStrategy(db.RecvBuf.AsI8(), strategyOffset)
+				//else perform AllReduce to reach concensus on chaning changing strategies
+				fmt.Println("DEBUG:: about to synch strategies mon, sending ", db.SendBuf.AsI8()[0])
+				monTasks.Seq()
+				fmt.Println("DEBUG:: monitoring synced")
+				changed = sess.ChangeStrategy(db.RecvBuf.AsI8(), strategyOffset)
+			}
 		}
 	}()
 
