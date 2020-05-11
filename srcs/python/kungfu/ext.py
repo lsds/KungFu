@@ -61,6 +61,8 @@ def propose_new_size(new_size):
     # FIXME: check ctypes
     _python_lib.kungfu_propose_new_size(int(new_size))
 
+def change_strategy():
+    _python_lib.kungfu_change_strategy()
 
 def _get_other_ranks():
     self_rank = current_rank()

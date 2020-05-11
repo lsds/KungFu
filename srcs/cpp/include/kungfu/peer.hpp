@@ -126,6 +126,7 @@ class Peer
 
     // control APIs
     int ResizeClusterFromURL(bool *changed, bool *keep);
+    int ChangeStrategy();
 
     int ProposeNewSize(int new_size);
 };

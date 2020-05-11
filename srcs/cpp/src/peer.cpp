@@ -91,6 +91,11 @@ int Peer::ResizeClusterFromURL(bool *changed, bool *keep)
                                         reinterpret_cast<char *>(keep));
 }
 
+int Peer::ChangeStrategy()
+{
+    return GoChangeStrategy();
+}
+
 int Peer::ProposeNewSize(int new_size)
 {
     return GoKungfuProposeNewSize(GoInt(new_size));
