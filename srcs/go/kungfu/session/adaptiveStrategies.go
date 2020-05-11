@@ -21,10 +21,10 @@ const (
 //by monitoring the performance of different concurrently executed collective communications
 //strategies and applying weights to optimize the choice between them based on the monitoring
 func (sess *Session) SmartAllReduce(w kb.Workspace) error {
-	return sess.runAdaptStrategies(w, plan.EvenPartition, sess.strategies)
+	return sess.runMonitoresStrategies(w, plan.EvenPartition, sess.strategies)
 }
 
-func (sess *Session) runAdaptStrategiesWithWeightedHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
+func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
 	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
 	errs := make([]error, k)
 	var wg sync.WaitGroup
@@ -45,8 +45,8 @@ func (sess *Session) runAdaptStrategiesWithWeightedHash(w kb.Workspace, p kb.Par
 	return utils.MergeErrors(errs, "runStrategies")
 }
 
-func (sess *Session) runAdaptStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {
-	return sess.runAdaptStrategiesWithWeightedHash(w, p, strategies, sess.strategyHash)
+func (sess *Session) runMonitoresStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {
+	return sess.runMonitoredStrategiesWithHash(w, p, strategies, sess.strategyHash)
 }
 
 //LogStats reports Stat object for a specific strategy
