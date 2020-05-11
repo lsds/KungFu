@@ -129,27 +129,8 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 	}
 
 	func() {
-		var monTasks taskgroup.Group
 		var changed bool
 
-		db := fakemodel.NewDoubleBuffer(kb.I8, sess.GetNumStrategies())
-
-		monTasks.Add(func() {
-
-			w := kb.Workspace{
-				SendBuf: db.SendBuf,
-				RecvBuf: db.RecvBuf,
-				OP:      kb.SUM,
-				Name:    "StratMon",
-			}
-
-			err := sess.AllReduce(w)
-			if err != nil {
-				utils.ExitErr(fmt.Errorf("%s failed performing allreduce", `kungfu-adaptive-strategy-allreduce`))
-			}
-		})
-
-		// defer testutils.NewStopWatch().Stop(logRate)
 		for i := 0; i < *epochs; i++ {
 			if rank == 0 {
 				log.Infof("epoch %d", i+1)
@@ -161,13 +142,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 				if changed {
 					continue
 				}
-				sess.MonitorStrategy(db.SendBuf.AsI8())
-
-				//else perform AllReduce to reach concensus on chaning changing strategies
-				fmt.Println("DEBUG:: about to synch strategies mon, sending ", db.SendBuf.AsI8()[0])
-				monTasks.Seq()
-				fmt.Println("DEBUG:: monitoring synced")
-				changed = sess.ChangeStrategy(db.RecvBuf.AsI8(), strategyOffset)
+				changed = sess.ChangeStrategy()
 			}
 		}
 	}()

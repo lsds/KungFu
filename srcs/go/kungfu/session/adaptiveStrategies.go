@@ -8,11 +8,13 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/tests/go/fakemodel"
 	"github.com/lsds/KungFu/tests/go/testutils"
 )
 
 const (
 	interferenceThreshold = 2
+	alternativeStrategy   = 1
 )
 
 //SmartAllReduce performs an optimized AllReduce operation over the given workspace parameter
@@ -136,20 +138,78 @@ func (sess *Session) ChangeStrategies(buff []int8) {
 	}
 }
 
-func (sess *Session) ChangeStrategy(buff []int8, off int) bool {
+// func (sess *Session) ChangeStrategy(buff []int8, off int) bool {
+// 	//TODO: volatile. check that not all strategies will
+// 	//be suspended all together.
+// 	var ret bool
+
+// 	fmt.Println("ChangeStrategy:: rcved from cluster ", buff[0])
+
+// 	if buff[0] > int8(sess.Size()/2) {
+// 		//reached consensus
+// 		fmt.Println("Session:: reached consensus on changing strategy #", 0)
+
+// 		fmt.Println("Session:: switching to alternative strategy")
+
+// 		bcastGraph := plan.GenAlternativeStar(sess.peers, off)
+// 		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
+// 		ss := strategy{
+// 			reduceGraph: reduceGraph,
+// 			bcastGraph:  bcastGraph,
+// 			stat:        &StrategyStat{},
+// 		}
+
+// 		ss.stat.refWindow = sess.strategies[0].stat.refWindow
+// 		sess.strategies[0] = ss
+
+// 		fmt.Println("Session:: Switched to alternative strategy with master offset ", off)
+
+// 		ret = true
+// 	}
+
+// 	return ret
+// }
+
+func (sess *Session) ChangeStrategy() bool {
 	//TODO: volatile. check that not all strategies will
 	//be suspended all together.
 	var ret bool
 
-	fmt.Println("ChangeStrategy:: rcved from cluster ", buff[0])
+	db := fakemodel.NewDoubleBuffer(kb.I8, sess.GetNumStrategies())
 
-	if buff[0] > int8(sess.Size()/2) {
+	sb := db.SendBuf.AsI8()
+	rb := db.RecvBuf.AsI8()
+
+	s := sess.strategies[0]
+	sb[0] = 0
+	fmt.Println("MonitorStrategy:: Checking AvgDur = ", s.stat.AvgDuration, " reff = ", time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))))
+	if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))) {
+		fmt.Println("MonitorStrategy:: Congestion detected.")
+		sb[0] = 1
+	}
+
+	w := kb.Workspace{
+		SendBuf: db.SendBuf,
+		RecvBuf: db.RecvBuf,
+		OP:      kb.SUM,
+		Name:    "StratMon",
+	}
+
+	fmt.Println("DEBUG:: about to synch strategies mon, sending ", db.SendBuf.AsI8()[0])
+	err := sess.AllReduce(w)
+	if err != nil {
+		utils.ExitErr(fmt.Errorf("%s failed performing allreduce", `Session.ChangeStrategy()`))
+	}
+	fmt.Println("DEBUG:: monitoring synced")
+	fmt.Println("ChangeStrategy:: rcved from cluster ", rb[0])
+
+	if rb[0] > int8(sess.Size()/2) {
 		//reached consensus
 		fmt.Println("Session:: reached consensus on changing strategy #", 0)
 
 		fmt.Println("Session:: switching to alternative strategy")
 
-		bcastGraph := plan.GenAlternativeStar(sess.peers, off)
+		bcastGraph := plan.GenAlternativeStar(sess.peers, alternativeStrategy)
 		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
 		ss := strategy{
 			reduceGraph: reduceGraph,
@@ -160,7 +220,7 @@ func (sess *Session) ChangeStrategy(buff []int8, off int) bool {
 		ss.stat.refWindow = sess.strategies[0].stat.refWindow
 		sess.strategies[0] = ss
 
-		fmt.Println("Session:: Switched to alternative strategy with master offset ", off)
+		fmt.Println("Session:: Switched to alternative strategy with master offset ", alternativeStrategy)
 
 		ret = true
 	}
