@@ -70,7 +70,7 @@ func (s *composedServer) serve() {
 
 func (s *composedServer) ListenAndServe() error {
 	if err := s.listen(); err != nil {
-		return nil
+		return err
 	}
 	s.serve()
 	return nil
@@ -78,7 +78,7 @@ func (s *composedServer) ListenAndServe() error {
 
 func (s *composedServer) Start() error {
 	if err := s.listen(); err != nil {
-		return nil
+		return err
 	}
 	go s.serve()
 	utils.Trap(func(os.Signal) { s.Close() })
