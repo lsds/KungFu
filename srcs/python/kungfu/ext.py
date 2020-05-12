@@ -68,7 +68,7 @@ def log_stats(idx):
     return _python_lib.kungfu_log_stats(int(idx))
 
 def print_strategy_stats():
-    return _python_lib.kung_print_strategy_stats()
+    return _python_lib.kungfu_print_strategy_stats()
 
 def _get_other_ranks():
     self_rank = current_rank()
