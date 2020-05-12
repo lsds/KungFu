@@ -50,16 +50,20 @@ func (sess *Session) runMonitoresStrategies(w kb.Workspace, p kb.PartitionFunc, 
 }
 
 //LogStats reports Stat object for a specific strategy
-func (sess *Session) LogStats(stratIdx int) StrategyStat {
-	return *sess.strategies[stratIdx].stat
+func (sess *Session) LogStats(stratIdx int) {
+	sess.strategyStats = append(sess.strategyStats, sess.strategies[stratIdx].stat.GetSnapshot())
 }
 
-func (sess *Session) PrintSessionState() {
+func (sess *Session) PrintStategyStats() {
 	fmt.Println("Printing current state of session strategies")
 	fmt.Println("Available strategies: ", len(sess.strategies))
 
 	for i, s := range sess.strategies {
 		fmt.Println("Strategy #", i, " Master [", s.bcastGraph.Master, "] avgDuration=", s.stat.AvgDuration, " CMA=", s.stat.CmaDuration)
+	}
+
+	for i, ss := range sess.strategyStats {
+		fmt.Println("epoch #", i, ": Master[", 0, "] avgDuration=", ss.AvgDuration, " CMA=", ss.CmaDuration)
 	}
 }
 

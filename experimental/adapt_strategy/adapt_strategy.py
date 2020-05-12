@@ -10,7 +10,7 @@ import sys
 
 import tensorflow as tf
 from kungfu._utils import measure, one_based_range, map_maybe
-from kungfu.ext import _get_cuda_index, change_strategy
+from kungfu.ext import _get_cuda_index, change_strategy, log_stats, print_strategy_stats
 from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
                                    group_all_reduce, group_nccl_all_reduce,
                                    monitored_all_reduce)
@@ -20,6 +20,7 @@ from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
+default_strategy_master = 0
 
 def _tensor_size(t):
     return t.shape.num_elements() * t.dtype.size
@@ -131,7 +132,8 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False):
             duration, _ = measure(lambda: sess.run(ys))
             log('step %d, took %.2fs, equivalent data rate: %s' %
                 (step, duration, show_rate(tot_size * multiplier, duration)))
-            
+            log_stats(default_strategy_master)
+
             if adapt:
 
                 print("inside adaptation mechanism")
@@ -140,6 +142,8 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False):
                 ret = change_strategy()
                 if ret == 1:
                     changed = True
+    
+    print_strategy_stats()
 
 
 def main(_):

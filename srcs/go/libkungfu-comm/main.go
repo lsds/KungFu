@@ -136,6 +136,18 @@ func GoChangeStrategy() int {
 	return ret
 }
 
+//export GoLogStats
+func GoLogStats(idx int) {
+	sess := defaultPeer.CurrentSession()
+	sess.LogStats(idx)
+}
+
+//export GoPrintStategyStats
+func GoPrintStategyStats() {
+	sess := defaultPeer.CurrentSession()
+	sess.PrintStategyStats()
+}
+
 func main() {
 	fmt.Printf("%s is a library\n", utils.ProgName())
 }

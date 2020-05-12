@@ -96,6 +96,16 @@ int Peer::ChangeStrategy()
     return GoChangeStrategy();
 }
 
+void Peer::LogStats(int idx)
+{
+    GoLogStats(GoInt(idx));
+}
+
+void Peer::PrintStategyStats()
+{
+    GoPrintStategyStats();
+}
+
 int Peer::ProposeNewSize(int new_size)
 {
     return GoKungfuProposeNewSize(GoInt(new_size));

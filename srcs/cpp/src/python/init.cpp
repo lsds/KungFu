@@ -31,6 +31,10 @@ int kungfu_propose_new_size(int new_size)
 
 int kungfu_change_strategy() { return _default_peer->ChangeStrategy(); }
 
+void kungfu_log_stats(int idx) { return _default_peer->LogStats(idx); }
+
+void kungfu_print_strategy_stats() { _default_peer->PrintStategyStats(); }
+
 namespace kungfu
 {
 order_group::order_group(const std::vector<std::string> &names,

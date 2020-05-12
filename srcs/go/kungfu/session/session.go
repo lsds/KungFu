@@ -35,6 +35,12 @@ type StrategyStat struct {
 	lock        sync.Mutex
 }
 
+//GetSnapshot return a StrategyStatSnapshot object containing
+//a snapshot of the strategy's statistics
+func (ss *StrategyStat) GetSnapshot() StrategyStatSnapshot {
+	return StrategyStatSnapshot{AvgDuration: ss.AvgDuration, CmaDuration: ss.CmaDuration}
+}
+
 func (ss *StrategyStat) Update(duration time.Duration) {
 
 	ss.lock.Lock()
@@ -78,6 +84,7 @@ type Session struct {
 	client            *client.Client
 	collectiveHandler *handler.CollectiveEndpoint
 	strategyHash      strategyHashFunc
+	strategyStats     []StrategyStatSnapshot
 }
 
 func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint) (*Session, bool) {
