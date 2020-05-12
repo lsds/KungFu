@@ -10,7 +10,7 @@ import sys
 
 import tensorflow as tf
 from kungfu._utils import measure, one_based_range, map_maybe
-from kungfu.ext import _get_cuda_index
+from kungfu.ext import _get_cuda_index, change_strategy
 from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
                                    group_all_reduce, group_nccl_all_reduce,
                                    monitored_all_reduce)
@@ -74,7 +74,6 @@ def _rank(method):
     else:
         return current_rank()
 
-
 def parse_args():
     p = argparse.ArgumentParser(description='Perf Benchmarks.')
     p.add_argument('--model',
@@ -87,10 +86,15 @@ def parse_args():
                    default='CPU',
                    help='CPU | NCCL | HOROVOD')
     p.add_argument('--fuse', action='store_true', default=False, help='')
+
+    p.add_argument('--adapt',
+                   type=bool,
+                   default=False,
+                   help='True | False')
     return p.parse_args()
 
 
-def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
+def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False):
     rank = _rank(method)
 
     def log(msg):
@@ -112,6 +116,7 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
 
     warmup_steps = 5
     bench_steps = 10
+    changed = False
 
     with tf.Session(config=_config(method)) as sess:
         duration, _ = measure(lambda: sess.run(init))
@@ -126,6 +131,15 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
             duration, _ = measure(lambda: sess.run(ys))
             log('step %d, took %.2fs, equivalent data rate: %s' %
                 (step, duration, show_rate(tot_size * multiplier, duration)))
+            
+            if adapt:
+
+                print("inside adaptation mechanism")
+                if changed:
+                    continue
+                ret = change_strategy()
+                if ret == 1:
+                    changed = True
 
 
 def main(_):
@@ -136,7 +150,7 @@ def main(_):
     sizes = _model_sizes[args.model]
     if args.fuse:
         sizes = [sum(sizes)]
-    all_reduce_benchmark(sizes, dtype, args.method)
+    all_reduce_benchmark(sizes, dtype, args.method, args.adapt)
 
 
 if __name__ == "__main__":
