@@ -105,7 +105,7 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
         (len(sizes), show_size(tot_size), np, method))
 
     # ys = _group_all_reduce_func[method](xs)
-    ys = map_maybe(monitored_all_reduce, xs)
+    # ys = map_maybe(monitored_all_reduce, xs)
     ys = [monitored_all_reduce(x, []) for x in xs]
 
     init = tf.global_variables_initializer()
