@@ -46,7 +46,6 @@ func (s *configServer) index(w http.ResponseWriter, req *http.Request) {
 
 func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	log.Debugf("%s %s from %s, UA: %s", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
 	s.RLock()
 	defer s.RUnlock()
 	if s.cluster == nil {
@@ -229,7 +228,7 @@ func readJSON(r io.Reader, i interface{}) error {
 
 func logRequest(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		log.Infof("%s %s", req.Method, req.URL.Path)
+		log.Debugf("%s %s from %s, UA: %s", req.Method, req.URL.Path, req.RemoteAddr, req.UserAgent())
 		h.ServeHTTP(w, req)
 	})
 }
