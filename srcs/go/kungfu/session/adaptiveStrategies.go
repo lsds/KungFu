@@ -59,11 +59,11 @@ func (sess *Session) PrintStategyStats() {
 	fmt.Println("Available strategies: ", len(sess.strategies))
 
 	for i, s := range sess.strategies {
-		fmt.Println("Strategy #", i, " Master [", s.bcastGraph.Master, "] avgDuration=", s.stat.AvgDuration, " CMA=", s.stat.CmaDuration)
+		fmt.Println("Strategy #", i, ",Master[", s.bcastGraph.Master, "],avgDuration=", s.stat.AvgDuration, ",CMA=", s.stat.CmaDuration)
 	}
 
 	for i, ss := range sess.strategyStats {
-		fmt.Println("epoch #", i, ": Master[", 0, "] avgDuration=", ss.AvgDuration, " CMA=", ss.CmaDuration)
+		fmt.Println("epoch #", i, ",Master[", 0, "],avgDuration=", ss.AvgDuration, ",CMA=", ss.CmaDuration)
 	}
 }
 
