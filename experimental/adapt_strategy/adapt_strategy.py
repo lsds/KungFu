@@ -135,15 +135,13 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False):
             log_stats(default_strategy_master)
 
             if adapt:
-
-                print("inside adaptation mechanism")
                 if changed:
                     continue
                 ret = change_strategy()
                 if ret == 1:
                     changed = True
-    
-    print_strategy_stats()
+    if rank == 0:
+        print_strategy_stats()
 
 
 def main(_):
