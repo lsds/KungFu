@@ -116,7 +116,7 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False):
     init = tf.global_variables_initializer()
 
     warmup_steps = 5
-    bench_steps = 10
+    bench_steps = 25
     changed = False
 
     with tf.Session(config=_config(method)) as sess:
