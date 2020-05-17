@@ -97,13 +97,10 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 				log.Infof("epoch %d", i+1)
 			}
 			runEpoch()
-			sess.LogStats(0)
 		}
 	}()
 
 	if rank == 0 {
 		log.Infof("Result: model: %s, %s, mode: %s, rate: %s", *model, m.Info(), *mode, testutils.ShowRate(workload, duration))
-
-		sess.PrintStategyStats()
 	}
 }
