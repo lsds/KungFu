@@ -97,7 +97,7 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 		return nil, false
 	}
 
-	if localRank == 0 {
+	if rank == 0 {
 		fmt.Println("Rank 0 -> ", self)
 	}
 	if strategy == kb.Auto {
