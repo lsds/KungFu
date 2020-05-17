@@ -92,10 +92,15 @@ def parse_args():
                    type=bool,
                    default=False,
                    help='True | False')
+    
+    p.add_argument('--steps',
+                   type=int,
+                   default=15,
+                   help='number of steps')
     return p.parse_args()
 
 
-def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False):
+def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False, bench_steps = 15):
     rank = _rank(method)
 
     def log(msg):
@@ -116,7 +121,6 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False):
     init = tf.global_variables_initializer()
 
     warmup_steps = 5
-    bench_steps = 25
     changed = False
 
     with tf.Session(config=_config(method)) as sess:
@@ -152,7 +156,7 @@ def main(_):
     sizes = _model_sizes[args.model]
     if args.fuse:
         sizes = [sum(sizes)]
-    all_reduce_benchmark(sizes, dtype, args.method, args.adapt)
+    all_reduce_benchmark(sizes, dtype, args.method, args.adapt, args.steps)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -94,6 +95,10 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 	localRank, ok := pl.LocalRank(self)
 	if !ok {
 		return nil, false
+	}
+
+	if localRank == 0 {
+		fmt.Println("Rank 0 -> ", self)
 	}
 	if strategy == kb.Auto {
 		strategy = autoSelect(pl)
