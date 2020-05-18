@@ -18,7 +18,7 @@ import (
 
 const defaultRoot = 0
 const strategyMonitorRefferenceWindow = 1500
-const avgWndCapacity = 500
+const avgWndCapacity = 100
 
 type StrategyStatSnapshot struct {
 	AvgDuration    time.Duration
@@ -43,7 +43,7 @@ type StrategyStat struct {
 //GetSnapshot return a StrategyStatSnapshot object containing
 //a snapshot of the strategy's statistics
 func (ss *StrategyStat) GetSnapshot() StrategyStatSnapshot {
-	return StrategyStatSnapshot{AvgDuration: ss.AvgDuration, CmaDuration: ss.CmaDuration}
+	return StrategyStatSnapshot{AvgDuration: ss.AvgDuration, CmaDuration: ss.CmaDuration, AvgWndDuration: ss.AvgWndDuration}
 }
 
 func (ss *StrategyStat) Update(duration time.Duration) {

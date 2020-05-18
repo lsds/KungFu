@@ -267,7 +267,7 @@ func (sess *Session) GetNumStrategies() int {
 	return len(sess.strategies)
 }
 
-func (stat *StrategyStat) calcAvgWind() time.Duration {
+func (stat *StrategyStat) calcAvgWind() {
 	var acc, ret time.Duration
 
 	for _, val := range stat.AvgWnd {
@@ -280,5 +280,6 @@ func (stat *StrategyStat) calcAvgWind() time.Duration {
 	} else {
 		ret = time.Duration(float64(acc) / float64(avgWndCapacity))
 	}
-	return ret
+
+	stat.AvgWndDuration = ret
 }
