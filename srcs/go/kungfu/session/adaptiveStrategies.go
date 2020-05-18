@@ -186,9 +186,13 @@ func (sess *Session) ChangeStrategy() bool {
 
 	s := sess.strategies[0]
 	sb[0] = 0
-	fmt.Println("MonitorStrategy:: Checking AvgDur = ", s.stat.AvgDuration, " reff = ", time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))))
+
+	if sess.rank == 0 {
+		fmt.Println("MonitorStrategy:: Checking AvgDur = ", s.stat.AvgDuration, " reff = ", time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))))
+	}
+
 	if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))) {
-		fmt.Println("MonitorStrategy:: Congestion detected.")
+		// fmt.Println("MonitorStrategy:: Congestion detected.")
 		sb[0] = 1
 	}
 
@@ -199,19 +203,25 @@ func (sess *Session) ChangeStrategy() bool {
 		Name:    "StratMon",
 	}
 
-	fmt.Println("DEBUG:: about to synch strategies mon, sending ", db.SendBuf.AsI8()[0])
+	// fmt.Println("DEBUG:: about to synch strategies mon, sending ", db.SendBuf.AsI8()[0])
 	err := sess.AllReduce(w)
 	if err != nil {
 		utils.ExitErr(fmt.Errorf("%s failed performing allreduce", `Session.ChangeStrategy()`))
 	}
-	fmt.Println("DEBUG:: monitoring synced")
-	fmt.Println("ChangeStrategy:: rcved from cluster ", rb[0])
+
+	if sess.rank == 0 {
+		fmt.Println("DEBUG:: monitoring synced")
+		fmt.Println("ChangeStrategy:: rcved from cluster ", rb[0])
+	}
 
 	if rb[0] > int8(sess.Size()/2) {
 		//reached consensus
-		fmt.Println("Session:: reached consensus on changing strategy #", 0)
 
-		fmt.Println("Session:: switching to alternative strategy")
+		if sess.rank == 0 {
+			fmt.Println("Session:: reached consensus on changing strategy #", 0)
+
+			fmt.Println("Session:: switching to alternative strategy")
+		}
 
 		bcastGraph := plan.GenAlternativeStar(sess.peers, alternativeStrategy)
 		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
@@ -224,7 +234,7 @@ func (sess *Session) ChangeStrategy() bool {
 		ss.stat.refWindow = sess.strategies[0].stat.refWindow
 		sess.strategies[0] = ss
 
-		fmt.Println("Session:: Switched to alternative strategy with master offset ", alternativeStrategy)
+		// fmt.Println("Session:: Switched to alternative strategy with master offset ", alternativeStrategy)
 
 		ret = true
 	}
