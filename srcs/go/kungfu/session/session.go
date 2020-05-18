@@ -58,9 +58,9 @@ func (ss *StrategyStat) Update(duration time.Duration) {
 		ss.refWindow.AvgDuration = ss.AvgDuration
 		ss.refWindow.CmaDuration = ss.CmaDuration
 
-		fmt.Println("DEBUG:: Taking reff window snapshot")
-		fmt.Println("DEBUG:: AvgDur = ", ss.refWindow.AvgDuration)
-		fmt.Println("DEBUG:: CmaDur = ", ss.refWindow.CmaDuration)
+		// fmt.Println("DEBUG:: Taking reff window snapshot")
+		// fmt.Println("DEBUG:: AvgDur = ", ss.refWindow.AvgDuration)
+		// fmt.Println("DEBUG:: CmaDur = ", ss.refWindow.CmaDuration)
 	}
 
 }
