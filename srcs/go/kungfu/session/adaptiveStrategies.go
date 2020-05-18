@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	interferenceThreshold = 1.35
+	interferenceThreshold = 1.2
 	alternativeStrategy   = 1
 )
 
@@ -63,7 +63,7 @@ func (sess *Session) PrintStategyStats() {
 	}
 
 	for i, ss := range sess.strategyStats {
-		fmt.Println("epoch #", i, ",Master[", 0, "],avgDuration=", ss.AvgDuration, ",CMA=", ss.CmaDuration)
+		fmt.Println("epoch #", i, ",Master[", 0, "],avgDuration=", ss.AvgDuration, ",avgWndDuration=", ss.AvgWndDuration, ",CMA=", ss.CmaDuration)
 	}
 }
 
@@ -185,10 +185,12 @@ func (sess *Session) ChangeStrategy() bool {
 		//TODO: temp dev change. make this permanent by considering distrib state
 		s.stat.refWindow.AvgDuration = s.stat.AvgDuration
 		s.stat.refWindow.CmaDuration = s.stat.CmaDuration
+		s.stat.refWindow.AvgWndDuration = s.stat.AvgWndDuration
 
 		if sess.rank == 0 {
 			fmt.Println("DEBUG:: Taking reff window snapshot")
 			fmt.Println("DEBUG:: AvgDur = ", s.stat.refWindow.AvgDuration)
+			fmt.Println("DEBUG:: AvgWndDur = ", s.stat.refWindow.AvgWndDuration)
 			fmt.Println("DEBUG:: CmaDur = ", s.stat.refWindow.CmaDuration)
 		}
 		return false
@@ -260,4 +262,12 @@ func (sess *Session) ChangeStrategy() bool {
 //for a given session
 func (sess *Session) GetNumStrategies() int {
 	return len(sess.strategies)
+}
+
+func (stat *StrategyStat) calcAvgWind() time.Duration {
+	var acc time.Duration
+	for _, val := range stat.AvgWnd {
+		acc = acc + val
+	}
+	return time.Duration(float64(acc) / float64(len(stat.AvgWnd)))
 }
