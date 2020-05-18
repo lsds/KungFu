@@ -180,6 +180,9 @@ func (sess *Session) ChangeStrategy() bool {
 	var ret bool
 
 	s := sess.strategies[0]
+
+	s.stat.calcAvgWind()
+
 	if s.stat.refWindow.AvgDuration == 0 {
 
 		//TODO: temp dev change. make this permanent by considering distrib state
@@ -204,7 +207,7 @@ func (sess *Session) ChangeStrategy() bool {
 	sb[0] = 0
 
 	if sess.rank == 0 {
-		fmt.Println("MonitorStrategy:: Checking AvgDur = ", s.stat.AvgDuration, " reff = ", time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))))
+		fmt.Println("MonitorStrategy:: Checking AvgDur = ", s.stat.AvgDuration, " AvgWndDur=", s.stat.AvgWndDuration, " reff = ", time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))))
 	}
 
 	if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(s.stat.refWindow.AvgDuration))) {
@@ -265,9 +268,17 @@ func (sess *Session) GetNumStrategies() int {
 }
 
 func (stat *StrategyStat) calcAvgWind() time.Duration {
-	var acc time.Duration
+	var acc, ret time.Duration
+
 	for _, val := range stat.AvgWnd {
 		acc = acc + val
 	}
-	return time.Duration(float64(acc) / float64(len(stat.AvgWnd)))
+
+	d := stat.wndBack - stat.wndFront
+	if d > 0 {
+		ret = time.Duration(float64(acc) / float64(d))
+	} else {
+		ret = time.Duration(float64(acc) / float64(avgWndCapacity))
+	}
+	return ret
 }

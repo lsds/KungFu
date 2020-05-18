@@ -18,7 +18,7 @@ import (
 
 const defaultRoot = 0
 const strategyMonitorRefferenceWindow = 1500
-const avgWndCapacity = 1000
+const avgWndCapacity = 500
 
 type StrategyStatSnapshot struct {
 	AvgDuration    time.Duration
@@ -30,8 +30,10 @@ type StrategyStatSnapshot struct {
 type StrategyStat struct {
 	AvgDuration    time.Duration
 	CmaDuration    time.Duration
-	AvgWnd         []time.Duration
+	AvgWnd         [avgWndCapacity]time.Duration
 	AvgWndDuration time.Duration
+	wndFront       int
+	wndBack        int
 	count          int
 	suspended      bool
 	refWindow      StrategyStatSnapshot
@@ -54,24 +56,20 @@ func (ss *StrategyStat) Update(duration time.Duration) {
 	} else {
 		ss.AvgDuration = (ss.AvgDuration + duration) / 2
 	}
+
+	//TODO: fix this, hot fix coding needs refactoring
+	if ss.count < avgWndCapacity {
+		ss.AvgWnd[ss.wndBack] = duration
+		ss.wndBack = (ss.wndBack + 1) % avgWndCapacity
+	} else {
+		ss.AvgWnd[ss.wndBack] = duration
+		ss.wndFront = (ss.wndFront + 1) % avgWndCapacity
+		ss.wndBack = (ss.wndBack + 1) % avgWndCapacity
+	}
+
 	tot := float64(ss.CmaDuration)*float64(ss.count) + float64(duration)
 	ss.count++
 	ss.CmaDuration = time.Duration(tot / float64(ss.count))
-
-	//TODO: fix this, hot fix coding needs refactoring
-	if len(ss.AvgWnd) < avgWndCapacity {
-		ss.AvgWnd = append(ss.AvgWnd, duration)
-		ss.AvgDuration = ss.calcAvgWind()
-	} else {
-		ss.AvgWnd = ss.AvgWnd[:len(ss.AvgWnd)-1]
-		ss.AvgWnd = append([]time.Duration{duration}, ss.AvgWnd...)
-
-		if len(ss.AvgWnd) != avgWndCapacity {
-			panic("this shouldn't happen")
-		}
-
-		ss.AvgDuration = ss.calcAvgWind()
-	}
 }
 
 // A strategy is a pair of dataflow graphs
