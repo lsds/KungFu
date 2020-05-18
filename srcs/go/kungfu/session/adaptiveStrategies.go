@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	interferenceThreshold = 1.25
+	interferenceThreshold = 1.4
 	alternativeStrategy   = 1
 )
 

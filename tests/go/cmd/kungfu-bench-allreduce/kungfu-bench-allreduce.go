@@ -59,7 +59,7 @@ func benchAllReduce(peer *peer.Peer, m *fakemodel.FakeModel) {
 					OP:      kb.SUM,
 					Name:    name,
 				}
-				sess.SmartAllReduce(w)
+				sess.AllReduce(w)
 			})
 		}(name, m.Buffers[name])
 	}
