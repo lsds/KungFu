@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	interferenceThreshold = 1.4
+	interferenceThreshold = 1.35
 	alternativeStrategy   = 1
 )
 
@@ -179,12 +179,26 @@ func (sess *Session) ChangeStrategy() bool {
 	//be suspended all together.
 	var ret bool
 
+	s := sess.strategies[0]
+	if s.stat.refWindow.AvgDuration == 0 {
+
+		//TODO: temp dev change. make this permanent by considering distrib state
+		s.stat.refWindow.AvgDuration = s.stat.AvgDuration
+		s.stat.refWindow.CmaDuration = s.stat.CmaDuration
+
+		if sess.rank == 0 {
+			fmt.Println("DEBUG:: Taking reff window snapshot")
+			fmt.Println("DEBUG:: AvgDur = ", s.stat.refWindow.AvgDuration)
+			fmt.Println("DEBUG:: CmaDur = ", s.stat.refWindow.CmaDuration)
+		}
+		return false
+	}
+
 	db := fakemodel.NewDoubleBuffer(kb.I8, sess.GetNumStrategies())
 
 	sb := db.SendBuf.AsI8()
 	rb := db.RecvBuf.AsI8()
 
-	s := sess.strategies[0]
 	sb[0] = 0
 
 	if sess.rank == 0 {

@@ -53,16 +53,6 @@ func (ss *StrategyStat) Update(duration time.Duration) {
 	tot := float64(ss.CmaDuration)*float64(ss.count) + float64(duration)
 	ss.count++
 	ss.CmaDuration = time.Duration(tot / float64(ss.count))
-
-	if ss.count == strategyMonitorRefferenceWindow {
-		ss.refWindow.AvgDuration = ss.AvgDuration
-		ss.refWindow.CmaDuration = ss.CmaDuration
-
-		// fmt.Println("DEBUG:: Taking reff window snapshot")
-		// fmt.Println("DEBUG:: AvgDur = ", ss.refWindow.AvgDuration)
-		// fmt.Println("DEBUG:: CmaDur = ", ss.refWindow.CmaDuration)
-	}
-
 }
 
 // A strategy is a pair of dataflow graphs
