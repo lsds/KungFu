@@ -91,6 +91,22 @@ func ShowRate(r float64) string {
 	}
 }
 
+func ShowSize(s int) string {
+	const Ki = 1 << 10
+	const Mi = 1 << 20
+	const Gi = 1 << 30
+	switch {
+	case s > Gi:
+		return fmt.Sprintf("%.2fGi", (float64(s) / Gi))
+	case s > Mi:
+		return fmt.Sprintf("%.2fMi", (float64(s) / Mi))
+	case s > Ki:
+		return fmt.Sprintf("%.2fKi", (float64(s) / Ki))
+	default:
+		return fmt.Sprintf("%dB", s)
+	}
+}
+
 func ListNvidiaGPUNames() []string {
 	const prefix = `/dev/`
 	files, err := filepath.Glob(prefix + `nvidia*`)

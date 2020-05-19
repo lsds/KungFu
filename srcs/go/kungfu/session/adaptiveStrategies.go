@@ -57,6 +57,7 @@ func (sess *Session) LogStats(stratIdx int) {
 	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds() //time.Duration(stats.lastEnd-*stats.firstBegin)
 	stats.Throughput = t
 
+	fmt.Println("AccData=", utils.ShowSize(stats.accSize), " Dur=", stats.lastEnd.Sub(*stats.firstBegin).Seconds(), " sec")
 	//reset counters
 	stats.Reset()
 
