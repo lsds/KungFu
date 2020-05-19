@@ -21,62 +21,77 @@ const strategyMonitorRefferenceWindow = 1500
 const avgWndCapacity = 100
 
 type StrategyStatSnapshot struct {
-	AvgDuration    time.Duration
-	CmaDuration    time.Duration
-	AvgWndDuration time.Duration
-	Throughput     float64
+	// AvgDuration    time.Duration
+	// CmaDuration    time.Duration
+	// AvgWndDuration time.Duration
+	Throughput float64
 }
 
 //StrategyStat holds statistical data for a specific strategy
 type StrategyStat struct {
-	AvgDuration    time.Duration
-	CmaDuration    time.Duration
-	AvgWnd         [avgWndCapacity]time.Duration
-	AvgWndDuration time.Duration
-	wndFront       int
-	wndBack        int
-	Throughput     float64
-	accSize        int
-	accDur         time.Duration
-	count          int
-	suspended      bool
-	refWindow      StrategyStatSnapshot
-	lock           sync.Mutex
+	// AvgDuration    time.Duration
+	// CmaDuration    time.Duration
+	// AvgWnd         [avgWndCapacity]time.Duration
+	// AvgWndDuration time.Duration
+	// wndFront       int
+	// wndBack        int
+	Throughput float64
+	accSize    int
+	firstBegin *time.Time
+	lastEnd    time.Time
+	count      int
+	suspended  bool
+	reff       StrategyStatSnapshot
+	lock       sync.Mutex
 }
 
 //GetSnapshot return a StrategyStatSnapshot object containing
 //a snapshot of the strategy's statistics
 func (ss *StrategyStat) GetSnapshot() StrategyStatSnapshot {
-	return StrategyStatSnapshot{AvgDuration: ss.AvgDuration, CmaDuration: ss.CmaDuration, AvgWndDuration: ss.AvgWndDuration, Throughput: ss.Throughput}
+	return StrategyStatSnapshot{Throughput: ss.Throughput}
 }
 
-func (ss *StrategyStat) Update(duration time.Duration, size int) {
+func (ss *StrategyStat) Reset() {
+	ss.accSize = 0
+	ss.firstBegin = nil
+	ss.lastEnd = time.Unix(0, 0)
+}
+
+func (ss *StrategyStat) Update(begin, end time.Time, size int) {
 
 	ss.lock.Lock()
 	defer ss.lock.Unlock()
 
-	ss.accDur = ss.accDur + duration
+	if ss.firstBegin == nil {
+		ss.firstBegin = &begin
+	}
+	if end.After(ss.lastEnd) {
+		ss.lastEnd = end
+	}
 	ss.accSize = ss.accSize + size
 
-	if ss.count == 0 {
-		ss.AvgDuration = duration
-	} else {
-		ss.AvgDuration = (ss.AvgDuration + duration) / 2
-	}
+	// ss.accDur = ss.accDur + duration
+	//
 
-	//TODO: fix this, hot fix coding needs refactoring
-	if ss.count < avgWndCapacity {
-		ss.AvgWnd[ss.wndBack] = duration
-		ss.wndBack = (ss.wndBack + 1) % avgWndCapacity
-	} else {
-		ss.AvgWnd[ss.wndBack] = duration
-		ss.wndFront = (ss.wndFront + 1) % avgWndCapacity
-		ss.wndBack = (ss.wndBack + 1) % avgWndCapacity
-	}
+	// if ss.count == 0 {
+	// 	ss.AvgDuration = duration
+	// } else {
+	// 	ss.AvgDuration = (ss.AvgDuration + duration) / 2
+	// }
 
-	tot := float64(ss.CmaDuration)*float64(ss.count) + float64(duration)
+	// //TODO: fix this, hot fix coding needs refactoring
+	// if ss.count < avgWndCapacity {
+	// 	ss.AvgWnd[ss.wndBack] = duration
+	// 	ss.wndBack = (ss.wndBack + 1) % avgWndCapacity
+	// } else {
+	// 	ss.AvgWnd[ss.wndBack] = duration
+	// 	ss.wndFront = (ss.wndFront + 1) % avgWndCapacity
+	// 	ss.wndBack = (ss.wndBack + 1) % avgWndCapacity
+	// }
+
+	// tot := float64(ss.CmaDuration)*float64(ss.count) + float64(duration)
 	ss.count++
-	ss.CmaDuration = time.Duration(tot / float64(ss.count))
+	// ss.CmaDuration = time.Duration(tot / float64(ss.count))
 }
 
 // A strategy is a pair of dataflow graphs
