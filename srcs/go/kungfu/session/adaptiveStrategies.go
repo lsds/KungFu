@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	interferenceThreshold = 1.2
+	interferenceThreshold = 0.8
 	alternativeStrategy   = 1
 )
 
@@ -63,10 +63,11 @@ func (sess *Session) LogStats(stratIdx int) {
 	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds() //time.Duration(stats.lastEnd-*stats.firstBegin)
 	stats.Throughput = t
 
-	if sess.rank == 0 {
-		fmt.Println("LogStats: AccData=", utils.ShowSize(stats.accSize), " Dur=", stats.lastEnd.Sub(*stats.firstBegin).Seconds(), " sec")
-		fmt.Println("LogStats: Throughput=", utils.ShowRate(stats.Throughput))
-	}
+	// if sess.rank == 0 {
+	// 	fmt.Println("LogStats: AccData=", utils.ShowSize(stats.accSize), " Dur=", stats.lastEnd.Sub(*stats.firstBegin).Seconds(), " sec")
+	// 	fmt.Println("LogStats: Throughput=", utils.ShowRate(stats.Throughput))
+	// }
+
 	//reset counters
 	stats.Reset()
 
@@ -82,7 +83,7 @@ func (sess *Session) PrintStategyStats() {
 	// }
 
 	for i, ss := range sess.strategyStats {
-		fmt.Println("epoch #", i, ",Master[", 0, "],Throughput=", utils.ShowRate(ss.Throughput))
+		fmt.Println("Global Step #", i, ",Master[", 0, "],Throughput=", utils.ShowRate(ss.Throughput))
 	}
 }
 
@@ -228,7 +229,7 @@ func (sess *Session) ChangeStrategy() bool {
 	sb[0] = 0
 
 	if sess.rank == 0 {
-		fmt.Println("MonitorStrategy:: Checking Throughput = ", s.stat.Throughput, " reff = ", utils.ShowRate((interferenceThreshold * s.stat.reff.Throughput)))
+		fmt.Println("MonitorStrategy:: Checking Throughput = ", utils.ShowRate(s.stat.Throughput), " reff = ", utils.ShowRate((interferenceThreshold * s.stat.reff.Throughput)))
 	}
 
 	if s.stat.Throughput > (interferenceThreshold * float64(s.stat.reff.Throughput)) {
