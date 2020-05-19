@@ -216,7 +216,7 @@ func (sess *Session) ChangeStrategy() bool {
 			// fmt.Println("DEBUG:: AvgDur = ", s.stat.reff.AvgDuration)
 			// fmt.Println("DEBUG:: AvgWndDur = ", s.stat.reff.AvgWndDuration)
 			// fmt.Println("DEBUG:: CmaDur = ", s.stat.reff.CmaDuration)
-			fmt.Println("DEBUG:: Thrroughput = ", s.stat.reff.Throughput)
+			fmt.Println("DEBUG:: Thrroughput = ", utils.ShowRate(s.stat.reff.Throughput))
 		}
 		return false
 	}
@@ -232,7 +232,7 @@ func (sess *Session) ChangeStrategy() bool {
 		fmt.Println("MonitorStrategy:: Checking Throughput = ", utils.ShowRate(s.stat.Throughput), " reff = ", utils.ShowRate((interferenceThreshold * s.stat.reff.Throughput)))
 	}
 
-	if s.stat.Throughput > (interferenceThreshold * float64(s.stat.reff.Throughput)) {
+	if s.stat.Throughput < (interferenceThreshold * float64(s.stat.reff.Throughput)) {
 		// fmt.Println("MonitorStrategy:: Congestion detected.")
 		sb[0] = 1
 	}
