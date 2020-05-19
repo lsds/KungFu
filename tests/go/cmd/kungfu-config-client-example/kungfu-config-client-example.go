@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
@@ -57,7 +58,7 @@ func main() {
 		defer cancel()
 	}
 	periodically(ctx, *period, func(idx int) { updateConfig(*u, hl) })
-	fmt.Printf("Stopped after %s\n", time.Since(t0))
+	log.Infof("%s stopped after %s", utils.ProgName(), time.Since(t0))
 }
 
 var client = http.Client{

@@ -20,6 +20,7 @@ func (p *Peer) openHTTP(client *http.Client, url string) (io.ReadCloser, error) 
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
 		return nil, errors.New(resp.Status)
 	}
 	return resp.Body, nil
