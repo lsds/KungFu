@@ -37,7 +37,7 @@ func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.Partiti
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			endTime = time.Now()
 			// stpWatch.StopAndSave(&dur)
-			s.stat.Update(startTime, endTime, w.SendBuf.Count*2)
+			s.stat.Update(startTime, endTime, w.SendBuf.Count*w.SendBuf.Type.Size())
 			wg.Done()
 		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
 	}
