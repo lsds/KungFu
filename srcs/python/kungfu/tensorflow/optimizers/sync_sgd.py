@@ -69,7 +69,7 @@ class _SynchronousSGD(_KungFuAlgorithm):
             else:
                 summed_gradients = group_nccl_all_reduce(gradients)
         else:
-            summed_gradients = map_maybe(monitored_all_reduce, gradients)
+            summed_gradients = map_maybe(lambda g: monitored_all_reduce(g, []), gradients)
 
         np = tf.cast(self._num_workers, tf.float32)
         reduced_grads = map_maybe(lambda g: g / np, summed_gradients)
