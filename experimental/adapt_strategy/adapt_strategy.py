@@ -186,7 +186,7 @@ def run(benchmark_step):
             log_stats(default_strategy_master)
 
             img_sec = args.batch_size / time
-            log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
+            log('Iter #%d: %.1f img/sec per %s' % (x*args.num_batches_per_iter + y, img_sec, device))
             img_secs.append(img_sec)
 
             if args.adapt:
