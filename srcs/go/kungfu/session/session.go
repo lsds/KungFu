@@ -24,6 +24,7 @@ type StrategyStatSnapshot struct {
 	AvgDuration    time.Duration
 	CmaDuration    time.Duration
 	AvgWndDuration time.Duration
+	Throughput     float64
 }
 
 //StrategyStat holds statistical data for a specific strategy
@@ -34,6 +35,9 @@ type StrategyStat struct {
 	AvgWndDuration time.Duration
 	wndFront       int
 	wndBack        int
+	Throughput     float64
+	accSize        int
+	accDur         time.Duration
 	count          int
 	suspended      bool
 	refWindow      StrategyStatSnapshot
@@ -43,13 +47,16 @@ type StrategyStat struct {
 //GetSnapshot return a StrategyStatSnapshot object containing
 //a snapshot of the strategy's statistics
 func (ss *StrategyStat) GetSnapshot() StrategyStatSnapshot {
-	return StrategyStatSnapshot{AvgDuration: ss.AvgDuration, CmaDuration: ss.CmaDuration, AvgWndDuration: ss.AvgWndDuration}
+	return StrategyStatSnapshot{AvgDuration: ss.AvgDuration, CmaDuration: ss.CmaDuration, AvgWndDuration: ss.AvgWndDuration, Throughput: ss.Throughput}
 }
 
-func (ss *StrategyStat) Update(duration time.Duration) {
+func (ss *StrategyStat) Update(duration time.Duration, size int) {
 
 	ss.lock.Lock()
 	defer ss.lock.Unlock()
+
+	ss.accDur = ss.accDur + duration
+	ss.accSize = ss.accSize + size
 
 	if ss.count == 0 {
 		ss.AvgDuration = duration

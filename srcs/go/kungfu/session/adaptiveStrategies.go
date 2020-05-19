@@ -29,15 +29,13 @@ func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.Partiti
 	errs := make([]error, k)
 	var wg sync.WaitGroup
 	for i, w := range w.Split(p, k) {
-		//fmt.Println("DEV::RunningAdaptStrategies::Strategy=", strategies.choose(int(strategyHash(i, w.Name))))
 		wg.Add(1)
 		go func(i int, w kb.Workspace, s strategy) {
 			var dur time.Duration
 			stpWatch := testutils.NewStopWatch()
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			stpWatch.StopAndSave(&dur)
-			s.stat.Update(dur)
-			//fmt.Println("DEV::Iter::", i, "::Duration::", dur, "::SessStrategyDur::", s.duration)
+			s.stat.Update(dur, w.SendBuf.Count*2)
 			wg.Done()
 		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
 	}
@@ -51,7 +49,17 @@ func (sess *Session) runMonitoresStrategies(w kb.Workspace, p kb.PartitionFunc, 
 
 //LogStats reports Stat object for a specific strategy
 func (sess *Session) LogStats(stratIdx int) {
+
+	//calculate Throughput
+	stats := sess.strategies[stratIdx].stat
+	t := float64(stats.accSize) / float64(stats.accDur)
+	stats.Throughput = t
+
 	sess.strategyStats = append(sess.strategyStats, sess.strategies[stratIdx].stat.GetSnapshot())
+
+	if sess.rank == 0 {
+		fmt.Println("LogStats: Throughput=", stats.Throughput)
+	}
 }
 
 func (sess *Session) PrintStategyStats() {
@@ -63,7 +71,7 @@ func (sess *Session) PrintStategyStats() {
 	}
 
 	for i, ss := range sess.strategyStats {
-		fmt.Println("epoch #", i, ",Master[", 0, "],avgDuration=", ss.AvgDuration, ",avgWndDuration=", ss.AvgWndDuration, ",CMA=", ss.CmaDuration)
+		fmt.Println("epoch #", i, ",Master[", 0, "],Throughput=", ss.Throughput, "avgDuration=", ss.AvgDuration, ",avgWndDuration=", ss.AvgWndDuration, ",CMA=", ss.CmaDuration)
 	}
 }
 
