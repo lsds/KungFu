@@ -132,6 +132,7 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU', adapt=False, ben
             log('warmup step %d, took %.2fs, equivalent data rate: %s' %
                 (step, duration, show_rate(tot_size * multiplier, duration)))
 
+        log_stats(-1)
         for step in one_based_range(bench_steps):
             duration, _ = measure(lambda: sess.run(ys))
             log('step %d, took %.2fs, equivalent data rate: %s' %

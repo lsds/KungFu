@@ -52,20 +52,25 @@ func (sess *Session) runMonitoresStrategies(w kb.Workspace, p kb.PartitionFunc, 
 //LogStats reports Stat object for a specific strategy
 func (sess *Session) LogStats(stratIdx int) {
 
+	//TODO: fix this. Temporary for experiments only
+	if stratIdx == -1 {
+		sess.strategies[0].stat.Reset()
+		return
+	}
+
 	//calculate Throughput
 	stats := sess.strategies[stratIdx].stat
 	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds() //time.Duration(stats.lastEnd-*stats.firstBegin)
 	stats.Throughput = t
 
-	fmt.Println("AccData=", utils.ShowSize(stats.accSize), " Dur=", stats.lastEnd.Sub(*stats.firstBegin).Seconds(), " sec")
+	if sess.rank == 0 {
+		fmt.Println("LogStats: AccData=", utils.ShowSize(stats.accSize), " Dur=", stats.lastEnd.Sub(*stats.firstBegin).Seconds(), " sec")
+		fmt.Println("LogStats: Throughput=", utils.ShowRate(stats.Throughput))
+	}
 	//reset counters
 	stats.Reset()
 
 	sess.strategyStats = append(sess.strategyStats, sess.strategies[stratIdx].stat.GetSnapshot())
-
-	if sess.rank == 0 {
-		fmt.Println("LogStats: Throughput=", utils.ShowRate(stats.Throughput))
-	}
 }
 
 func (sess *Session) PrintStategyStats() {
