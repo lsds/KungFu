@@ -181,10 +181,13 @@ def run(benchmark_step):
     log('Running benchmark...')
     img_secs = []
     for x in range(args.num_iters): 
-        time=0
         for y in range(args.num_batches_per_iter):
-            time += timeit.timeit(benchmark_step, number=1)
+            time = timeit.timeit(benchmark_step, number=1)
             log_stats(default_strategy_master)
+
+            img_sec = args.batch_size / time
+            log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
+            img_secs.append(img_sec)
 
             if args.adapt:
                 if changed:
@@ -192,9 +195,6 @@ def run(benchmark_step):
                 ret = change_strategy()
                 if ret == 1:
                     changed = True
-        img_sec = args.batch_size * args.num_batches_per_iter / time
-        log('Iter #%d: %.1f img/sec per %s' % (x, img_sec, device))
-        img_secs.append(img_sec)
     
     if current_rank() == 0:
         print_strategy_stats()
