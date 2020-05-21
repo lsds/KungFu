@@ -189,7 +189,7 @@ def run(benchmark_step):
             log('Iter #%d: %.1f img/sec per %s' % (x*args.num_batches_per_iter + y, img_sec, device))
             img_secs.append(img_sec)
 
-            if args.adapt:
+            if args.adapt and y > 0:
                 if changed:
                     continue
                 ret = change_strategy()
