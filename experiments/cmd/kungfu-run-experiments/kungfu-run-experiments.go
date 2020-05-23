@@ -8,6 +8,7 @@ import (
 
 	"github.com/lsds/KungFu/experiments/tfkeras"
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/runtime"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/plan/hostfile"
@@ -20,12 +21,14 @@ var flg = struct {
 	logDir     *string
 	usr        *string
 	verboseLog *bool
+	nic        *string
 
 	strategy base.Strategy
 }{
 	hostfile:   flag.String("hostfile", "hosts.txt", ""),
 	logDir:     flag.String("logdir", ".", ""),
 	usr:        flag.String("u", "", "user name for ssh"),
+	nic:        flag.String("nic", "", ""),
 	verboseLog: flag.Bool("v", true, "show task log"),
 
 	strategy: base.DefaultStrategy,
@@ -72,18 +75,19 @@ func combine(cs []Cluster, es []tfkeras.Experiment, f func(Cluster, tfkeras.Expe
 
 func run(c Cluster, e tfkeras.Experiment) error {
 	pr := plan.DefaultPortRange
-	peers, err := c.Hostlist.GenPeerList(c.Size, pr)
-	if err != nil {
-		return err
-	}
-
 	ctx := context.TODO()
 	j := e.Job(flg.strategy, c.Hostlist, pr, *flg.logDir)
 	fmt.Printf("%s\n", j.DebugString())
-
-	procs := j.CreateAllProcs(peers)
+	sp := runtime.SystemParameters{
+		User:            *flg.usr,
+		WorkerPortRange: pr,
+		RunnerPort:      plan.DefaultRunnerPort,
+		HostList:        c.Hostlist,
+		ClusterSize:     c.Size,
+		Nic:             *flg.nic,
+	}
 	d, err := utils.Measure(func() error {
-		return remote.RemoteRunAll(ctx, *flg.usr, procs, *flg.verboseLog, *flg.logDir)
+		return remote.RunStaticKungFuJob(ctx, j, sp)
 	})
 	log.Infof("took %s", d)
 	return err

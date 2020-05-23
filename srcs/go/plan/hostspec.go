@@ -98,6 +98,15 @@ func (hl HostList) Cap() int {
 	return cap
 }
 
+func (hl HostList) LookupHost(ipv4 uint32) string {
+	for _, h := range hl {
+		if h.IPv4 == ipv4 {
+			return h.PublicAddr
+		}
+	}
+	return FormatIPv4(ipv4)
+}
+
 type PortRange struct {
 	Begin uint16
 	End   uint16

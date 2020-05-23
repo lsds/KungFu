@@ -49,12 +49,7 @@ const script = `benchmarks/system/benchmark_kungfu.py`
 func (e Experiment) Job(strategy base.Strategy, hl plan.HostList, pr plan.PortRange, logDir string) job.Job {
 	prog := `python3`
 	args := []string{
-		`PATH=$HOME/local/python/bin`,
-		`TF_CPP_MIN_LOG_LEVEL=2`,
-		`PYTHONWARNINGS=ignore`,
-		prog,
 		path.Join(`./KungFu`, script),
-
 		fmt.Sprintf("--batch-size %d", e.BatchSize),
 		fmt.Sprintf("--num-warmup-batches %d", e.WarmupBatches),
 		fmt.Sprintf("--num-iters %d", e.NumIters),
@@ -66,10 +61,9 @@ func (e Experiment) Job(strategy base.Strategy, hl plan.HostList, pr plan.PortRa
 		Strategy:  strategy,
 		HostList:  hl,
 		PortRange: pr,
-		// Prog:      prog,
-		Prog:   `env`,
-		Args:   args,
-		LogDir: logDir,
+		Prog:      prog,
+		Args:      args,
+		LogDir:    logDir,
 	}
 }
 

@@ -86,6 +86,12 @@ func (j Job) CreateProcs(pl plan.PeerList, host uint32) []Proc {
 	return ps
 }
 
+func (j Job) ProgAndArgs() []string {
+	a := []string{j.Prog}
+	a = append(a, j.Args...)
+	return a
+}
+
 func getConfigEnvs() Envs {
 	envs := make(Envs)
 	for _, k := range config.ConfigEnvKeys {
