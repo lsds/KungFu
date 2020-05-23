@@ -65,7 +65,9 @@ func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParamet
 	hl := sp.HostList
 	runners := hl.GenRunnerList(sp.RunnerPort)
 	runnerFlags := []string{
-		`PATH=$HOME/local/python/bin:$PATH`, // FIXME: find kungfu-run PATH
+		`PATH=$HOME/go/bin:$PATH`, // FIXME: find kungfu-run PATH
+		// `PATH=$HOME/local/python/bin:$PATH`, // FIXME: find kungfu-run PATH
+
 		`PYTHONWARNINGS=ignore`,
 		`TF_CPP_MIN_LOG_LEVEL=2`,
 		runnerProg,
