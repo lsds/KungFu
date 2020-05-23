@@ -21,10 +21,12 @@ var flg = struct {
 	hostfile *string
 	usr      *string
 	logDir   *string
+	tag      *string
 }{
 	hostfile: flag.String("hostfile", "hosts.txt", ""),
 	usr:      flag.String("u", "", "user name for ssh"),
 	logDir:   flag.String("logdir", ".", ""),
+	tag:      flag.String("tag", "master", ""),
 }
 
 func main() {
@@ -52,7 +54,7 @@ func installAll(hl plan.HostList) error {
 		parseCmd(`mkdir -p .kungfu`),
 		parseCmd(`ls .kungfu`),
 		parseCmd(`git clone https://github.com/lsds/KungFu`).ChDir(`.kungfu`),
-		// parseCmd(`git checkout master`).ChDir(`.kungfu/KungFu`),
+		parseCmd(`git checkout ` + *flg.tag).ChDir(`.kungfu/KungFu`),
 		parseCmd(`go install -v ./...`).ChDir(`.kungfu/KungFu`).Env(`PATH`, `$HOME/local/go/bin:$PATH`),
 	}
 
@@ -97,7 +99,7 @@ func parseCmd(line string) shellCmd {
 
 type shellCmds []shellCmd
 
-func (ss shellCmds) RunOn(hostname string) {
+func (ss shellCmds) RunOn(hostname string) error {
 	for i, c := range ss {
 		p := job.Proc{
 			Name:     fmt.Sprintf("%s#%d", hostname, i),
@@ -110,6 +112,8 @@ func (ss shellCmds) RunOn(hostname string) {
 		log.Infof("running on %s $ %s %q", p.Hostname, p.Prog, p.Args)
 		if err := remote.RemoteRunAll(context.TODO(), *flg.usr, []job.Proc{p}, true, *flg.logDir); err != nil {
 			log.Errorf("failed to run %s $ %s %q: %v", p.Hostname, p.Prog, p.Args, err)
+			return err
 		}
 	}
+	return nil
 }
