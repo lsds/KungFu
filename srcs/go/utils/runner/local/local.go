@@ -25,6 +25,21 @@ type Runner struct {
 
 // Run a command with context
 func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
+	return runWith(ctx, r.defaultRedirectors(), cmd)
+}
+
+func (r Runner) defaultRedirectors() []*iostream.StdWriters {
+	var redirectors []*iostream.StdWriters
+	if r.VerboseLog {
+		redirectors = append(redirectors, iostream.NewXTermRedirector(r.Name, r.Color))
+	}
+	if len(r.LogFilePrefix) > 0 {
+		redirectors = append(redirectors, iostream.NewFileRedirector(path.Join(r.LogDir, r.LogFilePrefix)))
+	}
+	return redirectors
+}
+
+func runWith(ctx context.Context, redirectors []*iostream.StdWriters, cmd *exec.Cmd) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -36,13 +51,7 @@ func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 	}
 	defer stderr.Close()
 	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr}
-	var redirectors []*iostream.StdWriters
-	if r.VerboseLog {
-		redirectors = append(redirectors, iostream.NewXTermRedirector(r.Name, r.Color))
-	}
-	if len(r.LogFilePrefix) > 0 {
-		redirectors = append(redirectors, iostream.NewFileRedirector(path.Join(r.LogDir, r.LogFilePrefix)))
-	}
+
 	ioDone := results.Stream(redirectors...)
 	if err := cmd.Start(); err != nil {
 		return err
