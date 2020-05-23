@@ -110,8 +110,8 @@ func (c *Client) Watch(ctx context.Context, cmd string, redirectors []*iostream.
 	}
 	done := make(chan error)
 	go func() {
+		ioDone.Wait() // before session.Wait()
 		err := session.Wait()
-		ioDone.Wait()
 		done <- err
 	}()
 	select {

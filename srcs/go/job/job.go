@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -14,7 +14,7 @@ import (
 
 type Job struct {
 	ConfigServer string
-	Strategy     kb.Strategy
+	Strategy     base.Strategy
 	Parent       plan.PeerID
 	HostList     plan.HostList
 	PortRange    plan.PortRange
@@ -94,4 +94,8 @@ func getConfigEnvs() Envs {
 		}
 	}
 	return envs
+}
+
+func (j Job) DebugString() string {
+	return fmt.Sprintf("job{prog=%s, args=%q}", j.Prog, j.Args)
 }

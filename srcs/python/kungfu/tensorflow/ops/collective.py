@@ -77,7 +77,9 @@ def _start_nccl_scheduler(*args, **kwargs):
     if hasattr(_op_lib, 'kungfu_start_nccl_scheduler'):
         return _op_lib.kungfu_start_nccl_scheduler(*args, **kwargs)
     else:
-        raise RuntimeError("KungFu is not installed with NCCL.")
+        raise RuntimeError(
+            "KungFu is not installed with NCCL. Please reinstall with KUNGFU_ENABLE_NCCL=1"
+        )
 
 
 def group_nccl_all_reduce(ts):
