@@ -76,10 +76,10 @@ func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParamet
 	var ps []job.Proc
 	for _, r := range runners {
 		p := job.Proc{
-			Name:    plan.FormatIPv4(r.IPv4),
-			Prog:    `env`,
-			Args:    append(runnerFlags, j.ProgAndArgs()...),
-			PubAddr: hl.LookupHost(r.IPv4),
+			Name:     plan.FormatIPv4(r.IPv4),
+			Prog:     `env`,
+			Args:     append(runnerFlags, j.ProgAndArgs()...),
+			Hostname: hl.LookupHost(r.IPv4),
 		}
 		ps = append(ps, p)
 	}
