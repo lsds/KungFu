@@ -20,6 +20,10 @@ func (h HostSpec) String() string {
 	return fmt.Sprintf("%s:%d:%s", FormatIPv4(h.IPv4), h.Slots, h.PublicAddr)
 }
 
+func (h HostSpec) DebugString() string {
+	return fmt.Sprintf("%s slots=%d hostname=%s", FormatIPv4(h.IPv4), h.Slots, h.PublicAddr)
+}
+
 func parseHostSpec(spec string) (*HostSpec, error) {
 	parts := strings.Split(spec, ":")
 	if len(parts) < 1 {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +19,9 @@ import (
 )
 
 var flg = struct {
-	hostfile   *string
+	hostfile     *string
+	clusterSizes *string
+
 	logDir     *string
 	usr        *string
 	verboseLog *bool
@@ -26,7 +29,9 @@ var flg = struct {
 
 	strategy base.Strategy
 }{
-	hostfile:   flag.String("hostfile", "hosts.txt", ""),
+	hostfile:     flag.String("hostfile", "hosts.txt", ""),
+	clusterSizes: flag.String("cluster-sizes", "", ""),
+
 	logDir:     flag.String("logdir", ".", ""),
 	usr:        flag.String("u", "", "user name for ssh"),
 	nic:        flag.String("nic", "", ""),
@@ -43,26 +48,28 @@ func main() {
 	flag.Parse()
 	t0 := time.Now()
 	defer func(prog string) { log.Infof("%s finished, took %s", prog, time.Since(t0)) }(utils.ProgName())
+	sizes, err := parseIntList(*flg.clusterSizes)
+	if err != nil {
+		utils.ExitErr(err)
+	}
 	hl, err := hostfile.ParseFile(*flg.hostfile)
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	fmt.Printf("total cap: %d\n", hl.Cap())
-	for _, h := range hl {
-		fmt.Printf("%s\n", h)
+	for i, h := range hl {
+		fmt.Printf("host[%d]=%s\n", i, h.DebugString())
 	}
 
-	// sizes := []int{1, 2, 4, 8, 8 * 2, 8 * 3, 8 * 4, 8 * 5, 8 * 6}
-	sizes := []int{4}
 	cs := generateClusters(hl, sizes)
 	es := tfkeras.Default()
-	tailed := combine(cs, es, run)
-	fmt.Printf("failed %d experiments\n", tailed)
+	succ, failed := combine(cs, es, run)
+	fmt.Printf("run %d experiments, succ: %d, failed: %d\n", succ+failed, succ, failed)
 }
 
-func combine(cs []Cluster, es []tfkeras.Experiment, f func(Cluster, tfkeras.Experiment) error) int {
+func combine(cs []Cluster, es []tfkeras.Experiment, f func(Cluster, tfkeras.Experiment) error) (int, int) {
 	var idx int
-	var failed int
+	var succ, failed int
 	for _, c := range cs {
 		log.Infof("will runn %d experiments with %d peers", len(es), c.Size)
 		for _, e := range es {
@@ -70,10 +77,12 @@ func combine(cs []Cluster, es []tfkeras.Experiment, f func(Cluster, tfkeras.Expe
 			if err := f(c, e); err != nil {
 				log.Errorf("experiment #%d failed: %v", idx, err)
 				failed++
+			} else {
+				succ++
 			}
 		}
 	}
-	return failed
+	return succ, failed
 }
 
 func run(c Cluster, e tfkeras.Experiment) error {
@@ -94,4 +103,16 @@ func run(c Cluster, e tfkeras.Experiment) error {
 	})
 	log.Infof("took %s", d)
 	return err
+}
+
+func parseIntList(line string) ([]int, error) {
+	var ns []int
+	for _, s := range strings.Split(line, ",") {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+		ns = append(ns, n)
+	}
+	return ns, nil
 }

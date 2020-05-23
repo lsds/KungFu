@@ -12,7 +12,7 @@ type Cluster struct {
 }
 
 func generateClusters(hl plan.HostList, sizes []int) []Cluster {
-	sort.Ints(sizes)
+	sort.Sort(sort.Reverse(sort.IntSlice(sizes)))
 	var cs []Cluster
 	for _, s := range sizes {
 		c := Cluster{
