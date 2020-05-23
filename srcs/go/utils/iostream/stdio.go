@@ -39,3 +39,22 @@ func (r *StdReaders) Stream(ws ...*StdWriters) interface{ Wait() } {
 	}()
 	return &wg
 }
+
+// SaveFirstdWriter remembers the content of the first Write call
+type SaveFirstdWriter struct {
+	First string
+}
+
+func (w *SaveFirstdWriter) Write(bs []byte) (int, error) {
+	if len(w.First) == 0 {
+		w.First = string(bs)
+	}
+	return len(bs), nil
+}
+
+// Null implements /dev/null
+type Null struct{}
+
+func (w *Null) Write(bs []byte) (int, error) {
+	return len(bs), nil
+}
