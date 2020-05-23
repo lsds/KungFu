@@ -136,7 +136,8 @@ def run_with_session_and_hooks(args):
     train_op = build_train_op(args.model, features, labels)
 
     hooks = [
-        debug_hooks.LogStepHook(),
+        # debug_hooks.LogStepHook(),
+        debug_hooks.LogPerfHook(args.batch_size),
     ]
 
     with tf.train.MonitoredTrainingSession(hooks=hooks) as sess:

@@ -1,3 +1,4 @@
+import os
 import time
 
 import numpy as np
@@ -5,8 +6,20 @@ import numpy as np
 import tensorflow as tf
 
 
+def _cluster_size():
+    if os.getenv('KUNGFU_SELF_SPEC'):
+        from kungfu import current_cluster_size
+        return current_cluster_size()
+    else:
+        try:
+            import horovod.tensorflow as hvd
+            return hvd.size()
+        except:
+            return 1
+
+
 class LogPerfHook(tf.train.SessionRunHook):
-    def __init__(self, batch_size, warmup_steps=10, drop_last=1):
+    def __init__(self, batch_size, warmup_steps=5, drop_last=1):
         self._batch_size = batch_size
         self._warmup_steps = warmup_steps
         self._drop_last = drop_last
@@ -21,7 +34,10 @@ class LogPerfHook(tf.train.SessionRunHook):
         self._step += 1
         t1 = time.time()
         dur = t1 - self._t_last
-        print('step %d, took %.3fs' % (self._step, dur))
+        step_per_sec = 1 / dur
+        sample_per_sec = step_per_sec * self._batch_size
+        print('step %d, took %.3fs, %.2f samples / sec' %
+              (self._step, dur, sample_per_sec))
         if self._step > self._warmup_steps:
             self._durations.append(dur)
         self._t_last = t1
@@ -31,10 +47,13 @@ class LogPerfHook(tf.train.SessionRunHook):
         durations = durations[:len(durations) - self._drop_last]
         ds = np.array(durations)
         mean_duration = ds.mean()
+        # print('durations: %s' % (durations))
+        print('mean_duration: %.3fs' % (mean_duration))
         step_per_sec = 1 / mean_duration
         sample_per_sec = step_per_sec * self._batch_size
-        print('%.2f samples / sec, batch size: %d' %
-              (sample_per_sec, self._batch_size))
+        print(
+            'FINAL RESULT: %.2f samples / sec, batch size: %d, cluster size %d'
+            % (sample_per_sec, self._batch_size, _cluster_size()))
 
 
 class LogStepHook(tf.train.SessionRunHook):
