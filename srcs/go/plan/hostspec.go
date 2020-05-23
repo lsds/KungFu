@@ -150,6 +150,19 @@ func (pr *PortRange) Set(val string) error {
 	return nil
 }
 
+func (hl HostList) ShrinkToFit(np int) HostList {
+	var cap int
+	var part HostList
+	for _, h := range hl {
+		part = append(part, h)
+		cap += h.Slots
+		if cap >= np {
+			break
+		}
+	}
+	return part
+}
+
 func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	var pl PeerList
 	if np == 0 {

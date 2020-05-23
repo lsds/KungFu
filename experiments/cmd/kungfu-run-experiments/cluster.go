@@ -16,7 +16,7 @@ func generateClusters(hl plan.HostList, sizes []int) []Cluster {
 	var cs []Cluster
 	for _, s := range sizes {
 		c := Cluster{
-			Hostlist: hl,
+			Hostlist: hl.ShrinkToFit(s),
 			Size:     s,
 		}
 		cs = append(cs, c)

@@ -66,6 +66,8 @@ func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParamet
 	runners := hl.GenRunnerList(sp.RunnerPort)
 	runnerFlags := []string{
 		`PATH=$HOME/local/python/bin:$PATH`, // FIXME: find kungfu-run PATH
+		`PYTHONWARNINGS=ignore`,
+		`TF_CPP_MIN_LOG_LEVEL=2`,
 		runnerProg,
 		`-q`,
 		`-np`, strconv.Itoa(sp.ClusterSize),
@@ -83,6 +85,5 @@ func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParamet
 		}
 		ps = append(ps, p)
 	}
-	log.Infof("launching %d runners", len(ps))
-	return RemoteRunAll(ctx, sp.User, ps, true, ".")
+	return RemoteRunAll(ctx, sp.User, ps, true, j.LogDir)
 }

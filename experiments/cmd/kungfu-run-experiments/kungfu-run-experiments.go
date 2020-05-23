@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/lsds/KungFu/experiments/tfkeras"
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
@@ -40,6 +41,8 @@ func init() {
 
 func main() {
 	flag.Parse()
+	t0 := time.Now()
+	defer func(prog string) { log.Infof("%s finished, took %s", prog, time.Since(t0)) }(utils.ProgName())
 	hl, err := hostfile.ParseFile(*flg.hostfile)
 	if err != nil {
 		utils.ExitErr(err)
