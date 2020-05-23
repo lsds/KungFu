@@ -4,10 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/lsds/KungFu/srcs/go/job"
+	"github.com/lsds/KungFu/experiments/elastic"
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runtime"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -23,8 +24,8 @@ type Cluster struct {
 }
 
 var flg = struct {
-	hostfile     *string
-	clusterSizes *string
+	hostfile *string
+	id       *string
 
 	logDir     *string
 	usr        *string
@@ -33,8 +34,8 @@ var flg = struct {
 
 	strategy base.Strategy
 }{
-	hostfile:     flag.String("hostfile", "hosts.txt", ""),
-	clusterSizes: flag.String("cluster-sizes", "", ""),
+	hostfile: flag.String("hostfile", "hosts.txt", ""),
+	id:       flag.String("job-id", strconv.Itoa(int(time.Now().Unix())), ""),
 
 	logDir:     flag.String("logdir", ".", ""),
 	usr:        flag.String("u", "", "user name for ssh"),
@@ -68,13 +69,12 @@ func main() {
 		Size:     hl.Cap(),
 	}
 	run(c)
-
 }
 
 func run(c Cluster) error {
 	pr := plan.DefaultPortRange
 	ctx := context.TODO()
-	j := genJob()
+	j := elastic.TestJob(*flg.id, flg.strategy, c.Hostlist, pr, *flg.logDir)
 	log.Infof("will run %s\n", j.DebugString())
 	sp := runtime.SystemParameters{
 		User:            *flg.usr,
@@ -85,19 +85,8 @@ func run(c Cluster) error {
 		Nic:             *flg.nic,
 	}
 	d, err := utils.Measure(func() error {
-		return remote.RunStaticKungFuJob(ctx, j, sp)
+		return remote.RunElasticKungFuJob(ctx, j, sp)
 	})
 	log.Infof("took %s", d)
 	return err
-}
-
-func genJob() job.Job {
-	args := []string{}
-	return job.Job{
-		Strategy: flg.strategy,
-		// HostList: hl,
-		Prog:   `hostname`,
-		Args:   args,
-		LogDir: *flg.logDir,
-	}
 }
