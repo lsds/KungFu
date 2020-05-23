@@ -22,12 +22,12 @@ var (
 	epochs       = flag.Int("epochs", 15, "")
 	warmupEpochs = flag.Int("warmup", 2, "warmup epochs")
 
-	randomNcclRailure = flag.Bool("rand-nccl-failure", false, "")
+	randomNcclFailure = flag.Bool("rand-nccl-failure", false, "")
 )
 
 func main() {
 	flag.Parse()
-	if *randomNcclRailure {
+	if *randomNcclFailure {
 		nccl.RandomFailure()
 	}
 	p, err := peer.New()
