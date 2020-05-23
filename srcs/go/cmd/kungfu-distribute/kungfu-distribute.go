@@ -77,10 +77,10 @@ func distribute(ctx context.Context, hl []runner.HostSpec, prog string, args []s
 	var ps []job.Proc
 	for _, h := range hl {
 		proc := job.Proc{
-			Name:    h.PublicAddr,
-			PubAddr: h.PublicAddr,
-			Prog:    prog,
-			Args:    args,
+			Name:     h.PublicAddr,
+			Hostname: h.PublicAddr,
+			Prog:     prog,
+			Args:     args,
 		}
 		ps = append(ps, proc)
 	}

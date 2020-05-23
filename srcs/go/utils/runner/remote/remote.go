@@ -26,7 +26,7 @@ func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bo
 			defer wg.Done()
 			t0 := time.Now()
 			config := ssh.Config{
-				Host: p.PubAddr,
+				Host: p.Hostname,
 				User: user,
 			}
 			client, err := ssh.New(config)
