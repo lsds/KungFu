@@ -28,7 +28,9 @@ class LogPerfHook(tf.train.SessionRunHook):
         self._t_last = time.time()
 
     def before_run(self, run_context):
-        pass
+        if self._step == 0:
+            from kungfu._utils import _since_job_start, show_duration
+            print('_since_job_start: %s' % (show_duration(_since_job_start())))
 
     def after_run(self, run_context, run_values):
         self._step += 1
@@ -51,9 +53,8 @@ class LogPerfHook(tf.train.SessionRunHook):
         print('mean_duration: %.3fs' % (mean_duration))
         step_per_sec = 1 / mean_duration
         sample_per_sec = step_per_sec * self._batch_size
-        print(
-            'FINAL RESULT: %.2f samples / sec, batch size: %d, cluster size %d'
-            % (sample_per_sec, self._batch_size, _cluster_size()))
+        print('RESULT: %.2f samples / sec, batch size: %d, cluster size %d' %
+              (sample_per_sec, self._batch_size, _cluster_size()))
 
 
 class LogStepHook(tf.train.SessionRunHook):

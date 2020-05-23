@@ -67,6 +67,7 @@ func main() {
 		log.Infof("-P resolved as %s", peers)
 	}
 	j := job.Job{
+		StartTime:   t0,
 		Strategy:    f.Strategy,
 		Parent:      self,
 		HostList:    hl,

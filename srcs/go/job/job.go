@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
@@ -13,6 +14,7 @@ import (
 )
 
 type Job struct {
+	StartTime    time.Time
 	ConfigServer string
 	Strategy     base.Strategy
 	Parent       plan.PeerID
@@ -27,6 +29,7 @@ type Job struct {
 
 func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl plan.PeerList) Proc {
 	envs := Envs{
+		env.JobStartTimestamp:        strconv.FormatInt(j.StartTime.Unix(), 10),
 		env.SelfSpecEnvKey:           peer.String(),
 		env.HostListEnvKey:           j.HostList.String(),
 		env.ParentIDEnvKey:           j.Parent.String(),

@@ -85,7 +85,7 @@ def build_model_fn(model_name):
         logits = model(features['x'], training=True)
         loss = tf.losses.sparse_softmax_cross_entropy(labels, logits)
         opt = build_optimizer()
-        train_op = opt.minimize(loss)
+        train_op = opt.minimize(loss, global_step=tf.train.get_global_step())
 
         eval_metric_ops = None
         return tf.estimator.EstimatorSpec(mode=mode,
@@ -154,7 +154,8 @@ def run_with_estimator(args):
     classifier = build_estimator(args)
     input_fn = build_input_fn(args.batch_size, args.train_steps)
     hooks = [
-        debug_hooks.LogStepHook(),
+        # debug_hooks.LogStepHook(),
+        debug_hooks.LogPerfHook(args.batch_size),
     ]
     classifier.train(input_fn, hooks=hooks, max_steps=args.train_steps)
 
