@@ -49,8 +49,8 @@ func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 	}
 	done := make(chan error)
 	go func() {
+		ioDone.Wait() // call this before cmd.Wait!
 		err := cmd.Wait()
-		ioDone.Wait()
 		done <- err
 	}()
 	select {
@@ -78,7 +78,7 @@ func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
 				LogFilePrefix: strings.Replace(proc.Name, "/", "-", -1),
 				LogDir:        proc.LogDir,
 			}
-			if err := r.TryRun(ctx, proc.Cmd()); err != nil {
+			if err := r.TryRun(ctx, proc); err != nil {
 				log.Errorf("#<%s> exited with error: %v", proc.Name, err)
 				atomic.AddInt32(&fail, 1)
 				cancel()

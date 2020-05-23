@@ -8,6 +8,7 @@ import (
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/nccl"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/tests/go/fakemodel"
 	"github.com/lsds/KungFu/tests/go/taskgroup"
@@ -20,10 +21,15 @@ var (
 	fuse         = flag.Bool("fuse", false, "")
 	epochs       = flag.Int("epochs", 15, "")
 	warmupEpochs = flag.Int("warmup", 2, "warmup epochs")
+
+	randomNcclRailure = flag.Bool("rand-nccl-failure", false, "")
 )
 
 func main() {
 	flag.Parse()
+	if *randomNcclRailure {
+		nccl.RandomFailure()
+	}
 	p, err := peer.New()
 	if err != nil {
 		utils.ExitErr(err)

@@ -6,15 +6,15 @@ import (
 	"path"
 	"strings"
 
+	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/nccl"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 )
 
-const ncclBug = `Inconsistency detected by ld.so`
-
-func (r Runner) TryRun(ctx context.Context, cmd *exec.Cmd) error {
+func (r Runner) TryRun(ctx context.Context, proc job.Proc) error {
 	for i := 1; ; i++ {
-		retry, err := r.tryRun(ctx, cmd)
+		retry, err := r.tryRun(ctx, proc.Cmd())
 		if err != nil && retry {
 			log.Errorf("restarting for the %d-th time because of %v", i, err)
 			continue
@@ -51,8 +51,8 @@ func (r Runner) tryRun(ctx context.Context, cmd *exec.Cmd) (bool, error) {
 	}
 	done := make(chan error)
 	go func() {
+		ioDone.Wait() // call this before cmd.Wait!
 		err := cmd.Wait()
-		ioDone.Wait()
 		done <- err
 	}()
 	select {
@@ -61,7 +61,7 @@ func (r Runner) tryRun(ctx context.Context, cmd *exec.Cmd) (bool, error) {
 		<-done
 		return false, ctx.Err()
 	case err := <-done:
-		if strings.HasPrefix(firstStderr.First, ncclBug) {
+		if strings.HasPrefix(firstStderr.First, nccl.Bug) {
 			return true, err
 		}
 		return false, err
