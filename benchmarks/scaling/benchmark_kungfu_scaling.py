@@ -1,9 +1,11 @@
 import argparse
+import os
 
-import tensorflow as tf
-from tensorflow.python.util import deprecation
+from kungfu._utils import one_based_range
 
 import debug_hooks
+import tensorflow as tf
+from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
@@ -19,8 +21,13 @@ def parse_args():
     p.add_argument('--batch-size', type=int, default=32, help='batch size')
     p.add_argument('--train-steps',
                    type=int,
-                   default=1000,
+                   default=10,
                    help='number of batches per benchmark iteration')
+    p.add_argument('--model-dir', type=str, default='ckpt', help='')
+    p.add_argument('--tf-method',
+                   type=str,
+                   default='simple',
+                   help='simple | monitored | estimator')
     return p.parse_args()
 
 
@@ -31,27 +38,36 @@ def build_optimizer(learning_rate=0.01):
     return opt
 
 
+def simple_input(batch_size):
+    samples = tf.random_uniform([batch_size, 224, 224, 3])
+    labels = tf.random_uniform([batch_size, 1],
+                               minval=0,
+                               maxval=999,
+                               dtype=tf.int64)
+
+    return samples, labels
+
+
 def build_input_fn(batch_size, steps=None):
     def input_fn():
-        data = tf.random_uniform([batch_size, 224, 224, 3])
-        label = tf.random_uniform([batch_size, 1],
-                                  minval=0,
-                                  maxval=999,
-                                  dtype=tf.int64)
-
-        data = tf.data.Dataset.from_tensors(data)
-        label = tf.data.Dataset.from_tensors(label)
-        ds = tf.data.Dataset.zip((data, label))
+        samples, labels = simple_input(batch_size)
+        samples = tf.data.Dataset.from_tensors(samples)
+        labels = tf.data.Dataset.from_tensors(labels)
+        features = {'x': samples}
+        ds = tf.data.Dataset.zip((features, labels))
         ds = ds.repeat(steps)
         return ds
 
     return input_fn
 
 
-def build_train_op(model, features, labels):
-
+def get_model(name):
     from tensorflow.keras import applications
-    model = getattr(applications, model)(weights=None)
+    return getattr(applications, name)(weights=None)
+
+
+def build_train_op(model_name, features, labels):
+    model = get_model(model_name)
 
     logits = model(features['x'], training=True)
     loss = tf.losses.sparse_softmax_cross_entropy(labels, logits)
@@ -62,27 +78,12 @@ def build_train_op(model, features, labels):
     return train_op
 
 
-def build_estimator(model):
+def build_model_fn(model_name):
     def model_fn(features, labels, mode):
-        # output, predictions = slp(features['x'], 10)
-        # loss = tf.losses.sparse_softmax_cross_entropy(tf.cast(labels, tf.int32),
-        #                                               output)
-        # optimizer = tf.train.GradientDescentOptimizer(0.1)
-        # train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
-        # eval_metric_ops = {
-        #     'accuracy': tf.metrics.accuracy(labels=labels, predictions=predictions)
-        # }
-        # return tf.estimator.EstimatorSpec(mode=mode,
-        #                                   loss=loss,
-        #                                   train_op=train_op,
-        #                                   eval_metric_ops=eval_metric_ops)
-
-        from tensorflow.keras import applications
-        model = getattr(applications, model)(weights=None)
+        model = get_model(model_name)
 
         logits = model(features['x'], training=True)
         loss = tf.losses.sparse_softmax_cross_entropy(labels, logits)
-
         opt = build_optimizer()
         train_op = opt.minimize(loss)
 
@@ -95,75 +96,76 @@ def build_estimator(model):
     return model_fn
 
 
+def _get_model_dir(model_dir):
+    from kungfu.ext import uid
+    x = uid()
+    port = (x >> 16) & 0xffff
+    version = x & 0xffff
+    suffix = '%d.%d' % (port, version)
+    return os.path.join(model_dir, suffix)
+
+
+def build_estimator(args):
+    model_dir = _get_model_dir(args.model_dir)
+    model_fn = build_model_fn(args.model)
+    classifier = tf.estimator.Estimator(model_fn, model_dir=model_dir)
+    return classifier
+
+
 def run_simple_session(args):
-    input_fn = build_input_fn(args.batch_size, args.train_steps)
-    ds = input_fn()
-    it = ds.make_initializable_iterator()
-    get_next = it.get_next()
-
-    samples, labels = get_next
-    print(samples)
-    print(labels)
-
+    samples, labels = simple_input(args.batch_size)
     features = {'x': samples}
     train_op = build_train_op(args.model, features, labels)
-
+    init = tf.global_variables_initializer()
     with tf.Session() as sess:
-        sess.run(it.initializer)
-        for _ in range(args.train_steps):
+        sess.run(init)
+        for step in one_based_range(args.train_steps):
             sess.run(train_op)
-            # x, y = sess.run(get_next)
-            # print(x.shape)
-            # print(y.shape)
+            print('trained %d steps' % (step))
 
 
 def run_with_session_and_hooks(args):
+    # samples, labels = simple_input(args.batch_size) # FIXME: infinite loop
+    # features = {'x': samples}
+
     input_fn = build_input_fn(args.batch_size, args.train_steps)
     ds = input_fn()
     it = ds.make_initializable_iterator()
-    get_next = it.get_next()
+    features, labels = it.get_next()
 
-    samples, labels = get_next
-    print(samples)
-    print(labels)
-
-    features = {'x': samples}
     train_op = build_train_op(args.model, features, labels)
-
-    # init = tf.global_variables_initializer()
-
-    # with tf.Session() as sess:
-    #     # sess.run(init)
-    #     sess.run(it.initializer)
-    #     for _ in range(10):
-    #         x, y = sess.run(get_next)
-    #         print(x.shape)
-    #         print(y.shape)
 
     hooks = [
         debug_hooks.LogStepHook(),
     ]
 
     with tf.train.MonitoredTrainingSession(hooks=hooks) as sess:
-        sess.run(it.initializer)
+        sess.run(it.initializer)  # FIXME: don't init in hooks
+        step = 0
         while sess.should_stop:
-            # sess.run(train_op)
             sess.run(train_op)
-            x, y = sess.run(get_next)
-            print(x.shape)
-            print(y.shape)
+            step += 1
+
+    print('MonitoredTrainingSession trained %d steps' % (step))
 
 
-def run_with_estimator():
-    # TODO
-    pass
+def run_with_estimator(args):
+    classifier = build_estimator(args)
+    input_fn = build_input_fn(args.batch_size, args.train_steps)
+    hooks = [
+        debug_hooks.LogStepHook(),
+    ]
+    classifier.train(input_fn, hooks=hooks, max_steps=args.train_steps)
 
 
 def main():
     args = parse_args()
-    # mf = build_model_fn(args.model)
-    # run_with_session_and_hooks(args)
-    run_simple_session(args)
+    tf_methods = {
+        'simple': run_simple_session,
+        'monitored': run_with_session_and_hooks,
+        'estimator': run_with_estimator,
+    }
+    tf_methods[args.tf_method](args)
 
 
 main()

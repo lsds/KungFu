@@ -1,6 +1,7 @@
 import time
 
 import numpy as np
+
 import tensorflow as tf
 
 
@@ -41,11 +42,10 @@ class LogStepHook(tf.train.SessionRunHook):
         self._step = 0
 
     def before_run(self, run_context):
-        self._step += 1
-        print('%s::%s before_run %d steps' %
-              ('LogStepHook', 'after_run', self._step))
+        print('%s::%s %d steps' % ('LogStepHook', 'before_run', self._step))
 
     def after_run(self, run_context, run_values):
+        self._step += 1
         print('%s::%s after %d steps' %
               ('LogStepHook', 'after_run', self._step))
 
