@@ -140,7 +140,7 @@ func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, vers
 		LogFilePrefix: fmt.Sprintf("%s@%d", proc.Name, version),
 		VerboseLog:    true,
 	}
-	if err := r.Run(ctx, proc.Cmd()); err != nil {
+	if err := r.TryRun(ctx, proc); err != nil {
 		log.Infof("%s finished with error: %v", proc.Name, err)
 		cancel()
 		utils.ExitErr(err) // FIXME: graceful shutdown

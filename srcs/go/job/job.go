@@ -56,13 +56,12 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl pla
 	}
 
 	return Proc{
-		Name:    fmt.Sprintf("%s.%d", plan.FormatIPv4(peer.IPv4), peer.Port),
-		Prog:    j.Prog,
-		Args:    j.Args,
-		Envs:    allEnvs,
-		IPv4:    peer.IPv4,
-		PubAddr: pubAddr,
-		LogDir:  j.LogDir,
+		Name:     fmt.Sprintf("%s.%d", plan.FormatIPv4(peer.IPv4), peer.Port),
+		Prog:     j.Prog,
+		Args:     j.Args,
+		Envs:     allEnvs,
+		Hostname: pubAddr,
+		LogDir:   j.LogDir,
 	}
 }
 
