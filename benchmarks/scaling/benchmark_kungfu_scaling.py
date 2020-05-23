@@ -151,6 +151,7 @@ def run_with_session_and_hooks(args):
 
 
 def run_with_estimator(args):
+    print('BEGIN :: run_with_estimator')
     classifier = build_estimator(args)
     input_fn = build_input_fn(args.batch_size, args.train_steps)
     hooks = [
@@ -158,9 +159,11 @@ def run_with_estimator(args):
         debug_hooks.LogPerfHook(args.batch_size),
     ]
     classifier.train(input_fn, hooks=hooks, max_steps=args.train_steps)
+    print('END :: run_with_estimator')
 
 
 def main():
+    print('BEGIN :: main')
     args = parse_args()
     tf_methods = {
         'simple': run_simple_session,
@@ -168,6 +171,7 @@ def main():
         'estimator': run_with_estimator,
     }
     tf_methods[args.tf_method](args)
+    print('END :: main')
 
 
 main()

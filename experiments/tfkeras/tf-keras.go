@@ -1,8 +1,8 @@
 package tfkeras
 
 import (
-	"fmt"
 	"path"
+	"strconv"
 
 	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
@@ -46,17 +46,18 @@ type Experiment struct {
 
 const script = `benchmarks/system/benchmark_kungfu.py`
 
+var str = strconv.Itoa
+
 func (e Experiment) Job(strategy base.Strategy, hl plan.HostList, pr plan.PortRange, logDir string) job.Job {
 	prog := `python3`
 	args := []string{
 		path.Join(`./KungFu`, script),
-		fmt.Sprintf("--batch-size %d", e.BatchSize),
-		fmt.Sprintf("--num-warmup-batches %d", e.WarmupBatches),
-		fmt.Sprintf("--num-iters %d", e.NumIters),
-		fmt.Sprintf("--num-batches-per-iter %d", e.NumBatchPerIter),
-		fmt.Sprintf("--kf-opt %s", e.KFOptimizer),
+		`--batch-size`, str(e.BatchSize),
+		`--num-warmup-batches`, str(e.WarmupBatches),
+		`--num-iters`, str(e.NumIters),
+		`--num-batches-per-iter`, str(e.NumBatchPerIter),
+		`--kf-opt`, string(e.KFOptimizer),
 	}
-
 	return job.Job{
 		Strategy:  strategy,
 		HostList:  hl,
