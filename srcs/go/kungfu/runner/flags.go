@@ -53,8 +53,9 @@ type FlagSet struct {
 	LogDir  string
 	Quiet   bool
 
-	Prog string
-	Args []string
+	JobStartTime int
+	Prog         string
+	Args         []string
 }
 
 func (f *FlagSet) Register(flag *flag.FlagSet) {
@@ -83,6 +84,7 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.IntVar(&f.InitVersion, "init-version", 0, "initial cluster version")
 	flag.StringVar(&f.ConfigServer, "config-server", "", "config server URL")
 
+	flag.IntVar(&f.JobStartTime, "t0", int(time.Now().Unix()), "job start timestamp")
 	flag.StringVar(&f.Logfile, "logfile", "", "path to log file")
 	flag.StringVar(&f.LogDir, "logdir", "", "path to log dir")
 	flag.BoolVar(&f.Quiet, "q", false, "don't log debug info")

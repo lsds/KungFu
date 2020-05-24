@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from kungfu._utils import one_based_range
+from kungfu._utils import _log_event, one_based_range
 
 import debug_hooks
 import tensorflow as tf
@@ -169,7 +169,7 @@ def parse_scheule(schedule):
 
 
 def run_with_estimator(args):
-    print('BEGIN :: run_with_estimator')
+    _log_event('BEGIN :: run_with_estimator')
     classifier = build_estimator(args)
 
     hooks = [
@@ -180,7 +180,6 @@ def run_with_estimator(args):
         hooks.append(debug_hooks.LogPerfHook(args.batch_size))
 
     if args.elastic:
-
         from kungfu.tensorflow.experimental.hook import ElasticHook
         elastic_hook = ElasticHook(args.batch_size, args.epochs,
                                    args.epoch_size)
@@ -196,11 +195,11 @@ def run_with_estimator(args):
         input_fn = build_input_fn(args.batch_size, args.train_steps)
         classifier.train(input_fn, hooks=hooks, max_steps=args.train_steps)
 
-    print('END :: run_with_estimator')
+    _log_event('END :: run_with_estimator')
 
 
 def main():
-    print('BEGIN :: main')
+    _log_event('BEGIN :: main')
     args = parse_args()
     tf_methods = {
         'simple': run_simple_session,
@@ -208,7 +207,7 @@ def main():
         'estimator': run_with_estimator,
     }
     tf_methods[args.tf_method](args)
-    print('END :: main')
+    _log_event('END :: main')
 
 
 main()

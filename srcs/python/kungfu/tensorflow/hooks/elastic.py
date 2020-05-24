@@ -1,12 +1,14 @@
 import os
 
 import numpy as np
-import tensorflow as tf
+from kungfu._utils import _log_event
 from kungfu.ext import propose_new_size
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, consensus, current_cluster_size,
                                    resize_cluster_from_url,
                                    step_based_schedule)
+
+import tensorflow as tf
 
 
 class KungFuElasticTrainHook(tf.train.SessionRunHook):
@@ -41,9 +43,16 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
             # FIXME: force quit
 
         if self._need_sync:
+            is_first = self._step == 0
+            if is_first:
+                _log_event('BEFORE first _sync_step_op')
             self._step = run_context.session.run(
                 self._sync_step_op, feed_dict={self._step_place: self._step})
+            if is_first:
+                _log_event('BEFORE first _sync_op')
             run_context.session.run(self._sync_op)
+            if is_first:
+                _log_event('AFTER first _sync_op')
             self._need_sync = False
 
     def after_run(self, run_context, run_values):

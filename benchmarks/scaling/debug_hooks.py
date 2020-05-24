@@ -2,6 +2,9 @@ import os
 import time
 
 import numpy as np
+from kungfu._utils import (_log_event, _since_proc_start, one_based_range,
+                           show_duration)
+
 import tensorflow as tf
 
 
