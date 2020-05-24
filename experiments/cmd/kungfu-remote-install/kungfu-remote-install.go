@@ -71,9 +71,11 @@ func installAll(hl plan.HostList) error {
 		parseCmd(`ls .kungfu`),
 		parseCmd(`git clone https://github.com/lsds/KungFu ` + kfDir),
 		parseCmd(`git checkout ` + *flg.tag).ChDir(kfDir),
-		parseCmd(`go install -v ./...`).ChDir(kfDir).Env(`PATH`, `$HOME/local/go/bin:$PATH`),
+		parseCmd(`go install -v ./...`).ChDir(kfDir).
+			Env(`PATH`, `$HOME/local/go/bin:$PATH`),
 		parseCmd(*flg.python+` -m pip install --user --no-index -U .`).
 			ChDir(kfDir).
+			Env(`PATH`, `$HOME/local/go/bin:$PATH`).
 			Env(`KUNGFU_ENABLE_NCCL`, str(b2i(*flg.enableNCCL))).
 			Env(`KUNGFU_BUILD_TOOLS`, str(0)),
 	}
