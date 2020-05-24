@@ -68,7 +68,7 @@ func (w *watcher) update(s Stage) {
 	a, b := w.current.Workers.Diff(s.Cluster.Workers)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
-	log.Infof("arrived at v%d, new np=%d, local: +%d/-%d, global: -%d/%d", s.Version, len(s.Cluster.Workers), len(add), len(del), len(b), len(a))
+	log.Infof("arrived at v%d, new np=%d, local: +%d/-%d, global: +%d/-%d", s.Version, len(s.Cluster.Workers), len(add), len(del), len(b), len(a))
 	log.Debugf("waiting %d peers to stop", len(del))
 	for _, id := range del {
 		w.delete(id)
