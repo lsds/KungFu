@@ -1,7 +1,7 @@
 import time
 
 from kungfu import current_cluster_size
-from kungfu._utils import show_duration
+from kungfu._utils import _log_event, show_duration
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, current_cluster_size,
                                    resize_cluster_from_url)
@@ -67,6 +67,7 @@ class ElasticHook(tf.train.SessionRunHook):
         self._resize_op = resize_cluster_from_url()
 
     def _do_sync_offset(self, sess):
+        _log_event('BEFORE _sync_offset_op(%s)' % (self._trained_samples))
         new_offset = sess.run(
             self._sync_offset_op,
             feed_dict={self._trained_samples_place: self._trained_samples})
@@ -77,7 +78,9 @@ class ElasticHook(tf.train.SessionRunHook):
     def before_run(self, run_context):
         if self._need_sync:
             self._do_sync_offset(run_context.session)
+            _log_event('BEFORE _sync_state_op')
             run_context.session.run(self._sync_state_op)
+            _log_event('AFTER _sync_state_op')
             self._need_sync = False
             self._profiler.end()
 
