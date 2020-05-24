@@ -18,11 +18,11 @@ def parse_args():
                    type=str,
                    default='ResNet50',
                    help='model to benchmark')
+    p.add_argument('--elastic', action='store_true', default=False, help='')
     p.add_argument('--batch-size', type=int, default=32, help='batch size')
-    p.add_argument('--train-steps',
-                   type=int,
-                   default=10,
-                   help='number of batches per benchmark iteration')
+    p.add_argument('--train-steps', type=int, default=10, help='')
+    p.add_argument('--epochs', type=int, default=10, help='')
+    p.add_argument('--epoch-size', type=int, default=10, help='')
     p.add_argument('--model-dir', type=str, default='ckpt', help='')
     p.add_argument('--tf-method',
                    type=str,
@@ -158,6 +158,11 @@ def run_with_estimator(args):
         # debug_hooks.LogStepHook(),
         debug_hooks.LogPerfHook(args.batch_size),
     ]
+    if args.elastic:
+        from kungfu.tensorflow.experimental.hook import ElasticHook
+        elastic_hook = ElasticHook(args.batch_size, args.epochs,
+                                   args.epoch_size)
+        hooks.append(elastic_hook)
     classifier.train(input_fn, hooks=hooks, max_steps=args.train_steps)
     print('END :: run_with_estimator')
 

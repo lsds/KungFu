@@ -101,8 +101,9 @@ func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParame
 		`TF_CPP_MIN_LOG_LEVEL=2`,
 
 		runnerProg,
-		// `-q`,
+		`-q`,
 		`-w`,
+		`-config-server`, j.ConfigServer,
 		`-np`, strconv.Itoa(sp.ClusterSize),
 		`-H`, hl.String(),
 		`-port-range`, sp.WorkerPortRange.String(),

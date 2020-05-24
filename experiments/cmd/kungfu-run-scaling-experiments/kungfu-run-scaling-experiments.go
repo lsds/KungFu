@@ -4,11 +4,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lsds/KungFu/experiments/elastic"
+	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runtime"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -27,10 +32,11 @@ var flg = struct {
 	hostfile *string
 	id       *string
 
-	logDir     *string
-	usr        *string
-	verboseLog *bool
-	nic        *string
+	logDir       *string
+	usr          *string
+	verboseLog   *bool
+	nic          *string
+	configServer *string
 
 	strategy base.Strategy
 }{
@@ -68,13 +74,32 @@ func main() {
 		Hostlist: hl,
 		Size:     hl.Cap(),
 	}
-	run(c)
+
+	cfgPort := 9000
+	cfgHost := plan.FormatIPv4(hl[0].IPv4)
+	cancel, wg := runConfigServer(cfgHost, cfgPort)
+	defer cancel()
+	skip := false
+	if !skip {
+		cfgServer := url.URL{
+			Scheme: `http`,
+			Host:   net.JoinHostPort(cfgHost, strconv.Itoa(cfgPort)),
+			Path:   `/get`,
+		}
+		run(c, cfgServer.String())
+	} else {
+		time.Sleep(3 * time.Second)
+	}
+	if err := stopConfigServer(cfgHost, cfgPort); err != nil {
+		log.Errorf("stopConfigServer: %v", err)
+	}
+	wg.Wait()
 }
 
-func run(c Cluster) error {
+func run(c Cluster, cfgServer string) error {
 	pr := plan.DefaultPortRange
 	ctx := context.TODO()
-	j := elastic.TestJob(*flg.id, flg.strategy, c.Hostlist, pr, *flg.logDir)
+	j := elastic.TestJob(*flg.id, cfgServer, flg.strategy, c.Hostlist, pr, *flg.logDir)
 	log.Infof("will run %s\n", j.DebugString())
 	sp := runtime.SystemParameters{
 		User:            *flg.usr,
@@ -89,4 +114,41 @@ func run(c Cluster) error {
 	})
 	log.Infof("took %s", d)
 	return err
+}
+
+func runConfigServer(hostname string, port int) (context.CancelFunc, *sync.WaitGroup) {
+	envs := make(job.Envs)
+	envs[`PATH`] = `$HOME/go/bin:$PATH`
+	args := []string{`-port`, strconv.Itoa(port)}
+	p := job.Proc{
+		Name:     `config-server`,
+		Prog:     `kungfu-config-server-example`,
+		Args:     args,
+		Hostname: hostname,
+		Envs:     envs,
+	}
+	ctx, cancel := context.WithCancel(context.TODO())
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		if err := remote.RemoteRunAll(ctx, *flg.usr, []job.Proc{p}, true, *flg.logDir); err != nil {
+			log.Errorf("%s failed: %v", p.Name, err)
+		}
+		wg.Done()
+	}()
+	return cancel, &wg
+}
+
+func stopConfigServer(hostname string, port int) error {
+	cfgServer := url.URL{
+		Scheme: `http`,
+		Host:   net.JoinHostPort(hostname, strconv.Itoa(port)),
+		Path:   `/stop`,
+	}
+	resp, err := http.DefaultClient.Get(cfgServer.String())
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
 }
