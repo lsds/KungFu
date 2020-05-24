@@ -164,7 +164,7 @@ def parse_scheule(schedule):
     d = dict()
     for kv in schedule.split(','):
         k, v = kv.split(':')
-        d[k] = v
+        d[int(k)] = int(v)
     return d
 
 
