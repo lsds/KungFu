@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/lsds/KungFu/srcs/go/utils/assert"
 )
 
 var ErrInvalidHostSpec = errors.New("Invalid HostSpec")
@@ -207,4 +209,10 @@ func (hl HostList) GenPeerList(np int, pr PortRange) (PeerList, error) {
 		}
 	}
 	return hl.genPeerList(np, pr), nil
+}
+
+func (hl HostList) MustGenPeerList(np int, pr PortRange) PeerList {
+	pl, err := hl.GenPeerList(np, pr)
+	assert.OK(err)
+	return pl
 }

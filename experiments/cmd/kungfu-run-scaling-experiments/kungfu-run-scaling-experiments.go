@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -21,6 +20,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan/hostfile"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/remote"
+	"github.com/lsds/KungFu/tests/go/configserver"
 )
 
 type Cluster struct {
@@ -72,35 +72,20 @@ func main() {
 
 	c := Cluster{
 		Hostlist: hl,
-		Size:     hl.Cap(),
+		Size:     1,
 	}
 
 	cfgPort := 9000
 	cfgHost := plan.FormatIPv4(hl[0].IPv4)
 	cancel, wg := runConfigServer(cfgHost, cfgPort)
 	defer cancel()
-	skip := false
-	if !skip {
-		cfgServer := url.URL{
-			Scheme: `http`,
-			Host:   net.JoinHostPort(cfgHost, strconv.Itoa(cfgPort)),
-			Path:   `/get`,
-		}
-		run(c, cfgServer.String())
-	} else {
-		time.Sleep(3 * time.Second)
+	cfgServer := url.URL{
+		Scheme: `http`,
+		Host:   net.JoinHostPort(cfgHost, strconv.Itoa(cfgPort)),
+		Path:   `/get`,
 	}
-	if err := stopConfigServer(cfgHost, cfgPort); err != nil {
-		log.Errorf("stopConfigServer: %v", err)
-	}
-	wg.Wait()
-}
 
-func run(c Cluster, cfgServer string) error {
 	pr := plan.DefaultPortRange
-	ctx := context.TODO()
-	j := elastic.TestJob(*flg.id, cfgServer, flg.strategy, c.Hostlist, pr, *flg.logDir)
-	log.Infof("will run %s\n", j.DebugString())
 	sp := runtime.SystemParameters{
 		User:            *flg.usr,
 		WorkerPortRange: pr,
@@ -109,6 +94,36 @@ func run(c Cluster, cfgServer string) error {
 		ClusterSize:     c.Size,
 		Nic:             *flg.nic,
 	}
+
+	cc := configserver.NewClient(cfgServer.String())
+	{
+		cc.WaitServer()
+		cc.Reset()
+		cluster := plan.Cluster{
+			Runners: hl.GenRunnerList(sp.RunnerPort),
+			Workers: hl.MustGenPeerList(hl.Cap(), sp.WorkerPortRange),
+		}
+		if err := cc.Update(cluster); err != nil {
+			log.Errorf("%v", err)
+		}
+	}
+	skip := false
+	if !skip {
+		run(c, sp, cfgServer.String())
+	} else {
+		time.Sleep(3 * time.Second)
+	}
+	if err := cc.StopServer(); err != nil {
+		log.Errorf("stopConfigServer: %v", err)
+	}
+	wg.Wait()
+}
+
+func run(c Cluster, sp runtime.SystemParameters, cfgServer string) error {
+	ctx := context.TODO()
+	j := elastic.TestJob(*flg.id, cfgServer, flg.strategy, c.Hostlist, sp.WorkerPortRange, *flg.logDir)
+	log.Infof("will run %s\n", j.DebugString())
+
 	d, err := utils.Measure(func() error {
 		return remote.RunElasticKungFuJob(ctx, j, sp)
 	})
@@ -137,18 +152,4 @@ func runConfigServer(hostname string, port int) (context.CancelFunc, *sync.WaitG
 		wg.Done()
 	}()
 	return cancel, &wg
-}
-
-func stopConfigServer(hostname string, port int) error {
-	cfgServer := url.URL{
-		Scheme: `http`,
-		Host:   net.JoinHostPort(hostname, strconv.Itoa(port)),
-		Path:   `/stop`,
-	}
-	resp, err := http.DefaultClient.Get(cfgServer.String())
-	if err != nil {
-		return err
-	}
-	resp.Body.Close()
-	return nil
 }
