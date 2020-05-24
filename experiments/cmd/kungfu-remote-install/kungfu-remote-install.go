@@ -82,6 +82,7 @@ func installAll(hl plan.HostList) error {
 	for _, h := range hl {
 		wg.Add(1)
 		go func(hostname string) {
+			waitSSH(hostname)
 			cmds.RunOn(hostname)
 			wg.Done()
 		}(h.PublicAddr)
@@ -122,7 +123,7 @@ type shellCmds []shellCmd
 func (ss shellCmds) RunOn(hostname string) error {
 	for i, c := range ss {
 		p := job.Proc{
-			Name:     fmt.Sprintf("%s#%d", hostname, i),
+			Name:     fmt.Sprintf("%s#%d$%s", hostname, i, c.prog),
 			Prog:     c.prog,
 			Args:     c.args,
 			Hostname: hostname,
@@ -136,4 +137,29 @@ func (ss shellCmds) RunOn(hostname string) error {
 		}
 	}
 	return nil
+}
+
+func waitSSH(hostname string) {
+	p := job.Proc{
+		Name:     fmt.Sprintf("%s$%s", hostname, `wait-ssh`),
+		Prog:     `pwd`,
+		Hostname: hostname,
+	}
+	trial := func() bool {
+		err := remote.RemoteRunAll(context.TODO(), *flg.usr, []job.Proc{p}, true, *flg.logDir)
+		if err != nil {
+			log.Warnf("still waiting %s", hostname)
+		}
+		return err == nil
+	}
+	poll(trial, 1*time.Second)
+}
+
+func poll(f func() bool, duration time.Duration) {
+	for {
+		if ok := f(); ok {
+			return
+		}
+		time.Sleep(duration)
+	}
 }
