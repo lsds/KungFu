@@ -174,6 +174,15 @@ def run_with_estimator(args):
                                    args.epoch_size)
         hooks.append(elastic_hook)
 
+        schedule = dict()
+        schedule[10] = 1
+        schedule[20] = 4
+        schedule[30] = 1
+        schedule[40] = 4
+        schedule[50] = 1
+        profile_resize_hook = debug_hooks.ProfileResizeHook(schedule)
+        hooks.append(profile_resize_hook)
+
         input_fn = build_input_fn(args.batch_size)
         classifier.train(input_fn, hooks=hooks)
     else:

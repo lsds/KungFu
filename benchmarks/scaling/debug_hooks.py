@@ -71,3 +71,28 @@ class LogStepHook(tf.train.SessionRunHook):
 
     def end(self, run_context):
         print('%s::%s after %d steps' % ('LogStepHook', 'end', self._step))
+
+
+class ProfileResizeHook(tf.train.SessionRunHook):
+    def __init__(self, schedule):
+        from kungfu import current_rank
+        self._rank = current_rank()
+        self._step = 0
+
+        self._schedule = schedule
+
+    def before_run(self, run_context):
+        pass
+
+    def after_run(self, run_context, run_values):
+        self._step += 1
+        if self._rank != 0:
+            return
+
+        if self._step in self._schedule:
+            new_size = self._schedule[self._step]
+            from kungfu.ext import propose_new_size
+            propose_new_size(new_size)
+
+    def end(self, run_context):
+        pass
