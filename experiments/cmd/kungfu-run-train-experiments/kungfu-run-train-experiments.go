@@ -26,6 +26,7 @@ var flg = struct {
 	usr        *string
 	verboseLog *bool
 	nic        *string
+	kfRoot     *string
 
 	strategy base.Strategy
 }{
@@ -36,6 +37,7 @@ var flg = struct {
 	usr:        flag.String("u", "", "user name for ssh"),
 	nic:        flag.String("nic", "", ""),
 	verboseLog: flag.Bool("v", true, "show task log"),
+	kfRoot:     flag.String("kf-root", "./.kungfu/KungFu", ""),
 
 	strategy: base.DefaultStrategy,
 }
@@ -88,7 +90,7 @@ func combine(cs []Cluster, es []tfkeras.Experiment, f func(Cluster, tfkeras.Expe
 func run(c Cluster, e tfkeras.Experiment) error {
 	pr := plan.DefaultPortRange
 	ctx := context.TODO()
-	j := e.Job(flg.strategy, c.Hostlist, pr, *flg.logDir)
+	j := e.Job(*flg.kfRoot, flg.strategy, c.Hostlist, pr, *flg.logDir)
 	fmt.Printf("%s\n", j.DebugString())
 	sp := runtime.SystemParameters{
 		User:            *flg.usr,

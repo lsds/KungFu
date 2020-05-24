@@ -48,10 +48,10 @@ const script = `benchmarks/system/benchmark_kungfu.py`
 
 var str = strconv.Itoa
 
-func (e Experiment) Job(strategy base.Strategy, hl plan.HostList, pr plan.PortRange, logDir string) job.Job {
+func (e Experiment) Job(kfRoot string, strategy base.Strategy, hl plan.HostList, pr plan.PortRange, logDir string) job.Job {
 	prog := `python3`
 	args := []string{
-		path.Join(`./KungFu`, script),
+		path.Join(kfRoot, script),
 		`--batch-size`, str(e.BatchSize),
 		`--num-warmup-batches`, str(e.WarmupBatches),
 		`--num-iters`, str(e.NumIters),
