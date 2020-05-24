@@ -28,6 +28,10 @@ def parse_args():
                    type=str,
                    default='simple',
                    help='simple | monitored | estimator')
+    p.add_argument('--show-training-throughput',
+                   action='store_true',
+                   default=False,
+                   help='')
     return p.parse_args()
 
 
@@ -137,8 +141,10 @@ def run_with_session_and_hooks(args):
 
     hooks = [
         # debug_hooks.LogStepHook(),
-        debug_hooks.LogPerfHook(args.batch_size),
     ]
+
+    if args.show_training_throughput:
+        hooks.append(debug_hooks.LogPerfHook(args.batch_size))
 
     with tf.train.MonitoredTrainingSession(hooks=hooks) as sess:
         sess.run(it.initializer)  # FIXME: don't init in hooks
@@ -154,10 +160,14 @@ def run_with_estimator(args):
     print('BEGIN :: run_with_estimator')
     classifier = build_estimator(args)
     input_fn = build_input_fn(args.batch_size, args.train_steps)
+
     hooks = [
         # debug_hooks.LogStepHook(),
-        debug_hooks.LogPerfHook(args.batch_size),
     ]
+
+    if args.show_training_throughput:
+        hooks.append(debug_hooks.LogPerfHook(args.batch_size))
+
     if args.elastic:
         from kungfu.tensorflow.experimental.hook import ElasticHook
         elastic_hook = ElasticHook(args.batch_size, args.epochs,
