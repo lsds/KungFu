@@ -38,7 +38,7 @@ class LogPerfHook(tf.train.SessionRunHook):
         dur = t1 - self._t_last
         step_per_sec = 1 / dur
         sample_per_sec = step_per_sec * self._batch_size
-        print('step %d, took %.3fs, %.2f samples / sec' %
+        print('local step %d, took %.3fs, %.2f samples / sec' %
               (self._step, dur, sample_per_sec))
         if self._step > self._warmup_steps:
             self._durations.append(dur)
