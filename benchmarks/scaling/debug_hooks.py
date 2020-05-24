@@ -80,6 +80,7 @@ class ProfileResizeHook(tf.train.SessionRunHook):
         self._step = 0
 
         self._schedule = schedule
+        print(schedule)
 
     def before_run(self, run_context):
         pass
@@ -91,6 +92,8 @@ class ProfileResizeHook(tf.train.SessionRunHook):
 
         if self._step in self._schedule:
             new_size = self._schedule[self._step]
+            print('ProfileResizeHook step %d, new_size: %d' %
+                  (self._step, new_size))
             from kungfu.ext import propose_new_size
             propose_new_size(new_size)
 
