@@ -9,29 +9,46 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-const prefix = `./code/repos/github.com/lsds`
-
-const kfRoot = `./KungFu`
-
 const script = `benchmarks/scaling/benchmark_kungfu_scaling.py`
 
 var str = strconv.Itoa
 
-func TestJob(id string, configServer string, strategy base.Strategy, hl plan.HostList, pr plan.PortRange, logDir string) job.Job {
+type Experiment struct {
+	BatchSize  int
+	TrainSteps int
+	Epochs     int
+	EpochSize  int
+	Schedule   string
+}
+
+func Default() Experiment {
+	return Experiment{
+		BatchSize:  1,
+		TrainSteps: 100,
+		Epochs:     1,
+		EpochSize:  1000,
+		Schedule:   `10:1,100:0`,
+	}
+}
+
+func (e Experiment) Job(id string, kfRoot string, configServer string, strategy base.Strategy, hl plan.HostList, pr plan.PortRange, logDir string) job.Job {
 	const prog = `python3`
 	args := []string{
-		path.Join(prefix, kfRoot, script),
+		path.Join(kfRoot, script),
 
 		`--model-dir`, `.kungfu/ckpt/` + id,
 
-		`--batch-size`, str(1),
-		`--train-steps`, str(100),
+		`--batch-size`, str(e.BatchSize),
+		`--train-steps`, str(e.TrainSteps),
 
-		`--epochs`, str(1),
-		`--epoch-size`, str(100),
+		`--epochs`, str(e.Epochs),
+		`--epoch-size`, str(e.EpochSize),
 
 		`--tf-method`, `estimator`,
 		`--elastic`,
+		`--resize-schedule`, e.Schedule,
+
+		`--show-training-throughput`,
 	}
 
 	return job.Job{

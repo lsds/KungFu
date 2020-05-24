@@ -103,6 +103,7 @@ func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParame
 		runnerProg,
 		`-q`,
 		`-w`,
+		`-k`,
 		`-config-server`, j.ConfigServer,
 		`-np`, strconv.Itoa(sp.ClusterSize),
 		`-H`, hl.String(),

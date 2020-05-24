@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,15 +19,19 @@ import (
 )
 
 var flg = struct {
-	hostfile *string
-	usr      *string
-	logDir   *string
-	tag      *string
+	hostfile   *string
+	usr        *string
+	logDir     *string
+	tag        *string
+	python     *string
+	enableNCCL *bool
 }{
-	hostfile: flag.String("hostfile", "hosts.txt", ""),
-	usr:      flag.String("u", "", "user name for ssh"),
-	logDir:   flag.String("logdir", ".", ""),
-	tag:      flag.String("tag", "master", ""),
+	hostfile:   flag.String("hostfile", "hosts.txt", ""),
+	usr:        flag.String("u", "", "user name for ssh"),
+	logDir:     flag.String("logdir", ".", ""),
+	tag:        flag.String("tag", "master", ""),
+	enableNCCL: flag.Bool("nccl", false, ""),
+	python:     flag.String("python", "python3", ""),
 }
 
 func main() {
@@ -44,7 +49,18 @@ func main() {
 	}
 }
 
+var str = strconv.Itoa
+
+func b2i(f bool) int {
+	if f {
+		return 1
+	}
+	return 0
+}
+
 func installAll(hl plan.HostList) error {
+	const kfDir = `.kungfu/KungFu`
+
 	cmds := shellCmds{
 		// parseCmd(`mkdir -p local`),
 		// parseCmd(`curl -sLOJ https://dl.google.com/go/go1.14.3.linux-amd64.tar.gz`).ChDir(`local`),
@@ -53,9 +69,13 @@ func installAll(hl plan.HostList) error {
 		parseCmd(`rm -fr .kungfu`),
 		parseCmd(`mkdir -p .kungfu`),
 		parseCmd(`ls .kungfu`),
-		parseCmd(`git clone https://github.com/lsds/KungFu`).ChDir(`.kungfu`),
-		parseCmd(`git checkout ` + *flg.tag).ChDir(`.kungfu/KungFu`),
-		parseCmd(`go install -v ./...`).ChDir(`.kungfu/KungFu`).Env(`PATH`, `$HOME/local/go/bin:$PATH`),
+		parseCmd(`git clone https://github.com/lsds/KungFu ` + kfDir),
+		parseCmd(`git checkout ` + *flg.tag).ChDir(kfDir),
+		parseCmd(`go install -v ./...`).ChDir(kfDir).Env(`PATH`, `$HOME/local/go/bin:$PATH`),
+		parseCmd(*flg.python+` -m pip install --user --no-index -U .`).
+			ChDir(kfDir).
+			Env(`KUNGFU_ENABLE_NCCL`, str(b2i(*flg.enableNCCL))).
+			Env(`KUNGFU_BUILD_TOOLS`, str(0)),
 	}
 
 	var wg sync.WaitGroup

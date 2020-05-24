@@ -32,13 +32,19 @@ var flg = struct {
 	hostfile *string
 	id       *string
 
-	logDir       *string
-	usr          *string
-	verboseLog   *bool
-	nic          *string
-	configServer *string
+	logDir     *string
+	usr        *string
+	verboseLog *bool
+	nic        *string
+	kfRoot     *string
 
 	strategy base.Strategy
+
+	batchSize *int
+	epochs    *int
+	epochSize *int
+
+	schedule *string
 }{
 	hostfile: flag.String("hostfile", "hosts.txt", ""),
 	id:       flag.String("job-id", strconv.Itoa(int(time.Now().Unix())), ""),
@@ -48,7 +54,14 @@ var flg = struct {
 	nic:        flag.String("nic", "", ""),
 	verboseLog: flag.Bool("v", true, "show task log"),
 
+	kfRoot:   flag.String("kf-root", "./.kungfu/KungFu", ""),
 	strategy: base.DefaultStrategy,
+
+	batchSize: flag.Int("batch-size", 1, ""),
+	epochs:    flag.Int("epochs", 1, ""),
+	epochSize: flag.Int("epoch-size", 100, ""),
+
+	schedule: flag.String("resize-schedule", "", ""),
 }
 
 func init() {
@@ -109,7 +122,13 @@ func main() {
 	}
 	skip := false
 	if !skip {
-		run(c, sp, cfgServer.String())
+		e := elastic.Default()
+		e.Epochs = *flg.epochs
+		e.EpochSize = *flg.epochSize
+		e.BatchSize = *flg.batchSize
+		e.Schedule = *flg.schedule
+
+		run(e, c, sp, cfgServer.String())
 	} else {
 		time.Sleep(3 * time.Second)
 	}
@@ -119,10 +138,10 @@ func main() {
 	wg.Wait()
 }
 
-func run(c Cluster, sp runtime.SystemParameters, cfgServer string) error {
+func run(e elastic.Experiment, c Cluster, sp runtime.SystemParameters, cfgServer string) error {
 	ctx := context.TODO()
-	j := elastic.TestJob(*flg.id, cfgServer, flg.strategy, c.Hostlist, sp.WorkerPortRange, *flg.logDir)
-	log.Infof("will run %s\n", j.DebugString())
+	j := e.Job(*flg.id, *flg.kfRoot, cfgServer, flg.strategy, c.Hostlist, sp.WorkerPortRange, *flg.logDir)
+	log.Infof("will run %s", j.DebugString())
 
 	d, err := utils.Measure(func() error {
 		return remote.RunElasticKungFuJob(ctx, j, sp)
