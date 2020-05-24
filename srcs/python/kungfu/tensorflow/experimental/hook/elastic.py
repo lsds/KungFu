@@ -104,9 +104,11 @@ class ElasticHook(tf.train.SessionRunHook):
 
     def end(self, sess):
         self._profiler.report()
+
+        print('stopped after trained %d samples in %d steps due to %s' %
+              (self._trained_samples, self._step, self._exit_reason))
+
         if self._exit_reason is None:
             # raise RuntimeError('unknown exit reason') # FIXME: doesn't work
             print('unknown exit reason!')
             exit(1)  # cause all workers to stop
-        print('stopped after trained %d samples in %d steps due to %s' %
-              (self._trained_samples, self._step, self._exit_reason))

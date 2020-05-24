@@ -159,7 +159,6 @@ def run_with_session_and_hooks(args):
 def run_with_estimator(args):
     print('BEGIN :: run_with_estimator')
     classifier = build_estimator(args)
-    input_fn = build_input_fn(args.batch_size, args.train_steps)
 
     hooks = [
         # debug_hooks.LogStepHook(),
@@ -169,10 +168,15 @@ def run_with_estimator(args):
         hooks.append(debug_hooks.LogPerfHook(args.batch_size))
 
     if args.elastic:
+        input_fn = build_input_fn(args.batch_size)
+
         from kungfu.tensorflow.experimental.hook import ElasticHook
         elastic_hook = ElasticHook(args.batch_size, args.epochs,
                                    args.epoch_size)
         hooks.append(elastic_hook)
+    else:
+        input_fn = build_input_fn(args.batch_size, args.train_steps)
+
     classifier.train(input_fn, hooks=hooks, max_steps=args.train_steps)
     print('END :: run_with_estimator')
 
