@@ -23,6 +23,10 @@ def parse_args():
     p.add_argument('--train-steps', type=int, default=10, help='')
     p.add_argument('--epochs', type=int, default=10, help='')
     p.add_argument('--epoch-size', type=int, default=10, help='')
+    p.add_argument('--resize-schedule',
+                   type=str,
+                   default='10:2,100:0',
+                   help='')
     p.add_argument('--model-dir', type=str, default='ckpt', help='')
     p.add_argument('--tf-method',
                    type=str,
@@ -156,6 +160,14 @@ def run_with_session_and_hooks(args):
     print('MonitoredTrainingSession trained %d steps' % (step))
 
 
+def parse_scheule(schedule):
+    d = dict()
+    for kv in schedule.split(','):
+        k, v = kv.split(':')
+        d[k] = v
+    return d
+
+
 def run_with_estimator(args):
     print('BEGIN :: run_with_estimator')
     classifier = build_estimator(args)
@@ -174,12 +186,7 @@ def run_with_estimator(args):
                                    args.epoch_size)
         hooks.append(elastic_hook)
 
-        schedule = dict()
-        schedule[10] = 1
-        schedule[20] = 4
-        schedule[30] = 1
-        schedule[40] = 4
-        schedule[50] = 1
+        schedule = parse_scheule(args.resize_schedule)
         profile_resize_hook = debug_hooks.ProfileResizeHook(schedule)
         hooks.append(profile_resize_hook)
 
