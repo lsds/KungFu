@@ -1,5 +1,6 @@
 import time
 
+from kungfu import current_cluster_size
 from kungfu._utils import show_duration
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, current_cluster_size,
@@ -17,17 +18,21 @@ class ResizeProfiler():
     def begin(self):
         assert (self._begin is None)
         self._new = False
+
         self._begin = time.time()
-        self._resizing = True
+        self._old_size = current_cluster_size()
 
     def end(self):
         if self._new:
             return
         assert (self._begin is not None)
-        dur = time.time() - self._begin
 
-        print('resize took %s', show_duration(dur))
-        self._records.append((dur, 'OK'))
+        dur = time.time() - self._begin
+        new_size = current_cluster_size()
+
+        print('resize %d -> %d took %s' %
+              (self._old_size, new_size, show_duration(dur)))
+        self._records.append((dur, self._old_size, new_size))
         self._begin = None
 
     def cancel(self):
@@ -35,8 +40,9 @@ class ResizeProfiler():
         self._begin = None
 
     def report(self):
-        for idx, (dur, msg) in enumerate(self._records):
-            print('resize #%d took %s' % (idx, show_duration(dur)))
+        for idx, (dur, old_size, new_size) in enumerate(self._records):
+            print('resize #%d %d -> %d took %s' %
+                  (idx, old_size, new_size, show_duration(dur)))
 
     def __del__(self):
         assert (self._begin is None)
