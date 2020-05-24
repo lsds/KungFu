@@ -2,7 +2,6 @@ import os
 import time
 
 import numpy as np
-
 import tensorflow as tf
 
 
@@ -80,7 +79,6 @@ class ProfileResizeHook(tf.train.SessionRunHook):
         self._step = 0
 
         self._schedule = schedule
-        print(schedule)
 
     def before_run(self, run_context):
         pass
