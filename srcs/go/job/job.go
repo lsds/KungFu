@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -13,8 +14,9 @@ import (
 )
 
 type Job struct {
+	StartTime    time.Time
 	ConfigServer string
-	Strategy     kb.Strategy
+	Strategy     base.Strategy
 	Parent       plan.PeerID
 	HostList     plan.HostList
 	PortRange    plan.PortRange
@@ -27,6 +29,8 @@ type Job struct {
 
 func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl plan.PeerList) Proc {
 	envs := Envs{
+		env.JobStartTimestamp:        strconv.FormatInt(j.StartTime.Unix(), 10),
+		env.ProcStartTimestamp:       strconv.FormatInt(time.Now().Unix(), 10),
 		env.SelfSpecEnvKey:           peer.String(),
 		env.HostListEnvKey:           j.HostList.String(),
 		env.ParentIDEnvKey:           j.Parent.String(),
@@ -85,6 +89,12 @@ func (j Job) CreateProcs(pl plan.PeerList, host uint32) []Proc {
 	return ps
 }
 
+func (j Job) ProgAndArgs() []string {
+	a := []string{j.Prog}
+	a = append(a, j.Args...)
+	return a
+}
+
 func getConfigEnvs() Envs {
 	envs := make(Envs)
 	for _, k := range config.ConfigEnvKeys {
@@ -93,4 +103,8 @@ func getConfigEnvs() Envs {
 		}
 	}
 	return envs
+}
+
+func (j Job) DebugString() string {
+	return fmt.Sprintf("job{prog=%s, args=%q}", j.Prog, j.Args)
 }

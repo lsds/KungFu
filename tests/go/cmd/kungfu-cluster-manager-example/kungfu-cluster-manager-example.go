@@ -12,6 +12,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/tests/go/configserver"
 )
 
 var (
@@ -57,10 +58,7 @@ func example(c *cluster, prog string, args []string) {
 
 	getConfigURL := fmt.Sprintf("http://%s:%d/get", server.ip, configServerPort)
 	putConfigURL := fmt.Sprintf("http://%s:%d/put", `127.0.0.1`, configServerPort)
-
-	cc := &configClient{
-		endpoint: putConfigURL,
-	}
+	cc := configserver.NewClient(putConfigURL)
 	cc.WaitServer()
 
 	var hl plan.HostList

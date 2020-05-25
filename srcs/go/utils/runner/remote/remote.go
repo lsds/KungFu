@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/job"
+	"github.com/lsds/KungFu/srcs/go/kungfu/runtime"
 	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 	"github.com/lsds/KungFu/srcs/go/utils/ssh"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
@@ -54,4 +57,68 @@ func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bo
 		return fmt.Errorf("%d tasks failed", fail)
 	}
 	return nil
+}
+
+const runnerProg = `kungfu-run`
+
+func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParameters) error {
+	hl := sp.HostList
+	runners := hl.GenRunnerList(sp.RunnerPort)
+	runnerFlags := []string{
+		`PATH=$HOME/local/python/bin:$HOME/go/bin:$PATH`, // FIXME: find kungfu-run PATH
+
+		`PYTHONWARNINGS=ignore`,
+		`TF_CPP_MIN_LOG_LEVEL=2`,
+		runnerProg,
+		// `-q`,
+		`-np`, strconv.Itoa(sp.ClusterSize),
+		`-H`, hl.String(),
+		`-port-range`, sp.WorkerPortRange.String(),
+		`-nic`, sp.Nic,
+		`-logdir`, `.kungfu/logs`,
+	}
+	var ps []job.Proc
+	for _, r := range runners {
+		p := job.Proc{
+			Name:     plan.FormatIPv4(r.IPv4),
+			Prog:     `env`,
+			Args:     append(runnerFlags, j.ProgAndArgs()...),
+			Hostname: hl.LookupHost(r.IPv4),
+		}
+		ps = append(ps, p)
+	}
+	return RemoteRunAll(ctx, sp.User, ps, true, j.LogDir)
+}
+
+func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParameters) error {
+	hl := sp.HostList
+	runners := hl.GenRunnerList(sp.RunnerPort)
+	runnerFlags := []string{
+		`PATH=$HOME/local/python/bin:$HOME/go/bin:$PATH`, // FIXME: find kungfu-run PATH
+
+		`PYTHONWARNINGS=ignore`,
+		`TF_CPP_MIN_LOG_LEVEL=2`,
+
+		runnerProg,
+		`-q`,
+		`-w`,
+		`-k`,
+		`-config-server`, j.ConfigServer,
+		`-np`, strconv.Itoa(sp.ClusterSize),
+		`-H`, hl.String(),
+		`-port-range`, sp.WorkerPortRange.String(),
+		`-nic`, sp.Nic,
+		`-logdir`, `.kungfu/logs`,
+	}
+	var ps []job.Proc
+	for _, r := range runners {
+		p := job.Proc{
+			Name:     plan.FormatIPv4(r.IPv4),
+			Prog:     `env`,
+			Args:     append(runnerFlags, j.ProgAndArgs()...),
+			Hostname: hl.LookupHost(r.IPv4),
+		}
+		ps = append(ps, p)
+	}
+	return RemoteRunAll(ctx, sp.User, ps, true, j.LogDir)
 }

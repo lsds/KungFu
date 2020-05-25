@@ -35,6 +35,7 @@ type Proc struct {
 	Envs     Envs
 	Hostname string
 	LogDir   string
+	ChDir    *string
 }
 
 func (p Proc) Cmd() *exec.Cmd {
@@ -45,7 +46,11 @@ func (p Proc) Cmd() *exec.Cmd {
 
 func (p Proc) Script() string {
 	buf := &bytes.Buffer{}
-	fmt.Fprintf(buf, "env \\\n")
+	var chdir string
+	if p.ChDir != nil {
+		chdir = fmt.Sprintf("-C %s", *p.ChDir)
+	}
+	fmt.Fprintf(buf, "env %s\\\n", chdir)
 	for k, v := range p.Envs {
 		fmt.Fprintf(buf, "\t%s=%q \\\n", k, v)
 	}

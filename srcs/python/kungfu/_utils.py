@@ -1,3 +1,4 @@
+import os
 import time
 
 
@@ -26,3 +27,20 @@ def show_duration(duration):
     if duration < 3600:
         return '%dm%ds' % (mm, ss)
     return '%dh%dm%ds' % (mm / 60, mm % 60, ss)
+
+
+def _since_job_start():
+    t0 = os.getenv('KUNGFU_JOB_START_TIMESTAMP') or '0'
+    t0 = int(t0)
+    return time.time() - t0
+
+
+def _since_proc_start():
+    t0 = os.getenv('KUNGFU_PROC_START_TIMESTAMP') or '0'
+    t0 = int(t0)
+    return time.time() - t0
+
+
+def _log_event(name):
+    d = _since_proc_start()
+    print('%s :: %s since proc started' % (name, show_duration(d)))

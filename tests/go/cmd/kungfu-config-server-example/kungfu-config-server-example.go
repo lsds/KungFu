@@ -213,7 +213,7 @@ func main() {
 	srv.SetKeepAlivesEnabled(false)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			h.cancel()
+			utils.ExitErr(err)
 		}
 	}()
 	<-ctx.Done()

@@ -1,4 +1,4 @@
-package main
+package configserver
 
 import (
 	"bytes"
@@ -12,17 +12,40 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-type configClient struct {
+type Client struct {
 	endpoint string
 	client   http.Client
 }
 
-func (cc *configClient) Update(cluster plan.Cluster) error {
+func NewClient(endpoint string) *Client {
+	return &Client{endpoint: endpoint}
+}
+
+func (cc *Client) Reset() error {
+	u, err := url.Parse(cc.endpoint)
+	if err != nil {
+		return err
+	}
+	u.Path = `/reset`
+	resp, err := cc.client.Post(u.String(), "application/json", nil)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+func (cc *Client) Update(cluster plan.Cluster) error {
+	u, err := url.Parse(cc.endpoint)
+	if err != nil {
+		return err
+	}
+	u.Path = `/put`
 	var body bytes.Buffer
 	if err := json.NewEncoder(&body).Encode(cluster); err != nil {
 		return err
 	}
-	resp, err := cc.client.Post(cc.endpoint, "application/json", &body)
+	resp, err := cc.client.Post(u.String(), "application/json", &body)
 	if err != nil {
 		return err
 	}
@@ -32,10 +55,10 @@ func (cc *configClient) Update(cluster plan.Cluster) error {
 	return nil
 }
 
-func (cc *configClient) WaitServer() {
+func (cc *Client) WaitServer() error {
 	u, err := url.Parse(cc.endpoint)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	u.Path = `/ping`
 	for {
@@ -47,16 +70,19 @@ func (cc *configClient) WaitServer() {
 		log.Warnf("server is not ready: %v", err)
 		time.Sleep(2000 * time.Millisecond)
 	}
+	return nil
 }
 
-func (cc *configClient) StopServer() {
+func (cc *Client) StopServer() error {
 	u, err := url.Parse(cc.endpoint)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	u.Path = `/stop`
 	resp, err := cc.client.Get(u.String())
-	if err == nil {
-		resp.Body.Close()
+	if err != nil {
+		return err
 	}
+	resp.Body.Close()
+	return nil
 }
