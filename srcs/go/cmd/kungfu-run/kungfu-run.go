@@ -46,11 +46,13 @@ func main() {
 	var hl plan.HostList
 	var peers plan.PeerList
 	var runners plan.PeerList
-	if len(f.HostList) > 0 {
-		hl, err = runner.ResolveHostList(f.HostList, f.NIC)
-		if err != nil {
-			utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
-		}
+	// if len(f.HostList) > 0 {
+	{
+		hl = f.HostList
+		// hl, err = runner.ResolveHostList(f.HostList, f.NIC)
+		// if err != nil {
+		// 	utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
+		// }
 		runners = hl.GenRunnerList(uint16(f.Port)) // FIXME: assuming runner port is the same
 		if _, ok := runners.Rank(self); !ok {
 			utils.ExitErr(fmt.Errorf("%s not in %s", self, runners))
@@ -59,18 +61,18 @@ func main() {
 		if err != nil {
 			utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
 		}
-	} else {
-		peers, err = runner.ResolvePeerList(localhostIPv4, uint16(f.Port), f.PeerList)
-		if err != nil {
-			utils.ExitErr(fmt.Errorf("failed to resolve peers: %v", err))
-		}
-		log.Infof("-P resolved as %s", peers)
-	}
+	} //else {
+	// peers, err = runner.ResolvePeerList(localhostIPv4, uint16(f.Port), f.PeerList)
+	// if err != nil {
+	// 	utils.ExitErr(fmt.Errorf("failed to resolve peers: %v", err))
+	// }
+	// log.Infof("-P resolved as %s", peers)
+	// }
 	j := job.Job{
 		StartTime:   time.Unix(int64(f.JobStartTime), 0),
 		Strategy:    f.Strategy,
 		Parent:      self,
-		HostList:    hl,
+		HostList:    f.HostList,
 		PortRange:   f.PortRange,
 		Prog:        f.Prog,
 		Args:        f.Args,

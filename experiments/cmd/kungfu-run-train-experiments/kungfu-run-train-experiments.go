@@ -22,6 +22,7 @@ var flg = struct {
 	hostfile     *string
 	clusterSizes *string
 
+	quiet      *bool
 	logDir     *string
 	usr        *string
 	verboseLog *bool
@@ -33,6 +34,7 @@ var flg = struct {
 	hostfile:     flag.String("hostfile", "hosts.txt", ""),
 	clusterSizes: flag.String("cluster-sizes", "", ""),
 
+	quiet:      flag.Bool("q", false, ""),
 	logDir:     flag.String("logdir", ".", ""),
 	usr:        flag.String("u", "", "user name for ssh"),
 	nic:        flag.String("nic", "", ""),
@@ -101,7 +103,7 @@ func run(c Cluster, e tfkeras.Experiment) error {
 		Nic:             *flg.nic,
 	}
 	d, err := utils.Measure(func() error {
-		return remote.RunStaticKungFuJob(ctx, j, sp)
+		return remote.RunStaticKungFuJob(ctx, j, sp, *flg.quiet)
 	})
 	log.Infof("took %s", d)
 	return err
