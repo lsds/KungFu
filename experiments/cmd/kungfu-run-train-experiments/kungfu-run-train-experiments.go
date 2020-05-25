@@ -105,7 +105,7 @@ func run(c Cluster, e tfkeras.Experiment) error {
 	d, err := utils.Measure(func() error {
 		return remote.RunStaticKungFuJob(ctx, j, sp, *flg.quiet)
 	})
-	log.Infof("took %s", d)
+	log.Infof("run tfkeras.Experiment took %s", d)
 	return err
 }
 

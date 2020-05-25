@@ -22,7 +22,7 @@ def gen_tree(n):
     return tree
 
 
-def test_set_tree(steps):
+def test_set_tree(steps, warmup_steps=10):
     from kungfu import current_cluster_size
     from kungfu.tensorflow.ops import all_reduce, broadcast
     from kungfu.tensorflow.ops.adapt import set_tree
@@ -41,7 +41,8 @@ def test_set_tree(steps):
     durations = []
     with tf.Session() as sess:
         sess.run(init)
-        for _ in range(steps):
+        from kungfu._utils import one_based_range
+        for step in one_based_range(steps + warmup_steps):
             v = sess.run(y)
             assert (v.sum() == n * magic * (magic - 1) / 2)
             # print(v)
@@ -52,13 +53,15 @@ def test_set_tree(steps):
                 tree_place: tree,
             })
             dur = time.time() - t0
-            durations.append(dur)
+
+            if step > warmup_steps:
+                durations.append(dur)
 
     ds = np.array([d * 1000 for d in durations])
     from kungfu._utils import show_duration
     print(
         'test set_tree OK for %d times among %d peers, took ~ %f <- [%f, %f] (ms)'
-        % (steps, n, ds.mean(), ds.min(), ds.max()))
+        % (len(ds), n, ds.mean(), ds.min(), ds.max()))
 
 
 test_set_tree(32)

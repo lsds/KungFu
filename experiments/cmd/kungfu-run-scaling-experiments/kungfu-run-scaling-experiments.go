@@ -148,7 +148,7 @@ func run(e elastic.Experiment, c Cluster, sp runtime.SystemParameters, cfgServer
 	d, err := utils.Measure(func() error {
 		return remote.RunElasticKungFuJob(ctx, j, sp, *flg.quiet)
 	})
-	log.Infof("took %s", d)
+	log.Infof("run elastic.Experiment took %s", d)
 	return err
 }
 
