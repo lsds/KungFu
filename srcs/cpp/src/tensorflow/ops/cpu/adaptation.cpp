@@ -22,7 +22,7 @@ class SetTree : public OpKernel
         Tensor *succ       = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &succ));
-        _default_peer->SetTree(tree.vec<int32_t>().data());
+        DCHECK_EQ(_default_peer->SetTree(tree.vec<int32_t>().data()), 0);
         succ->scalar<bool>()() = true;
     }
 };
