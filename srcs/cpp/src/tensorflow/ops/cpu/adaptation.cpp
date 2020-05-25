@@ -1,0 +1,31 @@
+#include <kungfu/tensorflow/ops.h>
+
+namespace tensorflow
+{
+REGISTER_KUNGFU_OP(SetTree)
+    .Input("tree: int32")
+    .Output("success: bool")
+    .SetIsStateful()
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->Scalar());
+        return Status::OK();
+    });
+
+class SetTree : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+  public:
+    void Compute(OpKernelContext *context) override
+    {
+        const Tensor &tree = context->input(0);
+        Tensor *succ       = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, MakeTensorShape(), &succ));
+        _default_peer->SetTree(tree.vec<int32_t>().data());
+        succ->scalar<bool>()() = true;
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(SetTree, DEVICE_CPU);
+}  // namespace tensorflow

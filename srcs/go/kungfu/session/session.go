@@ -24,7 +24,9 @@ type strategy struct {
 
 // Session contains the immutable topology and strategies for a given period of logical duration
 type Session struct {
-	strategies        []strategy
+	sync.Mutex
+
+	strategies        strategyList
 	self              plan.PeerID
 	peers             plan.PeerList
 	rank              int
@@ -82,6 +84,12 @@ func (sess *Session) Peer(rank int) plan.PeerID {
 }
 
 func (sess *Session) Barrier() error {
+	sess.Lock()
+	defer sess.Unlock()
+	return sess.barrier()
+}
+
+func (sess *Session) barrier() error {
 	k := len(sess.peers)
 	count := k * 1
 	dtype := kb.U8

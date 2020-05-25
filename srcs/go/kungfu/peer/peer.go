@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
@@ -31,7 +31,7 @@ type Peer struct {
 	initClusterVersion int
 	parent             plan.PeerID
 	self               plan.PeerID
-	strategy           kb.Strategy
+	strategy           base.Strategy
 	single             bool
 	router             *router
 	server             server.Server
