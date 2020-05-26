@@ -63,7 +63,16 @@ class LogStepHook(tf.train.SessionRunHook):
     def __init__(self):
         self._step = 0
 
+    def begin(self):
+        print('%s::%s %d steps' % ('LogStepHook', 'begin', self._step))
+
+    def after_create_session(self, run_context, coord):
+        print('%s::%s %d steps' %
+              ('LogStepHook', 'after_create_session', self._step))
+
     def before_run(self, run_context):
+        if self._step == 0:
+            _log_event('before_run_step_0')
         print('%s::%s %d steps' % ('LogStepHook', 'before_run', self._step))
 
     def after_run(self, run_context, run_values):
