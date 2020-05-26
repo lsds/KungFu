@@ -122,7 +122,7 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max:" + name}
 		assert.OK(sess.AllReduce(w1))
 		assert.OK(sess.AllReduce(w2))
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
+		if !utils.BytesEq(y.Data, z.Data) {
 			return false, nil
 		}
 	}
@@ -137,7 +137,7 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max:" + name}
 		assert.OK(sess.AllReduce(w1))
 		assert.OK(sess.AllReduce(w2))
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
+		if !utils.BytesEq(y.Data, z.Data) {
 			return false, nil
 		}
 	}
