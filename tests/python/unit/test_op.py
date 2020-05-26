@@ -46,3 +46,8 @@ def test_step_based_scheduler():
         for i in range(12):
             size = sess.run(schedule)
             assert (size == expected_sizes[i])
+
+
+def test_detached():
+    from kungfu.ext import detached
+    assert (not detached())

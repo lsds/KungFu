@@ -14,6 +14,8 @@ void kungfu_python_finialize() { _default_peer.reset(nullptr); }
 
 uint64_t kungfu_uid() { return _default_peer->Uid(); }
 
+int kungfu_detached() { return _default_peer->Detached(); }
+
 int kungfu_rank() { return _default_peer->Rank(); }
 
 int kungfu_size() { return _default_peer->Size(); }

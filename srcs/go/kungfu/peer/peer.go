@@ -42,6 +42,8 @@ type Peer struct {
 	currentSession *session.Session
 	currentCluster *plan.Cluster
 	updated        bool
+
+	detached bool
 }
 
 func New() (*Peer, error) {
@@ -108,6 +110,10 @@ func (p *Peer) Close() error {
 		p.server.Close() // TODO: check error
 	}
 	return nil
+}
+
+func (p *Peer) Detached() bool {
+	return p.detached
 }
 
 // UID returns an immutable unique ID of this peer
@@ -228,6 +234,8 @@ func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 	changed, keep := p.propose(*cluster)
 	if keep {
 		p.Update()
+	} else {
+		p.detached = true
 	}
 	return changed, keep, nil
 }

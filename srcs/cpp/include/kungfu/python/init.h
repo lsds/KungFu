@@ -18,6 +18,7 @@ extern int kungfu_get_cuda_index();
 
 // helpers APIs to access kungfu without tensorflow operators
 extern uint64_t kungfu_uid();
+extern int kungfu_detached();
 extern int kungfu_rank();        // get current rank
 extern int kungfu_size();        // get current size
 extern int kungfu_local_rank();  // get current local rank

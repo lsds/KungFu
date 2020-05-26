@@ -17,6 +17,8 @@ class Peer
 
     ~Peer();
 
+    bool Detached() const;
+
     // metadata APIs
     uint64_t Uid() const;
 
