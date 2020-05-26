@@ -143,4 +143,9 @@ int Peer::AllGatherTransform(const void *input, int input_count,
     }
     return Broadcast(output, output, output_count, output_dtype, name);
 }
+
+int Peer::SetTree(const int32_t *tree)
+{
+    return GoKungfuSetTree(const_cast<int32_t *>(tree));
+}
 }  // namespace kungfu

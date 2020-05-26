@@ -32,6 +32,7 @@ var flg = struct {
 	hostfile *string
 	id       *string
 
+	quiet      *bool
 	logDir     *string
 	usr        *string
 	verboseLog *bool
@@ -49,6 +50,7 @@ var flg = struct {
 	hostfile: flag.String("hostfile", "hosts.txt", ""),
 	id:       flag.String("job-id", strconv.Itoa(int(time.Now().Unix())), ""),
 
+	quiet:      flag.Bool("q", false, ""),
 	logDir:     flag.String("logdir", ".", ""),
 	usr:        flag.String("u", "", "user name for ssh"),
 	nic:        flag.String("nic", "", ""),
@@ -144,9 +146,9 @@ func run(e elastic.Experiment, c Cluster, sp runtime.SystemParameters, cfgServer
 	log.Infof("will run %s", j.DebugString())
 
 	d, err := utils.Measure(func() error {
-		return remote.RunElasticKungFuJob(ctx, j, sp)
+		return remote.RunElasticKungFuJob(ctx, j, sp, *flg.quiet)
 	})
-	log.Infof("took %s", d)
+	log.Infof("run elastic.Experiment took %s", d)
 	return err
 }
 

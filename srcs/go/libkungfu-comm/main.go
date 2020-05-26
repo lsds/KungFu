@@ -37,6 +37,11 @@ func GoKungfuFinalize() int {
 	return errorCode("Close", defaultPeer.Close())
 }
 
+//export GoKungfuDetached
+func GoKungfuDetached() bool {
+	return defaultPeer.Detached()
+}
+
 //export GoKungfuUID
 func GoKungfuUID() uint64 {
 	return defaultPeer.UID()

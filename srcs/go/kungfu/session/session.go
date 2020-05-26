@@ -24,7 +24,9 @@ type strategy struct {
 
 // Session contains the immutable topology and strategies for a given period of logical duration
 type Session struct {
-	strategies        []strategy
+	sync.Mutex
+
+	strategies        strategyList
 	self              plan.PeerID
 	peers             plan.PeerList
 	rank              int
@@ -82,6 +84,12 @@ func (sess *Session) Peer(rank int) plan.PeerID {
 }
 
 func (sess *Session) Barrier() error {
+	sess.Lock()
+	defer sess.Unlock()
+	return sess.barrier()
+}
+
+func (sess *Session) barrier() error {
 	k := len(sess.peers)
 	count := k * 1
 	dtype := kb.U8
@@ -114,7 +122,7 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max:" + name}
 		assert.OK(sess.AllReduce(w1))
 		assert.OK(sess.AllReduce(w2))
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
+		if !utils.BytesEq(y.Data, z.Data) {
 			return false, nil
 		}
 	}
@@ -129,7 +137,7 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max:" + name}
 		assert.OK(sess.AllReduce(w1))
 		assert.OK(sess.AllReduce(w2))
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
+		if !utils.BytesEq(y.Data, z.Data) {
 			return false, nil
 		}
 	}

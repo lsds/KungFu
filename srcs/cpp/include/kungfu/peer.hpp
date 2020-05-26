@@ -17,6 +17,8 @@ class Peer
 
     ~Peer();
 
+    bool Detached() const;
+
     // metadata APIs
     uint64_t Uid() const;
 
@@ -50,6 +52,8 @@ class Peer
                 int count, KungFu_Datatype dtype);
     int Request(int rank, const char *version, const char *name, void *buf,
                 int count, KungFu_Datatype dtype, const DoneCallback &done);
+
+    // FIXME: move Session APIs to Session class in C++
 
     // collective APIs
     int Barrier();
@@ -120,6 +124,9 @@ class Peer
                   reinterpret_cast<T2 *>(output), output_count);
             });
     }
+
+    // adaptation APIs
+    int SetTree(const int32_t *tree);
 
     // monitoring APIs
     int GetPeerLatencies(float *recvbuf, int recv_count);

@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
-	"github.com/lsds/KungFu/srcs/go/log"
-	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/kungfu/runtime"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/remote"
 )
@@ -17,33 +15,28 @@ var f runner.FlagSet
 func init() { runner.Init(&f) }
 
 func main() {
-	hl, err := plan.ParseHostList(f.HostList)
-	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to parse -H: %v", err))
-	}
-	peers, err := hl.GenPeerList(f.ClusterSize, f.PortRange)
-	if err != nil {
-		utils.ExitErr(fmt.Errorf("failed to create peers: %v", err))
-	}
 	j := job.Job{
 		Strategy:  f.Strategy,
-		HostList:  hl,
+		HostList:  f.HostList,
 		PortRange: f.PortRange,
 		Prog:      f.Prog,
 		Args:      f.Args,
 		LogDir:    f.LogDir,
 	}
-	procs := j.CreateAllProcs(peers)
 	ctx, cancel := context.WithCancel(context.Background())
 	if f.Timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
-	d, err := utils.Measure(func() error {
-		return remote.RemoteRunAll(ctx, f.User, procs, f.VerboseLog, f.LogDir)
-	})
-	log.Infof("all %d peers finished, took %s", len(procs), d)
-	if err != nil {
+	sp := runtime.SystemParameters{
+		User:            f.User,
+		WorkerPortRange: f.PortRange,
+		RunnerPort:      uint16(f.Port),
+		HostList:        f.HostList,
+		ClusterSize:     f.ClusterSize,
+		Nic:             f.NIC,
+	}
+	if err := remote.RunStaticKungFuJob(ctx, j, sp, f.Quiet); err != nil {
 		utils.ExitErr(err)
 	}
 }

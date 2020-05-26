@@ -1,6 +1,8 @@
 package session
 
 import (
+	"bytes"
+
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -11,6 +13,15 @@ type strategyList []strategy
 
 func (sl strategyList) choose(i int) strategy {
 	return sl[i%len(sl)]
+}
+
+func (sl strategyList) digestBytes() []byte {
+	b := &bytes.Buffer{}
+	for _, s := range sl {
+		b.Write(s.reduceGraph.DigestBytes())
+		b.Write(s.bcastGraph.DigestBytes())
+	}
+	return b.Bytes()
 }
 
 var partitionStrategies = map[kb.Strategy]partitionStrategy{

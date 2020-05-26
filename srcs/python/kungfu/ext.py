@@ -28,6 +28,11 @@ def uid():
     return _python_lib.kungfu_uid()
 
 
+def detached():
+    """Check if the peer is detached."""
+    return bool(_python_lib.kungfu_detached())
+
+
 def current_rank():
     """Get the current rank of this peer."""
     return _python_lib.kungfu_rank()

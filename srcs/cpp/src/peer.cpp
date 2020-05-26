@@ -14,6 +14,8 @@ Peer::Peer()
 
 Peer::~Peer() { GoKungfuFinalize(); }
 
+bool Peer::Detached() const { return GoKungfuDetached(); }
+
 uint64_t Peer::Uid() const { return GoKungfuUID(); }
 
 int Peer::Save(const char *name, const void *buf, int count,

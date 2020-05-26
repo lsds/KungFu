@@ -61,7 +61,7 @@ func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bo
 
 const runnerProg = `kungfu-run`
 
-func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParameters) error {
+func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParameters, quiet bool) error {
 	hl := sp.HostList
 	runners := hl.GenRunnerList(sp.RunnerPort)
 	runnerFlags := []string{
@@ -75,7 +75,10 @@ func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParamet
 		`-H`, hl.String(),
 		`-port-range`, sp.WorkerPortRange.String(),
 		`-nic`, sp.Nic,
-		`-logdir`, `.kungfu/logs`,
+		`-logdir`, j.LogDir,
+	}
+	if quiet {
+		runnerFlags = append(runnerFlags, `-q`)
 	}
 	var ps []job.Proc
 	for _, r := range runners {
@@ -90,7 +93,7 @@ func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParamet
 	return RemoteRunAll(ctx, sp.User, ps, true, j.LogDir)
 }
 
-func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParameters) error {
+func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParameters, quiet bool) error {
 	hl := sp.HostList
 	runners := hl.GenRunnerList(sp.RunnerPort)
 	runnerFlags := []string{
@@ -108,7 +111,10 @@ func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParame
 		`-H`, hl.String(),
 		`-port-range`, sp.WorkerPortRange.String(),
 		`-nic`, sp.Nic,
-		`-logdir`, `.kungfu/logs`,
+		`-logdir`, j.LogDir,
+	}
+	if quiet {
+		runnerFlags = append(runnerFlags, `-q`)
 	}
 	var ps []job.Proc
 	for _, r := range runners {

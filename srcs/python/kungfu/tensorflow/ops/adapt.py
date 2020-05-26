@@ -21,3 +21,7 @@ def step_based_schedule(config, step=None):
                                               config=config,
                                               default=1,
                                               strict=False)
+
+
+def set_tree(tree):
+    return _op_lib.kungfu_set_tree(tree)

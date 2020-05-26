@@ -2,7 +2,9 @@ package plan
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
+	"sort"
 )
 
 // FIXME: make members private, public is required by JSON encoding for now
@@ -34,14 +36,25 @@ func NewGraph(n int) *Graph {
 	}
 }
 
-func NewGraphFromTreeArray(tree []int32) *Graph {
-	g := NewGraph(len(tree))
-	for i, father := range tree {
-		if int32(i) != father {
-			g.AddEdge(int(father), int(i))
+// NewGraphFromForestArray creates a Graph from array representation of a forest
+// f[i] represents the father of i, if f[i] != i
+func NewGraphFromForestArray(forest []int32) (*Graph, int, bool) {
+	var m int
+	n := len(forest)
+	g := NewGraph(n)
+	for i, father := range forest {
+		father := int(father)
+		switch {
+		case father < 0 || father >= n:
+			return nil, 0, false
+		case father == i:
+			m++
+		default:
+			g.AddEdge(father, i)
 		}
 	}
-	return g
+	// FIXME: check cycle!
+	return g, m, true
 }
 
 func (g *Graph) AddEdge(i, j int) {
@@ -97,4 +110,29 @@ func (g *Graph) DebugString() string {
 
 func (g *Graph) Debug() {
 	fmt.Printf("%s", g.DebugString())
+}
+
+func (g *Graph) DigestBytes() []byte {
+	b := &bytes.Buffer{}
+	w32 := func(x int32) { binary.Write(b, binary.LittleEndian, x) }
+	w32(int32(len(g.Nodes)))
+	for _, node := range g.Nodes {
+		deg := len(node.Nexts)
+		vs := make([]int, deg)
+		copy(vs, node.Nexts)
+		sort.Ints(vs)
+		w32(b2i(node.SelfLoop))
+		w32(int32(deg))
+		for _, j := range vs {
+			w32(int32(j))
+		}
+	}
+	return b.Bytes()
+}
+
+func b2i(b bool) int32 {
+	if b {
+		return 1
+	}
+	return 0
 }

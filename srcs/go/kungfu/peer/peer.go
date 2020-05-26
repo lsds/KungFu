@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
@@ -31,7 +31,7 @@ type Peer struct {
 	initClusterVersion int
 	parent             plan.PeerID
 	self               plan.PeerID
-	strategy           kb.Strategy
+	strategy           base.Strategy
 	single             bool
 	router             *router
 	server             server.Server
@@ -42,6 +42,8 @@ type Peer struct {
 	currentSession *session.Session
 	currentCluster *plan.Cluster
 	updated        bool
+
+	detached bool
 }
 
 func New() (*Peer, error) {
@@ -108,6 +110,10 @@ func (p *Peer) Close() error {
 		p.server.Close() // TODO: check error
 	}
 	return nil
+}
+
+func (p *Peer) Detached() bool {
+	return p.detached
 }
 
 // UID returns an immutable unique ID of this peer
@@ -228,6 +234,8 @@ func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 	changed, keep := p.propose(*cluster)
 	if keep {
 		p.Update()
+	} else {
+		p.detached = true
 	}
 	return changed, keep, nil
 }
