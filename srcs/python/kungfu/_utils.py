@@ -42,5 +42,9 @@ def _since_proc_start():
 
 
 def _log_event(name):
-    d = _since_proc_start()
-    print('%s :: %s since proc started' % (name, show_duration(d)))
+    t0 = os.getenv('KUNGFU_PROC_START_TIMESTAMP') or '0'
+    t0 = int(t0)
+    t1 = time.time()
+    d = t1 - t0
+    # d = _since_proc_start()
+    print('TS=%f %s :: %s since proc started' % (t1, name, show_duration(d)))
