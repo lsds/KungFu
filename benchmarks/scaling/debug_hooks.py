@@ -4,6 +4,7 @@ import time
 import numpy as np
 from kungfu._utils import (_log_event, _since_proc_start, one_based_range,
                            show_duration)
+from kungfu.tensorflow.ops import all_reduce
 
 import tensorflow as tf
 
@@ -66,7 +67,7 @@ class LogStepHook(tf.train.SessionRunHook):
     def begin(self):
         print('%s::%s %d steps' % ('LogStepHook', 'begin', self._step))
 
-    def after_create_session(self, run_context, coord):
+    def after_create_session(self, sess, coord):
         print('%s::%s %d steps' %
               ('LogStepHook', 'after_create_session', self._step))
 
@@ -106,6 +107,30 @@ class ProfileResizeHook(tf.train.SessionRunHook):
                   (self._step, new_size))
             from kungfu.ext import propose_new_size
             propose_new_size(new_size)
+
+    def end(self, run_context):
+        pass
+
+
+class SyncStepHook(tf.train.SessionRunHook):
+    def __init__(self):
+        pass
+
+    def begin(self):
+        global_step = tf.train.get_or_create_global_step()
+        new_global_step = all_reduce(global_step, op='max')
+        self._sync_step_op = tf.assign(global_step, new_global_step)
+
+    def after_create_session(self, sess, coord):
+        gs = sess.run(self._sync_step_op)
+        print('_sync_step_op result %d' % (gs))
+        _log_event('AFTER _sync_step_op')
+
+    def before_run(self, run_context):
+        pass
+
+    def after_run(self, run_context, run_values):
+        pass
 
     def end(self, run_context):
         pass
