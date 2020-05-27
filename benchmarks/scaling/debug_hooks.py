@@ -120,9 +120,12 @@ class SyncStepHook(tf.train.SessionRunHook):
         global_step = tf.train.get_or_create_global_step()
         new_global_step = all_reduce(global_step, op='max')
         self._sync_step_op = tf.assign(global_step, new_global_step)
+        from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
+        self._sync_state_op = BroadcastGlobalVariablesOp()
 
     def after_create_session(self, sess, coord):
         gs = sess.run(self._sync_step_op)
+        sess.run(self._sync_state_op)
         print('_sync_step_op result %d' % (gs))
         _log_event('AFTER _sync_step_op')
 
