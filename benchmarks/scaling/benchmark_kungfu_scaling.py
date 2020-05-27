@@ -23,6 +23,7 @@ def parse_args():
     p.add_argument('--train-steps', type=int, default=10, help='')
     p.add_argument('--epochs', type=int, default=10, help='')
     p.add_argument('--epoch-size', type=int, default=10, help='')
+    p.add_argument('--sync-step', action='store_true', default=False, help='')
     p.add_argument('--resize-schedule',
                    type=str,
                    default='10:2,100:0',
@@ -170,10 +171,13 @@ def parse_scheule(schedule):
 
 def run_with_estimator(args):
     _log_event('BEGIN :: run_with_estimator')
+
+    _log_event('BEGIN :: build_estimator')
     classifier = build_estimator(args)
+    _log_event('END :: build_estimator')
 
     hooks = [
-        # debug_hooks.LogStepHook(),
+        debug_hooks.LogStepHook(),
     ]
 
     if args.show_training_throughput:
@@ -193,7 +197,14 @@ def run_with_estimator(args):
         classifier.train(input_fn, hooks=hooks)
     else:
         input_fn = build_input_fn(args.batch_size, args.train_steps)
+
+        sync_step_hook = debug_hooks.SyncStepHook()
+        if args.sync_step:
+            hooks.append(sync_step_hook)
+
+        _log_event('BEGIN :: classifier.train')
         classifier.train(input_fn, hooks=hooks, max_steps=args.train_steps)
+        _log_event('END :: classifier.train')
 
     _log_event('END :: run_with_estimator')
 

@@ -70,11 +70,11 @@ func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParamet
 		`PYTHONWARNINGS=ignore`,
 		`TF_CPP_MIN_LOG_LEVEL=2`,
 		runnerProg,
-		// `-q`,
 		`-np`, strconv.Itoa(sp.ClusterSize),
 		`-H`, hl.String(),
 		`-port-range`, sp.WorkerPortRange.String(),
 		`-nic`, sp.Nic,
+		`-strategy`, j.Strategy.String(),
 		`-logdir`, j.LogDir,
 	}
 	if quiet {
@@ -103,7 +103,6 @@ func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParame
 		`TF_CPP_MIN_LOG_LEVEL=2`,
 
 		runnerProg,
-		`-q`,
 		`-w`,
 		`-k`,
 		`-config-server`, j.ConfigServer,
@@ -111,6 +110,7 @@ func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParame
 		`-H`, hl.String(),
 		`-port-range`, sp.WorkerPortRange.String(),
 		`-nic`, sp.Nic,
+		`-strategy`, j.Strategy.String(),
 		`-logdir`, j.LogDir,
 	}
 	if quiet {
