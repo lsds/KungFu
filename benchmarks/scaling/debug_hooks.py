@@ -133,4 +133,4 @@ class SyncStepHook(tf.train.SessionRunHook):
         pass
 
     def end(self, run_context):
-        pass
+        _log_event('SyncStepHook::end')
