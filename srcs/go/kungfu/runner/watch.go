@@ -9,10 +9,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lsds/KungFu/srcs/go/job"
+	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/rchannel/server"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/local"
@@ -133,15 +134,15 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 	log.Infof(xterm.Blue.S("stop watching"))
 }
 
-func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version int, logDir string) {
+func runProc(ctx context.Context, cancel context.CancelFunc, p proc.Proc, version int, logDir string) {
 	r := &local.Runner{
-		Name:          proc.Name,
+		Name:          p.Name,
 		LogDir:        logDir,
-		LogFilePrefix: fmt.Sprintf("%s@%d", proc.Name, version),
+		LogFilePrefix: fmt.Sprintf("%s@%d", p.Name, version),
 		VerboseLog:    true,
 	}
-	if err := r.TryRun(ctx, proc); err != nil {
-		log.Infof("%s finished with error: %v", proc.Name, err)
+	if err := r.TryRun(ctx, p); err != nil {
+		log.Infof("%s finished with error: %v", p.Name, err)
 		cancel()
 		utils.ExitErr(err) // FIXME: graceful shutdown
 		return

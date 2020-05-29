@@ -15,7 +15,7 @@ OPTION(KUNGFU_BUILD_TOOLS "Build kungfu tools." ON)
 OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
 OPTION(KUNGFU_ENABLE_TRACE "Enable trace." OFF)
 
-INCLUDE(cmake/go.cmake)
+INCLUDE(srcs/cmake/go.cmake)
 IF(KUNGFU_ENABLE_TRACE)
     ADD_DEFINITIONS(-DKUNGFU_ENABLE_TRACE)
     FIND_PACKAGE(stdtracer REQUIRED)
@@ -28,7 +28,7 @@ IF(KUNGFU_ENABLE_FLOAT16)
     SET(CGO_CFLAGS "-DENABLE_F16 -mf16c -mavx")
 ENDIF()
 
-INCLUDE(cmake/cgo.cmake)
+INCLUDE(srcs/cmake/cgo.cmake)
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 
 ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/peer.cpp
@@ -41,11 +41,11 @@ INSTALL(DIRECTORY srcs/cpp/include DESTINATION .)
 INSTALL(DIRECTORY lib DESTINATION .)
 
 IF(KUNGFU_ENABLE_NCCL)
-    INCLUDE(cmake/nccl.cmake)
+    INCLUDE(srcs/cmake/nccl.cmake)
 ENDIF()
 
 IF(KUNGFU_BUILD_TF_OPS)
-    INCLUDE(cmake/tf-op.cmake)
+    INCLUDE(srcs/cmake/tf-op.cmake)
 
     ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/python/init.cpp
                                      srcs/cpp/src/python/cuda.cpp)
@@ -95,5 +95,5 @@ ENDIF()
 
 IF(KUNGFU_BUILD_TESTS)
     ENABLE_TESTING()
-    INCLUDE(cmake/tests.cmake)
+    INCLUDE(srcs/cmake/tests.cmake)
 ENDIF()

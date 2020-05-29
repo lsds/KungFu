@@ -9,8 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
@@ -72,30 +72,30 @@ func runWith(ctx context.Context, redirectors []*iostream.StdWriters, cmd *exec.
 	}
 }
 
-func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
+func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
 	var fail int32
-	for i, proc := range ps {
+	for i, p := range ps {
 		wg.Add(1)
-		go func(i int, proc job.Proc) {
+		go func(i int, p proc.Proc) {
 			r := &Runner{
-				Name:          proc.Name,
+				Name:          p.Name,
 				Color:         xterm.BasicColors.Choose(i),
 				VerboseLog:    verboseLog,
-				LogFilePrefix: strings.Replace(proc.Name, "/", "-", -1),
-				LogDir:        proc.LogDir,
+				LogFilePrefix: strings.Replace(p.Name, "/", "-", -1),
+				LogDir:        p.LogDir,
 			}
-			if err := r.TryRun(ctx, proc); err != nil {
-				log.Errorf("#<%s> exited with error: %v", proc.Name, err)
+			if err := r.TryRun(ctx, p); err != nil {
+				log.Errorf("#<%s> exited with error: %v", p.Name, err)
 				atomic.AddInt32(&fail, 1)
 				cancel()
 			} else {
-				log.Debugf("#<%s> finished successfully", proc.Name)
+				log.Debugf("#<%s> finished successfully", p.Name)
 			}
 			wg.Done()
-		}(i, proc)
+		}(i, p)
 	}
 	wg.Wait()
 	if fail != 0 {
