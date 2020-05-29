@@ -8,6 +8,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/platforms/modelarts"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/local"
 )
@@ -30,7 +31,7 @@ func main() {
 		Args:      f.Args,
 		LogDir:    f.LogDir,
 	}
-	procs := []job.Proc{
+	procs := []proc.Proc{
 		j.NewProc(env.Self, 0, 0, env.PeerList),
 	}
 	ctx, cancel := context.WithCancel(context.Background())

@@ -13,19 +13,20 @@ import (
 	"github.com/lsds/KungFu/srcs/go/kungfu/runtime"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 	"github.com/lsds/KungFu/srcs/go/utils/ssh"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
-func RemoteRunAll(ctx context.Context, user string, ps []job.Proc, verboseLog bool, logDir string) error {
+func RemoteRunAll(ctx context.Context, user string, ps []proc.Proc, verboseLog bool, logDir string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
 	var fail int32
 	for i, p := range ps {
 		wg.Add(1)
-		go func(i int, p job.Proc) {
+		go func(i int, p proc.Proc) {
 			defer wg.Done()
 			t0 := time.Now()
 			config := ssh.Config{
@@ -80,9 +81,9 @@ func RunStaticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParamet
 	if quiet {
 		runnerFlags = append(runnerFlags, `-q`)
 	}
-	var ps []job.Proc
+	var ps []proc.Proc
 	for _, r := range runners {
-		p := job.Proc{
+		p := proc.Proc{
 			Name:     plan.FormatIPv4(r.IPv4),
 			Prog:     `env`,
 			Args:     append(runnerFlags, j.ProgAndArgs()...),
@@ -116,9 +117,9 @@ func RunElasticKungFuJob(ctx context.Context, j job.Job, sp runtime.SystemParame
 	if quiet {
 		runnerFlags = append(runnerFlags, `-q`)
 	}
-	var ps []job.Proc
+	var ps []proc.Proc
 	for _, r := range runners {
-		p := job.Proc{
+		p := proc.Proc{
 			Name:     plan.FormatIPv4(r.IPv4),
 			Prog:     `env`,
 			Args:     append(runnerFlags, j.ProgAndArgs()...),

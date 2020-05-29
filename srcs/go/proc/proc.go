@@ -1,4 +1,4 @@
-package job
+package proc
 
 import (
 	"bytes"
@@ -10,13 +10,13 @@ import (
 
 type Envs map[string]string
 
-func (e Envs) addIfMissing(k, v string) {
+func (e Envs) AddIfMissing(k, v string) {
 	if _, ok := e[k]; !ok {
 		e[k] = v
 	}
 }
 
-func merge(e, f Envs) Envs {
+func Merge(e, f Envs) Envs {
 	g := make(Envs)
 	for k, v := range e {
 		g[k] = v
@@ -27,7 +27,7 @@ func merge(e, f Envs) Envs {
 	return g
 }
 
-// Proc represents a process
+// Proc represents a general purpose process
 type Proc struct {
 	Name     string
 	Prog     string

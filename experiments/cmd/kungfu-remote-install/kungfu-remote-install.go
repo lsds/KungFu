@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/plan/hostfile"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/assert"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/remote"
@@ -97,13 +97,13 @@ func installAll(hl plan.HostList) error {
 type shellCmd struct {
 	prog  string
 	args  []string
-	envs  job.Envs
+	envs  proc.Envs
 	chdir *string
 }
 
 func (s shellCmd) Env(k, v string) shellCmd {
 	if s.envs == nil {
-		s.envs = make(job.Envs)
+		s.envs = make(proc.Envs)
 	}
 	s.envs[k] = v
 	return s
@@ -124,7 +124,7 @@ type shellCmds []shellCmd
 
 func (ss shellCmds) RunOn(hostname string) error {
 	for i, c := range ss {
-		p := job.Proc{
+		p := proc.Proc{
 			Name:     fmt.Sprintf("%s#%d$%s", hostname, i, c.prog),
 			Prog:     c.prog,
 			Args:     c.args,
@@ -133,7 +133,7 @@ func (ss shellCmds) RunOn(hostname string) error {
 			ChDir:    c.chdir,
 		}
 		log.Infof("running on %s $ %s %q", p.Hostname, p.Prog, p.Args)
-		if err := remote.RemoteRunAll(context.TODO(), *flg.usr, []job.Proc{p}, true, *flg.logDir); err != nil {
+		if err := remote.RemoteRunAll(context.TODO(), *flg.usr, []proc.Proc{p}, true, *flg.logDir); err != nil {
 			log.Errorf("failed to run %s $ %s %q: %v", p.Hostname, p.Prog, p.Args, err)
 			return err
 		}
@@ -142,13 +142,13 @@ func (ss shellCmds) RunOn(hostname string) error {
 }
 
 func waitSSH(hostname string) {
-	p := job.Proc{
+	p := proc.Proc{
 		Name:     fmt.Sprintf("%s$%s", hostname, `wait-ssh`),
 		Prog:     `pwd`,
 		Hostname: hostname,
 	}
 	trial := func() bool {
-		err := remote.RemoteRunAll(context.TODO(), *flg.usr, []job.Proc{p}, true, *flg.logDir)
+		err := remote.RemoteRunAll(context.TODO(), *flg.usr, []proc.Proc{p}, true, *flg.logDir)
 		if err != nil {
 			log.Warnf("still waiting %s", hostname)
 		}

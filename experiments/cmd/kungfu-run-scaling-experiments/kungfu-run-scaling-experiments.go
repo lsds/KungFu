@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/experiments/elastic"
-	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runtime"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/plan/hostfile"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/remote"
 	"github.com/lsds/KungFu/tests/go/configserver"
@@ -153,10 +153,10 @@ func run(e elastic.Experiment, c Cluster, sp runtime.SystemParameters, cfgServer
 }
 
 func runConfigServer(hostname string, port int) (context.CancelFunc, *sync.WaitGroup) {
-	envs := make(job.Envs)
+	envs := make(proc.Envs)
 	envs[`PATH`] = `$HOME/go/bin:$PATH`
 	args := []string{`-port`, strconv.Itoa(port)}
-	p := job.Proc{
+	p := proc.Proc{
 		Name:     `config-server`,
 		Prog:     `kungfu-config-server-example`,
 		Args:     args,
@@ -167,7 +167,7 @@ func runConfigServer(hostname string, port int) (context.CancelFunc, *sync.WaitG
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		if err := remote.RemoteRunAll(ctx, *flg.usr, []job.Proc{p}, true, *flg.logDir); err != nil {
+		if err := remote.RemoteRunAll(ctx, *flg.usr, []proc.Proc{p}, true, *flg.logDir); err != nil {
 			log.Errorf("%s failed: %v", p.Name, err)
 		}
 		wg.Done()

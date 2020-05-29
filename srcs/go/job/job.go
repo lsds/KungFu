@@ -11,6 +11,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/proc"
 )
 
 type Job struct {
@@ -27,8 +28,8 @@ type Job struct {
 	AllowNVLink bool
 }
 
-func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl plan.PeerList) Proc {
-	envs := Envs{
+func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl plan.PeerList) proc.Proc {
+	envs := proc.Envs{
 		env.JobStartTimestamp:        strconv.FormatInt(j.StartTime.Unix(), 10),
 		env.ProcStartTimestamp:       strconv.FormatInt(time.Now().Unix(), 10),
 		env.SelfSpecEnvKey:           peer.String(),
@@ -50,8 +51,8 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl pla
 		envs[cudaVisibleDevicesKey] = cudaIdx
 	}
 
-	allEnvs := merge(getConfigEnvs(), envs)
-	allEnvs.addIfMissing(`PYTHONUNBUFFERED`, `1`)
+	allEnvs := proc.Merge(getConfigEnvs(), envs)
+	allEnvs.AddIfMissing(`PYTHONUNBUFFERED`, `1`)
 	var pubAddr string
 	for _, h := range j.HostList {
 		if h.IPv4 == peer.IPv4 {
@@ -59,7 +60,7 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl pla
 		}
 	}
 
-	return Proc{
+	return proc.Proc{
 		Name:     fmt.Sprintf("%s.%d", plan.FormatIPv4(peer.IPv4), peer.Port),
 		Prog:     j.Prog,
 		Args:     j.Args,
@@ -69,8 +70,8 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl pla
 	}
 }
 
-func (j Job) CreateAllProcs(pl plan.PeerList) []Proc {
-	var ps []Proc
+func (j Job) CreateAllProcs(pl plan.PeerList) []proc.Proc {
+	var ps []proc.Proc
 	for _, self := range pl {
 		localRank, _ := pl.LocalRank(self)
 		proc := j.NewProc(self, localRank, 0, pl)
@@ -79,8 +80,8 @@ func (j Job) CreateAllProcs(pl plan.PeerList) []Proc {
 	return ps
 }
 
-func (j Job) CreateProcs(pl plan.PeerList, host uint32) []Proc {
-	var ps []Proc
+func (j Job) CreateProcs(pl plan.PeerList, host uint32) []proc.Proc {
+	var ps []proc.Proc
 	for _, self := range pl.On(host) {
 		localRank, _ := pl.LocalRank(self)
 		proc := j.NewProc(self, localRank, 0, pl)
@@ -95,8 +96,8 @@ func (j Job) ProgAndArgs() []string {
 	return a
 }
 
-func getConfigEnvs() Envs {
-	envs := make(Envs)
+func getConfigEnvs() proc.Envs {
+	envs := make(proc.Envs)
 	for _, k := range config.ConfigEnvKeys {
 		if val := os.Getenv(k); len(val) > 0 {
 			envs[k] = val

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/remote"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
@@ -74,9 +74,9 @@ func main() {
 }
 
 func distribute(ctx context.Context, hl []runner.HostSpec, prog string, args []string) error {
-	var ps []job.Proc
+	var ps []proc.Proc
 	for _, h := range hl {
-		proc := job.Proc{
+		proc := proc.Proc{
 			Name:     h.PublicAddr,
 			Hostname: h.PublicAddr,
 			Prog:     prog,

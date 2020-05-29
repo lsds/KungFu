@@ -5,15 +5,15 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/nccl"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 )
 
-func (r Runner) TryRun(ctx context.Context, proc job.Proc) error {
+func (r Runner) TryRun(ctx context.Context, p proc.Proc) error {
 	for i := 1; ; i++ {
-		retry, err := r.tryRun(ctx, proc.Cmd())
+		retry, err := r.tryRun(ctx, p.Cmd())
 		if err != nil && retry {
 			log.Errorf("restarting for the %d-th time because of %v", i, err)
 			continue
