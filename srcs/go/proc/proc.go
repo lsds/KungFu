@@ -41,6 +41,9 @@ type Proc struct {
 func (p Proc) Cmd() *exec.Cmd {
 	cmd := exec.Command(p.Prog, p.Args...)
 	cmd.Env = updatedEnv(p.Envs)
+	if p.ChDir != nil {
+		cmd.Dir = *p.ChDir
+	}
 	return cmd
 }
 
