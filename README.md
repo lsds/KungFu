@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="kungfu-logo.png" width="50%" height="30%"/>
+    <img src="docs/kungfu-logo.png" width="50%" height="30%"/>
 </div>
 
 # KungFu
