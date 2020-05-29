@@ -3,7 +3,7 @@ package runner
 import (
 	"context"
 
-	"github.com/lsds/KungFu/srcs/go/job"
+	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"

@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lsds/KungFu/srcs/go/job"
+	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runtime"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
