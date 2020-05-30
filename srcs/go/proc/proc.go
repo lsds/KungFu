@@ -2,6 +2,7 @@ package proc
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -38,8 +39,8 @@ type Proc struct {
 	ChDir    *string
 }
 
-func (p Proc) Cmd() *exec.Cmd {
-	cmd := exec.Command(p.Prog, p.Args...)
+func (p Proc) CmdCtx(ctx context.Context) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, p.Prog, p.Args...)
 	cmd.Env = updatedEnv(p.Envs)
 	if p.ChDir != nil {
 		cmd.Dir = *p.ChDir

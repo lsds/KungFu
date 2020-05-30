@@ -13,7 +13,7 @@ import (
 
 func (r Runner) TryRun(ctx context.Context, p proc.Proc) error {
 	for i := 1; ; i++ {
-		retry, err := r.tryRun(ctx, p.Cmd())
+		retry, err := r.tryRun(p.CmdCtx(ctx))
 		if err != nil && retry {
 			log.Errorf("restarting for the %d-th time because of %v", i, err)
 			continue
@@ -22,12 +22,12 @@ func (r Runner) TryRun(ctx context.Context, p proc.Proc) error {
 	}
 }
 
-func (r Runner) tryRun(ctx context.Context, cmd *exec.Cmd) (bool, error) {
+func (r Runner) tryRun(cmd *exec.Cmd) (bool, error) {
 	redirectors := r.defaultRedirectors()
 	firstStderr := &iostream.SaveFirstdWriter{}
 	firstLogs := &iostream.StdWriters{Stdout: &iostream.Null{}, Stderr: firstStderr}
 	redirectors = append(redirectors, firstLogs)
-	err := runWith(ctx, redirectors, cmd)
+	err := runWith(redirectors, cmd)
 	if strings.HasPrefix(firstStderr.First, nccl.Bug) {
 		return true, err
 	}
