@@ -98,7 +98,7 @@ type shellCmd struct {
 	prog  string
 	args  []string
 	envs  proc.Envs
-	chdir *string
+	chdir string
 }
 
 func (s shellCmd) Env(k, v string) shellCmd {
@@ -110,7 +110,7 @@ func (s shellCmd) Env(k, v string) shellCmd {
 }
 
 func (s shellCmd) ChDir(dir string) shellCmd {
-	s.chdir = &dir
+	s.chdir = dir
 	return s
 }
 
@@ -130,7 +130,7 @@ func (ss shellCmds) RunOn(hostname string) error {
 			Args:     c.args,
 			Hostname: hostname,
 			Envs:     c.envs,
-			ChDir:    c.chdir,
+			Dir:      c.chdir,
 		}
 		log.Infof("running on %s $ %s %q", p.Hostname, p.Prog, p.Args)
 		if err := remote.RemoteRunAll(context.TODO(), *flg.usr, []proc.Proc{p}, true, *flg.logDir); err != nil {

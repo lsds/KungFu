@@ -24,8 +24,8 @@ type Runner struct {
 }
 
 // Run a command with context
-func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
-	return runWith(ctx, r.defaultRedirectors(), cmd)
+func (r Runner) Run(cmd *exec.Cmd) error {
+	return runWith(r.defaultRedirectors(), cmd)
 }
 
 func (r Runner) defaultRedirectors() []*iostream.StdWriters {
@@ -39,7 +39,7 @@ func (r Runner) defaultRedirectors() []*iostream.StdWriters {
 	return redirectors
 }
 
-func runWith(ctx context.Context, redirectors []*iostream.StdWriters, cmd *exec.Cmd) error {
+func runWith(redirectors []*iostream.StdWriters, cmd *exec.Cmd) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -51,25 +51,12 @@ func runWith(ctx context.Context, redirectors []*iostream.StdWriters, cmd *exec.
 	}
 	defer stderr.Close()
 	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr}
-
 	ioDone := results.Stream(redirectors...)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	done := make(chan error)
-	go func() {
-		ioDone.Wait() // call this before cmd.Wait!
-		err := cmd.Wait()
-		done <- err
-	}()
-	select {
-	case <-ctx.Done():
-		cmd.Process.Kill()
-		<-done
-		return ctx.Err()
-	case err := <-done:
-		return err
-	}
+	ioDone.Wait() // call this before cmd.Wait!
+	return cmd.Wait()
 }
 
 func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool) error {

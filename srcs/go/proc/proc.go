@@ -2,6 +2,7 @@ package proc
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -35,23 +36,21 @@ type Proc struct {
 	Envs     Envs
 	Hostname string
 	LogDir   string
-	ChDir    *string
+	Dir      string
 }
 
-func (p Proc) Cmd() *exec.Cmd {
-	cmd := exec.Command(p.Prog, p.Args...)
-	cmd.Env = updatedEnv(p.Envs)
-	if p.ChDir != nil {
-		cmd.Dir = *p.ChDir
-	}
+func (p Proc) CmdCtx(ctx context.Context) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, p.Prog, p.Args...)
+	cmd.Env = updatedEnvFrom(p.Envs, os.Environ())
+	cmd.Dir = p.Dir
 	return cmd
 }
 
 func (p Proc) Script() string {
 	buf := &bytes.Buffer{}
 	var chdir string
-	if p.ChDir != nil {
-		chdir = fmt.Sprintf("-C %s", *p.ChDir)
+	if len(p.Dir) > 0 {
+		chdir = fmt.Sprintf("-C %s", p.Dir)
 	}
 	fmt.Fprintf(buf, "env %s\\\n", chdir)
 	for k, v := range p.Envs {
@@ -65,14 +64,8 @@ func (p Proc) Script() string {
 	return buf.String()
 }
 
-func updatedEnv(newValues Envs) []string {
-	envMap := make(Envs)
-	for _, kv := range os.Environ() {
-		parts := strings.Split(kv, "=")
-		if len(parts) == 2 {
-			envMap[parts[0]] = parts[1]
-		}
-	}
+func updatedEnvFrom(newValues Envs, oldEnvs []string) []string {
+	envMap := parseEnv(oldEnvs)
 	for k, v := range newValues {
 		envMap[k] = v
 	}
@@ -81,4 +74,15 @@ func updatedEnv(newValues Envs) []string {
 		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 	return envs
+}
+
+func parseEnv(envs []string) Envs {
+	envMap := make(Envs)
+	for _, kv := range envs {
+		parts := strings.SplitN(kv, "=", 2)
+		if len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
+	}
+	return envMap
 }
