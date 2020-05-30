@@ -48,6 +48,7 @@ func parseLine(line string) (*plan.HostSpec, error) {
 		return nil, fmt.Errorf("%v: %q", err, parts[0])
 	}
 	slots := 1
+	pubAddr := plan.FormatIPv4(ipv4)
 	for _, kv := range parts[1:] {
 		kvs := strings.Split(kv, "=")
 		if len(kvs) != 2 {
@@ -61,6 +62,8 @@ func parseLine(line string) (*plan.HostSpec, error) {
 				return nil, errInvalidHostfile
 			}
 			slots = n
+		case `public_addr`:
+			pubAddr = v
 		default:
 			return nil, errInvalidHostfile
 		}
@@ -68,7 +71,7 @@ func parseLine(line string) (*plan.HostSpec, error) {
 	return &plan.HostSpec{
 		IPv4:       ipv4,
 		Slots:      slots,
-		PublicAddr: plan.FormatIPv4(ipv4),
+		PublicAddr: pubAddr,
 	}, nil
 }
 
