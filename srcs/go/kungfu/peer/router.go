@@ -1,6 +1,9 @@
 package peer
 
 import (
+	"context"
+	"errors"
+
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/client"
@@ -41,6 +44,15 @@ func (r *router) ResetConnections(keeps plan.PeerList, token uint32) {
 // Send sends data in buf to given Addr
 func (r *router) Send(a plan.Addr, buf []byte, t connection.ConnType, flags uint32) error {
 	return r.client.Send(a, buf, t, flags)
+}
+
+var errWaitPeerFailed = errors.New("wait peer failed")
+
+func (r *router) Wait(ctx context.Context, target plan.PeerID) error {
+	if ok := r.client.Wait(ctx, target); !ok {
+		return errWaitPeerFailed
+	}
+	return nil
 }
 
 // Handle implements Handle method of ConnHandler interface
