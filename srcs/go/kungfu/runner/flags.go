@@ -59,6 +59,9 @@ type FlagSet struct {
 	JobStartTime int
 	Prog         string
 	Args         []string
+
+	// testing flag
+	DelayStart time.Duration
 }
 
 func (f *FlagSet) Register(flag *flag.FlagSet) {
@@ -92,6 +95,8 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.StringVar(&f.Logfile, "logfile", "", "path to log file")
 	flag.StringVar(&f.LogDir, "logdir", "", "path to log dir")
 	flag.BoolVar(&f.Quiet, "q", false, "don't log debug info")
+
+	flag.DurationVar(&f.DelayStart, "delay", 0, "delay start for testing purpose")
 }
 
 var errMissingProgramName = errors.New("missing program name")

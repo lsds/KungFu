@@ -48,11 +48,12 @@ func (r *router) Send(a plan.Addr, buf []byte, t connection.ConnType, flags uint
 
 var errWaitPeerFailed = errors.New("wait peer failed")
 
-func (r *router) Wait(ctx context.Context, target plan.PeerID) error {
-	if ok := r.client.Wait(ctx, target); !ok {
-		return errWaitPeerFailed
+func (r *router) Wait(ctx context.Context, target plan.PeerID) (int, error) {
+	n, ok := r.client.Wait(ctx, target)
+	if !ok {
+		return n, errWaitPeerFailed
 	}
-	return nil
+	return n, nil
 }
 
 // Handle implements Handle method of ConnHandler interface

@@ -44,7 +44,7 @@ func (c *Client) Ping(target plan.PeerID) (time.Duration, error) {
 }
 
 // Wait waits a peer until it's accessible
-func (c *Client) Wait(ctx context.Context, target plan.PeerID) bool {
+func (c *Client) Wait(ctx context.Context, target plan.PeerID) (int, bool) {
 	const period = 200 * time.Millisecond
 	var last time.Time
 	ping := func() bool {
@@ -55,8 +55,7 @@ func (c *Client) Wait(ctx context.Context, target plan.PeerID) bool {
 		last = time.Now()
 		return err == nil
 	}
-	_, ok := utils.Poll(ctx, ping)
-	return ok
+	return utils.Poll(ctx, ping)
 }
 
 // Send sends data in buf to given Addr
