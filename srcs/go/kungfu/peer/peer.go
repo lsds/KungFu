@@ -188,7 +188,6 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 			Version: p.clusterVersion + 1,
 			Cluster: cluster,
 		}
-		// FIXME: assuming runners are up and running
 		var notify execution.PeerFunc = func(ctrl plan.PeerID) error {
 			ctx, cancel := context.WithTimeout(context.TODO(), config.WaitRunnerTimeout)
 			defer cancel()
