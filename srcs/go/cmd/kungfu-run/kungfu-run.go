@@ -20,6 +20,10 @@ var f runner.FlagSet
 func init() { runner.Init(&f) }
 
 func main() {
+	if f.DelayStart > 0 {
+		log.Warnf("delay start for %s", f.DelayStart)
+		time.Sleep(f.DelayStart)
+	}
 	if logfile := f.Logfile; len(logfile) > 0 {
 		if len(f.LogDir) > 0 {
 			logfile = path.Join(f.LogDir, logfile)

@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -187,8 +188,16 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 			Version: p.clusterVersion + 1,
 			Cluster: cluster,
 		}
-		// FIXME: assuming runners are up and running
 		var notify execution.PeerFunc = func(ctrl plan.PeerID) error {
+			ctx, cancel := context.WithTimeout(context.TODO(), config.WaitRunnerTimeout)
+			defer cancel()
+			n, err := p.router.Wait(ctx, ctrl)
+			if err != nil {
+				return err
+			}
+			if n > 0 {
+				log.Warnf("%s is up after pinged %d times", ctrl, n+1)
+			}
 			return p.router.Send(ctrl.WithName("update"), stage.Encode(), connection.ConnControl, 0)
 		}
 		if err := notify.Par(cluster.Runners); err != nil {
