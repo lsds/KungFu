@@ -5,15 +5,11 @@ import os
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.util import deprecation
 import tensorflow_datasets as tfds
-
-deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def parse_args():
     p = argparse.ArgumentParser(description='Example.')
-    p.add_argument('--data-dir', type=str, default='.', help='')
     p.add_argument('--model-dir', type=str, default='.', help='')
     p.add_argument('--kf-optimizer', type=str, default='sync_sgd', help='')
     p.add_argument('--batch-size', type=int, default=100, help='')
