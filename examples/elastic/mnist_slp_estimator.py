@@ -5,8 +5,8 @@ import os
 
 import numpy as np
 import tensorflow as tf
-from kungfu.tensorflow.v1.helpers.mnist import load_datasets
 from tensorflow.python.util import deprecation
+import tensorflow_datasets as tfds
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
@@ -28,9 +28,9 @@ def slp(x, logits):
     return output, tf.argmax(output, axis=1)
 
 
-def model_fn(features, labels, mode):
-    output, predictions = slp(features['x'], 10)
-    loss = tf.losses.sparse_softmax_cross_entropy(tf.cast(labels, tf.int32),
+def model_fn(features, labels, mode, config):
+    output, predictions = slp(features, 10)
+    loss = tf.losses.sparse_softmax_cross_entropy(labels,
                                                   output)
     eval_metric_ops = {
         'accuracy': tf.metrics.accuracy(labels=labels, predictions=predictions)
@@ -45,13 +45,22 @@ def model_fn(features, labels, mode):
                                       eval_metric_ops=eval_metric_ops)
 
 
-def input_fn(ds, batch_size, epochs=1, shuffle=True):
-    features = {'x': ds.images}
-    return tf.estimator.inputs.numpy_input_fn(x=features,
-                                              y=ds.labels,
-                                              batch_size=batch_size,
-                                              num_epochs=epochs,
-                                              shuffle=shuffle)
+def input_fn_builder(split, batch_size, epochs=1, shuffle=True):
+    def transform(image, label):
+        return tf.cast(image, tf.float32) / 255., label
+
+    def input_fn():
+        dataset, dataset_info = tfds.load("mnist", as_supervised=True, with_info=True)
+        dataset = dataset[split]
+        dataset = dataset.map(transform)
+        dataset = dataset.repeat(epochs)
+        dataset = dataset.cache()
+        if shuffle:
+            dataset = dataset.shuffle(dataset_info.splits['train'].num_examples)
+        dataset = dataset.batch(batch_size)
+        return dataset
+    
+    return input_fn
 
 
 def get_model_dir(args):
@@ -70,13 +79,12 @@ def main(do_eval=True):
     args = parse_args()
     model_dir = get_model_dir(args)
 
-    data = load_datasets(args.data_dir, normalize=True)
     classifier = tf.estimator.Estimator(model_fn, model_dir=model_dir)
 
-    from kungfu.tensorflow.experimental.hook import ElasticHook
+    from kungfu.tensorflow.hook import ElasticHook
     hooks = [ElasticHook(args.batch_size, args.num_epochs, MNIST_DATA_SIZE)]
 
-    classifier.train(input_fn(data.train,
+    classifier.train(input_fn_builder("train",
                               args.batch_size,
                               epochs=args.num_epochs),
                      hooks=hooks)
@@ -85,7 +93,7 @@ def main(do_eval=True):
         import time
         time.sleep(1)
         return
-    results = classifier.evaluate(input_fn(data.test,
+    results = classifier.evaluate(input_fn_builder("test",
                                            args.batch_size,
                                            shuffle=False),
                                   hooks=[],
