@@ -6,7 +6,6 @@ import (
 	"expvar"
 	"flag"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -62,7 +61,7 @@ func (s *configServer) getConfig(w http.ResponseWriter, req *http.Request) {
 
 func (s *configServer) putConfig(w http.ResponseWriter, req *http.Request) {
 	var cluster plan.Cluster
-	if err := readJSON(req.Body, &cluster); err != nil {
+	if err := utils.ReadJSON(req.Body, &cluster); err != nil {
 		log.Errorf("failed to decode JSON: %v", err)
 		return
 	}
@@ -109,7 +108,7 @@ func (s *configServer) removeWorker(w http.ResponseWriter, req *http.Request) {
 	defer s.Unlock()
 	var cluster = s.cluster.Clone()
 	var peer plan.PeerID
-	if err := readJSON(req.Body, &peer); err != nil {
+	if err := utils.ReadJSON(req.Body, &peer); err != nil {
 		log.Errorf("failed to decode JSON: %v", err)
 		return
 	}
@@ -146,7 +145,7 @@ func (s *configServer) addWorker(w http.ResponseWriter, req *http.Request) {
 	defer s.Unlock()
 	var cluster = s.cluster.Clone()
 	var peer plan.PeerID
-	if err := readJSON(req.Body, &peer); err != nil {
+	if err := utils.ReadJSON(req.Body, &peer); err != nil {
 		log.Errorf("failed to decode JSON: %v", err)
 		return
 	}
@@ -173,6 +172,7 @@ func (s *configServer) addWorker(w http.ResponseWriter, req *http.Request) {
 func main() {
 	t0 := time.Now()
 	flag.Parse()
+	log.Errorf("deprecated! Please use kungfu-config-server")
 	ctx, cancel := context.WithCancel(context.Background())
 	h := &configServer{
 		cancel: cancel,
@@ -184,7 +184,7 @@ func main() {
 		}
 		defer f.Close()
 		var cluster plan.Cluster
-		if err := readJSON(f, &cluster); err != nil {
+		if err := utils.ReadJSON(f, &cluster); err != nil {
 			utils.ExitErr(err)
 		}
 		h.cluster = &cluster
@@ -219,11 +219,6 @@ func main() {
 	<-ctx.Done()
 	srv.Close()
 	log.Infof("%s stopped after %s", utils.ProgName(), time.Since(t0))
-}
-
-func readJSON(r io.Reader, i interface{}) error {
-	d := json.NewDecoder(r)
-	return d.Decode(&i)
 }
 
 func logRequest(h http.Handler) http.Handler {
