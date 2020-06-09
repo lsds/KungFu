@@ -43,7 +43,7 @@ func main() {
 	}
 	srv := &http.Server{
 		Addr:    net.JoinHostPort("", strconv.Itoa(*port)),
-		Handler: logRequest(configserver.New(ctx, initCluster)),
+		Handler: logRequest(configserver.New(cancel, initCluster)),
 	}
 	srv.SetKeepAlivesEnabled(false)
 	defer srv.Close()

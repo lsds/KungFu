@@ -23,15 +23,14 @@ type ConfigServer struct {
 	version int
 }
 
-func New(ctx context.Context, initCluster *plan.Cluster) http.Handler {
-	_, cancel := context.WithCancel(ctx)
+func New(cancel context.CancelFunc, initCluster *plan.Cluster) http.Handler {
 	s := &ConfigServer{
 		Path:    defaultPath,
 		cluster: initCluster,
 		cancel:  cancel,
 	}
 	s.mux.HandleFunc(s.Path, http.HandlerFunc(s.handleConfig))
-	s.mux.HandleFunc(`/stop`, http.HandlerFunc(s.handleConfig))
+	s.mux.HandleFunc(`/stop`, http.HandlerFunc(s.stop))
 	return s
 }
 
