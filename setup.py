@@ -28,6 +28,7 @@ def cmake_tf_ext_flags():
     tf_compile_flags = ' '.join(tf.sysconfig.get_compile_flags())
     tf_link_flags = ' '.join(tf.sysconfig.get_link_flags())
     return [
+        cmake_flag('TF_INCLUDE', tf.sysconfig.get_include()),
         cmake_flag('TF_COMPILE_FLAGS', tf_compile_flags),
         cmake_flag('TF_LINK_FLAGS', tf_link_flags),
         # sysconfig.get_config_var('EXT_SUFFIX')  does't work for python2
