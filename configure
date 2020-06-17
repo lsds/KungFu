@@ -15,11 +15,8 @@ ENABLE_NCCL=0
 ENABLE_TRACE=0
 VERBOSE=0
 
+# defaults
 NCCL_HOME=$HOME/local/nccl
-if [ -f $NCCL_HOME/include/nccl.h ]; then
-    ENABLE_NCCL=1
-fi
-
 MPI_HOME=$HOME/local/openmpi
 
 parse_args() {

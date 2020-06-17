@@ -26,9 +26,10 @@ TEST(kungfu_AllReduce_test, test_global_step)
 
 template <typename T> void test_allgather(kungfu::Peer &kf, const int count)
 {
-    const auto dtype = kungfu::type_encoder::value<T>();
+    const auto dtype    = kungfu::type_encoder::value<T>();
+    const int count_all = count * kf.Size();
     std::vector<T> x(count);
-    std::vector<T> y(count * kf.Size());
+    std::vector<T> y(count_all);
 
     std::iota(x.begin(), x.end(), 1);
     std::fill(y.begin(), y.end(), 0);
@@ -38,7 +39,7 @@ template <typename T> void test_allgather(kungfu::Peer &kf, const int count)
                  [&waiter] { waiter.done(); });
     waiter.wait();
 
-    for (int i = 0; i < y.size(); ++i) { ASSERT_EQ(y[i], i % count + 1); }
+    for (int i = 0; i < count_all; ++i) { ASSERT_EQ(y[i], i % count + 1); }
 }
 
 TEST(kungfu_AllGather_test, test_global_step)

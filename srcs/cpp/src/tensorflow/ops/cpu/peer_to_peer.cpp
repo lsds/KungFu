@@ -138,7 +138,7 @@ class ModelAveraging : public OpKernel
                                total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
-        for (int i = 0; i < var_sizes_.size(); i++) {
+        for (size_t i = 0; i < var_sizes_.size(); i++) {
             const Tensor &input = context->input(i);
             Tensor other(input.dtype(), input.shape());
             model_buf_->copyTo(i, other);
@@ -240,7 +240,7 @@ class AsyncModelAveraging : public OpKernel
 
         {
             std::lock_guard<std::mutex> l(mu_);
-            for (int i = 0; i < var_sizes_.size(); i++) {
+            for (size_t i = 0; i < var_sizes_.size(); i++) {
                 const Tensor &input = context->input(i);
                 Tensor other(input.dtype(), input.shape());
                 model_buf_->copyTo(i, other);
@@ -307,7 +307,7 @@ class SaveModel : public OpKernel
                         "Wrong number of inputs for operator SaveModel"));
         ++gs_;
 
-        for (int i = 0; i < var_sizes_.size(); i++) {
+        for (size_t i = 0; i < var_sizes_.size(); i++) {
             const Tensor &input = context->input(i);
             model_buf_->copyFrom(i, input);
         }
@@ -400,7 +400,7 @@ class RequestModel : public OpKernel
                                (void *)model_buf_->data(), total_var_size_,
                                to_kungfu_type(context->input(0).dtype()));
 
-        for (int i = 0; i < var_sizes_.size(); i++) {
+        for (size_t i = 0; i < var_sizes_.size(); i++) {
             model_buf_->copyTo(i, *outputs[i]);
         }
     }
@@ -512,7 +512,7 @@ class AsyncRequestModel : public OpKernel
 
         {
             std::lock_guard<std::mutex> l(mu_);
-            for (int i = 0; i < var_sizes_.size(); i++) {
+            for (size_t i = 0; i < var_sizes_.size(); i++) {
                 model_buf_->copyTo(i, *outputs[i]);
             }
         }
