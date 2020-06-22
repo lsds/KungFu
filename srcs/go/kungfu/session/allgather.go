@@ -10,6 +10,10 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
+func (sess *Session) AllGather(w kb.Workspace) error {
+	return sess.runAllGather(w)
+}
+
 func (sess *Session) runAllGather(w kb.Workspace) error {
 	count := w.SendBuf.Count
 	var sendInto execution.PeerFunc = func(peer plan.PeerID) error {

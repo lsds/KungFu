@@ -39,6 +39,7 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, pl pla
 		env.InitClusterVersionEnvKey: strconv.Itoa(initClusterVersion),
 		env.AllReduceStrategyEnvKey:  j.Strategy.String(),
 		env.ConfigServerEnvKey:       j.ConfigServer,
+		env.AllowNvLink:              fmt.Sprintf("%v", j.AllowNVLink),
 	}
 	if len(j.ConfigServer) > 0 {
 		envs[env.ConfigServerEnvKey] = j.ConfigServer

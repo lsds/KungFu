@@ -14,4 +14,6 @@ const (
 
 	JobStartTimestamp  = `KUNGFU_JOB_START_TIMESTAMP`
 	ProcStartTimestamp = `KUNGFU_PROC_START_TIMESTAMP`
+
+	AllowNvLink = `KUNGFU_ALLOW_NVLINK`
 )
