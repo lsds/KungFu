@@ -18,6 +18,11 @@ bool Peer::Detached() const { return GoKungfuDetached(); }
 
 uint64_t Peer::Uid() const { return GoKungfuUID(); }
 
+int Peer::Noop(const DoneCallback &done)
+{
+    return GoKungfuNoop(new CallbackWrapper(done));
+}
+
 int Peer::Save(const char *name, const void *buf, int count,
                KungFu_Datatype dtype)
 {

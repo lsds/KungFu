@@ -30,6 +30,10 @@ class Peer
 
     int LocalRank() const;
     int LocalSize() const;
+    int HostCount() const;
+
+    // call Done asynchronously
+    int Noop(const DoneCallback &done);
 
     // local API
     int Save(const char *name, const void *buf, int count,
@@ -76,6 +80,12 @@ class Peer
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   const DoneCallback &done);
 
+    int CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, KungFu_Op op, const char *name);
+    int CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                       const DoneCallback &done);
+
     int MonitoredAllReduce(const void *sendbuf, void *recvbuf, int count,
                            KungFu_Datatype dtype, KungFu_Op op,
                            const int32_t *tree, const char *name,
@@ -93,6 +103,12 @@ class Peer
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, const char *name,
                   const DoneCallback &done);
+
+    int LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, const char *name);
+    int LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, const char *name,
+                       const DoneCallback &done);
 
     // variant of https://www.open-mpi.org/doc/v4.0/man3/MPI_Gather.3.php
     int Gather(const void *sendbuf, int send_count, KungFu_Datatype send_dtype,
