@@ -92,7 +92,7 @@ class gpu_collective_nccl : public gpu_collective
     {
         TRACE_SCOPE(__func__);
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclreduce
-        KUNGFU_CHECK(nccl_checker)
+        KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
                           ncclSum, _root, comm, _stream);
         _stream.sync();
@@ -103,7 +103,7 @@ class gpu_collective_nccl : public gpu_collective
     {
         TRACE_SCOPE(__func__);
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclbroadcast
-        KUNGFU_CHECK(nccl_checker)
+        KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclBroadcast(send_buf, recv_buf, count, to_nccl_type(dtype),
                              _root, comm, _stream);
         _stream.sync();
@@ -114,7 +114,7 @@ class gpu_collective_nccl : public gpu_collective
     {
         TRACE_SCOPE(__func__);
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallreduce
-        KUNGFU_CHECK(nccl_checker)
+        KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
                              ncclSum, comm, _stream);
         _stream.sync();
