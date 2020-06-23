@@ -6,6 +6,9 @@
 
 namespace kungfu
 {
+void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
+                       const std::string &name, DoneCallback done);
+
 class NCCLController
 {
     KungFu_NCCLScope scope_;
@@ -22,7 +25,4 @@ class NCCLController
 
     int AllReduce(const Workspace &w, KungFu_Op op, DoneCallback done);
 };
-
-void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
-                       const std::string &name, DoneCallback done);
 }  // namespace kungfu
