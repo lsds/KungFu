@@ -3,9 +3,9 @@
 #include <sstream>
 #include <vector>
 
+#include <kungfu/cuda/stream.hpp>
 #include <kungfu/nccl/gpu_collective.hpp>
 #include <kungfu/python/init.h>
-#include <kungfu/utils/cuda_helper.hpp>
 #include <kungfu/utils/trace.hpp>
 
 #include <nccl.h>
@@ -22,11 +22,12 @@ using nccl_checker = error_checker<ncclResult_t, ncclSuccess, show_nccl_error>;
 void kungfu_show_cuda_version()
 {
     int driverVersion;
-    KUNGFU_CHECK(cuda_checker) << cudaDriverGetVersion(&driverVersion);
+    KUNGFU_CHECK(kungfu::cuda_checker) << cudaDriverGetVersion(&driverVersion);
     printf("CUDA Driver Veresion: %d\n", driverVersion);
 
     int runtimeVersion;
-    KUNGFU_CHECK(cuda_checker) << cudaRuntimeGetVersion(&runtimeVersion);
+    KUNGFU_CHECK(kungfu::cuda_checker)
+        << cudaRuntimeGetVersion(&runtimeVersion);
     printf("CUDA Runtime Veresion: %d\n", runtimeVersion);
 }
 
@@ -37,14 +38,18 @@ void kungfu_show_nccl_version()
     printf("NCCL Version: %d\n", version);
 }
 
-template <typename T> struct nccl_type;
-template <> struct nccl_type<int32_t> {
+template <typename T>
+struct nccl_type;
+template <>
+struct nccl_type<int32_t> {
     static ncclDataType_t value() { return ncclInt32; }
 };
-template <> struct nccl_type<kungfu::float16> {
+template <>
+struct nccl_type<kungfu::float16> {
     static ncclDataType_t value() { return ncclFloat16; }
 };
-template <> struct nccl_type<float> {
+template <>
+struct nccl_type<float> {
     static ncclDataType_t value() { return ncclFloat; }
 };
 

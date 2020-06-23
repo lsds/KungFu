@@ -1,6 +1,6 @@
 #include <kungfu.h>
+#include <kungfu/cuda/stream.hpp>
 #include <kungfu/python/init.h>
-#include <kungfu/utils/cuda_helper.hpp>
 
 std::unique_ptr<kungfu::NCCLHelper> _default_nccl_helper;
 

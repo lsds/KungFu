@@ -8,8 +8,10 @@
 #include <nccl.h>
 
 #include "testing.hpp"
-#include <kungfu/utils/cuda_helper.hpp>
+#include <kungfu/cuda/stream.hpp>
 #include <kungfu/utils/error_checker.hpp>
+
+using kungfu::cuda_checker;
 
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
@@ -20,11 +22,14 @@ struct show_nccl_error {
 
 using nccl_checker = error_checker<ncclResult_t, ncclSuccess, show_nccl_error>;
 
-template <typename T> struct nccl_type;
-template <> struct nccl_type<int32_t> {
+template <typename T>
+struct nccl_type;
+template <>
+struct nccl_type<int32_t> {
     static auto value() { return ncclInt32; }
 };
-template <> struct nccl_type<float> {
+template <>
+struct nccl_type<float> {
     static auto value() { return ncclFloat; }
 };
 
