@@ -2,24 +2,24 @@
 
 namespace tensorflow
 {
-REGISTER_KUNGFU_OP(StartNcclScheduler).Input("input: string");
+REGISTER_KUNGFU_OP(StartNcclScheduler)
+    .Attr("scope: string")
+    .Input("input: string");
 
 class StartNcclScheduler : public OpKernel
 {
-    int counter_;
-    std::vector<int32_t> order_;
-
-    void ResetOrder(int n)
-    {
-        order_.resize(n);
-        std::iota(order_.begin(), order_.end(), 0);
-    }
+    kungfu::NCCLScheduler *scheduler_;
 
   public:
     explicit StartNcclScheduler(OpKernelConstruction *context)
-        : OpKernel(context), counter_(0)
+        : OpKernel(context)
     {
-        kungfu::_nccl_controller->InitOnce();
+        std::string scope_name;
+        OP_REQUIRES_OK(context, context->GetAttr("scope", &scope_name));
+        OP_REQUIRES(context, kungfu::_nccl_scopes.count(scope_name) > 0,
+                    errors::InvalidArgument("invalid scope"));
+        const auto scope = kungfu::_nccl_scopes.at(scope_name);
+        scheduler_       = _default_nccl_helper->EnsureScheduler(scope);
     }
 
     void Compute(OpKernelContext *context) override
@@ -30,20 +30,7 @@ class StartNcclScheduler : public OpKernel
         for (int i = 0; i < t_names.size(); ++i) {
             names.push_back(t_names(i));
         }
-        if (names.size() != order_.size()) { ResetOrder(names.size()); }
-        if (kungfu::_nccl_order_group.get() != nullptr) {
-            if (counter_ == 1) {
-                const std::vector<int32_t> arrive_order =
-                    kungfu::_nccl_order_group->Wait();
-                if (arrive_order.size() == order_.size()) {
-                    _default_peer->Broadcast(
-                        arrive_order.data(), order_.data(), order_.size(),
-                        to_kungfu_type(DT_INT32), name().c_str());
-                }
-            }
-        }
-        kungfu::_nccl_order_group.reset(new kungfu::order_group(names, order_));
-        ++counter_;
+        scheduler_->Reset(names);
     }
 };
 

@@ -2,17 +2,21 @@
 Usage:
     kungfu-run -q -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method CPU
     kungfu-run -q -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method NCCL
+    kungfu-run -q -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method NCCL+CPU
     mpirun -np 4 python3 -m kungfu.tensorflow.v1.benchmarks --method HOROVOD
 """
 
 import argparse
+import os
 import sys
 
+import numpy as np
 import tensorflow as tf
 from kungfu._utils import measure, one_based_range
 from kungfu.ext import _get_cuda_index
 from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
                                    group_all_reduce, group_nccl_all_reduce)
+from kungfu.tensorflow.ops.collective import group_hierarchical_nccl_all_reduce
 from kungfu.tensorflow.v1.benchmarks import model_sizes
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
 from tensorflow.python.util import deprecation
@@ -42,9 +46,18 @@ def get_cluster_size(method):
         return current_cluster_size()
 
 
+def get_rank(method):
+    if method == 'HOROVOD':
+        import horovod.tensorflow as hvd
+        return hvd.rank()
+    else:
+        return current_rank()
+
+
 _group_all_reduce_func = {
     'CPU': group_all_reduce,
     'NCCL': group_nccl_all_reduce,
+    'NCCL+CPU': group_hierarchical_nccl_all_reduce,
     'HOROVOD': hvd_group_all_reduce,
 }
 
@@ -80,17 +93,47 @@ def parse_args():
                    type=str,
                    default='ResNet50',
                    help='ResNet50 | VGG16 | BERT')
-
     p.add_argument('--method',
                    type=str,
                    default='CPU',
                    help='CPU | NCCL | HOROVOD')
     p.add_argument('--fuse', action='store_true', default=False, help='')
+    p.add_argument('--max-count', type=int, default=0, help='max grad count')
+    p.add_argument('--steps',
+                   type=int,
+                   default=10,
+                   help='number of steps to run')
+    p.add_argument('--warmup-steps',
+                   type=int,
+                   default=5,
+                   help='number of warmup steps')
     return p.parse_args()
 
 
-def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
-    rank = _rank(method)
+def log_detailed_result(value, error, attrs):
+    import json
+    attr_str = json.dumps(attrs, separators=(',', ':'))
+    # grep -o RESULT.* *.log
+    unit = 'GiB/s'
+    print('RESULT: %f +-%f (%s) %s' % (value, error, unit, attr_str))
+
+
+def log_final_result(values, args):
+    attrs = {
+        'method': args.method,
+        'np': get_cluster_size(args.method),
+        'model': args.model,
+        'fuse': args.fuse,
+    }
+    values = np.array(values)
+    if args.method != 'HOROVOD':
+        attrs['strategy'] = os.getenv('KUNGFU_ALLREDUCE_STRATEGY')
+        attrs['nvlink'] = os.getenv('KUNGFU_ALLOW_NVLINK')
+    log_detailed_result(values.mean(), 1.96 * values.std(), attrs)
+
+
+def all_reduce_benchmark(sizes, dtype, args):
+    rank = _rank(args.method)
 
     def log(msg):
         if rank == 0:
@@ -98,31 +141,34 @@ def all_reduce_benchmark(sizes, dtype=tf.float32, method='CPU'):
 
     xs = [tf.Variable(tf.ones([n], dtype)) for n in sizes]
     tot_size = sum(_tensor_size(x) for x in xs)
-    np = get_cluster_size(method)
+    np = get_cluster_size(args.method)
     multiplier = 4 * (np - 1)
     log('all reduce %d tensors of total size: %s among %d peers, using %s' %
-        (len(sizes), show_size(tot_size), np, method))
+        (len(sizes), show_size(tot_size), np, args.method))
 
-    ys = _group_all_reduce_func[method](xs)
+    ys = _group_all_reduce_func[args.method](xs)
 
     init = tf.global_variables_initializer()
 
-    warmup_steps = 5
-    bench_steps = 10
-
-    with tf.Session(config=_config(method)) as sess:
+    values = []
+    with tf.Session(config=_config(args.method)) as sess:
         duration, _ = measure(lambda: sess.run(init))
         log('tensorflow init took %.fs' % (duration))
 
-        for step in one_based_range(warmup_steps):
+        for step in one_based_range(args.warmup_steps):
             duration, _ = measure(lambda: sess.run(ys))
             log('warmup step %d, took %.2fs, equivalent data rate: %s' %
                 (step, duration, show_rate(tot_size * multiplier, duration)))
 
-        for step in one_based_range(bench_steps):
+        for step in one_based_range(args.steps):
             duration, _ = measure(lambda: sess.run(ys))
+            gi = 1024 * 1024 * 1024
+            values.append(tot_size * multiplier / gi / duration)
             log('step %d, took %.2fs, equivalent data rate: %s' %
                 (step, duration, show_rate(tot_size * multiplier, duration)))
+
+    if get_rank(args.method) == 0:
+        log_final_result(values, args)
 
 
 def main(_):
@@ -133,7 +179,9 @@ def main(_):
     sizes = _model_sizes[args.model]
     if args.fuse:
         sizes = [sum(sizes)]
-    all_reduce_benchmark(sizes, dtype, args.method)
+    if args.max_count > 0 and len(sizes) > args.max_count:
+        sizes = sizes[:args.max_count]
+    all_reduce_benchmark(sizes, dtype, args)
 
 
 if __name__ == "__main__":

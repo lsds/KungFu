@@ -68,14 +68,15 @@ ncclDataType_t to_nccl_type(const KungFu_Datatype dtype)
 class gpu_collective_nccl : public gpu_collective
 {
     ncclComm_t comm;
+    const int _root;
     const int _rank;
     const int _cluster_size;
 
-    cuda_stream _stream;
+    CudaStream _stream;
 
   public:
-    gpu_collective_nccl(ncclUniqueId id, int cluster_size, int rank)
-        : _rank(rank), _cluster_size(cluster_size)
+    gpu_collective_nccl(ncclUniqueId id, int cluster_size, int rank, int root)
+        : _root(root), _rank(rank), _cluster_size(cluster_size)
     {
         KUNGFU_CHECK(nccl_checker)
             << ncclCommInitRank(&comm, cluster_size, id, rank);
@@ -86,11 +87,33 @@ class gpu_collective_nccl : public gpu_collective
         KUNGFU_CHECK(nccl_checker) << ncclCommDestroy(comm);
     }
 
+    void reduce(const void *send_buf, void *recv_buf, size_t count,
+                KungFu_Datatype dtype)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclreduce
+        KUNGFU_CHECK(nccl_checker)
+            << ncclReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
+                          ncclSum, _root, comm, _stream);
+        _stream.sync();
+    }
+
+    void broadcast(const void *send_buf, void *recv_buf, size_t count,
+                   KungFu_Datatype dtype)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclbroadcast
+        KUNGFU_CHECK(nccl_checker)
+            << ncclBroadcast(send_buf, recv_buf, count, to_nccl_type(dtype),
+                             _root, comm, _stream);
+        _stream.sync();
+    }
+
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                     KungFu_Datatype dtype)
     {
         TRACE_SCOPE(__func__);
-        // https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/api/colls.html#ncclallreduce
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallreduce
         KUNGFU_CHECK(nccl_checker)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
                              ncclSum, comm, _stream);
@@ -98,7 +121,7 @@ class gpu_collective_nccl : public gpu_collective
     }
 };
 
-gpu_collective *new_gpu_collective(kungfu::Peer &self)
+gpu_collective *new_global_gpu_collective(kungfu::Peer &self)
 {
     ncclUniqueId id;
     const int root = 0;
@@ -107,6 +130,18 @@ gpu_collective *new_gpu_collective(kungfu::Peer &self)
     if (rank == root) { KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id); }
     self.Broadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
                    "nccl id");
-    return new gpu_collective_nccl(id, self.Size(), rank);
+    return new gpu_collective_nccl(id, self.Size(), rank, root);
+}
+
+gpu_collective *new_local_gpu_collective(kungfu::Peer &self)
+{
+    ncclUniqueId id;
+    const int root = 0;
+    const int rank = self.LocalRank();
+    KUNGFU_CHECK(cuda_checker) << cudaSetDevice(kungfu_get_cuda_index());
+    if (rank == root) { KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id); }
+    self.LocalBroadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
+                        "local nccl id");
+    return new gpu_collective_nccl(id, self.LocalSize(), rank, root);
 }
 }  // namespace kungfu
