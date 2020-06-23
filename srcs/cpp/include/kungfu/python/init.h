@@ -1,10 +1,6 @@
 #pragma once
 #include <memory>
 
-#include <kungfu.h>
-#include <kungfu/nccl/common.hpp>
-#include <kungfu/nccl/helper.hpp>
-
 extern "C" {
 extern void kungfu_python_init();
 extern void kungfu_python_init_nccl();
@@ -24,9 +20,13 @@ extern int kungfu_local_size();  // get current local size
 extern void kungfu_barrier();
 
 extern int kungfu_propose_new_size(int new_size);
-
-typedef enum KungFu_NCCLScope KungFu_NCCLScope;
 }
+
+namespace kungfu
+{
+class Peer;
+class NCCLHelper;
+}  // namespace kungfu
 
 extern std::unique_ptr<kungfu::Peer> _default_peer;
 extern std::unique_ptr<kungfu::NCCLHelper> _default_nccl_helper;

@@ -22,12 +22,17 @@ void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
         return;
     }
     char *buffer = new char[data_size];
-    CudaStream stream;
-    stream.memcpy(buffer, w.sendbuf, data_size, cudaMemcpyDeviceToHost);
+    {
+        CudaStream stream;
+        stream.memcpy(buffer, w.sendbuf, data_size, cudaMemcpyDeviceToHost);
+    }
     _default_peer->CrossAllReduce(
         buffer, buffer, w.count, w.dtype, op, name.c_str(), [=] {
-            CudaStream stream;
-            stream.memcpy(w.recvbuf, buffer, data_size, cudaMemcpyHostToDevice);
+            {
+                CudaStream stream;
+                stream.memcpy(w.recvbuf, buffer, data_size,
+                              cudaMemcpyHostToDevice);
+            }
             delete[] buffer;
             _default_peer->Noop(done);
         });

@@ -1,3 +1,4 @@
+#include <kungfu/nccl/helper.hpp>
 #include <kungfu/tensorflow/ops.h>
 
 namespace tensorflow

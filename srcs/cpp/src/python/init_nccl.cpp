@@ -1,4 +1,5 @@
 #include <kungfu.h>
+#include <kungfu/nccl/helper.hpp>
 #include <kungfu/python/init.h>
 
 std::unique_ptr<kungfu::NCCLHelper> _default_nccl_helper;
