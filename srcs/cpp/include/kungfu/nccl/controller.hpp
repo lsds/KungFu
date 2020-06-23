@@ -1,4 +1,6 @@
 #pragma once
+#include <memory>
+
 #include <kungfu/nccl/common.hpp>
 #include <kungfu/nccl/gpu_collective.hpp>
 
@@ -21,4 +23,6 @@ class NCCLController
     int AllReduce(const Workspace &w, KungFu_Op op, DoneCallback done);
 };
 
+void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
+                       const std::string &name, DoneCallback done);
 }  // namespace kungfu

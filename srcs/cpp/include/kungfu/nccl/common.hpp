@@ -19,8 +19,5 @@ struct Workspace {
     const KungFu_Datatype dtype;
 };
 
-void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
-                       const std::string &name, DoneCallback done);
-
 extern const std::map<std::string, KungFu_NCCLScope> _nccl_scopes;
 }  // namespace kungfu

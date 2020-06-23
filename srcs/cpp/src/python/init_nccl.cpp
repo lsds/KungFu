@@ -1,0 +1,11 @@
+#include <kungfu.h>
+#include <kungfu/python/init.h>
+
+std::unique_ptr<kungfu::NCCLHelper> _default_nccl_helper;
+
+void kungfu_python_init_nccl()
+{
+    _default_nccl_helper.reset(new kungfu::NCCLHelper);
+}
+
+void kungfu_python_finialize_nccl() { _default_nccl_helper.reset(nullptr); }

@@ -1,8 +1,14 @@
 #pragma once
+#include <map>
+#include <memory>
+#include <vector>
+
 #include <kungfu.h>
+#include <kungfu/nccl/common.hpp>
 
 namespace kungfu
-{  // order_group wraps order_group_t
+{
+// order_group wraps order_group_t
 class order_group
 {
     order_group_t *og_;
