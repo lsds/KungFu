@@ -51,4 +51,14 @@ inline TensorShape BatchTensorShape(const TensorShape &shape, const int bs)
 
 #define REGISTER_KUNGFU_KERNEL_BUILDER(T, D)                                   \
     REGISTER_KERNEL_BUILDER(Name("Kungfu" #T).Device(D), T);
+
+inline kungfu::Workspace make_workspace(const Tensor &input, Tensor *output)
+{
+    return kungfu::Workspace{
+        .sendbuf = input.tensor_data().data(),
+        .recvbuf = const_cast<char *>(output->tensor_data().data()),
+        .count   = int(input.NumElements()),
+        .dtype   = to_kungfu_type(input.dtype()),
+    };
+}
 }  // namespace tensorflow

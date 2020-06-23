@@ -103,6 +103,12 @@ if args.kf_optimizer:
     elif args.kf_optimizer == 'sync-sgd-nccl':
         from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
         opt = SynchronousSGDOptimizer(opt, nccl=True, nccl_fusion=args.fuse)
+    elif args.kf_optimizer == 'sync-sgd-hierarchical-nccl':
+        from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+        opt = SynchronousSGDOptimizer(opt,
+                                      nccl=True,
+                                      nccl_fusion=args.fuse,
+                                      hierarchical_nccl=True)
     elif args.kf_optimizer == 'async-sgd':
         from kungfu.tensorflow.optimizers import PairAveragingOptimizer
         opt = PairAveragingOptimizer(opt, fuse_requests=args.fuse)
@@ -155,6 +161,7 @@ def log_final_result(value, error):
         'model': args.model,
         'kf-opt': args.kf_optimizer,
         'fuse': args.fuse,
+        'nvlink': os.getenv('KUNGFU_ALLOW_NVLINK'),
     }
     log_detailed_result(value, error, attrs)
 

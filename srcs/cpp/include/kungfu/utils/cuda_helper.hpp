@@ -16,17 +16,17 @@ struct show_cuda_error {
 
 using cuda_checker = error_checker<cudaError_t, cudaSuccess, show_cuda_error>;
 
-// cuda_stream wraps cudaStream_t
-class cuda_stream
+// CudaStream wraps cudaStream_t
+class CudaStream
 {
-    cudaStream_t _stream;
+    cudaStream_t stream_;
 
   public:
-    cuda_stream() { KUNGFU_CHECK(cuda_checker) << cudaStreamCreate(&_stream); }
+    CudaStream() { KUNGFU_CHECK(cuda_checker) << cudaStreamCreate(&stream_); }
 
-    ~cuda_stream()
+    ~CudaStream()
     {
-        const cudaError_t err = cudaStreamDestroy(_stream);
+        const cudaError_t err = cudaStreamDestroy(stream_);
         if (err == cudaErrorCudartUnloading ||
             err == 29 /* driver shutting down */) {
             fprintf(stderr, "ignore cudaStreamDestroy error: %s\n",
@@ -38,8 +38,16 @@ class cuda_stream
 
     void sync()
     {
-        KUNGFU_CHECK(cuda_checker) << cudaStreamSynchronize(_stream);
+        KUNGFU_CHECK(cuda_checker) << cudaStreamSynchronize(stream_);
     }
 
-    operator cudaStream_t() const { return _stream; }
+    operator cudaStream_t() const { return stream_; }
+
+    void memcpy(void *dst, const void *src, const size_t count,
+                const cudaMemcpyKind dir)
+    {
+        KUNGFU_CHECK(cuda_checker)
+            << cudaMemcpyAsync(dst, src, count, dir, stream_);
+        sync();
+    }
 };

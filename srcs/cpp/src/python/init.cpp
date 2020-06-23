@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <numeric>
 
 #include <kungfu.h>
 #include <kungfu/python/init.h>
@@ -59,5 +60,55 @@ std::vector<int32_t> order_group::Wait()
     return arrive_order;
 }
 
-std::unique_ptr<order_group> _nccl_order_group;
+NCCLScheduler::NCCLScheduler(const KungFu_NCCLScope scope,
+                             const bool auto_order)
+    : name_("NCCLScheduler_" + std::to_string(int(scope))),
+      auto_order_(auto_order), scope_(scope), counter_(0)
+{
+}
+
+void NCCLScheduler::ResetOrder(int n)
+{
+    order_.resize(n);
+    std::iota(order_.begin(), order_.end(), 0);
+}
+
+void NCCLScheduler::Reset(const std::vector<std::string> &names)
+{
+    if (names.size() != order_.size()) {
+        // FIXME: also check value of names
+        // FIXME: reset counter
+        ResetOrder(names.size());
+    }
+    if (auto_order_ && order_group_.get() != nullptr) {
+        if (counter_ == 1) {
+            using T                           = int32_t;
+            const std::vector<T> arrive_order = order_group_->Wait();
+            if (arrive_order.size() == order_.size()) {
+                if (scope_ == KungFu_NCCL_LOCAL) {
+                    _default_peer->LocalBroadcast(
+                        arrive_order.data(), order_.data(), order_.size(),
+                        type_encoder::value<T>(), name_.c_str());
+                } else {
+                    _default_peer->Broadcast(
+                        arrive_order.data(), order_.data(), order_.size(),
+                        type_encoder::value<T>(), name_.c_str());
+                }
+            }
+        }
+    }
+    order_group_.reset(new order_group(names, order_));
+    ++counter_;
+}
+
+void NCCLScheduler::Start(const std::string &name,
+                          const order_group::Task &task)
+{
+    order_group_->Start(name, task);
+}
+
+const std::map<std::string, KungFu_NCCLScope> _nccl_scopes({
+    {"global", KungFu_NCCL_GLOBAL},
+    {"local", KungFu_NCCL_LOCAL},
+});
 }  // namespace kungfu
