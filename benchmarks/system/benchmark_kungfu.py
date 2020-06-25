@@ -63,6 +63,10 @@ parser.add_argument('--fuse',
                     action='store_true',
                     default=False,
                     help='Fuse KungFu operations')
+parser.add_argument('--xla',
+                    action='store_true',
+                    default=False,
+                    help='enable XLA')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -76,6 +80,9 @@ else:
     config.gpu_options.allow_growth = False
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     config.gpu_options.visible_device_list = ''
+
+if args.xla:
+    config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
 
 if args.eager:
     tf.enable_eager_execution(config)
@@ -159,6 +166,7 @@ def log_final_result(value, error):
         'strategy': os.getenv('KUNGFU_ALLREDUCE_STRATEGY'),
         'bs': args.batch_size,
         'model': args.model,
+        'xla': args.xla,
         'kf-opt': args.kf_optimizer,
         'fuse': args.fuse,
         'nvlink': os.getenv('KUNGFU_ALLOW_NVLINK'),
