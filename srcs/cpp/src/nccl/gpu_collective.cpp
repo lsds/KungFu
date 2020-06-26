@@ -13,7 +13,8 @@
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
     {
-        return ncclGetErrorString(err);
+        return std::to_string(static_cast<int>(err)) + ": " +
+               ncclGetErrorString(err);
     }
 };
 

@@ -1,3 +1,6 @@
+#include <iostream>
+#include <memory>
+
 #include <kungfu/cuda/stream.hpp>
 
 namespace kungfu
@@ -32,21 +35,27 @@ void CudaStream::memcpy(void *dst, const void *src, const size_t count,
     sync();
 }
 
-CudaStream StreamPool::Get()
+StreamPool::~StreamPool() { debug(); }
+
+std::unique_ptr<CudaStream> StreamPool::Get()
 {
     std::lock_guard<std::mutex> _lk(mu_);
-    if (queue_.empty()) {
-        auto s = queue_.front();
+    if (!queue_.empty()) {
+        auto p = std::move(queue_.front());
         queue_.pop();
-        return s;
+        return p;
     }
-    CudaStream s;
-    return s;
+    return std::make_unique<CudaStream>();
 }
 
-void StreamPool::Put(CudaStream stream)
+void StreamPool::Put(std::unique_ptr<CudaStream> stream)
 {
     std::lock_guard<std::mutex> _lk(mu_);
-    queue_.push(stream);
+    queue_.push(std::move(stream));
+}
+
+void StreamPool::debug()
+{
+    std::cerr << "StreamPool has " << queue_.size() << " streams" << std::endl;
 }
 }  // namespace kungfu

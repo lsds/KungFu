@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <string>
@@ -41,13 +42,16 @@ class CudaStream
 class StreamPool
 {
     std::mutex mu_;
-    std::queue<CudaStream> queue_;
+    std::queue<std::unique_ptr<CudaStream>> queue_;
+
+    void debug();
 
   public:
-    StreamPool();
+    // StreamPool();
+    ~StreamPool();
 
-    CudaStream Get();
+    std::unique_ptr<CudaStream> Get();
 
-    void Put(CudaStream stream);
+    void Put(std::unique_ptr<CudaStream> stream);
 };
 }  // namespace kungfu

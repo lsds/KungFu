@@ -1,5 +1,6 @@
 #include <kungfu/cuda/stream.hpp>
 #include <kungfu/nccl/controller.hpp>
+#include <kungfu/nccl/helper.hpp>
 #include <kungfu/python/init.h>  // FIXME: remove
 
 namespace kungfu
@@ -7,6 +8,7 @@ namespace kungfu
 void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
                        const std::string &name, DoneCallback done)
 {
+    auto pool = _default_nccl_helper->GetPool();
     if (_default_peer->LocalRank() != 0) {
         _default_peer->Noop(done);
         return;
@@ -23,15 +25,19 @@ void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
     }
     char *buffer = new char[data_size];
     {
-        CudaStream stream;
-        stream.memcpy(buffer, w.sendbuf, data_size, cudaMemcpyDeviceToHost);
+        // CudaStream stream;
+        auto stream = pool->Get();
+        stream->memcpy(buffer, w.sendbuf, data_size, cudaMemcpyDeviceToHost);
+        pool->Put(std::move(stream));
     }
     _default_peer->CrossAllReduce(
         buffer, buffer, w.count, w.dtype, op, name.c_str(), [=] {
             {
-                CudaStream stream;
-                stream.memcpy(w.recvbuf, buffer, data_size,
-                              cudaMemcpyHostToDevice);
+                // CudaStream stream;
+                auto stream = pool->Get();
+                stream->memcpy(w.recvbuf, buffer, data_size,
+                               cudaMemcpyHostToDevice);
+                pool->Put(std::move(stream));
             }
             delete[] buffer;
             _default_peer->Noop(done);
