@@ -72,6 +72,7 @@ const (
 	WaitRecvBuf   uint32 = 1 << iota // The recevier should wait receive buffer
 	IsResponse    uint32 = 1 << iota // This is a response message for ConnPeerToPeer
 	RequestFailed uint32 = 1 << iota // This is a response meesage for failed request
+	BodyInSHM     uint32 = 1 << iota
 )
 
 type MessageHeader struct {
@@ -137,6 +138,20 @@ func (h *MessageHeader) Expect(r io.Reader, name string) error {
 
 func (h MessageHeader) String() string {
 	return fmt.Sprintf("messageHeader{length=%d,name=%s}", h.NameLength, string(h.Name))
+}
+
+// MessageTail is sent when SHM read/write is finished
+type MessageTail struct {
+	Offset uint32
+	Length uint32
+}
+
+func (t *MessageTail) WriteTo(w io.Writer) error {
+	return binary.Write(w, endian, t)
+}
+
+func (t *MessageTail) ReadFrom(r io.Reader) error {
+	return binary.Read(r, endian, t)
 }
 
 // Message is the data transferred via channel

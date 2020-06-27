@@ -9,7 +9,16 @@ import (
 )
 
 const (
+	Ki = 1 << 10
+	Mi = 1 << 20
+)
+
+const (
 	UseUnixSock = true
+	ChunkSize   = 1 * Mi
+	// UseSHM      = false
+	UseSHM       = true
+	SHMThreshold = ChunkSize
 )
 
 const (

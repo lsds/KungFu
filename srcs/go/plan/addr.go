@@ -33,6 +33,11 @@ func (a NetAddr) WithName(name string) Addr {
 	}
 }
 
+func (a PeerID) SHMNameTo(b PeerID) string {
+	f := func(a PeerID) string { return fmt.Sprintf("%s.%d", FormatIPv4(a.IPv4), a.Port) }
+	return fmt.Sprintf("kungfu-shm-%s-to-%s", f(a), f(b))
+}
+
 // Addr is the logical address of a named channel
 type Addr struct {
 	IPv4 uint32

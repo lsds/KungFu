@@ -24,7 +24,7 @@ func NewRouter(self plan.PeerID) *router {
 	client := client.New(self, config.UseUnixSock)
 	router := &router{
 		self:        self,
-		Collective:  handler.NewCollectiveEndpoint(),
+		Collective:  handler.NewCollectiveEndpoint(self),
 		P2P:         handler.NewPeerToPeerEndpoint(client),
 		ctrlHandler: &handler.ControlHandler{},
 		pingHandler: &handler.PingHandler{},

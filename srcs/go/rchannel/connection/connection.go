@@ -10,6 +10,8 @@ import (
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/srcs/go/utils/shmpool"
 )
 
 // Connection is a simplex logical connection from one peer to another
@@ -91,12 +93,20 @@ func New(remote, local plan.PeerID, t ConnType, token uint32, useUnixSock bool) 
 	if t == ConnCollective || t == ConnPeerToPeer {
 		initRetry = config.ConnRetryCount
 	}
+	var pool *shmpool.Pool
+	if t == ConnCollective && config.UseSHM {
+		var err error
+		if pool, err = shmpool.New(local.SHMNameTo(remote)); err != nil {
+			utils.ExitErr(err)
+		}
+	}
 	return &tcpConnection{
 		init:      init,
 		src:       local,
 		dest:      remote,
 		initRetry: initRetry,
 		connType:  t,
+		pool:      pool,
 	}
 }
 
@@ -107,6 +117,7 @@ type tcpConnection struct {
 	conn      net.Conn
 	initRetry int
 	connType  ConnType
+	pool      *shmpool.Pool
 }
 
 var errCantEstablishConnection = errors.New("can't establish connection")
@@ -138,6 +149,9 @@ func (c *tcpConnection) initOnce() error {
 		var err error
 		if c.conn, err = c.init(); err == nil {
 			log.Debugf("%s connection to #<%s> established after %d trials, took %s", c.connType, c.dest, i+1, time.Since(t0))
+			if c.pool != nil {
+				go c.handleSHMAck()
+			}
 			return nil
 		}
 		log.Debugf("failed to establish connection to #<%s> for %d times: %v", c.dest, i+1, err)
@@ -147,6 +161,11 @@ func (c *tcpConnection) initOnce() error {
 }
 
 func (c *tcpConnection) Send(name string, m Message, flags uint32) error {
+	usingSHM := config.UseSHM && m.Length >= config.SHMThreshold
+	if usingSHM {
+		// log.Errorf("using SHM")
+		flags |= BodyInSHM
+	}
 	if err := c.initOnce(); err != nil {
 		return err
 	}
@@ -160,6 +179,15 @@ func (c *tcpConnection) Send(name string, m Message, flags uint32) error {
 	}
 	if err := mh.WriteTo(c.conn); err != nil {
 		return err
+	}
+	if usingSHM {
+		b := c.pool.Get(int(m.Length))
+		c.pool.Write(b, m.Data)
+		mt := MessageTail{
+			Offset: uint32(b.Offset),
+			Length: m.Length,
+		}
+		return mt.WriteTo(c.conn)
 	}
 	return m.WriteTo(c.conn)
 }
@@ -175,6 +203,17 @@ func (c *tcpConnection) Read(name string, m Message) error {
 		return err
 	}
 	return m.ReadInto(c.conn)
+}
+
+func (c *tcpConnection) handleSHMAck() error {
+	for {
+		var mt MessageTail
+		if err := mt.ReadFrom(c.conn); err != nil {
+			return err
+		}
+		b := shmpool.Block{Offset: int(mt.Offset), Size: int(mt.Length)}
+		c.pool.Put(b)
+	}
 }
 
 func (c *tcpConnection) Close() error {

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -290,11 +291,6 @@ func (sess *Session) runGraphs(w kb.Workspace, graphs ...*graph.Graph) error {
 	return nil
 }
 
-const (
-	Mi        = 1 << 20
-	chunkSize = 1 * Mi
-)
-
 func ceilDiv(a, b int) int {
 	if a%b == 0 {
 		return a / b
@@ -303,7 +299,7 @@ func ceilDiv(a, b int) int {
 }
 
 func (sess *Session) runStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
-	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
+	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), config.ChunkSize)
 	errs := make([]error, k)
 	var wg sync.WaitGroup
 	for i, w := range w.Split(p, k) {
