@@ -1,5 +1,9 @@
 package main
 
-import "github.com/lsds/KungFu/srcs/go/cmd/kungfu-run/app"
+import (
+	"os"
 
-func main() { app.Main() }
+	"github.com/lsds/KungFu/srcs/go/cmd/kungfu-run/app"
+)
+
+func main() { app.Main(os.Args) }

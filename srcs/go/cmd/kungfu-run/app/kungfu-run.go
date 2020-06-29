@@ -15,11 +15,9 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
 
-var f runner.FlagSet
-
-func init() { runner.Init(&f) }
-
-func Main() {
+func Main(args []string) {
+	var f runner.FlagSet
+	runner.Init(&f, args)
 	if f.DelayStart > 0 {
 		log.Warnf("delay start for %s", f.DelayStart)
 		time.Sleep(f.DelayStart)

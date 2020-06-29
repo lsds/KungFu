@@ -13,8 +13,8 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-func Init(f *FlagSet) {
-	if err := f.Parse(); err != nil {
+func Init(f *FlagSet, args []string) {
+	if err := f.Parse(args); err != nil {
 		utils.ExitErr(err)
 	}
 	if !f.Quiet {
@@ -101,13 +101,14 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 
 var errMissingProgramName = errors.New("missing program name")
 
-func (f *FlagSet) Parse() error {
-	f.Register(flag.CommandLine)
-	flag.Parse()
+func (f *FlagSet) Parse(args []string) error {
+	commandLine := flag.NewFlagSet(args[0], flag.ExitOnError)
+	f.Register(commandLine)
+	commandLine.Parse(args[1:])
 	if err := f.resolveHostList(); err != nil {
 		return err
 	}
-	args := flag.Args()
+	args = commandLine.Args()
 	if len(args) < 1 {
 		return errMissingProgramName
 	}

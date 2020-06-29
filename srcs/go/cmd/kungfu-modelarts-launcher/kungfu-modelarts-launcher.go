@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/job"
@@ -15,7 +16,7 @@ import (
 
 var f runner.FlagSet
 
-func init() { runner.Init(&f) }
+func init() { runner.Init(&f, os.Args) }
 
 func main() {
 	t0 := time.Now()
