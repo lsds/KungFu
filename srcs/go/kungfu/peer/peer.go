@@ -250,7 +250,7 @@ func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 }
 
 func (p *Peer) getClusterConfig(url string) (*plan.Cluster, error) {
-	f, err := p.openURL(url)
+	f, err := utils.OpenURL(url, &p.httpClient, fmt.Sprintf("KungFu Peer: %s", p.self))
 	if err != nil {
 		return nil, err
 	}

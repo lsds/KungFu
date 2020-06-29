@@ -1,20 +1,22 @@
-package peer
+package utils
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 )
 
-func (p *Peer) openHTTP(client *http.Client, url string) (io.ReadCloser, error) {
+func openHTTP(client *http.Client, url string, userAgent string) (io.ReadCloser, error) {
+	if client == nil {
+		client = http.DefaultClient
+	}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("KungFu Peer: %s", p.self))
+	req.Header.Set("User-Agent", userAgent)
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -29,16 +31,17 @@ func (p *Peer) openHTTP(client *http.Client, url string) (io.ReadCloser, error) 
 var parseURL = url.Parse
 var errUnsupportedURL = errors.New("unsupported URL")
 
-func (p *Peer) openURL(url string) (io.ReadCloser, error) {
+// OpenURL opens a file or URL as io.ReadCloser.
+func OpenURL(url string, client *http.Client, userAgent string) (io.ReadCloser, error) {
 	u, err := parseURL(url)
 	if err != nil {
 		return nil, err
 	}
 	switch u.Scheme {
 	case "http":
-		return p.openHTTP(&p.httpClient, url)
+		return openHTTP(client, url, userAgent)
 	case "https":
-		return p.openHTTP(&p.httpClient, url)
+		return openHTTP(client, url, userAgent)
 	case "file":
 		// ignore u.Host
 		return os.Open(u.Path)
