@@ -14,7 +14,7 @@ import argparse
 
 import kungfu as kf
 import tensorflow as tf
-from kungfu import current_cluster_size, current_rank
+from kungfu.python import current_cluster_size, current_rank
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
 
 
