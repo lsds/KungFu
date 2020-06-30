@@ -66,14 +66,14 @@ func NewFromConfig(cfg *env.Config) (*Peer, error) {
 			return nil, err
 		}
 	}
-	currentCluster := &plan.Cluster{
-		Runners: cfg.Parents,
+	initCluster := &plan.Cluster{
+		Runners: cfg.InitRunners,
 		Workers: cfg.InitPeers,
 	}
 	return &Peer{
 		configServerURL:    cfg.ConfigServer,
 		parent:             cfg.Parent,
-		currentCluster:     currentCluster,
+		currentCluster:     initCluster,
 		self:               cfg.Self,
 		strategy:           cfg.Strategy,
 		initClusterVersion: initClusterVersion,
