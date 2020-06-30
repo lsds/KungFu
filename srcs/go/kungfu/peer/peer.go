@@ -175,6 +175,10 @@ func (p *Peer) consensus(bs []byte) bool {
 }
 
 func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
+	if config.EnableStallDetection {
+		name := fmt.Sprintf("propose(%s)", cluster.DebugString())
+		defer utils.InstallStallDetector(name).Stop()
+	}
 	if p.currentCluster.Eq(cluster) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
