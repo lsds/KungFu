@@ -56,14 +56,6 @@ func ParseConfigFromEnv() (*Config, error) {
 	}, nil
 }
 
-func getParentIDs(hl plan.HostList, parent plan.PeerID) plan.PeerList {
-	var ps plan.PeerList
-	for _, h := range hl {
-		ps = append(ps, plan.PeerID{IPv4: h.IPv4, Port: parent.Port})
-	}
-	return ps
-}
-
 func singleEnv() *Config {
 	pl, _ := plan.DefaultHostList.GenPeerList(1, plan.DefaultPortRange)
 	self := pl[0]
