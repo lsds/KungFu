@@ -1,5 +1,5 @@
-from kungfu.ext import (_get_other_ranks, current_cluster_size,
-                        current_local_rank, current_rank, run_barrier)
+from kungfu.python import (_get_other_ranks, current_cluster_size,
+                           current_local_rank, current_rank, run_barrier)
 
 from ._tf_oplib import _op_lib
 from .adapt import resize_cluster_from_url, step_based_schedule

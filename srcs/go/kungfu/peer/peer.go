@@ -66,14 +66,14 @@ func NewFromConfig(cfg *env.Config) (*Peer, error) {
 			return nil, err
 		}
 	}
-	currentCluster := &plan.Cluster{
-		Runners: cfg.Parents,
+	initCluster := &plan.Cluster{
+		Runners: cfg.InitRunners,
 		Workers: cfg.InitPeers,
 	}
 	return &Peer{
 		configServerURL:    cfg.ConfigServer,
 		parent:             cfg.Parent,
-		currentCluster:     currentCluster,
+		currentCluster:     initCluster,
 		self:               cfg.Self,
 		strategy:           cfg.Strategy,
 		initClusterVersion: initClusterVersion,
@@ -175,6 +175,10 @@ func (p *Peer) consensus(bs []byte) bool {
 }
 
 func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
+	if config.EnableStallDetection {
+		name := fmt.Sprintf("propose(%s)", cluster.DebugString())
+		defer utils.InstallStallDetector(name).Stop()
+	}
 	if p.currentCluster.Eq(cluster) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
@@ -250,7 +254,7 @@ func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 }
 
 func (p *Peer) getClusterConfig(url string) (*plan.Cluster, error) {
-	f, err := p.openURL(url)
+	f, err := utils.OpenURL(url, &p.httpClient, fmt.Sprintf("KungFu Peer: %s", p.self))
 	if err != nil {
 		return nil, err
 	}

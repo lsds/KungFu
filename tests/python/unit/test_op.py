@@ -49,5 +49,5 @@ def test_step_based_scheduler():
 
 
 def test_detached():
-    from kungfu.ext import detached
+    from kungfu.python import detached
     assert (not detached())

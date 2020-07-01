@@ -56,7 +56,7 @@ def input_fn(ds, batch_size, epochs=1, shuffle=True):
 
 
 def get_model_dir(args):
-    from kungfu.ext import uid
+    from kungfu.python import uid
     x = uid()
     port = (x >> 16) & 0xffff
     version = x & 0xffff

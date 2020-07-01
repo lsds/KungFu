@@ -15,6 +15,8 @@ extern void del_order_group(order_group_t *);
 extern void order_group_do_rank(order_group_t *, int rank, callback_t *task);
 extern void order_group_wait(order_group_t *, int32_t *arrive_order);
 
+extern void kungfu_run_main();
+
 #ifdef __cplusplus
 }
 

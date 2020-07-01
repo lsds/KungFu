@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
@@ -12,7 +13,7 @@ import (
 
 var f runner.FlagSet
 
-func init() { runner.Init(&f) }
+func init() { runner.Init(&f, os.Args) }
 
 func main() {
 	j := job.Job{
