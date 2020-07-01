@@ -4,7 +4,6 @@ import (
 	"bytes"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
-	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/plan/graph"
 	"github.com/lsds/KungFu/srcs/go/plan/subgraph"
@@ -119,10 +118,7 @@ func genGlobalStrategyList(peers plan.PeerList, strategyName kb.Strategy) strate
 	return partitionStrategies[strategyName](peers)
 }
 
-func genCrossStrategyList(peers plan.PeerList, strategyName kb.Strategy) strategyList {
-	if strategyName != kb.Ring {
-		log.Warnf("TODO supoort %s for genCrossStrategyList. using %s", strategyName, kb.Ring)
-	}
+func createCrossRingStrategies(peers plan.PeerList) strategyList {
 	n := len(peers)
 	masters, _ := peers.PartitionByHost()
 	var sl strategyList
@@ -134,4 +130,17 @@ func genCrossStrategyList(peers plan.PeerList, strategyName kb.Strategy) strateg
 		})
 	}
 	return sl
+}
+
+func createCrossBinaryTreeStrategies(peers plan.PeerList) strategyList {
+	masters, _ := peers.PartitionByHost()
+	bcastGraph := subgraph.GenBinaryTree(len(peers), masters)
+	return strategyList{simpleStrategy(bcastGraph)}
+}
+
+func genCrossStrategyList(peers plan.PeerList, strategyName kb.Strategy) strategyList {
+	if strategyName == kb.Ring {
+		return createCrossRingStrategies(peers)
+	}
+	return createCrossBinaryTreeStrategies(peers)
 }
