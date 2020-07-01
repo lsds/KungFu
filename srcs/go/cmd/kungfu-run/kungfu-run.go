@@ -89,23 +89,24 @@ func main() {
 		ctx, cancel = context.WithTimeout(ctx, f.Timeout)
 		defer cancel()
 	}
+	initCluster := plan.Cluster{
+		Runners: runners,
+		Workers: peers,
+	}
 	if f.Watch {
 		ch := make(chan runner.Stage, 1)
 		if f.InitVersion < 0 {
 			log.Infof(xterm.Blue.S("waiting to be initialized"))
 		} else {
 			ch <- runner.Stage{
-				Cluster: plan.Cluster{
-					Runners: runners,
-					Workers: peers,
-				},
+				Cluster: initCluster,
 				Version: f.InitVersion,
 			}
 		}
 		j.ConfigServer = f.ConfigServer
 		runner.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
 	} else {
-		runner.SimpleRun(ctx, localhostIPv4, peers, j, f.VerboseLog)
+		runner.SimpleRun(ctx, localhostIPv4, initCluster, j, f.VerboseLog)
 	}
 }
 

@@ -5,10 +5,9 @@ const (
 	ConfigServerEnvKey       = `KUNGFU_CONFIG_SERVER`
 	InitClusterVersionEnvKey = `KUNGFU_INIT_CLUSTER_VERSION`
 	ParentIDEnvKey           = `KUNGFU_PARENT_ID`
-	HostListEnvKey           = `KUNGFU_HOST_LIST`
 
 	PeerListEnvKey          = `KUNGFU_INIT_PEERS`
-	HostSpecEnvKey          = `KUNGFU_HOST_SPEC`
+	RunnerListEnvKey        = `KUNGFU_INIT_RUNNERS`
 	SelfSpecEnvKey          = `KUNGFU_SELF_SPEC` // self spec should never change during the life of a process
 	AllReduceStrategyEnvKey = `KUNGFU_ALLREDUCE_STRATEGY`
 
