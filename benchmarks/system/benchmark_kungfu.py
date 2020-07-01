@@ -74,7 +74,7 @@ args.cuda = not args.no_cuda
 config = tf.ConfigProto()
 if args.cuda:
     config.gpu_options.allow_growth = True
-    from kungfu.ext import _get_cuda_index
+    from kungfu.python import _get_cuda_index
     config.gpu_options.visible_device_list = str(_get_cuda_index())
 else:
     config.gpu_options.allow_growth = False

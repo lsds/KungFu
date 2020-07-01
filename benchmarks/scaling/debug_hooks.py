@@ -11,7 +11,7 @@ import tensorflow as tf
 
 def _cluster_size():
     if os.getenv('KUNGFU_SELF_SPEC'):
-        from kungfu import current_cluster_size
+        from kungfu.python import current_cluster_size
         return current_cluster_size()
     else:
         try:
@@ -87,7 +87,7 @@ class LogStepHook(tf.train.SessionRunHook):
 
 class ProfileResizeHook(tf.train.SessionRunHook):
     def __init__(self, schedule):
-        from kungfu import current_rank
+        from kungfu.python import current_rank
         self._rank = current_rank()
         self._step = 0
 
@@ -105,7 +105,7 @@ class ProfileResizeHook(tf.train.SessionRunHook):
             new_size = self._schedule[self._step]
             print('ProfileResizeHook step %d, new_size: %d' %
                   (self._step, new_size))
-            from kungfu.ext import propose_new_size
+            from kungfu.python import propose_new_size
             propose_new_size(new_size)
 
     def end(self, run_context):

@@ -1,6 +1,6 @@
 import atexit
 
-from .loader import _call_method, _load_clib, _module_path
+from kungfu.loader import _call_method, _load_clib, _module_path
 
 
 def _load_and_init_python_lib():

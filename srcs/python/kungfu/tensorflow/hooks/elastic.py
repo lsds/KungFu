@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 from kungfu._utils import _log_event
-from kungfu.ext import propose_new_size
+from kungfu.python import propose_new_size
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, consensus, current_cluster_size,
                                    resize_cluster_from_url,

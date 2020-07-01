@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu import run_barrier
+from kungfu.python import run_barrier
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)

@@ -94,7 +94,7 @@ To use NVLink, add the following to your Python code
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
-from kungfu.ext import _get_cuda_index
+from kungfu.python import _get_cuda_index
 config.gpu_options.visible_device_list = str(_get_cuda_index())
 
 ...
