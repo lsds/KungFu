@@ -1,6 +1,9 @@
 #pragma once
+#include <condition_variable>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <thread>
 #include <vector>
 
 #include <kungfu.h>
@@ -27,6 +30,32 @@ class order_group
     std::vector<int32_t> Wait();
 };
 
+class LinearExecutor
+{
+    const int size_;
+
+    std::mutex mu_;
+    std::condition_variable cv_;
+
+    std::map<std::string, int> ranks_;
+    int started_;
+
+    std::vector<int32_t> arrive_order_;
+    std::vector<bool> is_started_;
+    std::vector<DoneCallback> tasks_;
+    std::unique_ptr<std::thread> executor_;
+
+  public:
+    LinearExecutor(const std::vector<std::string> &names,
+                   const std::vector<int32_t> &order);
+
+    ~LinearExecutor();
+
+    void Start(const std::string &name, const DoneCallback &task);
+
+    std::vector<int32_t> Wait();
+};
+
 class NCCLScheduler
 {
     const std::string name_;
@@ -36,7 +65,8 @@ class NCCLScheduler
     int counter_;
     std::vector<int32_t> order_;
 
-    std::unique_ptr<order_group> order_group_;
+    // std::unique_ptr<order_group> order_group_;
+    std::unique_ptr<LinearExecutor> executor_;
 
     void ResetOrder(int n);
 
@@ -45,6 +75,6 @@ class NCCLScheduler
 
     void Reset(const std::vector<std::string> &names);
 
-    void Start(const std::string &name, const order_group::Task &task);
+    void Start(const std::string &name, const DoneCallback &task);
 };
 }  // namespace kungfu
