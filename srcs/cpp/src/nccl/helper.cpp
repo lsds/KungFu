@@ -4,7 +4,7 @@
 
 namespace kungfu
 {
-NCCLHelper::NCCLHelper() : pool_(new StreamPool) {}
+NCCLHelper::NCCLHelper() {}
 
 NCCLController *NCCLHelper::EnsureController(const KungFu_NCCLScope scope)
 {
@@ -24,6 +24,4 @@ NCCLScheduler *NCCLHelper::EnsureScheduler(const KungFu_NCCLScope scope)
     if (ptr.get() == nullptr) { ptr.reset(new NCCLScheduler(scope)); }
     return ptr.get();
 }
-
-StreamPool *NCCLHelper::GetPool() { return pool_.get(); }
 }  // namespace kungfu

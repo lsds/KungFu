@@ -17,7 +17,6 @@ class NCCLHelper
 
     std::map<KungFu_NCCLScope, std::unique_ptr<NCCLController>> controllers_;
     std::map<KungFu_NCCLScope, std::unique_ptr<NCCLScheduler>> schedulers_;
-    std::unique_ptr<StreamPool> pool_;
 
   public:
     NCCLHelper();
@@ -25,7 +24,5 @@ class NCCLHelper
     NCCLController *EnsureController(const KungFu_NCCLScope scope);
 
     NCCLScheduler *EnsureScheduler(const KungFu_NCCLScope scope);
-
-    StreamPool *GetPool();
 };
 }  // namespace kungfu
