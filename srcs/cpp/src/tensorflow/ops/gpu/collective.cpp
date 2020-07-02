@@ -1,6 +1,7 @@
 #include <chrono>
 #include <thread>
 
+#include <kungfu/nccl/helper.hpp>
 #include <kungfu/tensorflow/ops.h>
 #include <kungfu/utils/trace.hpp>
 #include <tensorflow/stream_executor/stream.h>

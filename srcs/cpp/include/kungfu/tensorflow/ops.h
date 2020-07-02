@@ -6,6 +6,7 @@
 #include <tensorflow/core/framework/shape_inference.h>
 
 #include <kungfu.h>
+#include <kungfu/nccl/common.hpp>
 #include <kungfu/python/init.h>
 
 namespace tensorflow
@@ -31,7 +32,8 @@ inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
     }
 }
 
-template <typename... Dims> TensorShape MakeTensorShape(const Dims &... dims)
+template <typename... Dims>
+TensorShape MakeTensorShape(const Dims &... dims)
 {
     const std::array<int, sizeof...(Dims)> ds({static_cast<int>(dims)...});
     TensorShape shape;

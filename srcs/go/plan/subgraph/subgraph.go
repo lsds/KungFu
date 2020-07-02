@@ -15,3 +15,17 @@ func GenCircularGraphPair(n int, vs []int, r int) (*graph.Graph, *graph.Graph) {
 	}
 	return rg, bg
 }
+
+func GenBinaryTree(n int, vs []int) *graph.Graph {
+	g := graph.New(n)
+	k := len(vs)
+	for i := 0; i < k; i++ {
+		if j := i*2 + 1; j < k {
+			g.AddEdge(vs[i], vs[j])
+		}
+		if j := i*2 + 2; j < k {
+			g.AddEdge(vs[i], vs[j])
+		}
+	}
+	return g
+}

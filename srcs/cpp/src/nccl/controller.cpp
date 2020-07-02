@@ -1,15 +1,7 @@
-#include <kungfu.h>
-#include <kungfu/python/init.h>
-#include <kungfu/utils/cuda_helper.hpp>
-
-std::unique_ptr<kungfu::NCCLHelper> _default_nccl_helper;
-
-void kungfu_python_init_nccl()
-{
-    _default_nccl_helper.reset(new kungfu::NCCLHelper);
-}
-
-void kungfu_python_finialize_nccl() { _default_nccl_helper.reset(nullptr); }
+#include <kungfu/cuda/stream.hpp>
+#include <kungfu/nccl/controller.hpp>
+#include <kungfu/nccl/helper.hpp>
+#include <kungfu/python/init.h>  // FIXME: remove
 
 namespace kungfu
 {
@@ -31,12 +23,17 @@ void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
         return;
     }
     char *buffer = new char[data_size];
-    CudaStream stream;
-    stream.memcpy(buffer, w.sendbuf, data_size, cudaMemcpyDeviceToHost);
+    {
+        CudaStream stream;
+        stream.memcpy(buffer, w.sendbuf, data_size, cudaMemcpyDeviceToHost);
+    }
     _default_peer->CrossAllReduce(
         buffer, buffer, w.count, w.dtype, op, name.c_str(), [=] {
-            CudaStream stream;
-            stream.memcpy(w.recvbuf, buffer, data_size, cudaMemcpyHostToDevice);
+            {
+                CudaStream stream;
+                stream.memcpy(w.recvbuf, buffer, data_size,
+                              cudaMemcpyHostToDevice);
+            }
             delete[] buffer;
             _default_peer->Noop(done);
         });
@@ -75,24 +72,5 @@ int NCCLController::AllReduce(const Workspace &w, KungFu_Op op,
     gpu_collective_->all_reduce(w.sendbuf, w.recvbuf, w.count, w.dtype);
     done();
     return 0;
-}
-
-NCCLController *NCCLHelper::EnsureController(const KungFu_NCCLScope scope)
-{
-    std::lock_guard<std::mutex> _lk(mu_);
-    auto &ptr = controllers_[scope];
-    if (ptr.get() == nullptr) {
-        ptr.reset(new NCCLController(scope));
-        ptr->InitOnce();
-    }
-    return ptr.get();
-}
-
-NCCLScheduler *NCCLHelper::EnsureScheduler(const KungFu_NCCLScope scope)
-{
-    std::lock_guard<std::mutex> _lk(mu_);
-    auto &ptr = schedulers_[scope];
-    if (ptr.get() == nullptr) { ptr.reset(new NCCLScheduler(scope)); }
-    return ptr.get();
 }
 }  // namespace kungfu

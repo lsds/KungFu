@@ -46,8 +46,10 @@ ENDIF()
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(srcs/cmake/tf-op.cmake)
 
-    ADD_LIBRARY(kungfu_python SHARED srcs/cpp/src/python/init.cpp
-                                     srcs/cpp/src/python/cuda.cpp)
+    ADD_LIBRARY(
+        kungfu_python SHARED
+        srcs/cpp/src/python/init.cpp srcs/cpp/src/python/cuda.cpp
+        srcs/cpp/src/nccl/common.cpp srcs/cpp/src/nccl/scheduler.cpp)
     TARGET_LINK_LIBRARIES(kungfu_python kungfu)
 
     FILE(GLOB CPU_OP_SRCS
@@ -60,10 +62,15 @@ IF(KUNGFU_BUILD_TF_OPS)
 
     IF(KUNGFU_ENABLE_NCCL)
         TARGET_SOURCES(
-            kungfu_python PRIVATE srcs/cpp/src/python/nccl.cpp
-                                  srcs/cpp/src/nccl/gpu_collective.cpp)
+            kungfu_python
+            PRIVATE srcs/cpp/src/python/init_nccl.cpp
+                    srcs/cpp/src/cuda/stream.cpp
+                    srcs/cpp/src/nccl/controller.cpp
+                    srcs/cpp/src/nccl/helper.cpp
+                    srcs/cpp/src/nccl/gpu_collective.cpp)
         USE_NCCL(kungfu_python)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${GPU_OP_SRCS})
+        USE_NCCL(kungfu_tensorflow_ops)
     ENDIF()
     IF(KUNGFU_ENABLE_TRACE)
         USE_STDTRACER(kungfu_python)
