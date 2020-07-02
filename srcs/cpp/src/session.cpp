@@ -5,27 +5,27 @@
 
 namespace kungfu
 {
-int Peer::Rank() const { return GoKungfuRank(); }
+int Peer::Rank() const { return GoKungfuRank(p_); }
 
-int Peer::Size() const { return GoKungfuSize(); }
+int Peer::Size() const { return GoKungfuSize(p_); }
 
-int Peer::LocalRank() const { return GoKungfuLocalRank(); }
+int Peer::LocalRank() const { return GoKungfuLocalRank(p_); }
 
-int Peer::LocalSize() const { return GoKungfuLocalSize(); }
+int Peer::LocalSize() const { return GoKungfuLocalSize(p_); }
 
-int Peer::HostCount() const { return GoKungfuHostCount(); }
+int Peer::HostCount() const { return GoKungfuHostCount(p_); }
 
-int Peer::Barrier() { return GoKungfuBarrier(nullptr); }
+int Peer::Barrier() { return GoKungfuBarrier(p_, nullptr); }
 
 int Peer::Barrier(const DoneCallback &done)
 {
-    return GoKungfuBarrier(new CallbackWrapper(done));
+    return GoKungfuBarrier(p_, new CallbackWrapper(done));
 }
 
 int Peer::Consensus(const void *buf, int count, KungFu_Datatype dtype, bool *ok,
                     const char *name)
 {
-    return GoKungfuConsensus(const_cast<void *>(buf), GoInt(count), dtype,
+    return GoKungfuConsensus(p_, const_cast<void *>(buf), GoInt(count), dtype,
                              reinterpret_cast<char *>(ok),
                              const_cast<char *>(name), nullptr);
 }
@@ -33,7 +33,7 @@ int Peer::Consensus(const void *buf, int count, KungFu_Datatype dtype, bool *ok,
 int Peer::Consensus(const void *buf, int count, KungFu_Datatype dtype, bool *ok,
                     const char *name, const DoneCallback &done)
 {
-    return GoKungfuConsensus(const_cast<void *>(buf), GoInt(count), dtype,
+    return GoKungfuConsensus(p_, const_cast<void *>(buf), GoInt(count), dtype,
                              reinterpret_cast<char *>(ok),
                              const_cast<char *>(name),
                              new CallbackWrapper(done));
@@ -43,31 +43,32 @@ int Peer::Reduce(const void *sendbuf, void *recvbuf, int count,
                  KungFu_Datatype dtype, KungFu_Op op, const char *name,
                  const DoneCallback &done)
 {
-    return GoKungfuReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                          dtype, op, const_cast<char *>(name),
+    return GoKungfuReduce(p_, const_cast<void *>(sendbuf), recvbuf,
+                          GoInt(count), dtype, op, const_cast<char *>(name),
                           new CallbackWrapper(done));
 }
 
 int Peer::AllReduce(const void *sendbuf, void *recvbuf, int count,
                     KungFu_Datatype dtype, KungFu_Op op, const char *name)
 {
-    return GoKungfuAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             dtype, op, const_cast<char *>(name), nullptr);
+    return GoKungfuAllReduce(p_, const_cast<void *>(sendbuf), recvbuf,
+                             GoInt(count), dtype, op, const_cast<char *>(name),
+                             nullptr);
 }
 
 int Peer::AllReduce(const void *sendbuf, void *recvbuf, int count,
                     KungFu_Datatype dtype, KungFu_Op op, const char *name,
                     const DoneCallback &done)
 {
-    return GoKungfuAllReduce(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             dtype, op, const_cast<char *>(name),
+    return GoKungfuAllReduce(p_, const_cast<void *>(sendbuf), recvbuf,
+                             GoInt(count), dtype, op, const_cast<char *>(name),
                              new CallbackWrapper(done));
 }
 
 int Peer::CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
                          KungFu_Datatype dtype, KungFu_Op op, const char *name)
 {
-    return GoKungfuCrossAllReduce(const_cast<void *>(sendbuf), recvbuf,
+    return GoKungfuCrossAllReduce(p_, const_cast<void *>(sendbuf), recvbuf,
                                   GoInt(count), dtype, op,
                                   const_cast<char *>(name), nullptr);
 }
@@ -77,7 +78,7 @@ int Peer::CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
                          const DoneCallback &done)
 {
     return GoKungfuCrossAllReduce(
-        const_cast<void *>(sendbuf), recvbuf, GoInt(count), dtype, op,
+        p_, const_cast<void *>(sendbuf), recvbuf, GoInt(count), dtype, op,
         const_cast<char *>(name), new CallbackWrapper(done));
 }
 
@@ -87,7 +88,7 @@ int Peer::MonitoredAllReduce(const void *sendbuf, void *recvbuf, int count,
                              const DoneCallback &done)
 {
     return GoKungfuMonitoredAllReduce(
-        const_cast<void *>(sendbuf), recvbuf, GoInt(count), dtype, op,
+        p_, const_cast<void *>(sendbuf), recvbuf, GoInt(count), dtype, op,
         const_cast<int32_t *>(tree), const_cast<char *>(name),
         new CallbackWrapper(done));
 }
@@ -95,38 +96,39 @@ int Peer::MonitoredAllReduce(const void *sendbuf, void *recvbuf, int count,
 int Peer::AllGather(const void *sendbuf, int count, KungFu_Datatype dtype,
                     void *recvbuf, const char *name)
 {
-    return GoKungfuAllGather(const_cast<void *>(sendbuf), GoInt(count), dtype,
-                             recvbuf, const_cast<char *>(name), nullptr);
+    return GoKungfuAllGather(p_, const_cast<void *>(sendbuf), GoInt(count),
+                             dtype, recvbuf, const_cast<char *>(name), nullptr);
 }
 
 int Peer::AllGather(const void *sendbuf, int count, KungFu_Datatype dtype,
                     void *recvbuf, const char *name, const DoneCallback &done)
 {
-    return GoKungfuAllGather(const_cast<void *>(sendbuf), GoInt(count), dtype,
-                             recvbuf, const_cast<char *>(name),
+    return GoKungfuAllGather(p_, const_cast<void *>(sendbuf), GoInt(count),
+                             dtype, recvbuf, const_cast<char *>(name),
                              new CallbackWrapper(done));
 }
 
 int Peer::Broadcast(const void *sendbuf, void *recvbuf, int count,
                     KungFu_Datatype dtype, const char *name)
 {
-    return GoKungfuBroadcast(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             dtype, const_cast<char *>(name), nullptr);
+    return GoKungfuBroadcast(p_, const_cast<void *>(sendbuf), recvbuf,
+                             GoInt(count), dtype, const_cast<char *>(name),
+                             nullptr);
 }
 
 int Peer::Broadcast(const void *sendbuf, void *recvbuf, int count,
                     KungFu_Datatype dtype, const char *name,
                     const DoneCallback &done)
 {
-    return GoKungfuBroadcast(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
-                             dtype, const_cast<char *>(name),
+    return GoKungfuBroadcast(p_, const_cast<void *>(sendbuf), recvbuf,
+                             GoInt(count), dtype, const_cast<char *>(name),
                              new CallbackWrapper(done));
 }
 
 int Peer::LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
                          KungFu_Datatype dtype, const char *name)
 {
-    return GoKungfuLocalBroadcast(const_cast<void *>(sendbuf), recvbuf,
+    return GoKungfuLocalBroadcast(p_, const_cast<void *>(sendbuf), recvbuf,
                                   GoInt(count), dtype, const_cast<char *>(name),
                                   nullptr);
 }
@@ -135,7 +137,7 @@ int Peer::LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
                          KungFu_Datatype dtype, const char *name,
                          const DoneCallback &done)
 {
-    return GoKungfuLocalBroadcast(const_cast<void *>(sendbuf), recvbuf,
+    return GoKungfuLocalBroadcast(p_, const_cast<void *>(sendbuf), recvbuf,
                                   GoInt(count), dtype, const_cast<char *>(name),
                                   new CallbackWrapper(done));
 }
@@ -144,7 +146,7 @@ int Peer::Gather(const void *sendbuf, int send_count,
                  KungFu_Datatype send_dtype, void *recvbuf, int recv_count,
                  KungFu_Datatype recv_dtype, const char *name)
 {
-    return GoKungfuGather(const_cast<void *>(sendbuf), GoInt(send_count),
+    return GoKungfuGather(p_, const_cast<void *>(sendbuf), GoInt(send_count),
                           send_dtype, recvbuf, GoInt(recv_count), recv_dtype,
                           const_cast<char *>(name), nullptr);
 }
@@ -154,7 +156,7 @@ int Peer::Gather(const void *sendbuf, int send_count,
                  KungFu_Datatype recv_dtype, const char *name,
                  const DoneCallback &done)
 {
-    return GoKungfuGather(const_cast<void *>(sendbuf), GoInt(send_count),
+    return GoKungfuGather(p_, const_cast<void *>(sendbuf), GoInt(send_count),
                           send_dtype, recvbuf, GoInt(recv_count), recv_dtype,
                           const_cast<char *>(name), new CallbackWrapper(done));
 }
@@ -182,6 +184,6 @@ int Peer::AllGatherTransform(const void *input, int input_count,
 
 int Peer::SetTree(const int32_t *tree)
 {
-    return GoKungfuSetTree(const_cast<int32_t *>(tree));
+    return GoKungfuSetTree(p_, const_cast<int32_t *>(tree));
 }
 }  // namespace kungfu

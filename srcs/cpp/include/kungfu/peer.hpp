@@ -2,6 +2,16 @@
 #include <functional>
 #include <kungfu/dtype.hpp>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct peer_s peer_t;
+
+#ifdef __cplusplus
+}
+#endif
+
 namespace kungfu
 {
 using DoneCallback = std::function<void()>;
@@ -10,8 +20,11 @@ using TransformFunc = std::function<void(
     const void *input, int input_count, KungFu_Datatype input_dtype,
     void *output, int output_count, KungFu_Datatype output_dtype)>;
 
+// Peer wraps the Go struct Peer.
 class Peer
 {
+    peer_t *p_;
+
   public:
     Peer();
 

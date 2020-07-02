@@ -13,8 +13,8 @@ import (
 import "C"
 
 //export GoKungfuResizeClusterFromURL
-func GoKungfuResizeClusterFromURL(pChanged, pKeep *C.char) int {
-	changed, keep, err := defaultPeer.ResizeClusterFromURL()
+func GoKungfuResizeClusterFromURL(c *C.struct_peer_s, pChanged, pKeep *C.char) int {
+	changed, keep, err := toPeer(c).ResizeClusterFromURL()
 	if err != nil {
 		utils.ExitErr(err)
 	}
@@ -24,8 +24,8 @@ func GoKungfuResizeClusterFromURL(pChanged, pKeep *C.char) int {
 }
 
 //export GoKungfuProposeNewSize
-func GoKungfuProposeNewSize(newSize int) int {
-	err := defaultPeer.ProposeNewSize(newSize)
+func GoKungfuProposeNewSize(c *C.struct_peer_s, newSize int) int {
+	err := toPeer(c).ProposeNewSize(newSize)
 	if err != nil {
 		log.Warnf("ProposeNewSize failed: %v", err)
 	}
@@ -33,8 +33,8 @@ func GoKungfuProposeNewSize(newSize int) int {
 }
 
 //export GoKungfuSetTree
-func GoKungfuSetTree(pTree unsafe.Pointer) int {
-	sess := defaultPeer.CurrentSession()
+func GoKungfuSetTree(c *C.struct_peer_s, pTree unsafe.Pointer) int {
+	sess := toPeer(c).CurrentSession()
 	tree := toVector(pTree, sess.Size(), C.KungFu_INT32) // TODO: ensure pTree has size np in C++
 	return callOP("SimpleSetGlobalStrategy", func() error { return sess.SimpleSetGlobalStrategy(tree.AsI32()) }, nil)
 }

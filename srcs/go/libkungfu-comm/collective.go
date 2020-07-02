@@ -14,25 +14,25 @@ import (
 import "C"
 
 //export GoKungfuBarrier
-func GoKungfuBarrier(done *C.callback_t) int {
-	sess := defaultPeer.CurrentSession()
+func GoKungfuBarrier(c *C.struct_peer_s, done *C.callback_t) int {
+	sess := toPeer(c).CurrentSession()
 	return callOP("Barrier", sess.Barrier, done)
 }
 
 //export GoKungfuConsensus
-func GoKungfuConsensus(buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pOK *C.char, pName *C.char, done *C.callback_t) int {
+func GoKungfuConsensus(c *C.struct_peer_s, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pOK *C.char, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(buf, count, dtype),
 		RecvBuf: toVector(unsafe.Pointer(pOK), 1, C.KungFu_Datatype(kb.I8)),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	return callCollectiveOP("Consensus", name, sess.Consensus, w, done)
 }
 
 //export GoKungfuAllReduce
-func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
+func GoKungfuAllReduce(c *C.struct_peer_s, sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
@@ -40,12 +40,12 @@ func GoKungfuAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungF
 		OP:      kb.OP(op),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	return callCollectiveOP("AllReduce", name, sess.AllReduce, w, done)
 }
 
 //export GoKungfuCrossAllReduce
-func GoKungfuCrossAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
+func GoKungfuCrossAllReduce(c *C.struct_peer_s, sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
@@ -53,12 +53,12 @@ func GoKungfuCrossAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.
 		OP:      kb.OP(op),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	return callCollectiveOP("CrossAllReduce", name, sess.CrossAllReduce, w, done)
 }
 
 //export GoKungfuMonitoredAllReduce
-func GoKungfuMonitoredAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pTree unsafe.Pointer /* TODO: return monitoring data */, pName *C.char, done *C.callback_t) int {
+func GoKungfuMonitoredAllReduce(c *C.struct_peer_s, sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pTree unsafe.Pointer /* TODO: return monitoring data */, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
@@ -66,7 +66,7 @@ func GoKungfuMonitoredAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtyp
 		OP:      kb.OP(op),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	np := sess.Size()
 	tree := toVector(pTree, np, C.KungFu_INT32) // TODO: ensure pTree has size np in C++
 	f := func(w kb.Workspace) error { return sess.AllReduceWith(tree.AsI32(), w) }
@@ -74,9 +74,9 @@ func GoKungfuMonitoredAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtyp
 }
 
 //export GoKungfuAllGather
-func GoKungfuAllGather(sendBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, recvBuf unsafe.Pointer, pName *C.char, done *C.callback_t) int {
+func GoKungfuAllGather(c *C.struct_peer_s, sendBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, recvBuf unsafe.Pointer, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count*sess.Size(), dtype),
@@ -86,7 +86,7 @@ func GoKungfuAllGather(sendBuf unsafe.Pointer, count int, dtype C.KungFu_Datatyp
 }
 
 //export GoKungfuReduce
-func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
+func GoKungfuReduce(c *C.struct_peer_s, sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, op C.KungFu_Op, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
@@ -94,55 +94,55 @@ func GoKungfuReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_D
 		OP:      kb.OP(op),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	return callCollectiveOP("Reduce", name, sess.Reduce, w, done)
 }
 
 //export GoKungfuBroadcast
-func GoKungfuBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
+func GoKungfuBroadcast(c *C.struct_peer_s, sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	return callCollectiveOP("Broadcast", name, sess.Broadcast, w, done)
 }
 
 //export GoKungfuGather
-func GoKungfuGather(sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype, recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
+func GoKungfuGather(c *C.struct_peer_s, sendBuf unsafe.Pointer, sendCount int, sendDtype C.KungFu_Datatype, recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, sendCount, sendDtype),
 		RecvBuf: toVector(recvBuf, recvCount, recvDtype),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	return callCollectiveOP("Gather", name, sess.Gather, w, done)
 }
 
 //export GoKungfuLocalReduce
-func GoKungfuLocalReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
+func GoKungfuLocalReduce(c *C.struct_peer_s, sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	return callCollectiveOP("LocalReduce", name, sess.LocalReduce, w, done)
 }
 
 //export GoKungfuLocalBroadcast
-func GoKungfuLocalBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
+func GoKungfuLocalBroadcast(c *C.struct_peer_s, sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pName *C.char, done *C.callback_t) int {
 	name := C.GoString(pName)
 	w := kb.Workspace{
 		SendBuf: toVector(sendBuf, count, dtype),
 		RecvBuf: toVector(recvBuf, count, dtype),
 		Name:    name,
 	}
-	sess := defaultPeer.CurrentSession()
+	sess := toPeer(c).CurrentSession()
 	return callCollectiveOP("LocalBroadcast", name, sess.LocalBroadcast, w, done)
 }
 
