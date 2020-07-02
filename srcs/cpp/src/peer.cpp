@@ -3,7 +3,7 @@
 
 namespace kungfu
 {
-Peer::Peer()
+Peer::Peer() : p_(new peer_t)
 {
     const int err = GoKungfuInit(p_);
     if (err) {
@@ -12,7 +12,11 @@ Peer::Peer()
     }
 }
 
-Peer::~Peer() { GoKungfuFinalize(p_); }
+Peer::~Peer()
+{
+    GoKungfuFinalize(p_);
+    delete p_;
+}
 
 bool Peer::Detached() const { return GoKungfuDetached(p_); }
 
