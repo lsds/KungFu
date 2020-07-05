@@ -16,8 +16,8 @@ def resize_cluster_from_url():
 
     resize_op = _op_lib.kungfu_resize_cluster_from_url()
     if hasattr(_op_lib, 'kungfu_reset_nccl_helper'):
-        with tf.control_dependencies([resize_op]):
-            return _op_lib.kungfu_reset_nccl_helper()
+        changed, keep = resize_op
+        return _op_lib.kungfu_reset_nccl_helper(changed, keep)
     else:
         return resize_op
 
