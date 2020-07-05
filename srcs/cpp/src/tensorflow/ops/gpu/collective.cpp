@@ -42,23 +42,22 @@ REGISTER_KUNGFU_OP(ScheduledNcclAllReduce)
 
 class ScheduledNcclAllReduce : public AsyncOpKernel
 {
+    const KungFu_NCCLScope nccl_scope_;
     std::string op_name_;
-    kungfu::NCCLScheduler *scheduler_;
-    kungfu::NCCLController *nccl_;
 
   public:
     explicit ScheduledNcclAllReduce(OpKernelConstruction *context)
-        : AsyncOpKernel(context)
+        : AsyncOpKernel(context), nccl_scope_(KungFu_NCCL_GLOBAL)
     {
         OP_REQUIRES_OK(context, context->GetAttr("op_name", &op_name_));
         OP_REQUIRES(context, op_name_.size() >= 0,
                     errors::InvalidArgument("op_name must not be empty"));
-        scheduler_ = _default_nccl_helper->EnsureScheduler(KungFu_NCCL_GLOBAL);
-        nccl_      = _default_nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
+        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        auto nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -82,17 +81,12 @@ REGISTER_KUNGFU_OP(NcclAllReduce)
 
 class NcclAllReduce : public AsyncOpKernel
 {
-    kungfu::NCCLController *nccl_;
+    using AsyncOpKernel::AsyncOpKernel;
 
   public:
-    explicit NcclAllReduce(OpKernelConstruction *context)
-        : AsyncOpKernel(context)
-    {
-        nccl_ = _default_nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
-    }
-
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
+        auto nccl_ = _default_nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -113,14 +107,14 @@ REGISTER_KUNGFU_OP(ScheduledHierarchicalNcclAllReduce)
 
 class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
 {
+    const KungFu_NCCLScope nccl_scope_;
+
     std::string reduce_op_;
     std::string bcast_op_;
-    kungfu::NCCLScheduler *scheduler_;
-    kungfu::NCCLController *nccl_;
 
   public:
     explicit ScheduledHierarchicalNcclAllReduce(OpKernelConstruction *context)
-        : AsyncOpKernel(context)
+        : AsyncOpKernel(context), nccl_scope_(KungFu_NCCL_LOCAL)
     {
         std::vector<std::string> op_names;
         OP_REQUIRES_OK(context, context->GetAttr("op_names", &op_names));
@@ -128,12 +122,12 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
                     errors::InvalidArgument("op_names.size() must be 2"));
         reduce_op_ = op_names[0];
         bcast_op_  = op_names[1];
-        scheduler_ = _default_nccl_helper->EnsureScheduler(KungFu_NCCL_LOCAL);
-        nccl_      = _default_nccl_helper->EnsureController(KungFu_NCCL_LOCAL);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
+        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        auto nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
