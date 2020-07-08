@@ -20,7 +20,7 @@ const defaultRoot = 0
 const strategyMonitorRefferenceWindow = 1500
 const avgWndCapacity = 100
 
-type StrategyStatSnapshot struct {
+type StatSnapshot struct {
 	// AvgDuration    time.Duration
 	// CmaDuration    time.Duration
 	// AvgWndDuration time.Duration
@@ -41,14 +41,14 @@ type StrategyStat struct {
 	lastEnd    time.Time
 	count      int
 	suspended  bool
-	reff       StrategyStatSnapshot
+	reff       StatSnapshot
 	lock       sync.Mutex
 }
 
-//GetSnapshot return a StrategyStatSnapshot object containing
+//GetSnapshot return a StatSnapshot object containing
 //a snapshot of the strategy's statistics
-func (ss *StrategyStat) GetSnapshot() StrategyStatSnapshot {
-	return StrategyStatSnapshot{Throughput: ss.Throughput}
+func (ss *StrategyStat) GetSnapshot() StatSnapshot {
+	return StatSnapshot{Throughput: ss.Throughput}
 }
 
 func (ss *StrategyStat) Reset() {
@@ -112,7 +112,8 @@ type Session struct {
 	client            *client.Client
 	collectiveHandler *handler.CollectiveEndpoint
 	strategyHash      strategyHashFunc
-	strategyStats     []StrategyStatSnapshot
+	strategyStats     []StatSnapshot
+	peerStats         [][][]StatSnapshot
 }
 
 func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint) (*Session, bool) {
@@ -142,6 +143,12 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 		collectiveHandler: collectiveHandler,
 		strategyHash:      getStrategyHash(),
 	}
+
+	sess.peerStats = make([][][]StatSnapshot, len(pl))
+	for i := range sess.peerStats {
+		sess.peerStats[i] = make([][]StatSnapshot, len(pl))
+	}
+
 	return sess, true
 }
 
