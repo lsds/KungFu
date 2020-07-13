@@ -27,6 +27,7 @@ jobs:
     - run: pip install torch==1.5
 
     - run: |
+        rm setup.py
         ln -s setup_pytorch.py setup.py
         pip install --no-index .
 
