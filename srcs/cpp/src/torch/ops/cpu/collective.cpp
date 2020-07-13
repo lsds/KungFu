@@ -10,14 +10,14 @@ void do_all_reduce(void *input, void *output, size_t n)
 {
     T *x = reinterpret_cast<T *>(input);
     T *y = reinterpret_cast<T *>(output);
-    std::transform(x, x + n, y, [](T e) { return e; });
+    _default_peer->AllReduce(x, y, n, kungfu::type_encoder::value<T>(),
+                             KungFu_SUM, "");
 }
 
 void do_all_reduce(torch::Tensor &input, torch::Tensor &output)
 {
-    std::cerr << __func__ << std::endl;
     using T = float;
-    // auto x = input.accessor<T, 2>();
+    std::cerr << __func__ << std::endl;
     TensorShape shape = get_tensor_shape(input);
     do_all_reduce<T>(input.data_ptr(), output.data_ptr(), shape.size());
 }

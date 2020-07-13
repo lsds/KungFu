@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include <kungfu.h>
+#include <kungfu/python/init.h>
 #include <torch/extension.h>
 
 class TensorShape

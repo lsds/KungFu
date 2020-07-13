@@ -12,7 +12,7 @@ for d in dir(kf.ops):
 f = kf.ops.collective.all_reduce
 print(f)
 
-x = torch.Tensor([2, 3])
+x = torch.ones([2, 2])
 print(x)
 
 y = kf.ops.collective.all_reduce(x)

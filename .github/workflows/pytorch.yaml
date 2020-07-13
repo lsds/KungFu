@@ -26,9 +26,13 @@ jobs:
     - run: pip install -r tests/requirements.txt
     - run: pip install torch==1.5
 
+    - run: pip install --no-index . # install kungfu tensorflow
+
     - run: |
         rm setup.py
         ln -s setup_pytorch.py setup.py
         pip install --no-index .
 
     - run: python ./examples/torch_simple_example.py
+
+    - run: kungfu-run -q -np 2 python ./examples/torch_simple_example.py
