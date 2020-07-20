@@ -10,6 +10,7 @@ REGISTER_KUNGFU_OP(StartNcclScheduler)
 class StartNcclScheduler : public OpKernel
 {
     KungFu_NCCLScope nccl_scope_;
+    kungfu::NCCLScheduler *scheduler_;
 
   public:
     explicit StartNcclScheduler(OpKernelConstruction *context)
@@ -20,11 +21,12 @@ class StartNcclScheduler : public OpKernel
         OP_REQUIRES(context, kungfu::_nccl_scopes.count(scope_name) > 0,
                     errors::InvalidArgument("invalid scope"));
         nccl_scope_ = kungfu::_nccl_scopes.at(scope_name);
+        scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
     }
 
     void Compute(OpKernelContext *context) override
     {
-        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        // scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
         const Tensor &input = context->input(0);
         const auto t_names  = input.vec<std::string>();
         std::vector<std::string> names;
