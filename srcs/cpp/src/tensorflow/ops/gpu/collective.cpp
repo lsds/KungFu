@@ -45,6 +45,9 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
     const KungFu_NCCLScope nccl_scope_;
     std::string op_name_;
 
+    kungfu::NCCLScheduler *scheduler_;
+    kungfu::NCCLController *nccl_;
+
   public:
     explicit ScheduledNcclAllReduce(OpKernelConstruction *context)
         : AsyncOpKernel(context), nccl_scope_(KungFu_NCCL_GLOBAL)
@@ -52,12 +55,14 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
         OP_REQUIRES_OK(context, context->GetAttr("op_name", &op_name_));
         OP_REQUIRES(context, op_name_.size() >= 0,
                     errors::InvalidArgument("op_name must not be empty"));
+        scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
+        // scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        // nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
