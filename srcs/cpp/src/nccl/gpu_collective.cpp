@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <sstream>
+#include <thread>
 #include <vector>
 
 #include <kungfu/cuda/stream.hpp>
@@ -53,6 +54,12 @@ template <>
 struct nccl_type<float> {
     static ncclDataType_t value() { return ncclFloat; }
 };
+
+inline void _debug_show_thread_id()
+{
+    std::thread::id tid = std::this_thread::get_id();
+    std::cerr << __func__ << " tid :" << tid << std::endl;
+}
 
 namespace kungfu
 {
@@ -119,6 +126,7 @@ class gpu_collective_nccl : public gpu_collective
                     KungFu_Datatype dtype)
     {
         TRACE_SCOPE(__func__);
+        _debug_show_thread_id();
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallreduce
         KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
