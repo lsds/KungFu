@@ -126,7 +126,7 @@ class gpu_collective_nccl : public gpu_collective
                     KungFu_Datatype dtype)
     {
         TRACE_SCOPE(__func__);
-        _debug_show_thread_id();
+        // _debug_show_thread_id();
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallreduce
         KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
