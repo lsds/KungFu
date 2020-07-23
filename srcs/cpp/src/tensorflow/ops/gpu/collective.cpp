@@ -2,37 +2,13 @@
 #include <thread>
 
 #include <kungfu/nccl/helper.hpp>
+#include <kungfu/tensorflow/gpu_helpers.hpp>
 #include <kungfu/tensorflow/ops.h>
 #include <kungfu/utils/trace.hpp>
 #include <tensorflow/stream_executor/stream.h>
 
 namespace tensorflow
 {
-void spin_wait(perftools::gputools::Event *event, int ms = 100)
-{
-    TRACE_SCOPE(__func__);
-    while (event->PollForStatus() ==
-           perftools::gputools::Event::Status::kPending) {
-        std::this_thread::sleep_for(std::chrono::microseconds(ms));
-    }
-}
-
-perftools::gputools::Event *create_init_ready_event(OpKernelContext *context)
-{
-    auto device_context = context->op_device_context();
-    auto executor       = device_context->stream()->parent();
-    auto ready_event    = new perftools::gputools::Event(executor);
-    ready_event->Init();
-    device_context->stream()->ThenRecordEvent(ready_event);
-    return ready_event;
-}
-
-void wait_delete_ready_event(perftools::gputools::Event *ready_event)
-{
-    spin_wait(ready_event);
-    delete ready_event;
-}
-
 REGISTER_KUNGFU_OP(ScheduledNcclAllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("op_name: string")
