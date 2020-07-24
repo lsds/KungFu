@@ -59,6 +59,8 @@ class NCCLComm
   public:
     NCCLComm(ncclUniqueId id, int rank, int size, int root) : root_(root)
     {
+        std::cout << __func__ << " rank: " << rank << ", size: " << size
+                  << std::endl;
         KUNGFU_CHECK(nccl_checker) << ncclCommInitRank(&comm_, size, id, rank);
     }
 
