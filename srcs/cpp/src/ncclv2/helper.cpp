@@ -19,7 +19,7 @@ void NCCLHelper_V2::init(KungFu_NCCLScope scope)
     DBG(__func__ + std::string(" : ") + std::to_string(scope));
     auto *controller = NCCLController_V2::Create(peer_, scope);
     controllers_[scope].reset(controller);
-    schedulers_[scope].reset(new NCCLScheduler_V2(controller));
+    schedulers_[scope].reset(new NCCLScheduler_V2(scope, peer_, controller));
 }
 
 void NCCLHelper_V2::BeginScheduleAllReduce(

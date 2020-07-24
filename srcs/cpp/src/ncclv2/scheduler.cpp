@@ -4,46 +4,49 @@
 
 namespace kungfu
 {
-NCCLScheduler_V2::NCCLScheduler_V2(NCCLController_V2 *controller)
-    : controller_(controller), step_(0)
+NCCLScheduler_V2::NCCLScheduler_V2(KungFu_NCCLScope scope, Peer *peer,
+                                   NCCLController_V2 *controller)
+    : scope_(scope), peer_(peer), controller_(controller), step_(0)
 {
     nccl_thread_.reset(new std::thread([&] {
         DBG("nccl thread started");
-        int step     = 0;
-        int step_ops = 0;
-        for (int i = 0;; ++i) {
+        bool stopped            = false;
+        bool last_step_finished = true;
+        for (int i = 0; !stopped; ++i) {
             auto t = comitted_tasks_.get();
             switch (t.first) {
-            case TASK_STOP:
-                DBG("nccl thread stopped");
-                return;
+            case TASK_STOP: {
+                if (!last_step_finished) {
+                    throw std::runtime_error(
+                        "can't begin step before last step finished");
+                }
+                stopped = true;
+                break;
+            }
             case TASK_BEGIN_STEP: {
-                ++step;
-                // DBG("nccl step started " + std::to_string(step));
-                auto *pt = t.second;
-                (*pt)();
-                delete pt;
-                // DBG("resetting step_ops to ZERO from " +
-                //     std::to_string(step_ops));
-                step_ops = 0;
+                if (!last_step_finished) {
+                    throw std::runtime_error(
+                        "can't begin step before last step finished");
+                }
+                last_step_finished = false;
                 break;
             }
             case TASK_END_STEP: {
-                // DBG("nccl step finished " + std::to_string(step) +
-                //     " after ran " + std::to_string(step_ops));
+                last_step_finished = true;
                 break;
             }
-            case TASK_OP: {
-                auto *pt = t.second;
-                (*pt)();
-                delete pt;
-                ++step_ops;
+            case TASK_OP:
                 break;
-            }
             default:
                 throw std::runtime_error("invalid task type");
             }
+            auto *pt = t.second;
+            if (pt != nullptr) {
+                (*pt)();
+                delete pt;
+            }
         }
+        DBG("nccl thread stopped");
     }));
 }
 
@@ -56,6 +59,7 @@ NCCLScheduler_V2::~NCCLScheduler_V2()
 void NCCLScheduler_V2::BeginStep(const std::vector<std::string> &names)
 {
     // DBG(__func__);
+    ++step_;
     comitted_tasks_.put(std::make_pair(
         TASK_BEGIN_STEP, new Task([&] { this->controller_->InitOnce(); })));
     this->names_ = names;
@@ -66,12 +70,35 @@ void NCCLScheduler_V2::BeginStep(const std::vector<std::string> &names)
     pending_tasks_.clear();
     pending_tasks_.resize(n);
     last_commit_ = -1;
+
+    arrive_order_.clear();
+    arrive_order_.reserve(n);
 }
 
 void NCCLScheduler_V2::EndStep()
 {
-    ++step_;
     comitted_tasks_.put(std::make_pair(TASK_END_STEP, nullptr));
+    if (step_ == 1) {
+        DBG("Broadcast order");
+        using T = decltype(arrive_order_)::value_type;
+        std::vector<T> common_order(arrive_order_.size());
+        if (scope_ == KungFu_NCCL_LOCAL) {
+            peer_->LocalBroadcast(arrive_order_.data(), common_order.data(),
+                                  common_order.size(), type_encoder::value<T>(),
+                                  "order");
+        } else {
+            peer_->Broadcast(arrive_order_.data(), common_order.data(),
+                             common_order.size(), type_encoder::value<T>(),
+                             "order");
+        }
+
+        DBG("Apply common order");
+        const int n = names_.size();
+        std::vector<std::string> names(n);
+        for (int i = 0; i < n; ++i) { names[i] = names_[common_order[i]]; }
+        ranks_.clear();
+        for (int i = 0; i < n; ++i) { ranks_[names[i]] = i; }
+    }
 }
 
 void NCCLScheduler_V2::Enqueue(const std::string &name,
@@ -80,6 +107,7 @@ void NCCLScheduler_V2::Enqueue(const std::string &name,
     std::lock_guard<std::mutex> lk(mu_);
 
     const int rank = ranks_.at(name);
+    arrive_order_.push_back(rank);
     pending_tasks_[rank].reset(new Task(task));
     const int n = names_.size();
     for (int i = last_commit_ + 1; i < n; i++) {

@@ -19,7 +19,10 @@ enum TaskType {
 
 class NCCLScheduler_V2
 {
+    KungFu_NCCLScope scope_;
+    Peer *peer_;
     NCCLController_V2 *controller_;
+
     int step_;
 
     using Task      = std::function<void()>;
@@ -33,12 +36,14 @@ class NCCLScheduler_V2
     std::map<std::string, int> ranks_;
 
     std::vector<std::unique_ptr<Task>> pending_tasks_;
+    std::vector<int32_t> arrive_order_;
     int last_commit_;
 
     std::unique_ptr<std::thread> nccl_thread_;
 
   public:
-    NCCLScheduler_V2(NCCLController_V2 *controller);
+    NCCLScheduler_V2(KungFu_NCCLScope scope, Peer *peer,
+                     NCCLController_V2 *controller);
     ~NCCLScheduler_V2();
 
     void BeginStep(const std::vector<std::string> &names);
