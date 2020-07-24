@@ -6,7 +6,8 @@ namespace kungfu
 {
 NCCLScheduler_V2::NCCLScheduler_V2(KungFu_NCCLScope scope, Peer *peer,
                                    NCCLController_V2 *controller)
-    : scope_(scope), peer_(peer), controller_(controller), step_(0)
+    : auto_order_(false), scope_(scope), peer_(peer), controller_(controller),
+      step_(0)
 {
     nccl_thread_.reset(new std::thread([&] {
         DBG("nccl thread started");
@@ -78,7 +79,7 @@ void NCCLScheduler_V2::BeginStep(const std::vector<std::string> &names)
 void NCCLScheduler_V2::EndStep()
 {
     comitted_tasks_.put(std::make_pair(TASK_END_STEP, nullptr));
-    if (step_ == 1) {
+    if (auto_order_ && step_ == 1) {
         DBG("Broadcast order");
         using T = decltype(arrive_order_)::value_type;
         std::vector<T> common_order(arrive_order_.size());
@@ -107,7 +108,7 @@ void NCCLScheduler_V2::Enqueue(const std::string &name,
     std::lock_guard<std::mutex> lk(mu_);
 
     const int rank = ranks_.at(name);
-    arrive_order_.push_back(rank);
+    if (step_ == 1) { arrive_order_.push_back(rank); }
     pending_tasks_[rank].reset(new Task(task));
     const int n = names_.size();
     for (int i = last_commit_ + 1; i < n; i++) {

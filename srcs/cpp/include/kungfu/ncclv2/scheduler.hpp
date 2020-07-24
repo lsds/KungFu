@@ -19,6 +19,7 @@ enum TaskType {
 
 class NCCLScheduler_V2
 {
+    bool auto_order_;
     KungFu_NCCLScope scope_;
     Peer *peer_;
     NCCLController_V2 *controller_;
