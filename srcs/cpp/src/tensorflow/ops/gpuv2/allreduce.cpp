@@ -72,7 +72,7 @@ class ScheduledHierarchicalNcclAllReduceV2 : public AsyncOpKernel
         auto ready_event = create_init_ready_event(context);
         _default_nccl_helper_v2->ScheduleHierarchicalAllReduce(
             w, [=] { wait_delete_ready_event(ready_event); }, reduce_op_,
-            bcast_op_, done);
+            name(), bcast_op_, done);
     }
 };
 

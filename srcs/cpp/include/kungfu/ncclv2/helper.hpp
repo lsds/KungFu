@@ -40,6 +40,7 @@ class NCCLHelper_V2
 
     void ScheduleHierarchicalAllReduce(Workspace w, std::function<void()> ready,
                                        std::string reduce_op_name,
+                                       std::string allreduce_op_name,
                                        std::string bcast_op_name,
                                        std::function<void()> done);
 };

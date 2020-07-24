@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <kungfu/nccl/controller.hpp>
 #include <kungfu/ncclv2/helper.hpp>
 
 namespace kungfu
@@ -53,6 +54,7 @@ void NCCLHelper_V2::BeginScheduleHierarchicalAllReduce(
 void NCCLHelper_V2::ScheduleHierarchicalAllReduce(Workspace w,
                                                   std::function<void()> ready,
                                                   std::string reduce_op_name,
+                                                  std::string allreduce_op_name,
                                                   std::string bcast_op_name,
                                                   std::function<void()> done)
 {
@@ -67,15 +69,14 @@ void NCCLHelper_V2::ScheduleHierarchicalAllReduce(Workspace w,
     Workspace w_bcast = w;
     w_bcast.sendbuf   = w.recvbuf;  // inplace
 
-    [=](auto a) {}(w_all_reduce);
-
     scheduler->Enqueue(reduce_op_name, [=] {
         ready();
         controller->Reduce(w_reduce);
-        scheduler->Enqueue(bcast_op_name, [=] {
-            // TODO: cross all_reduce
-            controller->Broadcast(w_bcast);
-            done();
+        CrossAllReduceGpu(w_all_reduce, KungFu_SUM, allreduce_op_name, [=] {
+            scheduler->Enqueue(bcast_op_name, [=] {
+                controller->Broadcast(w_bcast);
+                done();
+            });
         });
     });
 }
