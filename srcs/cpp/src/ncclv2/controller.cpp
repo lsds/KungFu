@@ -84,10 +84,6 @@ class NCCLControllerImpl : public NCCLController_V2
 {
     Peer *peer_;
     const KungFu_NCCLScope scope_;
-    // const ncclUniqueId id_;
-    // const int rank_;
-    // const int size_;
-    // const int root_;
 
     // NCCLComm should be constructed in the dedicated thread of NCCLScheduler
     std::unique_ptr<NCCLComm> comm_;

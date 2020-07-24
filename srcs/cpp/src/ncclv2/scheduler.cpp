@@ -5,7 +5,7 @@
 namespace kungfu
 {
 NCCLScheduler_V2::NCCLScheduler_V2(NCCLController_V2 *controller)
-    : controller_(controller)
+    : controller_(controller), step_(0)
 {
     nccl_thread_.reset(new std::thread([&] {
         // DBG("nccl thread started");
@@ -40,6 +40,11 @@ void NCCLScheduler_V2::BeginStep(const std::vector<std::string> &names)
     last_commit_ = -1;
 }
 
+void NCCLScheduler_V2::EndStep()
+{
+    ++step_;  //
+}
+
 void NCCLScheduler_V2::Enqueue(const std::string &name,
                                std::function<void()> task)
 {
@@ -58,5 +63,7 @@ void NCCLScheduler_V2::Enqueue(const std::string &name,
             break;
         }
     }
+
+    if (last_commit_ == n) { EndStep(); }
 }
 }  // namespace kungfu

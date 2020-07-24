@@ -13,6 +13,7 @@ namespace kungfu
 class NCCLScheduler_V2
 {
     NCCLController_V2 *controller_;
+    int step_;
 
     using Task      = std::function<void()>;
     using TaskQueue = MpscChannel<Task *>;
@@ -35,6 +36,7 @@ class NCCLScheduler_V2
 
     void BeginStep(const std::vector<std::string> &names);
     void Enqueue(const std::string &name, std::function<void()> task);
+    void EndStep();  // automatically called on the last Enqueue
 
     // void EnqueueInit(std::function<void()> task);
 };
