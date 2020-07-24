@@ -66,19 +66,32 @@ class NCCLComm
 
     ~NCCLComm()
     {
-        std::cerr << __func__ << std::endl;
+        DBG(__func__);
         KUNGFU_CHECK(nccl_checker) << ncclCommDestroy(comm_);
+    }
+
+    void Reduce(Workspace w)
+    {
+        KUNGFU_CHECK(nccl_checker) << ncclReduce(
+            w.sendbuf, w.recvbuf, w.count, to_nccl_type_v2(w.dtype), ncclSum,
+            root_, comm_, stream_);
+        stream_.sync();
+    }
+
+    void Broadcast(Workspace w)
+    {
+        KUNGFU_CHECK(nccl_checker)
+            << ncclBroadcast(w.sendbuf, w.recvbuf, w.count,
+                             to_nccl_type_v2(w.dtype), root_, comm_, stream_);
+        stream_.sync();
     }
 
     void AllReduce(Workspace w)
     {
-        // DBG(__func__ + std::string(" ..."));
         KUNGFU_CHECK(nccl_checker)
             << ncclAllReduce(w.sendbuf, w.recvbuf, w.count,
                              to_nccl_type_v2(w.dtype), ncclSum, comm_, stream_);
-        // DBG(__func__ + std::string(" sync ..."));
         stream_.sync();
-        // DBG(__func__ + std::string(" done ..."));
     }
 };
 
@@ -99,18 +112,20 @@ class NCCLControllerImpl : public NCCLController_V2
 
     void Init() override;
     void InitOnce() override;
+    void Reduce(Workspace w) override;
+    void Broadcast(Workspace w) override;
     void AllReduce(Workspace w) override;
 };
 
 NCCLControllerImpl::NCCLControllerImpl(Peer *peer, KungFu_NCCLScope scope)
     : peer_(peer), scope_(scope)
 {
-    std::cerr << __func__ << std::endl;
+    DBG(__func__);
 }
 
 NCCLControllerImpl::~NCCLControllerImpl()
 {
-    std::cerr << __func__ << std::endl;  //
+    DBG(__func__);  //
 }
 
 void NCCLControllerImpl::InitLocal()
@@ -155,16 +170,9 @@ void NCCLControllerImpl::InitOnce()
     if (comm_.get() == nullptr) { Init(); }
 }
 
-void NCCLControllerImpl::AllReduce(Workspace w)
-{
-    // LOG_THREAD(__func__);
-    if (comm_.get()) {
-        // DBG("skip comm_->AllReduce(w);");
-        comm_->AllReduce(w);
-    } else {
-        DBG("comm_ not init");
-    }
-}
+void NCCLControllerImpl::Reduce(Workspace w) { comm_->Reduce(w); }
+void NCCLControllerImpl::Broadcast(Workspace w) { comm_->Broadcast(w); }
+void NCCLControllerImpl::AllReduce(Workspace w) { comm_->AllReduce(w); }
 
 NCCLController_V2 *NCCLController_V2::Create(Peer *peer, KungFu_NCCLScope scope)
 {

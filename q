@@ -30,7 +30,7 @@ ci() {
 ci
 
 kungfu_run_flags() {
-    # echo -q
+    echo -q
     echo -allow-nvlink
     echo -logdir logs
 }

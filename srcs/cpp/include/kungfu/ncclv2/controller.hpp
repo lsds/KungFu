@@ -12,6 +12,9 @@ class NCCLController_V2
 
     virtual void Init()                 = 0;
     virtual void InitOnce()             = 0;
+    virtual void Reduce(Workspace w)    = 0;
+    virtual void Broadcast(Workspace w) = 0;
     virtual void AllReduce(Workspace w) = 0;
+    virtual ~NCCLController_V2()        = default;
 };
 }  // namespace kungfu

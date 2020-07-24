@@ -10,13 +10,20 @@
 
 namespace kungfu
 {
+enum TaskType {
+    TASK_STOP,
+    TASK_BEGIN_STEP,
+    TASK_OP,
+    TASK_END_STEP,
+};
+
 class NCCLScheduler_V2
 {
     NCCLController_V2 *controller_;
     int step_;
 
     using Task      = std::function<void()>;
-    using TaskQueue = MpscChannel<Task *>;
+    using TaskQueue = MpscChannel<std::pair<TaskType, Task *>>;
 
     TaskQueue comitted_tasks_;
 

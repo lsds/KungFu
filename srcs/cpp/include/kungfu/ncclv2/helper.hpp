@@ -30,9 +30,6 @@ class NCCLHelper_V2
     // should be called after resize cluster
     void Reset();
 
-    void SimpleAllReduce(Workspace w, std::function<void()> ready,
-                         std::string name, std::function<void()> done);
-
     void BeginScheduleAllReduce(const std::vector<std::string> &names);
 
     void ScheduleAllReduce(Workspace w, std::function<void()> ready,
@@ -46,8 +43,6 @@ class NCCLHelper_V2
                                        std::string bcast_op_name,
                                        std::function<void()> done);
 };
-
-// extern Peer _default_peer;
 }  // namespace kungfu
 
 extern std::unique_ptr<kungfu::NCCLHelper_V2> _default_nccl_helper_v2;
