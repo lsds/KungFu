@@ -4,7 +4,8 @@ from kungfu.tensorflow.ops import defuse, fuse, peer_info
 from kungfu.tensorflow.ops.collective import (
     group_all_reduce, group_hierarchical_nccl_all_reduce,
     group_nccl_all_reduce)
-from kungfu.tensorflow.ops.nccl import group_nccl_all_reduce_v2
+from kungfu.tensorflow.ops.nccl import (group_hierarchical_nccl_all_reduce_v2,
+                                        group_nccl_all_reduce_v2)
 
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
                    _KungFuAlgorithm)
@@ -58,7 +59,7 @@ class _SynchronousSGD(_KungFuAlgorithm):
 
         if self._nccl:
             if hierarchical_nccl:
-                self._group_all_reduce_fn = group_hierarchical_nccl_all_reduce
+                self._group_all_reduce_fn = group_hierarchical_nccl_all_reduce_v2
             else:
                 self._group_all_reduce_fn = group_nccl_all_reduce_v2
         else:
