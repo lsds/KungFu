@@ -45,8 +45,8 @@ void NCCLHelper_V2::ScheduleAllReduce(Workspace w, std::function<void()> ready,
 void NCCLHelper_V2::BeginScheduleHierarchicalAllReduce(
     const std::vector<std::string> &names)
 {
-    DBG(__func__ + std::string(" with ") + std::to_string(names.size()) +
-        " names");
+    // DBG(__func__ + std::string(" with ") + std::to_string(names.size()) +
+    //     " names");
     auto *scheduler = schedulers_.at(KungFu_NCCL_LOCAL).get();
     scheduler->BeginStep(names);
 }

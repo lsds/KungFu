@@ -19,18 +19,18 @@ NCCLScheduler_V2::NCCLScheduler_V2(NCCLController_V2 *controller)
                 return;
             case TASK_BEGIN_STEP: {
                 ++step;
-                DBG("nccl step started " + std::to_string(step));
+                // DBG("nccl step started " + std::to_string(step));
                 auto *pt = t.second;
                 (*pt)();
                 delete pt;
-                DBG("resetting step_ops to ZERO from " +
-                    std::to_string(step_ops));
+                // DBG("resetting step_ops to ZERO from " +
+                //     std::to_string(step_ops));
                 step_ops = 0;
                 break;
             }
             case TASK_END_STEP: {
-                DBG("nccl step finished " + std::to_string(step) +
-                    " after ran " + std::to_string(step_ops));
+                // DBG("nccl step finished " + std::to_string(step) +
+                //     " after ran " + std::to_string(step_ops));
                 break;
             }
             case TASK_OP: {
