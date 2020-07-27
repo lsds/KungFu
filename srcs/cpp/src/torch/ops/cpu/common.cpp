@@ -35,3 +35,10 @@ torch::Tensor new_tensor_like(torch::Tensor input)
     torch::Tensor output = torch::empty(shape.Dims(), options);
     return output;
 }
+
+void DBG(const std::string &msg)
+{
+    static std::mutex mu;
+    std::lock_guard<std::mutex> lk(mu);
+    std::cerr << msg << std::endl;
+}

@@ -6,41 +6,55 @@
 #include "common.hpp"
 
 template <typename T>
-void do_all_reduce(void *input, void *output, size_t n)
+void do_all_reduce(void *input, void *output, size_t n, KungFu_Op op)
 {
     T *x = reinterpret_cast<T *>(input);
     T *y = reinterpret_cast<T *>(output);
-    _default_peer->AllReduce(x, y, n, kungfu::type_encoder::value<T>(),
-                             KungFu_SUM, "");
+    _default_peer->AllReduce(x, y, n, kungfu::type_encoder::value<T>(), op, "");
 }
 
-void do_all_reduce(torch::Tensor &input, torch::Tensor &output)
+void do_all_reduce(torch::Tensor &input, torch::Tensor &output,
+                   KungFu_Op op = KungFu_SUM)
 {
     using T = float;
     std::cerr << __func__ << std::endl;
     TensorShape shape = get_tensor_shape(input);
-    do_all_reduce<T>(input.data_ptr(), output.data_ptr(), shape.size());
+    do_all_reduce<T>(input.data_ptr(), output.data_ptr(), shape.size(), op);
 }
 
-std::vector<at::Tensor> all_reduce(torch::Tensor input)
+std::vector<at::Tensor> all_reduce_fn(torch::Tensor input)
 {
     TensorShape shape = get_tensor_shape(input);
-    std::cerr << __func__ << " called with dtype: " << input.scalar_type()
-              << ", shape:" << shape.str() << ", data: " << input.data_ptr()
-              << std::endl;
-
+    DBG(std::string(__func__) + " called with dtype " +
+        std::to_string(int(input.scalar_type())) + " shape: " + shape.str());
     torch::Tensor output = new_tensor_like(input);
     do_all_reduce(input, output);
     return {output};
 }
 
-// int all_reduce_async(torch::Tensor input, torch::Tensor output)
-// {
-//     TensorShape in_shape  = get_tensor_shape(input);
-//     TensorShape out_shape = get_tensor_shape(output);
-//     std::cerr << __func__ << " called with dtype: " << input.scalar_type()
-//               << ", shape:" << in_shape.str() << ", data: " <<
-//               input.data_ptr()
-//               << std::endl;
-//     return 0;
-// }
+static const std::map<std::string, KungFu_Op> _kungfu_ops({
+    {"sum", KungFu_SUM},
+    {"min", KungFu_MIN},
+    {"max", KungFu_MAX},
+    {"prod", KungFu_PROD},
+});
+
+static const std::map<std::string, Torch_Tensor_Type> _torch_tensor_types({
+    {"torch.FloatTensor", Torch_Cpu_Float},
+    {"torch.cuda.FloatTensor", Torch_Cuda_Float},
+    // TODO: add more
+});
+
+void all_reduce(torch::Tensor input, torch::Tensor output,
+                const std::string &type, const std::string &op_name)
+{
+    const auto tt     = _torch_tensor_types.at(type);
+    TensorShape shape = get_tensor_shape(input);
+    DBG(std::string(__func__) + " " + type + "" + " called with dtype " +
+        std::to_string(int(input.scalar_type())) + " shape: " + shape.str());
+    if (tt == Torch_Cpu_Float) {
+        do_all_reduce(input, output, _kungfu_ops.at(op_name));
+    } else {
+        std::cerr << __func__ << " not implemented for " << type << std::endl;
+    }
+}

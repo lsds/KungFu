@@ -2,7 +2,6 @@
 
 import argparse
 
-import kungfu.torch as kf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -54,10 +53,9 @@ def test(args, model, device, test_loader):
 
     test_loss /= len(test_loader.dataset)
 
-    print(
-        '\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            test_loss, correct, len(test_loader.dataset),
-            100. * correct / len(test_loader.dataset)))
+    print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))
 
 
 def parse_args():
@@ -151,8 +149,11 @@ def main():
                           lr=args.lr,
                           momentum=args.momentum)
 
+    # BEGIN kungfu
+    import kungfu.torch as kf
     optimizer = kf.optimizers.SynchronousSGDOptimizer(
         optimizer, named_parameters=model.named_parameters())
+    # END kungfu
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
