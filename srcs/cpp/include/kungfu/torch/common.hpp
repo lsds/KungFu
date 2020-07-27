@@ -24,9 +24,13 @@ TensorShape get_tensor_shape(torch::Tensor &x);
 
 torch::Tensor new_tensor_like(torch::Tensor input);
 
-void DBG(const std::string &msg);
-
 enum Torch_Tensor_Type {
     Torch_Cpu_Float,
     Torch_Cuda_Float,
 };
+
+extern const std::map<std::string, KungFu_Op> _kungfu_ops;
+
+extern const std::map<std::string, Torch_Tensor_Type> _torch_tensor_types;
+
+void DBG(const std::string &msg);

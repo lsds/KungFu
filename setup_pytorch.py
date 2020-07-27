@@ -22,6 +22,7 @@ setup(
     ext_modules=[
         cpp_extension.CppExtension(
             'kungfu_torch_ops',
+            glob.glob('srcs/cpp/src/torch/ops/*.cpp') +
             glob.glob('srcs/cpp/src/torch/ops/cpu/*.cpp'),
             include_dirs=['./srcs/cpp/include'],
             library_dirs=[kungfu_library_dir()],

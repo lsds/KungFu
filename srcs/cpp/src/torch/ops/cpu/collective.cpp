@@ -3,7 +3,7 @@
 
 #include <torch/extension.h>
 
-#include "common.hpp"
+#include <kungfu/torch/common.hpp>
 
 template <typename T>
 void do_all_reduce(void *input, void *output, size_t n, KungFu_Op op)
@@ -31,19 +31,6 @@ std::vector<at::Tensor> all_reduce_fn(torch::Tensor input)
     do_all_reduce(input, output);
     return {output};
 }
-
-static const std::map<std::string, KungFu_Op> _kungfu_ops({
-    {"sum", KungFu_SUM},
-    {"min", KungFu_MIN},
-    {"max", KungFu_MAX},
-    {"prod", KungFu_PROD},
-});
-
-static const std::map<std::string, Torch_Tensor_Type> _torch_tensor_types({
-    {"torch.FloatTensor", Torch_Cpu_Float},
-    {"torch.cuda.FloatTensor", Torch_Cuda_Float},
-    // TODO: add more
-});
 
 void all_reduce(torch::Tensor input, torch::Tensor output,
                 const std::string &type, const std::string &op_name)

@@ -1,4 +1,4 @@
-#include "common.hpp"
+#include <kungfu/torch/common.hpp>
 
 void TensorShape::AddDim(int d) { dims_.push_back(d); }
 
@@ -35,6 +35,19 @@ torch::Tensor new_tensor_like(torch::Tensor input)
     torch::Tensor output = torch::empty(shape.Dims(), options);
     return output;
 }
+
+const std::map<std::string, KungFu_Op> _kungfu_ops({
+    {"sum", KungFu_SUM},
+    {"min", KungFu_MIN},
+    {"max", KungFu_MAX},
+    {"prod", KungFu_PROD},
+});
+
+const std::map<std::string, Torch_Tensor_Type> _torch_tensor_types({
+    {"torch.FloatTensor", Torch_Cpu_Float},
+    {"torch.cuda.FloatTensor", Torch_Cuda_Float},
+    // TODO: add more
+});
 
 void DBG(const std::string &msg)
 {
