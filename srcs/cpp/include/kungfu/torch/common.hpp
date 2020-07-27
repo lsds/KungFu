@@ -38,8 +38,8 @@ class TorchCudaHelper
   public:
     TorchCudaHelper();
 
-    void from_cuda(void *buffer, const torch::Tensor &input);
-    void to_cuda(torch::Tensor &input, const void *buffer);
+    void from_cuda(void *buffer, const torch::Tensor &t);
+    void to_cuda(torch::Tensor &t, const void *buffer);
 };
 
 extern TorchCudaHelper _torch_cuda_helper;
