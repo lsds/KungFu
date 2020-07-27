@@ -5,17 +5,18 @@
 
 #include <kungfu/torch/common.hpp>
 
-// TODO
-void cuda_all_reduce(torch::Tensor input, torch::Tensor output,
+namespace kungfu
+{
+void all_reduce_cuda(torch::Tensor input, torch::Tensor output,
                      const std::string &type, const std::string &op_name)
 {
     const auto tt     = _torch_tensor_types.at(type);
     TensorShape shape = get_tensor_shape(input);
     DBG(std::string(__func__) + " " + type + "" + " called with dtype " +
         std::to_string(int(input.scalar_type())) + " shape: " + shape.str());
-    if (tt == Torch_Cpu_Float) {
-        do_all_reduce(input, output, _kungfu_ops.at(op_name));
+    if (tt == Torch_Cuda_Float) {
+        std::cerr << "TODO: " << __func__ << std::endl;
     } else {
-        std::cerr << __func__ << " not implemented for " << type << std::endl;
     }
 }
+}  // namespace kungfu

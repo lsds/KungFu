@@ -7,3 +7,8 @@ def import_op_lib():
 
 
 ops = import_op_lib()
+
+all_reduce_op_map = {
+    'torch.FloatTensor': ops.all_reduce_cpu,
+    'torch.cuda.FloatTensor': ops.all_reduce_cuda,
+}

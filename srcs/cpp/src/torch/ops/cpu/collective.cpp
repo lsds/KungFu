@@ -5,6 +5,8 @@
 
 #include <kungfu/torch/common.hpp>
 
+namespace kungfu
+{
 template <typename T>
 void do_all_reduce(void *input, void *output, size_t n, KungFu_Op op)
 {
@@ -13,8 +15,7 @@ void do_all_reduce(void *input, void *output, size_t n, KungFu_Op op)
     _default_peer->AllReduce(x, y, n, kungfu::type_encoder::value<T>(), op, "");
 }
 
-void do_all_reduce(torch::Tensor &input, torch::Tensor &output,
-                   KungFu_Op op = KungFu_SUM)
+void do_all_reduce(torch::Tensor &input, torch::Tensor &output, KungFu_Op op)
 {
     using T = float;
     std::cerr << __func__ << std::endl;
@@ -22,18 +23,8 @@ void do_all_reduce(torch::Tensor &input, torch::Tensor &output,
     do_all_reduce<T>(input.data_ptr(), output.data_ptr(), shape.size(), op);
 }
 
-std::vector<at::Tensor> all_reduce_fn(torch::Tensor input)
-{
-    TensorShape shape = get_tensor_shape(input);
-    DBG(std::string(__func__) + " called with dtype " +
-        std::to_string(int(input.scalar_type())) + " shape: " + shape.str());
-    torch::Tensor output = new_tensor_like(input);
-    do_all_reduce(input, output);
-    return {output};
-}
-
-void all_reduce(torch::Tensor input, torch::Tensor output,
-                const std::string &type, const std::string &op_name)
+void all_reduce_cpu(torch::Tensor input, torch::Tensor output,
+                    const std::string &type, const std::string &op_name)
 {
     const auto tt     = _torch_tensor_types.at(type);
     TensorShape shape = get_tensor_shape(input);
@@ -45,3 +36,4 @@ void all_reduce(torch::Tensor input, torch::Tensor output,
         std::cerr << __func__ << " not implemented for " << type << std::endl;
     }
 }
+}  // namespace kungfu

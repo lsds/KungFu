@@ -1,5 +1,7 @@
 #include <kungfu/torch/common.hpp>
 
+namespace kungfu
+{
 void TensorShape::AddDim(int d) { dims_.push_back(d); }
 
 const std::vector<int64_t> &TensorShape::Dims() const { return dims_; }
@@ -55,3 +57,4 @@ void DBG(const std::string &msg)
     std::lock_guard<std::mutex> lk(mu);
     std::cerr << msg << std::endl;
 }
+}  // namespace kungfu

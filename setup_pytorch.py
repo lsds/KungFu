@@ -1,4 +1,5 @@
 import glob
+import os
 
 from setuptools import find_packages, setup
 from torch.utils import cpp_extension
@@ -12,6 +13,40 @@ def kungfu_library_dir():
     return _module_path()
 
 
+def find_cuda():
+    # TODO: find cuda
+    return '/usr/local/cuda'
+
+
+def create_extension():
+    srcs = []
+    srcs += glob.glob('srcs/cpp/src/torch/ops/*.cpp')
+    srcs += glob.glob('srcs/cpp/src/torch/ops/cpu/*.cpp')
+
+    include_dirs = ['./srcs/cpp/include']
+    library_dirs = [kungfu_library_dir()]
+    libraries = ['kungfu', 'kungfu_python']
+
+    with_cuda = None
+    import torch
+    if torch.cuda.is_available():
+        srcs += glob.glob('srcs/cpp/src/cuda/*.cpp')
+        srcs += glob.glob('srcs/cpp/src/torch/ops/cuda/*.cpp')
+        with_cuda = True
+        include_dirs += [os.path.join(find_cuda(), 'include')]
+        library_dirs += [os.path.join(find_cuda(), 'lib64')]
+        libraries += ['cudart']
+
+    return cpp_extension.CppExtension(
+        'kungfu_torch_ops',
+        srcs,
+        include_dirs=include_dirs,
+        library_dirs=library_dirs,
+        libraries=libraries,
+        with_cuda=with_cuda,
+    )
+
+
 setup(
     name='kungfu_torch',
     version='0.0.0',
@@ -20,19 +55,10 @@ setup(
     },
     packages=find_packages(package_dir),
     ext_modules=[
-        cpp_extension.CppExtension(
-            'kungfu_torch_ops',
-            glob.glob('srcs/cpp/src/torch/ops/*.cpp') +
-            glob.glob('srcs/cpp/src/torch/ops/cpu/*.cpp'),
-            include_dirs=['./srcs/cpp/include'],
-            library_dirs=[kungfu_library_dir()],
-            libraries=[
-                'kungfu',
-                'kungfu_python',
-            ],
-        ),
+        create_extension(),
     ],
     cmdclass={
+        # FIXME: parallel build, (pip_install took 1m16s)
         'build_ext': cpp_extension.BuildExtension,
     },
 )
