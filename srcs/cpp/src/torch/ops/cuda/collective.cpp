@@ -52,9 +52,4 @@ int all_reduce_cuda_async(torch::Tensor input, torch::Tensor output,
     });
     return handle;
 }
-
-void wait_handle(int handle)
-{
-    _torch_cuda_helper.handle_manager().wait(handle);
-}
 }  // namespace kungfu

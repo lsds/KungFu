@@ -1,6 +1,6 @@
 import torch
 from kungfu.torch.ops import (inplace_all_reduce_async_op,
-                              inplace_all_reduce_op, wait_handle)
+                              inplace_all_reduce_op, wait_all_handles)
 
 
 class _SynchronousSGDOptimizer(torch.optim.Optimizer):
@@ -19,8 +19,7 @@ class _SynchronousSGDOptimizer(torch.optim.Optimizer):
                     handles.append(h)
                 else:
                     inplace_all_reduce_op(p.grad, self._op)
-        for h in handles:
-            wait_handle(h)
+        wait_all_handles(handles)
 
     def step(self, closure=None):
         self.sync_gradients()

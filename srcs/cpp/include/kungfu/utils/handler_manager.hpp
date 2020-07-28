@@ -53,5 +53,31 @@ class HandleManager
         delete state;
     }
 
-    // void wait_all(const std::vector<handle_t>&  handle){}
+    void wait_all(const std::vector<handle_t> &handles)
+    {
+        if (handles.empty()) { return; }
+        const int n = handles.size();
+        std::vector<state_t *> states(n);
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            for (int i = 0; i < n; ++i) { states[i] = handles_.at(handles[i]); }
+        }
+        std::vector<bool> finished(n);
+        std::fill(finished.begin(), finished.end(), false);
+        for (;;) {
+            bool all_finished = true;
+            for (int i = 0; i < n; ++i) {
+                if (finished[i]) { continue; }
+                all_finished = false;
+                if (states[i]->load()) { finished[i] = true; }
+            }
+            if (all_finished) { break; }
+            std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+        }
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            for (auto h : handles) { handles_.erase(h); }
+        }
+        for (int i = 0; i < n; ++i) { delete states[i]; }
+    }
 };

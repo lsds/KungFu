@@ -25,3 +25,7 @@ def inplace_all_reduce_async_op(x, name, op=None):
 
 def wait_handle(handle):
     ops.wait_handle(handle)
+
+
+def wait_all_handles(handles):
+    ops.wait_all_handles(handles)

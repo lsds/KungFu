@@ -41,7 +41,8 @@ class CudaStream;
 
 class TorchCudaHelper
 {
-    std::unique_ptr<CudaStream> stream_;
+    std::unique_ptr<CudaStream> up_stream_;
+    std::unique_ptr<CudaStream> down_stream_;
     HandleManager<int> hm_;
 
   public:
