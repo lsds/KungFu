@@ -18,7 +18,7 @@ class HandleManager
     handle_t create()
     {
         handle_t handle = counter_++;
-        state_t *state  = new state_t;
+        state_t *state  = new state_t(false);
         {
             std::lock_guard<std::mutex> lk(mu_);
             handles_[handle] = state;
@@ -28,7 +28,7 @@ class HandleManager
 
     void done(handle_t handle)
     {
-        state_t *state;
+        state_t *state = nullptr;
         {
             std::lock_guard<std::mutex> lk(mu_);
             state = handles_.at(handle);
@@ -38,15 +38,13 @@ class HandleManager
 
     void wait(handle_t handle)
     {
-        state_t *state;
+        state_t *state = nullptr;
         {
             std::lock_guard<std::mutex> lk(mu_);
             state = handles_.at(handle);
         }
-        int cnt = 0;
         while (!state->load()) {
             std::this_thread::sleep_for(std::chrono::nanoseconds(50));
-            ++cnt;
         }
         {
             std::lock_guard<std::mutex> lk(mu_);
@@ -54,4 +52,6 @@ class HandleManager
         }
         delete state;
     }
+
+    // void wait_all(const std::vector<handle_t>&  handle){}
 };

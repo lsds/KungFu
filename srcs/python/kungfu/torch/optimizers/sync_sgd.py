@@ -1,5 +1,6 @@
 import torch
-from kungfu.torch.ops import inplace_all_reduce_op
+from kungfu.torch.ops import (inplace_all_reduce_async_op,
+                              inplace_all_reduce_op, wait_handle)
 
 
 class _SynchronousSGDOptimizer(torch.optim.Optimizer):
@@ -10,9 +11,16 @@ class _SynchronousSGDOptimizer(torch.optim.Optimizer):
 
     def sync_gradients(self):
         # FIXME: make sure order is consistent across all workers
-        for _name, p in self._named_parameters:
+        handles = []
+        for name, p in self._named_parameters:
             if p.requires_grad:
-                inplace_all_reduce_op(p.grad, self._op)
+                if '.cuda.' in p.grad.type():
+                    h = inplace_all_reduce_async_op(p.grad, name, self._op)
+                    handles.append(h)
+                else:
+                    inplace_all_reduce_op(p.grad, self._op)
+        for h in handles:
+            wait_handle(h)
 
     def step(self, closure=None):
         self.sync_gradients()
