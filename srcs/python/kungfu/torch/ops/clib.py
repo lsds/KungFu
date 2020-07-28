@@ -10,5 +10,7 @@ ops = import_op_lib()
 
 all_reduce_op_map = {
     'torch.FloatTensor': ops.all_reduce_cpu,
-    'torch.cuda.FloatTensor': ops.all_reduce_cuda,
 }
+
+if hasattr(ops, 'all_reduce_cuda'):
+    all_reduce_op_map['torch.cuda.FloatTensor'] = ops.all_reduce_cuda

@@ -20,7 +20,7 @@ def find_cuda():
 
 def create_extension():
     srcs = []
-    srcs += glob.glob('srcs/cpp/src/torch/ops/*.cpp')
+    srcs += glob.glob('srcs/cpp/src/torch/common.cpp')
     srcs += glob.glob('srcs/cpp/src/torch/ops/cpu/*.cpp')
 
     include_dirs = ['./srcs/cpp/include']
@@ -36,6 +36,9 @@ def create_extension():
         include_dirs += [os.path.join(find_cuda(), 'include')]
         library_dirs += [os.path.join(find_cuda(), 'lib64')]
         libraries += ['cudart']
+        srcs += ['srcs/cpp/src/torch/module_cuda.cpp']
+    else:
+        srcs += ['srcs/cpp/src/torch/module_cpu.cpp']
 
     return cpp_extension.CppExtension(
         'kungfu_torch_ops',
