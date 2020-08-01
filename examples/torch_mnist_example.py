@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+#
+# python3 ./examples/torch_mnist_example.py --epochs 0 --download
+# kungfu-run -np 4 python3 ./examples/torch_mnist_example.py --batch-size 1000 --epochs 3
+
 import argparse
 
 import torch
