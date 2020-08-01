@@ -13,6 +13,7 @@ all_reduce_op_map = {
 }
 
 all_reduce_async_op_map = {}
+broadcast_async_op_map = {}
 
 if hasattr(ops, 'all_reduce_cuda'):
     all_reduce_op_map['torch.cuda.FloatTensor'] = ops.all_reduce_cuda
@@ -20,3 +21,7 @@ if hasattr(ops, 'all_reduce_cuda'):
 if hasattr(ops, 'all_reduce_cuda_async'):
     all_reduce_async_op_map[
         'torch.cuda.FloatTensor'] = ops.all_reduce_cuda_async
+
+if hasattr(ops, 'broadcast_cuda_async'):
+    broadcast_async_op_map[
+        'torch.cuda.FloatTensor'] = ops.broadcast_cuda_async

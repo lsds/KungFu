@@ -9,3 +9,6 @@ get_cuda_index = _get_cuda_index
 
 def nccl_built():
     return False
+
+
+broadcast_parameters = ops.broadcast_parameters

@@ -17,8 +17,7 @@ void do_all_reduce(void *input, void *output, size_t n, KungFu_Op op)
 
 void do_all_reduce(torch::Tensor &input, torch::Tensor &output, KungFu_Op op)
 {
-    using T = float;
-    std::cerr << __func__ << std::endl;
+    using T           = float;
     TensorShape shape = get_tensor_shape(input);
     do_all_reduce<T>(input.data_ptr(), output.data_ptr(), shape.size(), op);
 }
@@ -28,8 +27,6 @@ void all_reduce_cpu(torch::Tensor input, torch::Tensor output,
 {
     const auto tt     = _torch_tensor_types.at(type);
     TensorShape shape = get_tensor_shape(input);
-    DBG(std::string(__func__) + " " + type + "" + " called with dtype " +
-        std::to_string(int(input.scalar_type())) + " shape: " + shape.str());
     if (tt == Torch_Cpu_Float) {
         do_all_reduce(input, output, _kungfu_ops.at(op_name));
     } else {

@@ -157,6 +157,7 @@ def main():
     import kungfu.torch as kf
     optimizer = kf.optimizers.SynchronousSGDOptimizer(
         optimizer, named_parameters=model.named_parameters())
+    kf.broadcast_parameters(model.state_dict())
     # END kungfu
 
     for epoch in range(1, args.epochs + 1):

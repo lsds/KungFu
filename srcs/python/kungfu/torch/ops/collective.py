@@ -1,6 +1,6 @@
 import torch
 
-from .clib import all_reduce_async_op_map, all_reduce_op_map, ops
+from .clib import all_reduce_async_op_map, all_reduce_op_map, broadcast_async_op_map, ops
 
 
 def all_reduce_fn(x, op=None):
@@ -23,9 +23,21 @@ def inplace_all_reduce_async_op(x, name, op=None):
     return all_reduce_async_op_map[x.type()](x, x, x.type(), op, name)
 
 
+def inplace_broadcast_async_op(x, name):
+    return broadcast_async_op_map[x.type()](x, x, x.type(), name)
+
+
 def wait_handle(handle):
     ops.wait_handle(handle)
 
 
 def wait_all_handles(handles):
     ops.wait_all_handles(handles)
+
+
+def broadcast_parameters(state_dict):
+    handles = []
+    for name, value in state_dict.items():
+        h = inplace_broadcast_async_op(value, name)
+        handles.append(h)
+    wait_all_handles(handles)
