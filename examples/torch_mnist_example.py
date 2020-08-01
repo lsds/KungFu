@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''
 # Install PyTorch first and then run the following command
-
+$ pip3 install --no-index -U . # Install KungFu TensorFlow first
 $ rm setup.py
 $ ln -s setup_pytorch.py setup.py
 $ pip3 install --no-index -U . # Install KungFu for PyTorch
