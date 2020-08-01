@@ -1,4 +1,8 @@
 # Forked from https://github.com/horovod/horovod/blob/master/examples/pytorch_synthetic_benchmark.py
+'''
+# Assuming you have 4 GPUs locally.
+$ kungfu-run -np 4 python3 benchmark_kungfu_torch.py
+'''
 import argparse
 import timeit
 

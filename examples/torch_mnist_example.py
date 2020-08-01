@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
+'''
+# Install PyTorch first and then run the following command
 
-#
-# python3 ./examples/torch_mnist_example.py --epochs 0 --download
-# kungfu-run -np 4 python3 ./examples/torch_mnist_example.py --batch-size 1000 --epochs 3
+$ rm setup.py
+$ ln -s setup_pytorch.py setup.py
+$ pip3 install --no-index -U . # Install KungFu for PyTorch
+
+$ python3 ./examples/torch_mnist_example.py --epochs 0 --download # Download dataset
+$ kungfu-run -np 4 python3 ./examples/torch_mnist_example.py --batch-size 1000 --epochs 3
+'''
 
 import argparse
 
