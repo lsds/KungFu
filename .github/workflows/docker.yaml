@@ -11,4 +11,4 @@ jobs:
     - uses: actions/checkout@v1
 
     - run: docker build --rm -t kungfu:example -f docker/Dockerfile.example-ubuntu18 .
-    - run: docker run --rm -it kungfu:example python3 -m kungfu.info
+    - run: docker run --rm -t kungfu:example python3 -m kungfu.info
