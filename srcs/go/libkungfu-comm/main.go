@@ -71,6 +71,12 @@ func GoKungfuLocalSize() int {
 	return sess.LocalSize()
 }
 
+//export GoKungfuHostCount
+func GoKungfuHostCount() int {
+	sess := defaultPeer.CurrentSession()
+	return sess.HostCount()
+}
+
 //export GoKungfuRequest
 func GoKungfuRequest(rank int, pName *C.char, buf unsafe.Pointer, count int, dtype C.KungFu_Datatype, done *C.callback_t) int {
 	name := C.GoString(pName) // copy *C.char into go string before entering closure
@@ -127,6 +133,12 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 		results[i] = float32(latencies[i])
 	}
 	return 0
+}
+
+//export GoKungfuNoop
+func GoKungfuNoop(done *C.callback_t) int {
+	noop := func() error { return nil }
+	return callOP("noop", noop, done)
 }
 
 func main() {

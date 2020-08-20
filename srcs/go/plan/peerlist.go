@@ -68,6 +68,14 @@ func (pl PeerList) LocalRank(q PeerID) (int, bool) {
 	return -1, false
 }
 
+func (pl PeerList) HostCount() int {
+	m := make(map[uint32]int)
+	for _, p := range pl {
+		m[p.IPv4]++
+	}
+	return len(m)
+}
+
 func (pl PeerList) Select(ranks []int) PeerList {
 	var ql PeerList
 	for _, rank := range ranks {
@@ -149,6 +157,24 @@ func (pl PeerList) On(host uint32) PeerList {
 		}
 	}
 	return ql
+}
+
+// PartitionByHost partitions the PeerList into several groups by host IP, each with a master.
+// It returns two int list masters and masterOf, representing the partition, where
+// masters is the list of ranks of masters
+// masterOf[i] is the rank of master of the i-th peer
+func (pl PeerList) PartitionByHost() ([]int, []int) {
+	var masters []int
+	masterOf := make([]int, len(pl))
+	hostMaster := make(map[uint32]int)
+	for rank, p := range pl {
+		if _, ok := hostMaster[p.IPv4]; !ok {
+			hostMaster[p.IPv4] = rank
+			masters = append(masters, rank)
+		}
+		masterOf[rank] = hostMaster[p.IPv4]
+	}
+	return masters, masterOf
 }
 
 func ParsePeerList(val string) (PeerList, error) {

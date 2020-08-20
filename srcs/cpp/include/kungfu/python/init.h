@@ -1,11 +1,5 @@
 #pragma once
-#include <map>
 #include <memory>
-#include <string>
-#include <vector>
-
-#include <kungfu.h>
-#include <kungfu/nccl/gpu_collective.hpp>
 
 extern "C" {
 extern void kungfu_python_init();
@@ -28,46 +22,11 @@ extern void kungfu_barrier();
 extern int kungfu_propose_new_size(int new_size);
 }
 
-extern std::unique_ptr<kungfu::Peer> _default_peer;
-
 namespace kungfu
 {
-// order_group wraps order_group_t
-class order_group
-{
-    order_group_t *og_;
-    std::map<std::string, int> ranks_;
-
-  public:
-    using Task = DoneCallback;
-
-    order_group(const std::vector<std::string> &names,
-                const std::vector<int32_t> &order);
-
-    ~order_group();
-
-    void Start(const std::string &name, const Task &task);
-
-    std::vector<int32_t> Wait();
-};
-
-extern std::unique_ptr<order_group> _nccl_order_group;
-
-class nccl_controller
-{
-    std::unique_ptr<gpu_collective> _gpu_collective;
-
-  public:
-    void InitOnce();
-
-    int ScheduledAllReduce(DoneCallback ready, const void *sendbuf,
-                           void *recvbuf, int count, KungFu_Datatype dtype,
-                           KungFu_Op op, const char *name, DoneCallback done);
-
-    int AllReduce(const void *sendbuf, void *recvbuf, int count,
-                  KungFu_Datatype dtype, KungFu_Op op, const char *name,
-                  DoneCallback done);
-};
-
-extern std::unique_ptr<nccl_controller> _nccl_controller;
+class Peer;
+class NCCLHelper;
 }  // namespace kungfu
+
+extern std::unique_ptr<kungfu::Peer> _default_peer;
+extern std::unique_ptr<kungfu::NCCLHelper> _default_nccl_helper;

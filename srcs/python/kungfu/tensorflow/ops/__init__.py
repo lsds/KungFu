@@ -1,8 +1,8 @@
-from kungfu.ext import (_get_other_ranks, current_cluster_size,
-                        current_local_rank, current_rank, run_barrier)
+from kungfu.python import (_get_other_ranks, current_cluster_size,
+                           current_local_rank, current_rank, run_barrier)
 
 from ._tf_oplib import _op_lib
-from .adapt import resize_cluster_from_url, step_based_schedule
+from .adapt import resize_cluster_from_url, set_tree, step_based_schedule
 from .collective import (all_gather, all_reduce, barrier, broadcast, consensus,
                          group_all_reduce, group_nccl_all_reduce,
                          monitored_all_reduce)
@@ -17,6 +17,7 @@ __all__ = [
     'barrier',
     'broadcast',
     'group_all_reduce',
+    'set_tree',
 ]
 
 

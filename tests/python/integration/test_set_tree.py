@@ -23,9 +23,8 @@ def gen_tree(n):
 
 
 def test_set_tree(steps, warmup_steps=10):
-    from kungfu import current_cluster_size
-    from kungfu.tensorflow.ops import all_reduce, broadcast
-    from kungfu.tensorflow.ops.adapt import set_tree
+    from kungfu.python import current_cluster_size
+    from kungfu.tensorflow.ops import all_reduce, broadcast, set_tree
 
     n = current_cluster_size()
 

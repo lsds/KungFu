@@ -4,7 +4,7 @@
 
 #include <cuda_runtime.h>
 
-#include <kungfu/utils/cuda_helper.hpp>
+#include <kungfu/cuda/stream.hpp>
 
 template <typename T> struct cuda_mem_allocator {
     T *operator()(int count)

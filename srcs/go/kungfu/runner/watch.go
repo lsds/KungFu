@@ -9,8 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/proc"
@@ -47,7 +47,7 @@ func (w *watcher) create(id plan.PeerID, s Stage) {
 	if gpuID < 0 {
 		log.Errorf("gpuID = %d", gpuID)
 	}
-	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster.Workers)
+	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster)
 	go func(g *sync.WaitGroup) {
 		runProc(w.ctx, w.cancel, proc, s.Version, w.job.LogDir)
 		g.Done()

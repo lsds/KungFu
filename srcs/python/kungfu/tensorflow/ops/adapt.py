@@ -11,7 +11,13 @@ def resize_cluster_from_url():
         {keep} indicates if the current peer is still in the new cluster,
         the peer should quit if it is not in the new cluster.
     """
-    return _op_lib.kungfu_resize_cluster_from_url()
+
+    resize_op = _op_lib.kungfu_resize_cluster_from_url()
+    if hasattr(_op_lib, 'kungfu_reset_nccl_helper'):
+        changed, keep = resize_op
+        return _op_lib.kungfu_reset_nccl_helper(changed, keep)
+    else:
+        return resize_op
 
 
 def step_based_schedule(config, step=None):
@@ -24,4 +30,12 @@ def step_based_schedule(config, step=None):
 
 
 def set_tree(tree):
+    """Set the default communication tree.
+
+    Inputs:
+        tree: an int32 tensor with shape [n], where
+            - n is the number of peers in the current cluster;
+            - tree[i] is the father of i if tree[i] != i;
+            - i is the root if tree[i] == i.
+    """
     return _op_lib.kungfu_set_tree(tree)

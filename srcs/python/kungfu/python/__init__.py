@@ -1,6 +1,15 @@
 import atexit
 
-from .loader import _call_method, _load_clib, _module_path
+from kungfu.loader import _call_method, _load_clib, _module_path
+
+__all__ = [
+    'current_cluster_size',
+    'current_local_rank',
+    'current_local_size',
+    'current_rank',
+    'detached',
+    'run_barrier',
+]
 
 
 def _load_and_init_python_lib():

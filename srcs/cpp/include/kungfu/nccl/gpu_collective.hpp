@@ -19,6 +19,12 @@ class gpu_collective
   public:
     virtual ~gpu_collective() {}
 
+    virtual void reduce(const void *send_buf, void *recv_buf, size_t count,
+                        KungFu_Datatype dtype) = 0;
+
+    virtual void broadcast(const void *send_buf, void *recv_buf, size_t count,
+                           KungFu_Datatype dtype) = 0;
+
     virtual void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                             KungFu_Datatype dtype) = 0;
 
@@ -29,5 +35,6 @@ class gpu_collective
     }
 };
 
-extern gpu_collective *new_gpu_collective(kungfu::Peer &);
+extern gpu_collective *new_global_gpu_collective(kungfu::Peer &);
+extern gpu_collective *new_local_gpu_collective(kungfu::Peer &);
 }  // namespace kungfu

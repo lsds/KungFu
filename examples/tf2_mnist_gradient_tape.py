@@ -1,7 +1,7 @@
 import argparse
 
 import tensorflow as tf
-from kungfu import current_cluster_size, current_rank
+from kungfu.python import current_cluster_size, current_rank
 from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)

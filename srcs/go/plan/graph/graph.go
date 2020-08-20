@@ -1,4 +1,4 @@
-package plan
+package graph
 
 import (
 	"bytes"
@@ -22,11 +22,16 @@ type Node struct {
 	Nexts    Vertices
 }
 
+func (n *Node) isIsolated() bool {
+	return len(n.Prevs) == 0 && len(n.Nexts) == 0
+}
+
+// Graph represents a graph of integers numbered from 0 to n - 1.
 type Graph struct {
 	Nodes []Node
 }
 
-func NewGraph(n int) *Graph {
+func New(n int) *Graph {
 	var nodes []Node
 	for i := 0; i < n; i++ {
 		nodes = append(nodes, Node{Rank: i})
@@ -36,14 +41,13 @@ func NewGraph(n int) *Graph {
 	}
 }
 
-// NewGraphFromForestArray creates a Graph from array representation of a forest
+// FromForestArray creates a Graph from array representation of a forest
 // f[i] represents the father of i, if f[i] != i
-func NewGraphFromForestArray(forest []int32) (*Graph, int, bool) {
+func FromForestArray(forest []int) (*Graph, int, bool) {
 	var m int
 	n := len(forest)
-	g := NewGraph(n)
+	g := New(n)
 	for i, father := range forest {
-		father := int(father)
 		switch {
 		case father < 0 || father >= n:
 			return nil, 0, false
@@ -55,6 +59,14 @@ func NewGraphFromForestArray(forest []int32) (*Graph, int, bool) {
 	}
 	// FIXME: check cycle!
 	return g, m, true
+}
+
+func FromForestArrayI32(forest []int32) (*Graph, int, bool) {
+	f := make([]int, len(forest))
+	for i, r := range forest {
+		f[i] = int(r)
+	}
+	return FromForestArray(f)
 }
 
 func (g *Graph) AddEdge(i, j int) {
@@ -70,6 +82,10 @@ func (g Graph) IsSelfLoop(i int) bool {
 	return g.Nodes[i].SelfLoop
 }
 
+func (g Graph) IsIsolated(i int) bool {
+	return g.Nodes[i].isIsolated()
+}
+
 func (g Graph) Prevs(i int) []int {
 	return g.Nodes[i].Prevs
 }
@@ -79,7 +95,7 @@ func (g Graph) Nexts(i int) []int {
 }
 
 func (g Graph) Reverse() *Graph {
-	r := NewGraph(len(g.Nodes))
+	r := New(len(g.Nodes))
 	for i, n := range g.Nodes {
 		for _, j := range n.Nexts {
 			r.Nodes[j].Nexts.Append(i)

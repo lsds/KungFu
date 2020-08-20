@@ -23,3 +23,5 @@ void order_group_wait(order_group_t *og, int32_t *arrive_order)
 {
     GoOrderGroupWait(og, arrive_order);
 }
+
+void kungfu_run_main() { GoKungfuRunMain(); }

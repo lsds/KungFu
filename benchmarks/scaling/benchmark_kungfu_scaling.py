@@ -106,7 +106,7 @@ def build_model_fn(model_name):
 
 
 def _get_model_dir(model_dir):
-    from kungfu.ext import uid
+    from kungfu.python import uid
     x = uid()
     port = (x >> 16) & 0xffff
     version = x & 0xffff

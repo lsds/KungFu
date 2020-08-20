@@ -6,6 +6,7 @@
 #include <tensorflow/core/framework/shape_inference.h>
 
 #include <kungfu.h>
+#include <kungfu/nccl/common.hpp>
 #include <kungfu/python/init.h>
 
 namespace tensorflow
@@ -31,7 +32,8 @@ inline KungFu_Datatype to_kungfu_type(const DataType &dtype)
     }
 }
 
-template <typename... Dims> TensorShape MakeTensorShape(const Dims &... dims)
+template <typename... Dims>
+TensorShape MakeTensorShape(const Dims &... dims)
 {
     const std::array<int, sizeof...(Dims)> ds({static_cast<int>(dims)...});
     TensorShape shape;
@@ -51,4 +53,14 @@ inline TensorShape BatchTensorShape(const TensorShape &shape, const int bs)
 
 #define REGISTER_KUNGFU_KERNEL_BUILDER(T, D)                                   \
     REGISTER_KERNEL_BUILDER(Name("Kungfu" #T).Device(D), T);
+
+inline kungfu::Workspace make_workspace(const Tensor &input, Tensor *output)
+{
+    return kungfu::Workspace{
+        .sendbuf = input.tensor_data().data(),
+        .recvbuf = const_cast<char *>(output->tensor_data().data()),
+        .count   = int(input.NumElements()),
+        .dtype   = to_kungfu_type(input.dtype()),
+    };
+}
 }  // namespace tensorflow
