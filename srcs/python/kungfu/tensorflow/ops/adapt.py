@@ -30,4 +30,12 @@ def step_based_schedule(config, step=None):
 
 
 def set_tree(tree):
+    """Set the default communication tree.
+
+    Inputs:
+        tree: an int32 tensor with shape [n], where
+            - n is the number of peers in the current cluster;
+            - tree[i] is the father of i if tree[i] != i;
+            - i is the root if tree[i] == i.
+    """
     return _op_lib.kungfu_set_tree(tree)

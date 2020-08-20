@@ -231,7 +231,7 @@ sharding the training dataset or scaling the learning rate
 of the optimizer. This can be achieved using the following
 cluster management APIs.
 
-.. automodule:: kungfu
+.. automodule:: kungfu.python
    :members:
 
 TensorFlow operators
