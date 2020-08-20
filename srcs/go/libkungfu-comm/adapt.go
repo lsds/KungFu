@@ -1,10 +1,15 @@
 package main
 
 import (
+	"unsafe"
+
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
+/*
+#include <kungfu/dtype.h>
+*/
 import "C"
 
 //export GoKungfuResizeClusterFromURL
@@ -25,4 +30,11 @@ func GoKungfuProposeNewSize(newSize int) int {
 		log.Warnf("ProposeNewSize failed: %v", err)
 	}
 	return errorCode("ProposeNewSize", err)
+}
+
+//export GoKungfuSetTree
+func GoKungfuSetTree(pTree unsafe.Pointer) int {
+	sess := defaultPeer.CurrentSession()
+	tree := toVector(pTree, sess.Size(), C.KungFu_INT32) // TODO: ensure pTree has size np in C++
+	return callOP("SimpleSetGlobalStrategy", func() error { return sess.SimpleSetGlobalStrategy(tree.AsI32()) }, nil)
 }

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/log"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
 )
@@ -24,7 +24,22 @@ type Runner struct {
 }
 
 // Run a command with context
-func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
+func (r Runner) Run(cmd *exec.Cmd) error {
+	return runWith(r.defaultRedirectors(), cmd)
+}
+
+func (r Runner) defaultRedirectors() []*iostream.StdWriters {
+	var redirectors []*iostream.StdWriters
+	if r.VerboseLog {
+		redirectors = append(redirectors, iostream.NewXTermRedirector(r.Name, r.Color))
+	}
+	if len(r.LogFilePrefix) > 0 {
+		redirectors = append(redirectors, iostream.NewFileRedirector(path.Join(r.LogDir, r.LogFilePrefix)))
+	}
+	return redirectors
+}
+
+func runWith(redirectors []*iostream.StdWriters, cmd *exec.Cmd) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -36,57 +51,38 @@ func (r Runner) Run(ctx context.Context, cmd *exec.Cmd) error {
 	}
 	defer stderr.Close()
 	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr}
-	var redirectors []*iostream.StdWriters
-	if r.VerboseLog {
-		redirectors = append(redirectors, iostream.NewXTermRedirector(r.Name, r.Color))
-	}
-	if len(r.LogFilePrefix) > 0 {
-		redirectors = append(redirectors, iostream.NewFileRedirector(path.Join(r.LogDir, r.LogFilePrefix)))
-	}
 	ioDone := results.Stream(redirectors...)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	done := make(chan error)
-	go func() {
-		err := cmd.Wait()
-		ioDone.Wait()
-		done <- err
-	}()
-	select {
-	case <-ctx.Done():
-		cmd.Process.Kill()
-		<-done
-		return ctx.Err()
-	case err := <-done:
-		return err
-	}
+	ioDone.Wait() // call this before cmd.Wait!
+	return cmd.Wait()
 }
 
-func RunAll(ctx context.Context, ps []job.Proc, verboseLog bool) error {
+func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
 	var fail int32
-	for i, proc := range ps {
+	for i, p := range ps {
 		wg.Add(1)
-		go func(i int, proc job.Proc) {
+		go func(i int, p proc.Proc) {
 			r := &Runner{
-				Name:          proc.Name,
+				Name:          p.Name,
 				Color:         xterm.BasicColors.Choose(i),
 				VerboseLog:    verboseLog,
-				LogFilePrefix: strings.Replace(proc.Name, "/", "-", -1),
-				LogDir:        proc.LogDir,
+				LogFilePrefix: strings.Replace(p.Name, "/", "-", -1),
+				LogDir:        p.LogDir,
 			}
-			if err := r.Run(ctx, proc.Cmd()); err != nil {
-				log.Errorf("#<%s> exited with error: %v", proc.Name, err)
+			if err := r.TryRun(ctx, p); err != nil {
+				log.Errorf("#<%s> exited with error: %v", p.Name, err)
 				atomic.AddInt32(&fail, 1)
 				cancel()
 			} else {
-				log.Debugf("#<%s> finished successfully", proc.Name)
+				log.Debugf("#<%s> finished successfully", p.Name)
 			}
 			wg.Done()
-		}(i, proc)
+		}(i, p)
 	}
 	wg.Wait()
 	if fail != 0 {

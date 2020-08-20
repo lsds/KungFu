@@ -9,20 +9,16 @@ import (
 // Workspace contains the data that a Kungfu operation will be performed on.
 type Workspace struct {
 	SendBuf *Vector
-	RecvBuf *Vector // TODO: if nil, will use SendBuf as in-place result
+	RecvBuf *Vector // if RecvBuf == SendBuf, will perform inplace operation
 	OP      OP
 	Name    string
 }
 
 // 0 <= begin < end <= count - 1
 func (w Workspace) slice(begin, end int) Workspace {
-	var recvBuf *Vector
-	if w.RecvBuf != nil {
-		recvBuf = w.RecvBuf.Slice(begin, end)
-	}
 	return Workspace{
 		SendBuf: w.SendBuf.Slice(begin, end),
-		RecvBuf: recvBuf,
+		RecvBuf: w.RecvBuf.Slice(begin, end),
 		OP:      w.OP,
 		Name:    fmt.Sprintf("part::%s[%d:%d]", w.Name, begin, end),
 	}
@@ -37,4 +33,18 @@ func (w Workspace) Split(p PartitionFunc, k int) []Workspace {
 		ws = append(ws, w.slice(r.Begin, r.End))
 	}
 	return ws
+}
+
+func (w Workspace) IsEmpty() bool {
+	return len(w.SendBuf.Data) == 0
+}
+
+func (w Workspace) IsInplace() bool {
+	return &w.SendBuf.Data[0] == &w.RecvBuf.Data[0]
+}
+
+func (w Workspace) Forward() {
+	if !w.IsInplace() {
+		w.RecvBuf.CopyFrom(w.SendBuf)
+	}
 }

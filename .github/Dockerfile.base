@@ -10,7 +10,7 @@ RUN apt update \
     && apt install -y build-essential cmake python3 python3-pip wget git \
         golang-1.13-go curl
 
-RUN pip3 install numpy==1.16 tensorflow==1.13.2
+RUN pip3 install -U pip && pip3 install numpy==1.16 tensorflow==1.13.2
 
 ENV GOROOT /usr/lib/go-1.13
 ENV PATH ${GOROOT}/bin:${PATH}

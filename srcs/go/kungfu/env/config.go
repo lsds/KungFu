@@ -11,7 +11,7 @@ import (
 type Config struct {
 	ConfigServer string
 	Parent       plan.PeerID
-	Parents      plan.PeerList
+	InitRunners  plan.PeerList
 	Self         plan.PeerID
 	Strategy     kb.Strategy
 
@@ -33,7 +33,7 @@ func ParseConfigFromEnv() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	hostList, err := getHostListFromEnv()
+	initRunners, err := getInitRunnersFromEnv()
 	if err != nil {
 		return nil, err
 	}
@@ -49,19 +49,11 @@ func ParseConfigFromEnv() (*Config, error) {
 		ConfigServer:       getConfigServerFromEnv(),
 		Self:               *self,
 		Parent:             *parent,
-		Parents:            getParentIDs(hostList, *parent),
+		InitRunners:        initRunners,
 		InitPeers:          initPeers,
 		Strategy:           *strategy,
 		InitClusterVersion: os.Getenv(InitClusterVersionEnvKey),
 	}, nil
-}
-
-func getParentIDs(hl plan.HostList, parent plan.PeerID) plan.PeerList {
-	var ps plan.PeerList
-	for _, h := range hl {
-		ps = append(ps, plan.PeerID{IPv4: h.IPv4, Port: parent.Port})
-	}
-	return ps
 }
 
 func singleEnv() *Config {
@@ -103,10 +95,10 @@ func getInitPeersFromEnv() (plan.PeerList, error) {
 	return plan.ParsePeerList(val)
 }
 
-func getHostListFromEnv() (plan.HostList, error) {
-	val, ok := os.LookupEnv(HostListEnvKey)
+func getInitRunnersFromEnv() (plan.PeerList, error) {
+	val, ok := os.LookupEnv(RunnerListEnvKey)
 	if !ok {
-		return nil, fmt.Errorf("%s not set", HostListEnvKey)
+		return nil, fmt.Errorf("%s not set", RunnerListEnvKey)
 	}
-	return plan.ParseHostList(val)
+	return plan.ParsePeerList(val)
 }

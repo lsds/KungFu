@@ -1,51 +1,70 @@
+#include <kungfu/nccl/helper.hpp>
 #include <kungfu/tensorflow/ops.h>
 
 namespace tensorflow
 {
-REGISTER_KUNGFU_OP(StartNcclScheduler).Input("input: string");
+REGISTER_KUNGFU_OP(StartNcclScheduler)
+    .Attr("scope: string")
+    .Input("input: string");
 
 class StartNcclScheduler : public OpKernel
 {
-    int counter_;
-    std::vector<int32_t> order_;
-
-    void ResetOrder(int n)
-    {
-        order_.resize(n);
-        std::iota(order_.begin(), order_.end(), 0);
-    }
+    KungFu_NCCLScope nccl_scope_;
 
   public:
     explicit StartNcclScheduler(OpKernelConstruction *context)
-        : OpKernel(context), counter_(0)
+        : OpKernel(context)
     {
-        kungfu::_nccl_controller->InitOnce();
+        std::string scope_name;
+        OP_REQUIRES_OK(context, context->GetAttr("scope", &scope_name));
+        OP_REQUIRES(context, kungfu::_nccl_scopes.count(scope_name) > 0,
+                    errors::InvalidArgument("invalid scope"));
+        nccl_scope_ = kungfu::_nccl_scopes.at(scope_name);
     }
 
     void Compute(OpKernelContext *context) override
     {
+        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
         const Tensor &input = context->input(0);
         const auto t_names  = input.vec<std::string>();
         std::vector<std::string> names;
         for (int i = 0; i < t_names.size(); ++i) {
             names.push_back(t_names(i));
         }
-        if (names.size() != order_.size()) { ResetOrder(names.size()); }
-        if (kungfu::_nccl_order_group.get() != nullptr) {
-            if (counter_ == 1) {
-                const std::vector<int32_t> arrive_order =
-                    kungfu::_nccl_order_group->Wait();
-                if (arrive_order.size() == order_.size()) {
-                    _default_peer->Broadcast(
-                        arrive_order.data(), order_.data(), order_.size(),
-                        to_kungfu_type(DT_INT32), name().c_str());
-                }
-            }
-        }
-        kungfu::_nccl_order_group.reset(new kungfu::order_group(names, order_));
-        ++counter_;
+        scheduler_->Reset(names);
     }
 };
 
 REGISTER_KUNGFU_KERNEL_BUILDER(StartNcclScheduler, DEVICE_CPU);
+
+REGISTER_KUNGFU_OP(ResetNcclHelper)
+    .Input("in_changed: bool")
+    .Input("in_keep: bool")
+    .Output("out_changed: bool")
+    .Output("out_keep: bool")
+    .SetIsStateful();
+
+class ResetNcclHelper : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+  public:
+    void Compute(OpKernelContext *context) override
+    {
+        const bool changed = context->input(0).scalar<bool>()();
+        const bool keep    = context->input(1).scalar<bool>()();
+        if (changed && keep) { kungfu_python_init_nccl(); }
+
+        Tensor *p_changed = nullptr;
+        OP_REQUIRES_OK(context, context->allocate_output(0, MakeTensorShape(),
+                                                         &p_changed));
+        Tensor *p_keep = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(1, MakeTensorShape(), &p_keep));
+        p_changed->scalar<bool>()() = changed;
+        p_keep->scalar<bool>()()    = keep;
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(ResetNcclHelper, DEVICE_CPU);
 }  // namespace tensorflow

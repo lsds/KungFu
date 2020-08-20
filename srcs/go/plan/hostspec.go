@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/lsds/KungFu/srcs/go/utils/assert"
 )
 
 var ErrInvalidHostSpec = errors.New("Invalid HostSpec")
@@ -18,6 +20,10 @@ type HostSpec struct {
 
 func (h HostSpec) String() string {
 	return fmt.Sprintf("%s:%d:%s", FormatIPv4(h.IPv4), h.Slots, h.PublicAddr)
+}
+
+func (h HostSpec) DebugString() string {
+	return fmt.Sprintf("%s slots=%d hostname=%s", FormatIPv4(h.IPv4), h.Slots, h.PublicAddr)
 }
 
 func parseHostSpec(spec string) (*HostSpec, error) {
@@ -98,6 +104,15 @@ func (hl HostList) Cap() int {
 	return cap
 }
 
+func (hl HostList) LookupHost(ipv4 uint32) string {
+	for _, h := range hl {
+		if h.IPv4 == ipv4 {
+			return h.PublicAddr
+		}
+	}
+	return FormatIPv4(ipv4)
+}
+
 type PortRange struct {
 	Begin uint16
 	End   uint16
@@ -141,6 +156,19 @@ func (pr *PortRange) Set(val string) error {
 	return nil
 }
 
+func (hl HostList) ShrinkToFit(np int) HostList {
+	var cap int
+	var part HostList
+	for _, h := range hl {
+		part = append(part, h)
+		cap += h.Slots
+		if cap >= np {
+			break
+		}
+	}
+	return part
+}
+
 func (hl HostList) genPeerList(np int, pr PortRange) PeerList {
 	var pl PeerList
 	if np == 0 {
@@ -181,4 +209,10 @@ func (hl HostList) GenPeerList(np int, pr PortRange) (PeerList, error) {
 		}
 	}
 	return hl.genPeerList(np, pr), nil
+}
+
+func (hl HostList) MustGenPeerList(np int, pr PortRange) PeerList {
+	pl, err := hl.GenPeerList(np, pr)
+	assert.OK(err)
+	return pl
 }

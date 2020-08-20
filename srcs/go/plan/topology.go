@@ -1,5 +1,7 @@
 package plan
 
+import "github.com/lsds/KungFu/srcs/go/plan/graph"
+
 func getLocalMasters(peers PeerList) ([]int, map[uint32]int) {
 	var masters []int
 	hostMaster := make(map[uint32]int)
@@ -12,8 +14,8 @@ func getLocalMasters(peers PeerList) ([]int, map[uint32]int) {
 	return masters, hostMaster
 }
 
-func GenTree(peers PeerList) *Graph {
-	g := NewGraph(len(peers))
+func GenTree(peers PeerList) *graph.Graph {
+	g := graph.New(len(peers))
 	masters, hostMaster := getLocalMasters(peers)
 	for rank, p := range peers {
 		if master := hostMaster[p.IPv4]; master != rank {
@@ -28,7 +30,7 @@ func GenTree(peers PeerList) *Graph {
 	return g
 }
 
-func GenDefaultReduceGraph(g *Graph) *Graph {
+func GenDefaultReduceGraph(g *graph.Graph) *graph.Graph {
 	g0 := g.Reverse()
 	k := len(g.Nodes)
 	for i := 0; i < k; i++ {
@@ -37,8 +39,8 @@ func GenDefaultReduceGraph(g *Graph) *Graph {
 	return g0
 }
 
-func GenBinaryTree(k int) *Graph {
-	g := NewGraph(k)
+func GenBinaryTree(k int) *graph.Graph {
+	g := graph.New(k)
 	for i := 0; i < k; i++ {
 		if j := i*2 + 1; j < k {
 			g.AddEdge(i, j)
@@ -50,8 +52,8 @@ func GenBinaryTree(k int) *Graph {
 	return g
 }
 
-func genMultiStar(peers PeerList, root int) *Graph {
-	g := NewGraph(len(peers))
+func genMultiStar(peers PeerList, root int) *graph.Graph {
+	g := graph.New(len(peers))
 	masters, hostMaster := getLocalMasters(peers)
 	//create star topology in each different machine
 	for rank, p := range peers {
@@ -72,8 +74,8 @@ func genMultiStar(peers PeerList, root int) *Graph {
 	return g
 }
 
-func genBinaryTreeStar(peers PeerList, offset int) *Graph {
-	g := NewGraph(len(peers))
+func genBinaryTreeStar(peers PeerList, offset int) *graph.Graph {
+	g := graph.New(len(peers))
 	masters, hostMaster := getLocalMasters(peers)
 	//create star topology in each different machine
 	for rank, p := range peers {
@@ -100,12 +102,12 @@ func genBinaryTreeStar(peers PeerList, offset int) *Graph {
 	return g
 }
 
-func GenBinaryTreeStar(peers PeerList) *Graph {
+func GenBinaryTreeStar(peers PeerList) *graph.Graph {
 	return genBinaryTreeStar(peers, 0)
 }
 
-func GenMultiBinaryTreeStar(peers PeerList) []*Graph {
-	var gs []*Graph
+func GenMultiBinaryTreeStar(peers PeerList) []*graph.Graph {
+	var gs []*graph.Graph
 	masters, _ := getLocalMasters(peers)
 	m := len(masters)
 	for i := 0; i < m; i++ {
@@ -114,8 +116,8 @@ func GenMultiBinaryTreeStar(peers PeerList) []*Graph {
 	return gs
 }
 
-func GenMultiStar(peers PeerList) []*Graph {
-	var gs []*Graph
+func GenMultiStar(peers PeerList) []*graph.Graph {
+	var gs []*graph.Graph
 	masters, _ := getLocalMasters(peers)
 	m := len(masters)
 	for i := 0; i < m; i++ {
@@ -124,8 +126,8 @@ func GenMultiStar(peers PeerList) []*Graph {
 	return gs
 }
 
-func GenAlternativeStar(peers PeerList, off int) *Graph {
-	var gs []*Graph
+func GenAlternativeStar(peers PeerList, off int) *graph.Graph {
+	var gs []*graph.Graph
 	masters, _ := getLocalMasters(peers)
 	m := len(masters)
 	for i := 0; i < m; i++ {
@@ -135,8 +137,8 @@ func GenAlternativeStar(peers PeerList, off int) *Graph {
 }
 
 // GenStarBcastGraph generates a star shape graph with k vertices and centered at vertice r (0 <= r < k)
-func GenStarBcastGraph(k, r int) *Graph {
-	g := NewGraph(k)
+func GenStarBcastGraph(k, r int) *graph.Graph {
+	g := graph.New(k)
 	for i := 0; i < k; i++ {
 		if i != r {
 			g.AddEdge(r, i)
@@ -146,12 +148,12 @@ func GenStarBcastGraph(k, r int) *Graph {
 	return g
 }
 
-func GenCircularGraphPair(k, r int) (*Graph, *Graph) {
-	g := NewGraph(k)
+func GenCircularGraphPair(k, r int) (*graph.Graph, *graph.Graph) {
+	g := graph.New(k)
 	for i := 0; i < k; i++ {
 		g.AddEdge(i, i)
 	}
-	b := NewGraph(k)
+	b := graph.New(k)
 	for i := 1; i < k; i++ {
 		g.AddEdge((r+i)%k, (r+i+1)%k)
 		b.AddEdge((r+i-1)%k, (r+i)%k)

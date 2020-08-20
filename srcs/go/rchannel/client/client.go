@@ -1,11 +1,13 @@
 package client
 
 import (
+	"context"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/monitor"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type Client struct {
@@ -39,6 +41,21 @@ func (c *Client) Ping(target plan.PeerID) (time.Duration, error) {
 		return time.Since(t0), err
 	}
 	return time.Since(t0), nil
+}
+
+// Wait waits a peer until it's accessible
+func (c *Client) Wait(ctx context.Context, target plan.PeerID) (int, bool) {
+	const period = 200 * time.Millisecond
+	var last time.Time
+	ping := func() bool {
+		if d := time.Since(last); d < period {
+			time.Sleep(period - d)
+		}
+		_, err := c.Ping(target)
+		last = time.Now()
+		return err == nil
+	}
+	return utils.Poll(ctx, ping)
 }
 
 // Send sends data in buf to given Addr

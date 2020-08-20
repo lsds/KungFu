@@ -20,7 +20,7 @@ const (
 //by monitoring the performance of different concurrently executed collective communications
 //strategies and applying weights to optimize the choice between them based on the monitoring
 func (sess *Session) SmartAllReduce(w kb.Workspace) error {
-	return sess.runMonitoresStrategies(w, plan.EvenPartition, sess.strategies)
+	return sess.runMonitoresStrategies(w, plan.EvenPartition, sess.globalStrategies)
 }
 
 func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
@@ -54,12 +54,12 @@ func (sess *Session) LogStats(stratIdx int) {
 
 	//TODO: fix this. Temporary for experiments only
 	if stratIdx == -1 {
-		sess.strategies[0].stat.Reset()
+		sess.globalStrategies[0].stat.Reset()
 		return
 	}
 
 	//calculate Throughput
-	stats := sess.strategies[stratIdx].stat
+	stats := sess.globalStrategies[stratIdx].stat
 	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds() //time.Duration(stats.lastEnd-*stats.firstBegin)
 	stats.Throughput = t
 
@@ -71,12 +71,12 @@ func (sess *Session) LogStats(stratIdx int) {
 	//reset counters
 	stats.Reset()
 
-	sess.strategyStats = append(sess.strategyStats, sess.strategies[stratIdx].stat.GetSnapshot())
+	sess.strategyStats = append(sess.strategyStats, sess.globalStrategies[stratIdx].stat.GetSnapshot())
 }
 
 func (sess *Session) PrintStategyStats() {
 	fmt.Println("Printing current state of session strategies")
-	fmt.Println("Available strategies: ", len(sess.strategies))
+	fmt.Println("Available strategies: ", len(sess.globalStrategies))
 
 	// for i, s := range sess.strategies {
 	// 	fmt.Println("Strategy #", i, ",Master[", s.bcastGraph.Master, "],avgDuration=", s.stat.AvgDuration, ",CMA=", s.stat.CmaDuration)
@@ -157,7 +157,7 @@ func (sess *Session) ChangeStrategies(buff []int8) {
 			//reached consensus
 			fmt.Println("Session:: reached consensus on suspending strategy #", i)
 
-			sess.strategies[i].stat.suspended = true
+			sess.globalStrategies[i].stat.suspended = true
 		}
 	}
 }
@@ -199,7 +199,7 @@ func (sess *Session) ChangeStrategy() bool {
 	//be suspended all together.
 	var ret bool
 
-	s := sess.strategies[0]
+	s := sess.globalStrategies[0]
 
 	//s.stat.calcAvgWind()
 
@@ -272,8 +272,8 @@ func (sess *Session) ChangeStrategy() bool {
 			stat:        &StrategyStat{},
 		}
 
-		ss.stat.reff = sess.strategies[0].stat.reff
-		sess.strategies[0] = ss
+		ss.stat.reff = sess.globalStrategies[0].stat.reff
+		sess.globalStrategies[0] = ss
 
 		// fmt.Println("Session:: Switched to alternative strategy with master offset ", alternativeStrategy)
 
@@ -286,7 +286,7 @@ func (sess *Session) ChangeStrategy() bool {
 //GetNumStrategies returns the number of different strategies
 //for a given session
 func (sess *Session) GetNumStrategies() int {
-	return len(sess.strategies)
+	return len(sess.globalStrategies)
 }
 
 // func (stat *StrategyStat) calcAvgWind() {

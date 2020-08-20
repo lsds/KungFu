@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="kungfu-logo.png" width="50%" height="30%"/>
+    <img src="docs/kungfu-logo.png" width="50%" height="30%"/>
 </div>
 
 # KungFu
@@ -75,22 +75,22 @@ Assuming you have the above pre-requites, you can install KungFu as follows:
 git clone https://github.com/lsds/KungFu.git
 cd KungFu
 pip3 install --no-index -U --user .
-
-# or download golang during install if golang is missing
-KUNGFU_DOWNLOAD_GO=1 pip3 install --no-index -U --user .
 ```
 
-If you get `permission denied errors`, try install `kungfu-run` separately
+<!-- If you get `permission denied errors`, try install `kungfu-run` separately
 ```bash
+# or download golang during install if golang is missing
+# KUNGFU_DOWNLOAD_GO=1 pip3 install --no-index -U --user .
+
 KUNGFU_BUILD_TOOLS=OFF pip3 install --no-index -U --user . # disable install kungfu-run with pip
 GOBIN=<PATH> go install -v ./srcs/go/cmd/kungfu-run # install kungfu-run to <PATH>
-```
+``` -->
 
 KungFu provides ``kungfu-run`` to launch a KungFu process on a multi-GPU server.
 In a cluster, we need to launch ``kungfu-run`` on each node.
 
 ```bash
-# Check if kungfu-run is installed
+# Show the help of kungfu-run
 kungfu-run -help
 ```
 

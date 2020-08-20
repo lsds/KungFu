@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu import current_rank
+from kungfu.python import current_rank
 from kungfu.tensorflow.ops import barrier
 from tensorflow.python.util import deprecation
 
@@ -58,7 +58,7 @@ def test_group_all_reduce():
 
 
 def test_group_all_gather():
-    from kungfu import current_cluster_size, current_rank
+    from kungfu.python import current_cluster_size, current_rank
     from kungfu.tensorflow.ops import all_gather
     rank = current_rank()
     np = current_cluster_size()
@@ -105,7 +105,7 @@ def test_save_and_request():
 
 
 def test_consensus():
-    from kungfu import current_cluster_size, current_rank
+    from kungfu.python import current_cluster_size, current_rank
     from kungfu.tensorflow.ops import consensus
 
     np = current_cluster_size()

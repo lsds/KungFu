@@ -1,8 +1,13 @@
-import tensorflow as tf
 from kungfu._utils import map_maybe
 from kungfu.tensorflow.ops import (defuse, fuse, group_all_reduce,
                                    group_nccl_all_reduce, peer_info,
                                    monitored_all_reduce)
+from kungfu.tensorflow.ops import defuse, fuse, peer_info
+from kungfu.tensorflow.ops.collective import (
+    group_all_reduce, group_hierarchical_nccl_all_reduce,
+    group_nccl_all_reduce)
+
+import tensorflow as tf
 
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
                    _KungFuAlgorithm)
@@ -11,6 +16,7 @@ from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
 def SynchronousSGDOptimizer(optimizer,
                             nccl=False,
                             nccl_fusion=False,
+                            hierarchical_nccl=False,
                             name=None,
                             use_locking=False,
                             with_keras=False):
@@ -38,18 +44,29 @@ def SynchronousSGDOptimizer(optimizer,
     Returns:
         optimizer {tf.train.Optimizer, tf.keras.optimizers.Optimizer} -- KungFu distributed optimizer
     """
-    sync_sgd_algo = _SynchronousSGD(nccl, nccl_fusion)
-    if not with_keras:
+    sync_sgd_algo = _SynchronousSGD(nccl=nccl,
+                                    nccl_fusion=nccl_fusion,
+                                    hierarchical_nccl=hierarchical_nccl)
+    if with_keras:
+        return _create_kungfu_keras_optimizer(optimizer, sync_sgd_algo)
+    else:
         return _create_kungfu_optimizer(optimizer, sync_sgd_algo, name,
                                         use_locking)
-    else:
-        return _create_kungfu_keras_optimizer(optimizer, sync_sgd_algo)
 
 
 class _SynchronousSGD(_KungFuAlgorithm):
-    def __init__(self, nccl=False, nccl_fusion=True):
+    def __init__(self, nccl=False, nccl_fusion=True, hierarchical_nccl=False):
         self._nccl = nccl
         self._nccl_fusion = nccl_fusion
+
+        if self._nccl:
+            if hierarchical_nccl:
+                self._group_all_reduce_fn = group_hierarchical_nccl_all_reduce
+            else:
+                self._group_all_reduce_fn = group_nccl_all_reduce
+        else:
+            self._group_all_reduce_fn = group_all_reduce
+
         _rank, self._num_workers = peer_info()
 
     def apply_gradients(self, apply_grads_func, grads_and_vars, **kwargs):
@@ -63,11 +80,12 @@ class _SynchronousSGD(_KungFuAlgorithm):
             # sortting order from TensorFlow.
             if self._nccl_fusion:
                 fused_grad = fuse(gradients)
-                summed_fused_gradients = group_nccl_all_reduce([fused_grad])
+                summed_fused_gradients = self._group_all_reduce_fn(
+                    [fused_grad])
                 summed_gradients = defuse(summed_fused_gradients[0],
                                           [g.shape for g in gradients])
             else:
-                summed_gradients = group_nccl_all_reduce(gradients)
+                summed_gradients = self._group_all_reduce_fn(gradients)
         else:
             summed_gradients = map_maybe(lambda g: monitored_all_reduce(g, []), gradients)
 

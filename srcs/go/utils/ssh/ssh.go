@@ -103,6 +103,9 @@ func (c *Client) Watch(ctx context.Context, cmd string, redirectors []*iostream.
 	if err != nil {
 		return err
 	}
+	if err := session.RequestPty("xterm", 80, 40, nil); err != nil {
+		return err
+	}
 	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr}
 	ioDone := results.Stream(redirectors...)
 	if err := session.Start(cmd); err != nil {
@@ -110,15 +113,15 @@ func (c *Client) Watch(ctx context.Context, cmd string, redirectors []*iostream.
 	}
 	done := make(chan error)
 	go func() {
+		ioDone.Wait() // before session.Wait()
 		err := session.Wait()
-		ioDone.Wait()
 		done <- err
 	}()
 	select {
 	case err := <-done:
 		return err
 	case <-ctx.Done():
-		session.Close() // doesn't work!
+		session.Close()
 		// FIXME: force remote command terminate
 		return ctx.Err()
 	}

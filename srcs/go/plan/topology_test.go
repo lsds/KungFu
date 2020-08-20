@@ -1,13 +1,17 @@
 package plan
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/lsds/KungFu/srcs/go/plan/graph"
+)
 
 type edge struct {
 	from int
 	to   int
 }
 
-func isValidGraph(g *Graph) bool {
+func isValidGraph(g *graph.Graph) bool {
 	k := len(g.Nodes)
 	m := make(map[edge]int)
 	for i := 0; i < k; i++ {
@@ -37,7 +41,7 @@ func isValidGraph(g *Graph) bool {
 	return true
 }
 
-func isValidTreeWithRoot(g *Graph, root int) bool {
+func isValidTreeWithRoot(g *graph.Graph, root int) bool {
 	if !isValidGraph(g) {
 		g.Debug()
 		return false

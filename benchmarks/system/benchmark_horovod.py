@@ -3,6 +3,9 @@
 https://github.com/uber/horovod/blob/master/examples/tensorflow_synthetic_benchmark.py
 
 Please refer to Horovod page to see how to run this script.
+
+$ horovodrun -np 4 python3 benchmark_horovod_torch.py
+
 """
 
 from __future__ import absolute_import, division, print_function
@@ -52,6 +55,10 @@ parser.add_argument('--no-cuda',
                     action='store_true',
                     default=False,
                     help='disables CUDA training')
+parser.add_argument('--xla',
+                    action='store_true',
+                    default=False,
+                    help='enable XLA')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -67,6 +74,9 @@ else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     config.gpu_options.allow_growth = False
     config.gpu_options.visible_device_list = ''
+
+if args.xla:
+    config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
 
 if args.eager:
     tf.enable_eager_execution(config)
@@ -124,6 +134,7 @@ def log_final_result(value, error):
         'np': hvd.size(),
         'bs': args.batch_size,
         'model': args.model,
+        'xla': args.xla,
     }
     try:
         attrs['nccl_built'] = hvd.nccl_built()

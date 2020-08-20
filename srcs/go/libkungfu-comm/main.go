@@ -37,6 +37,11 @@ func GoKungfuFinalize() int {
 	return errorCode("Close", defaultPeer.Close())
 }
 
+//export GoKungfuDetached
+func GoKungfuDetached() bool {
+	return defaultPeer.Detached()
+}
+
 //export GoKungfuUID
 func GoKungfuUID() uint64 {
 	return defaultPeer.UID()
@@ -64,6 +69,12 @@ func GoKungfuLocalRank() int {
 func GoKungfuLocalSize() int {
 	sess := defaultPeer.CurrentSession()
 	return sess.LocalSize()
+}
+
+//export GoKungfuHostCount
+func GoKungfuHostCount() int {
+	sess := defaultPeer.CurrentSession()
+	return sess.HostCount()
 }
 
 //export GoKungfuRequest
@@ -146,6 +157,12 @@ func GoLogStats(idx int) {
 func GoPrintStategyStats() {
 	sess := defaultPeer.CurrentSession()
 	sess.PrintStategyStats()
+}
+
+//export GoKungfuNoop
+func GoKungfuNoop(done *C.callback_t) int {
+	noop := func() error { return nil }
+	return callOP("noop", noop, done)
 }
 
 func main() {

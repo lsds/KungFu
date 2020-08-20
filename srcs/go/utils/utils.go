@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -142,4 +143,19 @@ func ProgName() string {
 		return path.Base(os.Args[0])
 	}
 	return ""
+}
+
+// Poll waits for a condition to become true
+func Poll(ctx context.Context, cond func() bool) (int, bool) {
+	for i := 0; ; i++ {
+		if ok := cond(); ok {
+			return i, true
+		}
+		select {
+		case <-ctx.Done():
+			return i + 1, false
+		default:
+			// user should sleep in cond
+		}
+	}
 }

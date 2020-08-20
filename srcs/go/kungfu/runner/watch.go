@@ -9,10 +9,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/lsds/KungFu/srcs/go/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/rchannel/server"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/local"
@@ -46,7 +47,7 @@ func (w *watcher) create(id plan.PeerID, s Stage) {
 	if gpuID < 0 {
 		log.Errorf("gpuID = %d", gpuID)
 	}
-	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster.Workers)
+	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster)
 	go func(g *sync.WaitGroup) {
 		runProc(w.ctx, w.cancel, proc, s.Version, w.job.LogDir)
 		g.Done()
@@ -68,7 +69,7 @@ func (w *watcher) update(s Stage) {
 	a, b := w.current.Workers.Diff(s.Cluster.Workers)
 	del := a.On(w.parent.IPv4)
 	add := b.On(w.parent.IPv4)
-	log.Infof("arrived at v%d, new np=%d, local: +%d/-%d, global: -%d/%d", s.Version, len(s.Cluster.Workers), len(add), len(del), len(b), len(a))
+	log.Infof("arrived at v%d, new np=%d, local: +%d/-%d, global: +%d/-%d", s.Version, len(s.Cluster.Workers), len(add), len(del), len(b), len(a))
 	log.Debugf("waiting %d peers to stop", len(del))
 	for _, id := range del {
 		w.delete(id)
@@ -133,15 +134,15 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 	log.Infof(xterm.Blue.S("stop watching"))
 }
 
-func runProc(ctx context.Context, cancel context.CancelFunc, proc job.Proc, version int, logDir string) {
+func runProc(ctx context.Context, cancel context.CancelFunc, p proc.Proc, version int, logDir string) {
 	r := &local.Runner{
-		Name:          proc.Name,
+		Name:          p.Name,
 		LogDir:        logDir,
-		LogFilePrefix: fmt.Sprintf("%s@%d", proc.Name, version),
+		LogFilePrefix: fmt.Sprintf("%s@%d", p.Name, version),
 		VerboseLog:    true,
 	}
-	if err := r.Run(ctx, proc.Cmd()); err != nil {
-		log.Infof("%s finished with error: %v", proc.Name, err)
+	if err := r.TryRun(ctx, p); err != nil {
+		log.Infof("%s finished with error: %v", p.Name, err)
 		cancel()
 		utils.ExitErr(err) // FIXME: graceful shutdown
 		return
