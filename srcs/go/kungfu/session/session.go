@@ -95,13 +95,6 @@ func (ss *StrategyStat) Update(begin, end time.Time, size int) {
 	// ss.CmaDuration = time.Duration(tot / float64(ss.count))
 }
 
-// A strategy is a pair of graphs for collective communication
-type strategy struct {
-	reduceGraph *graph.Graph
-	bcastGraph  *graph.Graph
-	stat        *StrategyStat
-}
-
 // Session contains the immutable peer list for a given period of logical duration
 type Session struct {
 	sync.Mutex

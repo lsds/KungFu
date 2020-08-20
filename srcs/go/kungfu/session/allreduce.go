@@ -20,14 +20,14 @@ func (sess *Session) AllReduceWith(tree []int32, w kb.Workspace) error {
 	//in the session object
 
 	//ATTENTION: not stable, internal experimental use only
-	var ss []strategy
+	var ss strategyList
 
 	if len(tree) > 0 {
 		bg, m, ok := graph.FromForestArrayI32(tree)
 		assert.True(m == 1)
 		assert.True(ok)
 		rg := plan.GenDefaultReduceGraph(bg)
-		ss = []strategy{{reduceGraph: rg, bcastGraph: bg}}
+		ss = strategyList{newStrategy(rg, bg)}
 	} else {
 		ss = sess.globalStrategies
 	}

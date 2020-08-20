@@ -265,12 +265,7 @@ func (sess *Session) ChangeStrategy() bool {
 		}
 
 		bcastGraph := plan.GenAlternativeStar(sess.peers, alternativeStrategy)
-		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
-		ss := strategy{
-			reduceGraph: reduceGraph,
-			bcastGraph:  bcastGraph,
-			stat:        &StrategyStat{},
-		}
+		ss := simpleStrategy(bcastGraph)
 
 		ss.stat.reff = sess.globalStrategies[0].stat.reff
 		sess.globalStrategies[0] = ss
