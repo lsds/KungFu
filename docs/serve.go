@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-var port = flag.Int("p", 9999, "")
+var port = flag.Int("port", 9999, "")
 
 func main() {
 	flag.Parse()
