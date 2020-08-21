@@ -10,13 +10,15 @@ from .local import save_variable, save_variables
 from .monitor import global_noise_scale
 from .p2p import request_variable, request_variable_with_template
 from .state import counter, exponential_moving_average
-from .topology import peer_info
+from .topology import cluster_size, peer_info, rank
 
 __all__ = [
     'all_gather',
     'barrier',
     'broadcast',
+    'cluster_size',
     'group_all_reduce',
+    'rank',
     'set_tree',
 ]
 
