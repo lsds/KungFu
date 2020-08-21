@@ -133,7 +133,7 @@ class MonitoredAllReduce : public AsyncOpKernel
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
         const Tensor &input = context->input(0);
-        const Tensor &tree  = context->input(1);
+        const auto &tree    = context->input(1).vec<int32_t>();
         Tensor *output      = nullptr;
         // Tensor *metrics     = nullptr; // TODO
         OP_REQUIRES_OK_ASYNC(
@@ -141,14 +141,11 @@ class MonitoredAllReduce : public AsyncOpKernel
         // OP_REQUIRES_OK_ASYNC(
         //     context, context->allocate_output(1, input.shape(), &metrics),
         //     done);  // TODO
-        auto t = tree.vec<int32_t>();
-
         _default_peer->MonitoredAllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), op_,
-            t.size() != 0 ? reinterpret_cast<const int32_t*>(t.data()) : nullptr,
-            name().c_str(), done);
+            tree.size() != 0 ? tree.data() : nullptr, name().c_str(), done);
     }
 };
 
