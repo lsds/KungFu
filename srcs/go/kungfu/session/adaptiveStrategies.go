@@ -64,7 +64,7 @@ func (sess *Session) LogStats(stratIdx int) {
 	stats.Throughput = t
 
 	// if sess.rank == 0 {
-	// 	fmt.Println("LogStats: AccData=", utils.ShowSize(stats.accSize), " Dur=", stats.lastEnd.Sub(*stats.firstBegin).Seconds(), " sec")
+	// 	fmt.Println("LogStats: AccData=", testutils.ShowSize(stats.accSize), " Dur=", stats.lastEnd.Sub(*stats.firstBegin).Seconds(), " sec")
 	// 	fmt.Println("LogStats: Throughput=", utils.ShowRate(stats.Throughput))
 	// }
 
