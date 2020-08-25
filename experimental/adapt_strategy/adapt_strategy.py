@@ -14,8 +14,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import applications
 from tensorflow.python.util import deprecation
-from kungfu.ext import change_strategy, log_stats, print_strategy_stats
-from kungfu import current_rank
+from kungfu.python import current_rank, change_strategy, log_stats, print_strategy_stats
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 default_strategy_master = 0
@@ -77,7 +76,7 @@ args.cuda = not args.no_cuda
 config = tf.ConfigProto()
 if args.cuda:
     config.gpu_options.allow_growth = True
-    from kungfu.ext import _get_cuda_index
+    from kungfu.python import _get_cuda_index
     config.gpu_options.visible_device_list = str(_get_cuda_index())
 else:
     config.gpu_options.allow_growth = False
