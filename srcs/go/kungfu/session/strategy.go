@@ -134,8 +134,7 @@ func createCliqueStrategies(peers plan.PeerList) strategyList {
 	var sl strategyList
 	for r := 0; r < k; r++ {
 		bcastGraph := plan.GenStarBcastGraph(k, r)
-		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
-		sl = append(sl, newStrategy(reduceGraph, bcastGraph))
+		sl = append(sl, simpleStrategy(bcastGraph))
 	}
 	return sl
 }
