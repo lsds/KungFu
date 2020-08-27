@@ -18,29 +18,19 @@ import (
 )
 
 const defaultRoot = 0
-const strategyMonitorRefferenceWindow = 1500
-const avgWndCapacity = 100
 
+//StrategyStatSnapshot holds a snapshot of major metrics
+//from the `StrategyStat` object
 type StrategyStatSnapshot struct {
-	// AvgDuration    time.Duration
-	// CmaDuration    time.Duration
-	// AvgWndDuration time.Duration
 	Throughput float64
 }
 
 //StrategyStat holds statistical data for a specific strategy
 type StrategyStat struct {
-	// AvgDuration    time.Duration
-	// CmaDuration    time.Duration
-	// AvgWnd         [avgWndCapacity]time.Duration
-	// AvgWndDuration time.Duration
-	// wndFront       int
-	// wndBack        int
 	Throughput float64
 	accSize    int
 	firstBegin *time.Time
 	lastEnd    time.Time
-	count      int
 	suspended  bool
 	reff       StrategyStatSnapshot
 	lock       sync.Mutex
@@ -52,12 +42,15 @@ func (ss *StrategyStat) GetSnapshot() StrategyStatSnapshot {
 	return StrategyStatSnapshot{Throughput: ss.Throughput}
 }
 
+//Reset resets the counters associated with a specfiic `StrategyStat` object
 func (ss *StrategyStat) Reset() {
 	ss.accSize = 0
 	ss.firstBegin = nil
 	ss.lastEnd = time.Unix(0, 0)
 }
 
+//Update set the appropriate counters associated with a specific
+//`StrategyStat` object
 func (ss *StrategyStat) Update(begin, end time.Time, size int) {
 
 	ss.lock.Lock()
@@ -70,29 +63,6 @@ func (ss *StrategyStat) Update(begin, end time.Time, size int) {
 		ss.lastEnd = end
 	}
 	ss.accSize = ss.accSize + size
-
-	// ss.accDur = ss.accDur + duration
-	//
-
-	// if ss.count == 0 {
-	// 	ss.AvgDuration = duration
-	// } else {
-	// 	ss.AvgDuration = (ss.AvgDuration + duration) / 2
-	// }
-
-	// //TODO: fix this, hot fix coding needs refactoring
-	// if ss.count < avgWndCapacity {
-	// 	ss.AvgWnd[ss.wndBack] = duration
-	// 	ss.wndBack = (ss.wndBack + 1) % avgWndCapacity
-	// } else {
-	// 	ss.AvgWnd[ss.wndBack] = duration
-	// 	ss.wndFront = (ss.wndFront + 1) % avgWndCapacity
-	// 	ss.wndBack = (ss.wndBack + 1) % avgWndCapacity
-	// }
-
-	// tot := float64(ss.CmaDuration)*float64(ss.count) + float64(duration)
-	ss.count++
-	// ss.CmaDuration = time.Duration(tot / float64(ss.count))
 }
 
 // Session contains the immutable peer list for a given period of logical duration
