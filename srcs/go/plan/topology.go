@@ -52,14 +52,37 @@ func GenBinaryTree(k int) *graph.Graph {
 	return g
 }
 
-func genBinaryTreeStar(peers PeerList, offset int) *graph.Graph {
+func genMultiStar(peers PeerList, root int) *graph.Graph {
 	g := graph.New(len(peers))
 	masters, hostMaster := getLocalMasters(peers)
+	//create star topology in each different machine
 	for rank, p := range peers {
 		if master := hostMaster[p.IPv4]; master != rank {
 			g.AddEdge(master, rank)
 		}
 	}
+	//create star topology between different machines
+	if k := len(masters); k > 1 {
+		for i := 0; i < k; i++ {
+			if i != root {
+				g.AddEdge(masters[root], masters[i])
+			}
+		}
+	}
+
+	return g
+}
+
+func genBinaryTreeStar(peers PeerList, offset int) *graph.Graph {
+	g := graph.New(len(peers))
+	masters, hostMaster := getLocalMasters(peers)
+	//create star topology in each different machine
+	for rank, p := range peers {
+		if master := hostMaster[p.IPv4]; master != rank {
+			g.AddEdge(master, rank)
+		}
+	}
+	//create the tree between different machines
 	if k := len(masters); k > 1 {
 		idx := func(i int) int {
 			return (i + offset) % k
@@ -73,6 +96,7 @@ func genBinaryTreeStar(peers PeerList, offset int) *graph.Graph {
 			}
 		}
 	}
+
 	return g
 }
 
@@ -90,6 +114,26 @@ func GenMultiBinaryTreeStar(peers PeerList) []*graph.Graph {
 	return gs
 }
 
+func GenMultiStar(peers PeerList) []*graph.Graph {
+	var gs []*graph.Graph
+	masters, _ := getLocalMasters(peers)
+	m := len(masters)
+	for i := 0; i < m; i++ {
+		gs = append(gs, genMultiStar(peers, i))
+	}
+	return gs
+}
+
+func GenAlternativeStar(peers PeerList, off int) *graph.Graph {
+	var gs []*graph.Graph
+	masters, _ := getLocalMasters(peers)
+	m := len(masters)
+	for i := 0; i < m; i++ {
+		gs = append(gs, genMultiStar(peers, i))
+	}
+	return genMultiStar(peers, masters[off])
+}
+
 // GenStarBcastGraph generates a star shape graph with k vertices and centered at vertice r (0 <= r < k)
 func GenStarBcastGraph(k, r int) *graph.Graph {
 	g := graph.New(k)
@@ -98,6 +142,7 @@ func GenStarBcastGraph(k, r int) *graph.Graph {
 			g.AddEdge(r, i)
 		}
 	}
+
 	return g
 }
 

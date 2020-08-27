@@ -1,7 +1,6 @@
 package session
 
 import (
-	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/plan/graph"
 	"github.com/lsds/KungFu/srcs/go/utils/assert"
 )
@@ -17,6 +16,7 @@ func (sess *Session) SetGlobalStrategy(sl strategyList) error {
 	sess.globalStrategies = sl
 
 	assert.OK(sess.barrier())
+
 	return nil
 }
 
@@ -25,7 +25,6 @@ func (sess *Session) SimpleSetGlobalStrategy(forest []int32) error {
 	bg, m, ok := graph.FromForestArrayI32(forest)
 	assert.True(m == 1)
 	assert.True(ok)
-	rg := plan.GenDefaultReduceGraph(bg)
-	s0 := strategy{reduceGraph: rg, bcastGraph: bg}
+	s0 := simpleStrategy(bg)
 	return sess.SetGlobalStrategy([]strategy{s0})
 }

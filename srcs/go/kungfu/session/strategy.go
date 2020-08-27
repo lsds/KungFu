@@ -14,6 +14,21 @@ type strategyList []strategy
 
 type partitionStrategy func(plan.PeerList) strategyList
 
+// A strategy is a pair of graphs for collective communication
+type strategy struct {
+	reduceGraph *graph.Graph
+	bcastGraph  *graph.Graph
+	stat        *StrategyStat
+}
+
+func newStrategy(rg *graph.Graph, bg *graph.Graph) strategy {
+	return strategy{
+		reduceGraph: rg,
+		bcastGraph:  bg,
+		stat:        &StrategyStat{},
+	}
+}
+
 func (sl strategyList) choose(i int) strategy {
 	return sl[i%len(sl)]
 }
@@ -29,6 +44,7 @@ func (sl strategyList) digestBytes() []byte {
 
 var partitionStrategies = map[kb.Strategy]partitionStrategy{
 	kb.Star:                createStarStrategies,
+	kb.MultiStar:           createMultiStarStrategies,
 	kb.Clique:              createCliqueStrategies,
 	kb.Ring:                createRingStrategies,
 	kb.Tree:                createTreeStrategies,
@@ -38,15 +54,34 @@ var partitionStrategies = map[kb.Strategy]partitionStrategy{
 }
 
 func simpleStrategy(bcastGraph *graph.Graph) strategy {
-	return strategy{
-		reduceGraph: plan.GenDefaultReduceGraph(bcastGraph),
-		bcastGraph:  bcastGraph,
-	}
+	return newStrategy(plan.GenDefaultReduceGraph(bcastGraph), bcastGraph)
+}
+
+func simpleSingleGraphStrategy(bcastGraph *graph.Graph) strategyList {
+	return strategyList{simpleStrategy(bcastGraph)}
 }
 
 func createStarStrategies(peers plan.PeerList) strategyList {
 	bcastGraph := plan.GenStarBcastGraph(len(peers), defaultRoot)
-	return strategyList{simpleStrategy(bcastGraph)}
+	// fmt.Println("Printing strategy #1")
+	// fmt.Println("Bcast Tree:")
+	// bcastGraph.Debug()
+	return simpleSingleGraphStrategy(bcastGraph)
+}
+
+func createMultiStarStrategies(peers plan.PeerList) strategyList {
+	var ss []strategy
+	//fmt.Println("DEV::createMultiStarStrategies:: Going to print generated trees")
+	for _, bcastGraph := range plan.GenMultiStar(peers) {
+		ss = append(ss, simpleStrategy(bcastGraph))
+		// fmt.Println("Printing strategy #", i)
+		// fmt.Println("Bcast Tree:")
+		// ss[len(ss)-1].bcastGraph.Debug()
+		// fmt.Println("\nReduce Tree:")
+		// ss[len(ss)-1].reduceGraph.Debug()
+	}
+	// fmt.Println("DEV::creatingMultipleStarStrategy:: created ", len(ss), "different strategies")
+	return ss
 }
 
 func createTreeStrategies(peers plan.PeerList) strategyList {
@@ -68,6 +103,8 @@ func createMultiBinaryTreeStarStrategies(peers plan.PeerList) strategyList {
 	var sl strategyList
 	for _, bcastGraph := range plan.GenMultiBinaryTreeStar(peers) {
 		sl = append(sl, simpleStrategy(bcastGraph))
+		sl[len(sl)-1].bcastGraph.Debug()
+		sl[len(sl)-1].reduceGraph.Debug()
 	}
 	return sl
 }
@@ -87,10 +124,7 @@ func createRingStrategies(peers plan.PeerList) strategyList {
 	var sl strategyList
 	for r := 0; r < k; r++ {
 		reduceGraph, bcastGraph := plan.GenCircularGraphPair(k, r)
-		sl = append(sl, strategy{
-			reduceGraph: reduceGraph,
-			bcastGraph:  bcastGraph,
-		})
+		sl = append(sl, newStrategy(reduceGraph, bcastGraph))
 	}
 	return sl
 }
@@ -124,10 +158,7 @@ func createCrossRingStrategies(peers plan.PeerList) strategyList {
 	var sl strategyList
 	for r := range masters {
 		reduceGraph, bcastGraph := subgraph.GenCircularGraphPair(n, masters, r)
-		sl = append(sl, strategy{
-			reduceGraph: reduceGraph,
-			bcastGraph:  bcastGraph,
-		})
+		sl = append(sl, newStrategy(reduceGraph, bcastGraph))
 	}
 	return sl
 }
