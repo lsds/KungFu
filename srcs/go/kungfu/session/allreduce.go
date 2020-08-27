@@ -32,7 +32,7 @@ func (sess *Session) AllReduceWith(tree []int32, w kb.Workspace) error {
 		ss = sess.globalStrategies
 	}
 
-	return sess.runMonitoresStrategies(w, plan.EvenPartition, ss)
+	return sess.runMonitoredStrategies(w, plan.EvenPartition, ss)
 }
 
 // CrossAllReduce performs allreduce across all local roots.

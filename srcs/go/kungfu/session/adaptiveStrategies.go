@@ -20,7 +20,7 @@ const (
 //by monitoring the performance of different concurrently executed collective communications
 //strategies and applying weights to optimize the choice between them based on the monitoring
 func (sess *Session) SmartAllReduce(w kb.Workspace) error {
-	return sess.runMonitoresStrategies(w, plan.EvenPartition, sess.globalStrategies)
+	return sess.runMonitoredStrategies(w, plan.EvenPartition, sess.globalStrategies)
 }
 
 func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
@@ -31,12 +31,9 @@ func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.Partiti
 		wg.Add(1)
 		go func(i int, w kb.Workspace, s strategy) {
 			var startTime, endTime time.Time
-			// var dur time.Duration
-			// stpWatch := testutils.NewStopWatch()
 			startTime = time.Now()
 			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
 			endTime = time.Now()
-			// stpWatch.StopAndSave(&dur)
 			s.stat.Update(startTime, endTime, w.SendBuf.Count*w.SendBuf.Type.Size())
 			wg.Done()
 		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
@@ -45,11 +42,12 @@ func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.Partiti
 	return utils.MergeErrors(errs, "runStrategies")
 }
 
-func (sess *Session) runMonitoresStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {
+func (sess *Session) runMonitoredStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {
 	return sess.runMonitoredStrategiesWithHash(w, p, strategies, sess.strategyHash)
 }
 
-//LogStats reports Stat object for a specific strategy
+//LogStats reports a Stat object for a specific strategy
+//by appending it in the
 func (sess *Session) LogStats(stratIdx int) {
 
 	//TODO: fix this. Temporary for experiments only
@@ -74,6 +72,7 @@ func (sess *Session) LogStats(stratIdx int) {
 	sess.strategyStats = append(sess.strategyStats, sess.globalStrategies[stratIdx].stat.GetSnapshot())
 }
 
+//PrintStategyStats prints the Strategy Stats Snapshots that have been logged in the `sess.strategyStats` slice
 func (sess *Session) PrintStategyStats() {
 	fmt.Println("Printing current state of session strategies")
 	fmt.Println("Available strategies: ", len(sess.globalStrategies))
@@ -87,116 +86,10 @@ func (sess *Session) PrintStategyStats() {
 	}
 }
 
-//MonitorStrategy examines whether the current communication strategy is experiencing
-//communication interference. It should not be invoked while the strategy is still
-//used in background communication operations. No locking of the underlying data
-//structure is used.
-// func (sess *Session) MonitorStrategy(buff []int8) {
-// 	s := sess.strategies[0]
-// 	buff[0] = 0
-// 	fmt.Println("MonitorStrategy:: Checking AvgDur = ", s.stat.AvgDuration, " reff = ", time.Duration((interferenceThreshold * float64(s.stat.reff.AvgDuration))))
-// 	if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(s.stat.reff.AvgDuration))) {
-// 		fmt.Println("MonitorStrategy:: Congestion detected.")
-// 		buff[0] = 1
-// 	}
-// }
-
-// func (sess *Session) MonitorMultipleStrategies(buff []int8) bool {
-
-// 	var count int
-// 	for _, s := range sess.strategies {
-// 		if !s.stat.suspended {
-// 			count++
-// 		}
-// 	}
-
-// 	fmt.Println("MonitorStrategies: number of active strategies:", count)
-
-// 	//if only 1 active strategy, don't do anything
-// 	if count < 2 {
-// 		return false
-// 	}
-
-// 	for i := range buff {
-// 		buff[i] = 0
-// 	}
-
-// 	var change bool = false
-
-// 	//TODO: find more efficient way of doing this
-// 	for i, s := range sess.strategies {
-// 		var resAvg time.Duration
-// 		var resCount int
-// 		for j, ss := range sess.strategies {
-// 			if i == j || ss.stat.suspended {
-// 				continue
-// 			}
-// 			resAvg += ss.stat.AvgDuration
-// 			resCount++
-// 		}
-// 		resAvg = time.Duration(float64(resAvg) / float64(resCount))
-
-// 		if s.stat.AvgDuration > time.Duration((interferenceThreshold * float64(resAvg))) {
-// 			//flag the strategy as deactivated
-// 			//s.stat.suspended = true
-// 			change = true
-// 			buff[i] = 1
-// 			fmt.Println("ATTENTION: Strategy #", i, " has been proposed for suspension due to detected communication overhead")
-// 		}
-// 	}
-
-// 	return change
-// }
-
-func (sess *Session) ChangeStrategies(buff []int8) {
-	//TODO: volatile. check that not all strategies will
-	//be suspended all together.
-
-	for i := range buff {
-		if buff[i] > int8(sess.Size()) {
-			//reached consensus
-			fmt.Println("Session:: reached consensus on suspending strategy #", i)
-
-			sess.globalStrategies[i].stat.suspended = true
-		}
-	}
-}
-
-// func (sess *Session) ChangeStrategy(buff []int8, off int) bool {
-// 	//TODO: volatile. check that not all strategies will
-// 	//be suspended all together.
-// 	var ret bool
-
-// 	fmt.Println("ChangeStrategy:: rcved from cluster ", buff[0])
-
-// 	if buff[0] > int8(sess.Size()/2) {
-// 		//reached consensus
-// 		fmt.Println("Session:: reached consensus on changing strategy #", 0)
-
-// 		fmt.Println("Session:: switching to alternative strategy")
-
-// 		bcastGraph := plan.GenAlternativeStar(sess.peers, off)
-// 		reduceGraph := plan.GenDefaultReduceGraph(bcastGraph)
-// 		ss := strategy{
-// 			reduceGraph: reduceGraph,
-// 			bcastGraph:  bcastGraph,
-// 			stat:        &StrategyStat{},
-// 		}
-
-// 		ss.stat.refWindow = sess.strategies[0].stat.refWindow
-// 		sess.strategies[0] = ss
-
-// 		fmt.Println("Session:: Switched to alternative strategy with master offset ", off)
-
-// 		ret = true
-// 	}
-
-// 	return ret
-// }
-
+//ChangeStrategy monitores throughput performance of the active strategy (strategy #0)
+//and if it detects significan perfromance degredation, suspends the active strategy and
+//changes to an alternate strategy.
 func (sess *Session) ChangeStrategy() bool {
-	//TODO: volatile. check that not all strategies will
-	//be suspended all together.
 	var ret bool
 
 	s := sess.globalStrategies[0]
@@ -283,20 +176,3 @@ func (sess *Session) ChangeStrategy() bool {
 func (sess *Session) GetNumStrategies() int {
 	return len(sess.globalStrategies)
 }
-
-// func (stat *StrategyStat) calcAvgWind() {
-// 	var acc, ret time.Duration
-
-// 	for _, val := range stat.AvgWnd {
-// 		acc = acc + val
-// 	}
-
-// 	d := stat.wndBack - stat.wndFront
-// 	if d > 0 {
-// 		ret = time.Duration(float64(acc) / float64(d))
-// 	} else {
-// 		ret = time.Duration(float64(acc) / float64(avgWndCapacity))
-// 	}
-
-// 	stat.AvgWndDuration = ret
-// }
