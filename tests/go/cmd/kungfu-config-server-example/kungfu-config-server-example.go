@@ -1,3 +1,4 @@
+// deprecated, should use srcs/go/cmd/kungfu-config-server/kungfu-config-server.go
 package main
 
 import (
