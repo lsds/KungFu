@@ -15,11 +15,8 @@ ENABLE_NCCL=0
 ENABLE_TRACE=0
 VERBOSE=0
 
+# defaults
 NCCL_HOME=$HOME/local/nccl
-if [ -f $NCCL_HOME/include/nccl.h ]; then
-    ENABLE_NCCL=1
-fi
-
 MPI_HOME=$HOME/local/openmpi
 
 parse_args() {
@@ -74,7 +71,7 @@ parse_args() {
 CMAKE_FLAGS=
 
 add_cmake_flag() {
-    echo "usinig $1=$2"
+    echo "using $1=$2"
     CMAKE_FLAGS="$CMAKE_FLAGS -D$1=$2"
 }
 
@@ -117,7 +114,6 @@ add_cmake_flags() {
         add_cmake_flag MPI_HOME ${MPI_HOME}
     fi
     if [ ${ENABLE_NCCL} -gt 0 ]; then
-        echo $ENABLE_NCCL
         add_cmake_flag NCCL_HOME ${NCCL_HOME}
         add_cmake_flag KUNGFU_ENABLE_NCCL 1
     fi

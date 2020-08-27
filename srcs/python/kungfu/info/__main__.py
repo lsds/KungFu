@@ -6,7 +6,7 @@ Usage:
 
 import sys
 
-from kungfu.ext import show_cuda_version, show_nccl_version
+from kungfu.python import show_cuda_version, show_nccl_version
 
 
 def _show_tensorflow_info():

@@ -4,6 +4,7 @@
 AllowShortBlocksOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
+AlwaysBreakTemplateDeclarations: true
 
 IndentWidth: 4
 BreakBeforeBraces: Linux

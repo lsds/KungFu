@@ -12,6 +12,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/tests/go/configserver"
 )
 
 var (
@@ -57,10 +58,7 @@ func example(c *cluster, prog string, args []string) {
 
 	getConfigURL := fmt.Sprintf("http://%s:%d/get", server.ip, configServerPort)
 	putConfigURL := fmt.Sprintf("http://%s:%d/put", `127.0.0.1`, configServerPort)
-
-	cc := &configClient{
-		endpoint: putConfigURL,
-	}
+	cc := configserver.NewClient(putConfigURL)
 	cc.WaitServer()
 
 	var hl plan.HostList
@@ -87,9 +85,11 @@ func example(c *cluster, prog string, args []string) {
 			utils.ExitErr(err)
 			return nil
 		}
+		delay := `10s`
 		initVersion := -1
 		if isFirst {
 			initVersion = 0
+			delay = `0s`
 		}
 		kungfuRunArgs := []string{
 			`-q`,
@@ -99,6 +99,7 @@ func example(c *cluster, prog string, args []string) {
 			`-w`,
 			`-config-server`, getConfigURL,
 			`-init-version`, strconv.Itoa(initVersion),
+			`-delay`, delay,
 			prog,
 		}
 		node := c.StartWithIP(ctx, wg, name, ip,
@@ -119,6 +120,7 @@ func example(c *cluster, prog string, args []string) {
 	time.Sleep(5 * time.Second)
 	startWorker(`kf-node-02`, 4, false)
 
+	log.Infof("waiting all workers to stop")
 	workerGroup.Wait()
 	log.Infof("all nodes stopped, stopping config server")
 	cc.StopServer()

@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
@@ -31,7 +32,7 @@ type Peer struct {
 	initClusterVersion int
 	parent             plan.PeerID
 	self               plan.PeerID
-	strategy           kb.Strategy
+	strategy           base.Strategy
 	single             bool
 	router             *router
 	server             server.Server
@@ -42,6 +43,8 @@ type Peer struct {
 	currentSession *session.Session
 	currentCluster *plan.Cluster
 	updated        bool
+
+	detached bool
 }
 
 func New() (*Peer, error) {
@@ -63,14 +66,14 @@ func NewFromConfig(cfg *env.Config) (*Peer, error) {
 			return nil, err
 		}
 	}
-	currentCluster := &plan.Cluster{
-		Runners: cfg.Parents,
+	initCluster := &plan.Cluster{
+		Runners: cfg.InitRunners,
 		Workers: cfg.InitPeers,
 	}
 	return &Peer{
 		configServerURL:    cfg.ConfigServer,
 		parent:             cfg.Parent,
-		currentCluster:     currentCluster,
+		currentCluster:     initCluster,
 		self:               cfg.Self,
 		strategy:           cfg.Strategy,
 		initClusterVersion: initClusterVersion,
@@ -108,6 +111,10 @@ func (p *Peer) Close() error {
 		p.server.Close() // TODO: check error
 	}
 	return nil
+}
+
+func (p *Peer) Detached() bool {
+	return p.detached
 }
 
 // UID returns an immutable unique ID of this peer
@@ -168,6 +175,10 @@ func (p *Peer) consensus(bs []byte) bool {
 }
 
 func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
+	if config.EnableStallDetection {
+		name := fmt.Sprintf("propose(%s)", cluster.DebugString())
+		defer utils.InstallStallDetector(name).Stop()
+	}
 	if p.currentCluster.Eq(cluster) {
 		log.Debugf("ingore unchanged proposal")
 		return false, true
@@ -181,8 +192,16 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 			Version: p.clusterVersion + 1,
 			Cluster: cluster,
 		}
-		// FIXME: assuming runners are up and running
 		var notify execution.PeerFunc = func(ctrl plan.PeerID) error {
+			ctx, cancel := context.WithTimeout(context.TODO(), config.WaitRunnerTimeout)
+			defer cancel()
+			n, err := p.router.Wait(ctx, ctrl)
+			if err != nil {
+				return err
+			}
+			if n > 0 {
+				log.Warnf("%s is up after pinged %d times", ctrl, n+1)
+			}
 			return p.router.Send(ctrl.WithName("update"), stage.Encode(), connection.ConnControl, 0)
 		}
 		if err := notify.Par(cluster.Runners); err != nil {
@@ -228,12 +247,14 @@ func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 	changed, keep := p.propose(*cluster)
 	if keep {
 		p.Update()
+	} else {
+		p.detached = true
 	}
 	return changed, keep, nil
 }
 
 func (p *Peer) getClusterConfig(url string) (*plan.Cluster, error) {
-	f, err := p.openURL(url)
+	f, err := utils.OpenURL(url, &p.httpClient, fmt.Sprintf("KungFu Peer: %s", p.self))
 	if err != nil {
 		return nil, err
 	}

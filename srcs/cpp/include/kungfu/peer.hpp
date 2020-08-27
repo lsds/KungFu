@@ -17,6 +17,8 @@ class Peer
 
     ~Peer();
 
+    bool Detached() const;
+
     // metadata APIs
     uint64_t Uid() const;
 
@@ -28,6 +30,10 @@ class Peer
 
     int LocalRank() const;
     int LocalSize() const;
+    int HostCount() const;
+
+    // call Done asynchronously
+    int Noop(const DoneCallback &done);
 
     // local API
     int Save(const char *name, const void *buf, int count,
@@ -51,6 +57,8 @@ class Peer
     int Request(int rank, const char *version, const char *name, void *buf,
                 int count, KungFu_Datatype dtype, const DoneCallback &done);
 
+    // FIXME: move Session APIs to Session class in C++
+
     // collective APIs
     int Barrier();
     int Barrier(const DoneCallback &done);
@@ -72,6 +80,17 @@ class Peer
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   const DoneCallback &done);
 
+    int CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, KungFu_Op op, const char *name);
+    int CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, KungFu_Op op, const char *name,
+                       const DoneCallback &done);
+
+    int MonitoredAllReduce(const void *sendbuf, void *recvbuf, int count,
+                           KungFu_Datatype dtype, KungFu_Op op,
+                           const int32_t *tree, const char *name,
+                           const DoneCallback &done);
+
     // variant of https://www.open-mpi.org/doc/v4.0/man3/MPI_Allgather.3.php
     int AllGather(const void *sendbuf, int count, KungFu_Datatype dtype,
                   void *recvbuf, const char *name);
@@ -84,6 +103,12 @@ class Peer
     int Broadcast(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, const char *name,
                   const DoneCallback &done);
+
+    int LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, const char *name);
+    int LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
+                       KungFu_Datatype dtype, const char *name,
+                       const DoneCallback &done);
 
     // variant of https://www.open-mpi.org/doc/v4.0/man3/MPI_Gather.3.php
     int Gather(const void *sendbuf, int send_count, KungFu_Datatype send_dtype,
@@ -116,11 +141,17 @@ class Peer
             });
     }
 
+    // adaptation APIs
+    int SetTree(const int32_t *tree);
+
     // monitoring APIs
     int GetPeerLatencies(float *recvbuf, int recv_count);
 
     // control APIs
     int ResizeClusterFromURL(bool *changed, bool *keep);
+    int ChangeStrategy();
+    void LogStats(int idx);
+    void PrintStategyStats();
 
     int ProposeNewSize(int new_size);
 };

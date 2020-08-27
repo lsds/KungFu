@@ -1,4 +1,6 @@
 import argparse
+import functools
+import operator
 import os
 
 import numpy as np
@@ -21,9 +23,7 @@ def parse_args():
 
 
 def slp(x, logits):
-    n = 1
-    for d in x.shape[1:]:
-        n *= int(d)
+    n = functools.reduce(operator.mul, [int(d) for d in x.shape[1:]], 1)
     output = tf.layers.dense(inputs=tf.reshape(x, [-1, n]), units=logits)
     return output, tf.argmax(output, axis=1)
 
@@ -55,7 +55,7 @@ def input_fn(ds, batch_size, epochs=1, shuffle=True):
 
 
 def get_model_dir(args):
-    from kungfu.ext import uid
+    from kungfu.python import uid
     x = uid()
     port = (x >> 16) & 0xffff
     version = x & 0xffff

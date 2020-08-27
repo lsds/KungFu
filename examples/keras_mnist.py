@@ -8,7 +8,7 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
 import math
 import tensorflow as tf
-from kungfu import current_cluster_size, current_rank
+from kungfu.python import current_cluster_size, current_rank
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
 from kungfu.tensorflow.optimizers import (SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer,

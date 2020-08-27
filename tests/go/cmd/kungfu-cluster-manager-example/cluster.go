@@ -94,5 +94,5 @@ func run(c xterm.Color, name string, prog string, args ...string) error {
 		VerboseLog: true,
 		Color:      c,
 	}
-	return r.Run(context.TODO(), cmd)
+	return r.Run(cmd)
 }

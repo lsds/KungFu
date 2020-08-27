@@ -218,7 +218,7 @@ def main(_):
                                    every_n_iter=10)
     ]
 
-    from kungfu import current_rank
+    from kungfu.python import current_rank
     save_checkpoints_secs = None if current_rank() != 0 else 30
     config = tf.estimator.RunConfig(
         save_checkpoints_secs=save_checkpoints_secs)

@@ -15,3 +15,4 @@ fi
 
 measure run_tests 4 ${PYTHON} ${ROOT}/tests/python/integration/test_operators.py
 measure run_tests 4 ${PYTHON} ${ROOT}/tests/python/integration/test_save_variables.py
+measure run_tests 4 ${PYTHON} ${ROOT}/tests/python/integration/test_set_tree.py

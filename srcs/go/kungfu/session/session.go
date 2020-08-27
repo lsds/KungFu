@@ -1,37 +1,87 @@
 package session
 
 import (
+	"fmt"
 	"sync"
+	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/plan/graph"
 	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
 	"github.com/lsds/KungFu/srcs/go/rchannel/handler"
 	"github.com/lsds/KungFu/srcs/go/utils"
+	"github.com/lsds/KungFu/srcs/go/utils/assert"
 )
 
 const defaultRoot = 0
 
-// A strategy is a pair of dataflow graphs
-type strategy struct {
-	reduceGraph *plan.Graph
-	bcastGraph  *plan.Graph
+//StrategyStatSnapshot holds a snapshot of major metrics
+//from the `StrategyStat` object
+type StrategyStatSnapshot struct {
+	Throughput float64
 }
 
-// Session contains the immutable topology and strategies for a given period of logical duration
+//StrategyStat holds statistical data for a specific strategy
+type StrategyStat struct {
+	Throughput float64
+	accSize    int
+	firstBegin *time.Time
+	lastEnd    time.Time
+	suspended  bool
+	reff       StrategyStatSnapshot
+	lock       sync.Mutex
+}
+
+//GetSnapshot return a StrategyStatSnapshot object containing
+//a snapshot of the strategy's statistics
+func (ss *StrategyStat) GetSnapshot() StrategyStatSnapshot {
+	return StrategyStatSnapshot{Throughput: ss.Throughput}
+}
+
+//Reset resets the counters associated with a specfiic `StrategyStat` object
+func (ss *StrategyStat) Reset() {
+	ss.accSize = 0
+	ss.firstBegin = nil
+	ss.lastEnd = time.Unix(0, 0)
+}
+
+//Update set the appropriate counters associated with a specific
+//`StrategyStat` object
+func (ss *StrategyStat) Update(begin, end time.Time, size int) {
+
+	ss.lock.Lock()
+	defer ss.lock.Unlock()
+
+	if ss.firstBegin == nil {
+		ss.firstBegin = &begin
+	}
+	if end.After(ss.lastEnd) {
+		ss.lastEnd = end
+	}
+	ss.accSize = ss.accSize + size
+}
+
+// Session contains the immutable peer list for a given period of logical duration
 type Session struct {
-	strategies        []strategy
+	sync.Mutex
+
+	localStrategies   strategyList
+	globalStrategies  strategyList
+	crossStrategies   strategyList
 	self              plan.PeerID
 	peers             plan.PeerList
 	rank              int
 	localRank         int
 	localSize         int
+	hostCount         int
 	client            *client.Client
 	collectiveHandler *handler.CollectiveEndpoint
 	strategyHash      strategyHashFunc
+	strategyStats     []StrategyStatSnapshot
 }
 
 func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint) (*Session, bool) {
@@ -43,16 +93,23 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 	if !ok {
 		return nil, false
 	}
+
+	if rank == 0 {
+		fmt.Println("Rank 0 -> ", self)
+	}
 	if strategy == kb.Auto {
 		strategy = autoSelect(pl)
 	}
 	sess := &Session{
-		strategies:        partitionStrategies[strategy](pl),
+		localStrategies:   genLocalStrategyList(pl),
+		globalStrategies:  genGlobalStrategyList(pl, strategy),
+		crossStrategies:   genCrossStrategyList(pl, strategy),
 		self:              self,
 		peers:             pl,
 		rank:              rank,
 		localRank:         localRank,
 		localSize:         pl.LocalSize(self),
+		hostCount:         pl.HostCount(),
 		client:            client,
 		collectiveHandler: collectiveHandler,
 		strategyHash:      getStrategyHash(),
@@ -76,11 +133,21 @@ func (sess *Session) LocalSize() int {
 	return sess.localSize
 }
 
+func (sess *Session) HostCount() int {
+	return sess.hostCount
+}
+
 func (sess *Session) Peer(rank int) plan.PeerID {
 	return sess.peers[rank]
 }
 
 func (sess *Session) Barrier() error {
+	sess.Lock()
+	defer sess.Unlock()
+	return sess.barrier()
+}
+
+func (sess *Session) barrier() error {
 	k := len(sess.peers)
 	count := k * 1
 	dtype := kb.U8
@@ -90,7 +157,7 @@ func (sess *Session) Barrier() error {
 		OP:      kb.SUM,
 		Name:    "kungfu::barrier", // TODO: use tag
 	}
-	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
+	return sess.runStrategies(w, plan.EvenPartition, sess.globalStrategies)
 }
 
 func (sess *Session) Consensus(w kb.Workspace) error {
@@ -111,9 +178,9 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		x.AsI32()[0] = int32(n)
 		w1 := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:len:min:" + name}
 		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:len:max:" + name}
-		sess.AllReduce(w1)
-		sess.AllReduce(w2)
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
+		assert.OK(sess.AllReduce(w1))
+		assert.OK(sess.AllReduce(w2))
+		if !utils.BytesEq(y.Data, z.Data) {
 			return false, nil
 		}
 	}
@@ -126,36 +193,38 @@ func (sess *Session) BytesConsensus(bs []byte, name string) (bool, error) {
 		z := kb.NewVector(n, kb.U8)
 		w1 := kb.Workspace{SendBuf: x, RecvBuf: y, OP: kb.MIN, Name: ":consensus:min:" + name}
 		w2 := kb.Workspace{SendBuf: x, RecvBuf: z, OP: kb.MAX, Name: ":consensus:max:" + name}
-		sess.AllReduce(w1)
-		sess.AllReduce(w2)
-		if !utils.BytesEq(x.Data, y.Data) || !utils.BytesEq(x.Data, z.Data) {
+		assert.OK(sess.AllReduce(w1))
+		assert.OK(sess.AllReduce(w2))
+		if !utils.BytesEq(y.Data, z.Data) {
 			return false, nil
 		}
 	}
 	return true, nil
 }
 
-func (sess *Session) AllReduce(w kb.Workspace) error {
-	return sess.runStrategies(w, plan.EvenPartition, sess.strategies)
-}
-
 func (sess *Session) Reduce(w kb.Workspace) error {
-	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
+	strategy := sess.globalStrategies[0] // Assuming len(sess.globalStrategies) > 0
 	return sess.runGraphs(w, strategy.reduceGraph)
 }
 
 func (sess *Session) Broadcast(w kb.Workspace) error {
-	strategy := sess.strategies[0] // Assuming len(sess.strategies) > 0
+	strategy := sess.globalStrategies[0] // Assuming len(sess.globalStrategies) > 0
 	return sess.runGraphs(w, strategy.bcastGraph)
-}
-
-func (sess *Session) AllGather(w kb.Workspace) error {
-	return sess.runAllGather(w)
 }
 
 func (sess *Session) Gather(w kb.Workspace) error {
 	// TODO: validate input
 	return sess.runGather(w)
+}
+
+func (sess *Session) LocalReduce(w kb.Workspace) error {
+	strategy := sess.localStrategies[0] // len(sess.localStrategies) == 1
+	return sess.runGraphs(w, strategy.reduceGraph)
+}
+
+func (sess *Session) LocalBroadcast(w kb.Workspace) error {
+	strategy := sess.localStrategies[0] // len(sess.localStrategies) == 1
+	return sess.runGraphs(w, strategy.bcastGraph)
 }
 
 func asMessage(b *kb.Vector) connection.Message {
@@ -189,24 +258,36 @@ func (sess *Session) runGather(w kb.Workspace) error {
 	return nil // FIXME: handle errors
 }
 
-func (sess *Session) runGraphs(w kb.Workspace, graphs ...*plan.Graph) error {
-	if len(sess.peers) == 1 {
-		w.RecvBuf.CopyFrom(w.SendBuf)
+func isIsolated(rank int, graphs ...*graph.Graph) bool {
+	for _, g := range graphs {
+		if !g.IsIsolated(rank) {
+			return false
+		}
+	}
+	return true
+}
+
+func (sess *Session) runGraphs(w kb.Workspace, graphs ...*graph.Graph) error {
+	if w.IsEmpty() { // w.IsInplace will panic
+		return nil
+	}
+	if isIsolated(sess.rank, graphs...) {
+		w.Forward()
 		return nil
 	}
 
 	var recvCount int
-	effectiveData := func() []byte {
-		if recvCount == 0 {
-			return w.SendBuf.Data
+	effectiveBuffer := func() *kb.Vector {
+		if recvCount > 0 || w.IsInplace() {
+			return w.RecvBuf
 		}
-		return w.RecvBuf.Data
+		return w.SendBuf
 	}
 	var sendOnto execution.PeerFunc = func(peer plan.PeerID) error {
-		return sess.client.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.NoFlag)
+		return sess.client.Send(peer.WithName(w.Name), effectiveBuffer().Data, connection.ConnCollective, connection.NoFlag)
 	}
 	var sendInto execution.PeerFunc = func(peer plan.PeerID) error {
-		return sess.client.Send(peer.WithName(w.Name), effectiveData(), connection.ConnCollective, connection.WaitRecvBuf)
+		return sess.client.Send(peer.WithName(w.Name), effectiveBuffer().Data, connection.ConnCollective, connection.WaitRecvBuf)
 	}
 
 	var lock sync.Mutex
@@ -215,11 +296,7 @@ func (sess *Session) runGraphs(w kb.Workspace, graphs ...*plan.Graph) error {
 		b := &kb.Vector{Data: m.Data, Count: w.SendBuf.Count, Type: w.SendBuf.Type}
 		lock.Lock()
 		defer lock.Unlock()
-		if recvCount == 0 {
-			kb.Transform2(w.RecvBuf, w.SendBuf, b, w.OP)
-		} else {
-			kb.Transform(w.RecvBuf, b, w.OP)
-		}
+		kb.Transform2(w.RecvBuf, effectiveBuffer(), b, w.OP)
 		recvCount++
 		connection.PutBuf(m.Data) // Recycle buffer on the RecvOnto path
 		return nil
@@ -246,7 +323,7 @@ func (sess *Session) runGraphs(w kb.Workspace, graphs ...*plan.Graph) error {
 				log.Errorf("more than once recvInto detected at node %d", sess.rank)
 			}
 			if len(prevs) == 0 && recvCount == 0 {
-				w.RecvBuf.CopyFrom(w.SendBuf)
+				w.Forward()
 			} else {
 				if err := recvInto.Seq(prevs); err != nil { // len(prevs) == 1 is expected
 					return err

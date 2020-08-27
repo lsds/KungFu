@@ -1,8 +1,7 @@
 import tensorflow as tf
-from tensorflow.python.util import deprecation
-
+from kungfu.python import current_rank
 from kungfu.tensorflow.ops import barrier
-from kungfu import current_rank
+from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
@@ -25,6 +24,28 @@ def test_barrier():
         sess.run(barrier())
 
 
+def test_monitored_all_reduce():
+    def gen_tree(n, r):
+        tree = [i for i in range(n)]
+        for i in range(n):
+            if i != r:
+                tree[i] = r
+        return tree
+
+    from kungfu.tensorflow.ops import monitored_all_reduce, current_cluster_size
+    np = current_cluster_size()
+    init_tree = gen_tree(np, 0)
+
+    tree = tf.Variable(init_tree, dtype=tf.int32)
+    x = tf.Variable(tf.ones([16, 1024, 1024], dtype=tf.int64))
+    y = monitored_all_reduce(x, tree)
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+        v = sess.run(y)
+        assert (v.sum() == np * 16 * 1024 * 1024)
+
+
 def test_group_all_reduce():
     from kungfu.tensorflow.ops import group_all_reduce
     sizes = [i % 5 for i in range(10)]
@@ -37,7 +58,7 @@ def test_group_all_reduce():
 
 
 def test_group_all_gather():
-    from kungfu import current_cluster_size, current_rank
+    from kungfu.python import current_cluster_size, current_rank
     from kungfu.tensorflow.ops import all_gather
     rank = current_rank()
     np = current_cluster_size()
@@ -84,7 +105,7 @@ def test_save_and_request():
 
 
 def test_consensus():
-    from kungfu import current_cluster_size, current_rank
+    from kungfu.python import current_cluster_size, current_rank
     from kungfu.tensorflow.ops import consensus
 
     np = current_cluster_size()
@@ -112,6 +133,7 @@ def test_all():
     test_save_and_request()
     test_consensus()
     test_broadcast()
+    test_monitored_all_reduce()
 
 
 test_all()

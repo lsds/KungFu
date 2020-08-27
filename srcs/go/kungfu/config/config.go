@@ -17,12 +17,17 @@ const (
 	ConnRetryPeriod = 200 * time.Millisecond
 )
 
+var (
+	WaitRunnerTimeout = 5 * time.Minute
+)
+
 const (
 	EnableMonitoringEnvKey     = `KUNGFU_CONFIG_ENABLE_MONITORING`
 	EnableStallDetectionEnvKey = `KUNGFU_CONFIG_ENABLE_STALL_DETECTION`
 	LogLevelEnvKey             = `KUNGFU_CONFIG_LOG_LEVEL`
 	MonitoringPeriodEnvKey     = `KUNGFU_CONFIG_MONITORING_PERIOD`
 	StrategyHashMethodEnvKey   = `KUNGFU_CONFIG_STRATEGY_HASH_METHOD`
+	WaitRunnerTimeoutEnvKey    = `KUNGFU_CONFIG_WAIT_RUNNER_TIMEOUT`
 )
 
 var ConfigEnvKeys = []string{
@@ -55,6 +60,9 @@ func init() {
 	}
 	if val := os.Getenv(StrategyHashMethodEnvKey); len(val) > 0 {
 		StrategyHashMethod = strings.ToUpper(val) // FIXME: check enum value
+	}
+	if val := os.Getenv(WaitRunnerTimeoutEnvKey); len(val) > 0 {
+		WaitRunnerTimeout = parseDuration(val)
 	}
 }
 
