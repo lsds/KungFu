@@ -93,8 +93,6 @@ func createMultiBinaryTreeStarStrategies(peers plan.PeerList) strategyList {
 	var sl strategyList
 	for _, bcastGraph := range plan.GenMultiBinaryTreeStar(peers) {
 		sl = append(sl, simpleStrategy(bcastGraph))
-		sl[len(sl)-1].bcastGraph.Debug()
-		sl[len(sl)-1].reduceGraph.Debug()
 	}
 	return sl
 }
