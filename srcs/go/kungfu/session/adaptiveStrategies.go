@@ -66,11 +66,6 @@ func (sess *Session) CalcStats() {
 	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds() //time.Duration(stats.lastEnd-*stats.firstBegin)
 	stats.Throughput = t
 
-	// if sess.rank == 0 {
-	// 	fmt.Println("CalcStats: AccData=", testutils.ShowSize(int64(stats.accSize)), " Dur=", stats.lastEnd.Sub(*stats.firstBegin).Seconds(), " sec")
-	// 	fmt.Println("CalcStats: Throughput=", utils.ShowRate(stats.Throughput))
-	// }
-
 	//reset counters
 	stats.Reset()
 }
@@ -88,15 +83,11 @@ func (sess *Session) LogStats() {
 
 //PrintStategyStats prints the Strategy Stats Snapshots that have been logged in the `sess.strategyStats` slice
 func (sess *Session) PrintStategyStats() {
-	fmt.Println("Printing current state of session strategies")
-	fmt.Println("Available strategies: ", len(sess.globalStrategies))
-
-	// for i, s := range sess.strategies {
-	// 	fmt.Println("Strategy #", i, ",Master[", s.bcastGraph.Master, "],avgDuration=", s.stat.AvgDuration, ",CMA=", s.stat.CmaDuration)
-	// }
+	log.Infof("Printing current state of session strategies")
+	log.Infof("Available strategies: %d", len(sess.globalStrategies))
 
 	for i, ss := range sess.strategyStats {
-		fmt.Println("Global Step #", i, ",Master[", 0, "],Throughput=", utils.ShowRate(ss.Throughput))
+		log.Infof("Global Step #%d, Master[%d], Throughput=%s ", i, 0, utils.ShowRate(ss.Throughput))
 	}
 }
 
