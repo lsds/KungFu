@@ -15,7 +15,7 @@ import tensorflow as tf
 from tensorflow.keras import applications
 from tensorflow.python.util import deprecation
 from kungfu.python import (current_rank, 
-    change_strategy, log_stats, print_strategy_stats,
+    log_stats, print_strategy_stats,
     check_interference, current_cluster_size)
 from kungfu.tensorflow.ops.adapt import set_tree, calc_stats
 
