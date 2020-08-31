@@ -67,11 +67,11 @@ func createStarStrategies(peers plan.PeerList) strategyList {
 }
 
 func createMultiStarStrategies(peers plan.PeerList) strategyList {
-	var ss []strategy
+	var sl strategyList
 	for _, bcastGraph := range plan.GenMultiStar(peers) {
-		ss = append(ss, simpleStrategy(bcastGraph))
+		sl = append(sl, simpleStrategy(bcastGraph))
 	}
-	return ss
+	return sl
 }
 
 func createTreeStrategies(peers plan.PeerList) strategyList {

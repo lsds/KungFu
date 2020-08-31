@@ -16,7 +16,6 @@ func (sess *Session) SetGlobalStrategy(sl strategyList) error {
 	sess.globalStrategies = sl
 
 	assert.OK(sess.barrier())
-
 	return nil
 }
 
@@ -25,6 +24,5 @@ func (sess *Session) SimpleSetGlobalStrategy(forest []int32) error {
 	bg, m, ok := graph.FromForestArrayI32(forest)
 	assert.True(m == 1)
 	assert.True(ok)
-	s0 := simpleStrategy(bg)
-	return sess.SetGlobalStrategy([]strategy{s0})
+	return sess.SetGlobalStrategy(simpleSingleGraphStrategy(bg))
 }
