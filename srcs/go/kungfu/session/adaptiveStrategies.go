@@ -7,7 +7,6 @@ import (
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/log"
-	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/tests/go/fakemodel"
 )
@@ -16,13 +15,6 @@ const (
 	interferenceThreshold = 0.8
 	alternativeStrategy   = 1
 )
-
-//SmartAllReduce performs an optimized AllReduce operation over the given workspace parameter
-//by monitoring the performance of different concurrently executed collective communications
-//strategies and applying weights to optimize the choice between them based on the monitoring
-func (sess *Session) SmartAllReduce(w kb.Workspace) error {
-	return sess.runMonitoredStrategies(w, plan.EvenPartition, sess.globalStrategies)
-}
 
 func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
 	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
