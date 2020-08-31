@@ -39,3 +39,9 @@ def set_tree(tree):
             - i is the root if tree[i] == i.
     """
     return _op_lib.kungfu_set_tree(tree)
+
+def calc_stats():
+    """Calculate key communication stratetgy metrics based on current state 
+
+    """
+    return _op_lib.kungfu_calc_stats()

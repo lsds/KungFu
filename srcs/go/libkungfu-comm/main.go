@@ -135,6 +135,34 @@ func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C
 	return 0
 }
 
+//export GoKungfuCheckInterference
+func GoKungfuCheckInterference() int {
+	sess := defaultPeer.CurrentSession()
+
+	if sess.CheckInterference() {
+		return 1
+	}
+	return 0
+}
+
+//export GoCalcStats
+func GoCalcStats() {
+	sess := defaultPeer.CurrentSession()
+	sess.CalcStats()
+}
+
+//export GoLogStats
+func GoLogStats() {
+	sess := defaultPeer.CurrentSession()
+	sess.LogStats()
+}
+
+//export GoPrintStategyStats
+func GoPrintStategyStats() {
+	sess := defaultPeer.CurrentSession()
+	sess.PrintStategyStats()
+}
+
 //export GoKungfuNoop
 func GoKungfuNoop(done *C.callback_t) int {
 	noop := func() error { return nil }
