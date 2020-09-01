@@ -90,12 +90,32 @@ int Peer::GetPeerLatencies(float *recvbuf, int recv_count)
     return GoKungfuGetPeerLatencies(recvbuf, recv_count, KungFu_FLOAT);
 }
 
+int Peer::CheckInterference()
+{
+    return GoKungfuCheckInterference();
+}
+
 // control APIs
 int Peer::ResizeClusterFromURL(bool *changed, bool *keep)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
     return GoKungfuResizeClusterFromURL(reinterpret_cast<char *>(changed),
                                         reinterpret_cast<char *>(keep));
+}
+
+void Peer::LogStats()
+{
+    GoLogStats();
+}
+
+void Peer::CalcStats()
+{
+    GoCalcStats();
+}
+
+void Peer::PrintStategyStats()
+{
+    GoPrintStategyStats();
 }
 
 int Peer::ProposeNewSize(int new_size)

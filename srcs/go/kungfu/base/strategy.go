@@ -9,6 +9,7 @@ type Strategy C.KungFu_Strategy
 
 const (
 	Star                Strategy = C.KungFu_Star
+	MultiStar           Strategy = C.KungFu_MultiStar
 	Ring                Strategy = C.KungFu_Ring
 	Clique              Strategy = C.KungFu_Clique
 	Tree                Strategy = C.KungFu_Tree
@@ -23,6 +24,7 @@ const DefaultStrategy = BinaryTreeStar
 var (
 	strategyNames = map[Strategy]string{
 		Star:                `STAR`,
+		MultiStar:           `MULTI_STAR`,
 		Ring:                `RING`,
 		Clique:              `CLIQUE`,
 		Tree:                `TREE`,
