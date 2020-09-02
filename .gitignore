@@ -45,3 +45,4 @@ kungfu.cbp
 Makefile.auto
 Testing/
 venv
+/build

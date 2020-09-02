@@ -31,3 +31,11 @@ int kungfu_propose_new_size(int new_size)
 {
     return _default_peer->ProposeNewSize(new_size);
 }
+
+int kungfu_check_interference() {return _default_peer->CheckInterference(); }
+
+void kungfu_calc_stats() { return _default_peer->CalcStats(); }
+
+void kungfu_log_stats() { return _default_peer->LogStats(); }
+
+void kungfu_print_strategy_stats() { _default_peer->PrintStategyStats(); }
