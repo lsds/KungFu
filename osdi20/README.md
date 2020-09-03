@@ -33,12 +33,32 @@ To gain a SSH access to this VM, please contact the authors.
 
 We start with re-producing the performance benchmark result of KungFu. This benchmark depends on a synthetic ImageNet benchmark and incurs minimal dependency to hardware, real dataset and model implementation. It is thus most easy to re-produce.
 
-### Monitoring Overhead (Fig.8)
+### Monitoring Overhead (Figure 8)
 
 In this experiment, we measure the overhead of computing online
 monitored training metrics: (i) gradient noise scale and (ii) gradient variance. To run this experiment, you would need to
-start the cluster that has [...] VMs and each VM has [...] GPUs.
+start a VM that has 4 P100 GPUs. In the paper, we present
+the result on a dedicated DGX-1 with 8 V100 GPUs. We no longer
+has the access to this machine.
 
-You then SSH to these VMs and run the following commands on each VM:
+You then SSH to this VM and run the following command
+to measure the overheads of monitoring **gradient noise scale**:
 
 [...]
+
+You would expect the following outputs:
+
+[...]
+
+Based on these outputs, we can calculate the overheads
+of monitoring is [...].
+
+The same steps are applied to **gradient variance**.
+
+[...]
+
+You would expect the following outputs:
+
+[...]
+
+### Scalability (Figure 9)
