@@ -183,7 +183,59 @@ The same chgange can be applied to clusters with any number (i.e.,
 
 ### 3. Scaling Performance (Figure 7)
 
-[...]
+In this experiment we show the ability to change number of workers of KungFu.
+In addition to installing KungFu, you need to install the example config server.
+
+This can be done by running
+
+```bash
+# build and install the example config server to $HOME/go/bin
+go install -v ./tests/go/cmd/kungfu-config-server-example
+```
+
+You will need to launch a cluster with the same setting as experiment 2.
+For simplicity, assuming we have 2 VMs with IPs `10.0.0.19` and `10.0.0.20`.
+
+You shall start the config server on `10.0.0.19`
+
+```bash
+$HOME/go/bin/kungfu-config-server-example
+```
+and reset the state of it
+
+```
+curl http://10.0.0.19:9100/reset
+```
+
+Then you can launch the 2-VM data parallel training by running the following command on **each** VM.
+
+```
+export TF_CPP_MIN_LOG_LEVEL=2
+
+# You can customize the resize schedule, in this example
+# it scales up to 2 workers at step 10, and scales down to 0 workers at step 100
+resize_schedule='10:2,100:0'
+
+kungfu-run \
+    -H '10.0.0.19:1,10.0.0.20:1' \
+    -nic eth0 \
+    -config-server http://10.0.0.20:9100/get \
+    -w \
+    -np 1 \
+    python3 ./benchmarks/scaling/benchmark_kungfu_scaling.py \
+    --tf-method estimator \
+    --elastic \
+    --resize-schedule "$resize_schedule" \
+    --train-steps 100 \
+    --epoch-size 10000
+```
+
+You should observe the following ouptut on `10.0.0.19`, indicating the scaling latency:
+
+```
+[10.0.0.19.10000::stdout] resize 1 -> 2 took 20.39s
+[10.0.0.19.10000::stdout] resize 2 -> 1 took 40.12ms
+```
 
 ### 4. Adaptive batch size (Figure 4)
 
@@ -241,7 +293,7 @@ where
 HOSTS_VAR=<masterNode>:1,<externalNode>:31
 ```
 
-and `kungfu-bench-allreduce` is a network tool written in Go that creates synthetic background traffic. You will need to install it by invoking the following in the KungFu directory: 
+and `kungfu-bench-allreduce` is a network tool written in Go that creates synthetic background traffic. You will need to install it by invoking the following in the KungFu directory:
 
 ```bash
 go install ./...
