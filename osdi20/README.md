@@ -10,8 +10,6 @@ and the necessary scripts to re-run the experiments in the evaluation section of
 *KungFu: Making Training in Distributed Machine Learning Adaptive.*
 Luo Mai, Guo Li, Marcel Wagenlander, Konstantinos Fertakis, Andrei-Octavian Brabete, Peter Pietzuch
 
-Main contact for evaluation: Luo Mai (luo.mai@imperial.ac.uk)
-
 ## Preliminaries
 
 The evaluation environment is hosted by a public cloud platform: Microsoft Azure. The base Virtual Machine (VM) image is `Canonical:UbuntuServer:18.04-LTS:latest` and you need to install
@@ -79,7 +77,7 @@ To gain SSH access to such a VM, please contact the authors.
 
 We start with re-producing the performance benchmark result of KungFu. This benchmark depends on a synthetic ImageNet benchmark and incurs minimal dependency to hardware, real dataset and model implementation. It is thus most easy to re-produce.
 
-### Monitoring Overhead (Figure 8)
+### 1. Monitoring Overhead (Figure 8)
 
 In this experiment, we measure the overhead of computing online
 monitored training metrics: (i) gradient noise scale and (ii) gradient variance. To run this experiment, you would need to
@@ -154,7 +152,7 @@ You would expect outputs like below:
 This shows that the training throughput drops from 49.2 to 47.4
 with extra gradient variance computation.
 
-### Scalability (Figure 9)
+### 2. Scalability (Figure 9)
 
 In this experiment, we measure the scalability of the
 asynchronous collective communication layer in KungFu.
@@ -200,9 +198,11 @@ only need to replace the `--model=ResNet50` with `--model=MobileNetV2`.
 The same operation is applied to cluster with any number (i.e.,
 8, 16, 32, ...) of VMs.
 
-### Scaling Performance (Figure 7)
+### 3. Scaling Performance (Figure 7)
 
-### Adaptive Communication Strategy (Figure 5)
+[...]
+
+### 4. Adaptive Communication Strategy (Figure 5)
 
 In this experiment, we showcase the power of adaptation of KungFu in combating adversarial network conditions. Specifically, we utilise low-level monitoring inside KungFu's communication stack to monitor the throughput from the all-reduce operation and detect network interference or contention. In such a case, the policy adjust the communication strategy (topology used by the all-reduce) in order to reduce the use of contended network links. We are simulating the network contention by manually introducing background traffic between the master node of the default communication strategy and an external node (a node that isn't taking part in the training).
 
