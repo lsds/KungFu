@@ -304,7 +304,7 @@ To measure the baseline execution scenario with no adaption enabled, you need to
 kungfu-run -q -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --kf-optimizer=sync-sgd-monitor
 ```
 
-### 6. Adaptive resource provisioning (Figure 5)
+### 6. Adaptive resource provisioning (Figure 6)
 
 In the adaptive resource provisioning experiment, we use KungFu's support for elastic scaling to increase/decrease the cluster size and eventually select the optimal size. We measure the total training throughput and increase the number of workers with a fixed frequency. The addition of workers happens until the total througput has not increased more than a predefined threshold. In this case, the last added worker is removed, and the training is finished with that number of workers.
 
@@ -315,7 +315,7 @@ git checkout kungfu-elastic-scaling
 ```
 
 The next step is to change to the `bert` directory.
-```bert
+```bash
 cd bert
 ```
 
@@ -334,7 +334,7 @@ Place these files in a data directory.
 Inside the `bert` directory, there is the shell script `run_elastic_scaling.sh`. Adjust the `BERT_BASE_DIR` and `SQUAD_DIR` variables to reflect the directories with the models.
 
 To start the experiment, you need to run the following command:
-```bert
+```bash
 ./run_elastic_scaling.sh
 ```
 
@@ -358,13 +358,28 @@ The terminal output during the experimental run should look as follows:
 ...
 ```
 
-After the experiment has finished, there are output files `out_{#}.csv` in the `bert` directory. In `out_{#}.csv`, we store, inter alia, the global step, number of workers, and the throughput of the workers. The `file out_1.csv` will have the complete history of the experiement because it is from the worker with rank 1. Move the `out_1.csv` file if you run more than one experiement because it will otherwise be overwritten. In the `tmp` directory, there are logs of KungFu and each worker.
+After the experiment has finished, there are output files `out_{#}.csv` in the `bert` directory. In `out_{#}.csv`, we store, inter alia, the global step, number of workers, and the throughput of the workers. The `file out_0.csv` will have the complete history of the experiement because it is from the worker with rank 1. Move the `out_0.csv` file if you run more than one experiement because it will otherwise be overwritten. In the `tmp` directory, there are logs of KungFu and each worker.
 
 To compare the optimal cluster size with running all workers from the start, you can use the shell script `run_all_workers.sh`. If you needed to adjust the `SQUAD_DIR` and `BERT_BASE_DIR` variables in the `run_elastic_scaling.sh` script, the same must be done in `run_all_workers.sh`.
 
 The start command for this experiment is:
-```bert
+```bash
 ./run_all_workers.sh
 ```
 
 The output during the experiment with all workers should look like the elastic scaling experiement.
+
+To plot the results, we need to do the following:
+
+For the python script `plot.py` to be able to run, those packages must be installed:
+* pandas
+* matplotlib
+* numpy
+
+Rename the output csv files to `no_scaling.csv` and `scaling.csv`.
+
+```bash
+python3 plot.py
+```
+
+To see the figure open `optimal_cluster_size.pdf`.
