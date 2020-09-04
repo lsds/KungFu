@@ -87,8 +87,26 @@ start a VM that has 4 K80 GPUs. In the paper, we present
 the result on a dedicated DGX-1 with 8 V100 GPUs. We no longer
 has the access to this machine.
 
-You need to SSH to this VM and run the following command
-to measure the overheads of computing **gradient noise scale**:
+You need to SSH to this VM. We first measure
+the training throughput of each GPU without monitoring:
+
+```bash
+kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
+```
+
+You would expect outputs like the below:
+
+```text
+...
+[127.0.0.1.10002::stdout] Iter #0: 49.3 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Iter #0: 49.4 img/sec per /gpu:0
+[127.0.0.1.10001::stdout] Iter #0: 49.3 img/sec per /gpu:0
+[127.0.0.1.10003::stdout] Iter #0: 49.3 img/sec per /gpu:0
+...
+```
+
+To measure the overheads of computing **gradient noise scale**,
+we need to switch the `kf-optimizer` to `noise-scale` like follow:
 
 ```bash
 kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=noise-scale --model=ResNet50 --batch-size=64 --interval==1
@@ -109,7 +127,10 @@ You would expect outputs like the below:
 ...
 ```
 
-The same steps are applied to **gradient variance**.
+This shows that the training throughput drops from 49.2 to 48.7
+with extra gradient noise scale computation.
+
+The same measurement is applied to **gradient variance** monitoring:
 
 ```bash
 kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=variance --model=ResNet50 --batch-size=64 --interval==1
@@ -130,12 +151,8 @@ You would expect outputs like below:
 ...
 ```
 
-We then measure the optimal training throughput without monitoring
-using the following command:
-
-
-
-
+This shows that the training throughput drops from 49.2 to 47.4
+with extra gradient variance computation.
 
 ### Scalability (Figure 9)
 
