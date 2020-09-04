@@ -329,7 +329,7 @@ For this experiment, we use the BERT-base model and the dataset Squad 2.0.
 Therefore, we need to clone a fork of the BERT repository that has all the adjustments to work with KungFu.
 The adjustments for KungFu are done on the branch `kungfu-elastic-scaling`.
 ```bash
-git clone git@github.com:marwage/bert.git
+git clone https://github.com/marwage/bert.git
 git checkout kungfu-elastic-scaling
 ```
 
