@@ -358,9 +358,9 @@ The terminal output during the experimental run should look as follows:
 ...
 ```
 
-After the experiment has finished, there is an output file `out.csv` in the `bert` directory. In `out.csv`, we store, inter alia, the global step, number of workers, and the throughput of the workers. Move the `out.csv` file if you run more than one experiement because it will otherwise be overwritten. In the `tmp` directory, there are logs of KungFu and each worker.
+After the experiment has finished, there are output files `out_{#}.csv` in the `bert` directory. In `out_{#}.csv`, we store, inter alia, the global step, number of workers, and the throughput of the workers. The `file out_1.csv` will have the complete history of the experiement because it is from the worker with rank 1. Move the `out_1.csv` file if you run more than one experiement because it will otherwise be overwritten. In the `tmp` directory, there are logs of KungFu and each worker.
 
-To compare the optimal cluster size with running all workers from the startg, you can use the shell script `run_all_workers.sh`. If you needed to adjust the `SQUAD_DIR` and `BERT_BASE_DIR` variables in the `run_elastic_scaling.sh` script, the same must be done in `run_all_workers.sh`.
+To compare the optimal cluster size with running all workers from the start, you can use the shell script `run_all_workers.sh`. If you needed to adjust the `SQUAD_DIR` and `BERT_BASE_DIR` variables in the `run_elastic_scaling.sh` script, the same must be done in `run_all_workers.sh`.
 
 The start command for this experiment is:
 ```bert
