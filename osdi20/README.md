@@ -54,16 +54,26 @@ pip3 install -U --user numpy==1.16 tensorflow-gpu==1.13.2
 Once the VM is ready, you would need to install the KungFu library as follow:
 
 ```bash
-git clone https://github.com/lsds/KungFu.git
+git clone --branch osdi20-artifact https://github.com/lsds/KungFu.git
 cd KungFu
 pip3 install -U --user .
 ```
 
-Different experiments may have specific dependency to dataset, policy programs and scripts. Please refer to the corresponding
-sub-sections below.
+If you get the following warning:
 
-**Note**: We provide a prepared VM for facilitating the reproduction.
-To gain a SSH access to this VM, please contact the authors.
+```text
+WARNING: The script kungfu-run is installed in '/home/user/.local/bin' which is not on PATH.
+onsider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+```
+
+Please add `kungfu-run` to your PATH:
+
+```bash
+PATH=$PATH:/home/user/.local/bin
+```
+
+**Important**: We provide a prepared VM for facilitating the above environment.
+To gain a SSH access to such a VM, please contact the authors.
 
 ## Evaluation
 
@@ -73,28 +83,84 @@ We start with re-producing the performance benchmark result of KungFu. This benc
 
 In this experiment, we measure the overhead of computing online
 monitored training metrics: (i) gradient noise scale and (ii) gradient variance. To run this experiment, you would need to
-start a VM that has 4 P100 GPUs. In the paper, we present
+start a VM that has 4 K80 GPUs. In the paper, we present
 the result on a dedicated DGX-1 with 8 V100 GPUs. We no longer
 has the access to this machine.
 
-You then SSH to this VM and run the following command
-to measure the overheads of monitoring **gradient noise scale**:
+You need to SSH to this VM and run the following command
+to measure the overheads of computing **gradient noise scale**:
 
-[...]
+```bash
+kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=noise-scale --model=ResNet50 --batch-size=64 --interval==1
+```
 
-You would expect the following outputs:
+You would expect outputs like the below:
 
-[...]
-
-Based on these outputs, we can calculate the overheads
-of monitoring is [...].
+```text
+...
+[127.0.0.1.10003::stderr] Gradient Noise Scale: -1050.39917
+[127.0.0.1.10000::stderr] Gradient Noise Scale: 6270.37646
+[127.0.0.1.10001::stderr] Gradient Noise Scale: 996.805725
+[127.0.0.1.10002::stderr] Gradient Noise Scale: 1410.21326
+[127.0.0.1.10000::stdout] Iter #2: 48.7 img/sec per /gpu:0
+[127.0.0.1.10001::stdout] Iter #2: 48.7 img/sec per /gpu:0
+[127.0.0.1.10002::stdout] Iter #2: 48.8 img/sec per /gpu:0
+[127.0.0.1.10003::stderr] Gradient Noise Scale: -907.974426
+...
+```
 
 The same steps are applied to **gradient variance**.
 
+```bash
+kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=variance --model=ResNet50 --batch-size=64 --interval==1
+```
+
+You would expect outputs like below:
+
+```text
+...
+[127.0.0.1.10001::stderr] Variance: 0.000108428423
+[127.0.0.1.10000::stderr] Variance: 0.000108428423
+[127.0.0.1.10002::stderr] Variance: 0.000108428423
+[127.0.0.1.10000::stdout] Iter #2: 47.4 img/sec per /gpu:0
+[127.0.0.1.10001::stdout] Iter #2: 47.4 img/sec per /gpu:0
+[127.0.0.1.10002::stdout] Iter #2: 47.4 img/sec per /gpu:0
+[127.0.0.1.10003::stderr] Variance: 0.000108428423
+[127.0.0.1.10003::stdout] Iter #2: 47.4 img/sec per /gpu:0
+...
+```
+
+We then measure the optimal training throughput without monitoring
+using the following command:
+
+
+
+
+
+### Scalability (Figure 9)
+
+In this experiment, we measure the scalability of the
+asynchronous collective communication layer in KungFu.
+We compare the ideal throughput (i.e., training throughput without
+communication) and actual training throughput.
+
+You will need to launch 8, 16, 32 VMs, respectively.
+To measure the training performance
+for ResNet50, on every VM, you need to run the following command:
+
 [...]
 
 You would expect the following outputs:
 
 [...]
 
-### Scalability (Figure 9)
+To measure the performance of MobileNetV2, you need to
+run:
+
+[...]
+
+You would expect the following outputs:
+
+[...]
+
+### Scaling Performance (Figure 7)

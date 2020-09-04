@@ -83,6 +83,9 @@ if args.kf_optimizer:
             opt,
             device_batch_size=args.batch_size,
             monitor_interval=args.interval)
+    elif args.kf_optimizer == 'sync-sgd':
+        from kungfu.tensorflow.optimizers import SynchronousSGDOptimizer
+        opt = SynchronousSGDOptimizer(opt)
     else:
         raise Exception('Unknown KungFu optimizer')
 
