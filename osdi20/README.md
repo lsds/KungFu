@@ -295,9 +295,9 @@ kungfu-run -q -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/
 ```
 
 ### Adaptive resource provisioning
-In the adaptive resource provisioning experiement, we use the elastic capability of KungFu with which we scale the cluster size up and eventually down to find the optimal cluster size.
+In the adaptive resource provisioning experiement, we use the elasticity capability of KungFu with which we scale the cluster size up and eventually down to find the optimal cluster size.
 We measure the total throughput of the training and increase the number of workers with a certain frequency.
-The adding of workers happens until the total througput had not increase more than a defined threshold.
+The adding of workers happens until the total througput has not increased more than a defined threshold.
 In this case, the lastly added worker will be removed and the training is finished with the number of workers after the removal until.
 
 For this experiment, we use the BERT-base model and the dataset Squad 2.0.
@@ -314,7 +314,7 @@ cd bert
 ```
 
 Since we do fine-tuning on the Bert-base model, we require a pretrained BERT-base model.
-The zip file can be downloaded from [Bert-base](https://storage.googleapis.com/bert_models/2020_02_20/uncased_L-12_H-768_A-12.zip)
+The zip file can be downloaded from [Bert-base](https://storage.googleapis.com/bert_models/2020_02_20/uncased_L-12_H-768_A-12.zip).
 When the download finished, unzip the archive.
 
 As well, we need to download the Squad 2.0 datset.
@@ -333,4 +333,38 @@ To start the experiment you need to run the following command.
 ./run_elastic_scaling.sh
 ```
 
+The terminal output during the experiment should look like
+```text
+...
+[127.0.0.1.10000::stderr] I0904 16:59:44.791337 139815124088640 tpu_estimator.py:2308] examples/sec: 12.6664
+[127.0.0.1.10002::stderr] I0904 16:59:44.791208 140353563645760 tpu_estimator.py:2307] global_step/sec: 1.58332
+[127.0.0.1.10002::stderr] INFO:tensorflow:examples/sec: 12.6666
+[127.0.0.1.10002::stderr] I0904 16:59:44.792021 140353563645760 tpu_estimator.py:2308] examples/sec: 12.6666
+[127.0.0.1.10001::stderr] INFO:tensorflow:global_step/sec: 1.58563
+[127.0.0.1.10000::stderr] INFO:tensorflow:global_step/sec: 1.58544
+[127.0.0.1.10000::stderr] I0904 16:59:45.421695 139815124088640 tpu_estimator.py:2307] global_step/sec: 1.58544
+[127.0.0.1.10001::stderr] I0904 16:59:45.421675 139956496979776 tpu_estimator.py:2307] global_step/sec: 1.58563
+[127.0.0.1.10002::stderr] INFO:tensorflow:global_step/sec: 1.58567
+[127.0.0.1.10000::stderr] INFO:tensorflow:examples/sec: 12.6835
+[127.0.0.1.10001::stderr] INFO:tensorflow:examples/sec: 12.6851
+[127.0.0.1.10000::stderr] I0904 16:59:45.422121 139815124088640 tpu_estimator.py:2308] examples/sec: 12.6835
+[127.0.0.1.10001::stderr] I0904 16:59:45.422118 139956496979776 tpu_estimator.py:2308] examples/sec: 12.6851
+[127.0.0.1.10002::stderr] I0904 16:59:45.421859 140353563645760 tpu_estimator.py:2307] global_step/sec: 1.58567
+...
+```
+
 After the experiment finished, we have the output file `out.csv` in the `bert` directory.
+Inside the `out.csv` file we store inter alia the global step, number of workers and the throughput of the worker.
+Move the `out.csv` file if you run more than one experiement, because it will get overidden otherwise.
+In the `tmp` directory are the logs of KungFu and each worker.
+
+To compare the optimal cluster size with running with all workers from the beginning, the following needs to be done.
+The shell script for this case is `run_all_workers.sh`.
+If you needed to adjust `SQUAD_DIR` and `BERT_BASE_DIR` in the `run_elastic_scaling.sh` script then you need to adjust those variables in `run_all_workers.sh`, too.
+
+The start command for this experiment is
+```bert
+./run_all_workers.sh
+```
+
+The output during the experiment with all workers should look like the elastic scaling experiement.
