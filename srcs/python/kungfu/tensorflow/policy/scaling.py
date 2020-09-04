@@ -1,12 +1,12 @@
-import tensorflow as tf
 import time
 import json
 import numpy as np
 import urllib
 import os
 from kungfu.python import current_rank, current_cluster_size
+from kungfu.policy import Policy
 
-class ScalingPolicy(tf.train.SessionRunHook):
+class ScalingPolicy(Policy):
     def __init__(self, batch_size, num_training_steps, change_step, alpha, path_workers, config_server):
         self._batch_size = batch_size
         self._average_throughput = dict()
@@ -19,45 +19,41 @@ class ScalingPolicy(tf.train.SessionRunHook):
         self._alpha = alpha
         self._config_server = config_server
 
-    def begin(self):
-        self._global_step = tf.train.get_or_create_global_step()
+    def before_step(self):
+        self._start_time = time.time()
 
-    def before_run(self, run_context):
-        if current_rank() == 0:
-            self._start_time = time.time()
-
-    def after_run(self, run_context, run_values):
-        if current_rank() == 0:
-            now = time.time()
-            duration = now - self._start_time
-            global_step = run_context.session.run(self._global_step)
-            sub_step = global_step % self._change_step
-            self._throughputs[sub_step] = self._batch_size / duration
-            num_workers = current_cluster_size()
-            if sub_step == 0 and not self._stop_scaling:
-                self._average_throughput[num_workers] = np.mean(self._throughputs[self._change_step//2:]) * num_workers
-                print("global_step", global_step, "average_throughput", self._average_throughput[num_workers], "number of workers", num_workers)
-                last_throughput = self._average_throughput[num_workers - 1] if num_workers > 1 else 0
-                if self._average_throughput[num_workers] < (1 + (self._alpha * 1/num_workers)) * last_throughput:
+    def after_step(self, global_step):
+        now = time.time()
+        duration = now - self._start_time
+        sub_step = global_step % self._change_step
+        self._throughputs[sub_step] = self._batch_size / duration
+        num_workers = current_cluster_size()
+        if sub_step == 0 and not self._stop_scaling:
+            self._average_throughput[num_workers] = np.mean(self._throughputs[self._change_step//2:]) * num_workers
+            print("global_step", global_step, "average_throughput", self._average_throughput[num_workers], "number of workers", num_workers)
+            if num_workers > 1 and (num_workers - 1) in self._average_throughput:
+                last_throughput = self._average_throughput[num_workers - 1]
+            else:
+                last_throughput = 0
+            if self._average_throughput[num_workers] < (1 + (self._alpha * 1/num_workers)) * last_throughput:
+                self._stop_scaling = True
+                print("stop scaling")
+                if current_rank() == 0:
+                    self.remove_last_worker(num_workers)
+            else:
+                if (num_workers < len(self._workers) + 1 and
+                    current_rank() == 0):
+                        self.add_worker(num_workers)
+                else:
                     self._stop_scaling = True
                     print("stop scaling")
-                    self.remove_last_worker(num_workers)
-                else:
-                    if num_workers < len(self._workers) + 1:
-                        self.add_worker(num_workers)
-                    else:
-                        self._stop_scaling = True
-                        print("stop scaling")
-            after_run_duration = time.time() - now
-            self._output[global_step] = [global_step, sub_step, num_workers, duration, self._throughputs[sub_step], after_run_duration]
-            if global_step == self._num_training_steps:
-                fname = "out.csv"
-                np.savetxt(fname, self._output, delimiter=",", header="global_step,sub_step,num_workers,duration,throughput,after_run_duration")
+        after_run_duration = time.time() - now
+        self._output[global_step] = [global_step, sub_step, num_workers, duration, self._throughputs[sub_step], after_run_duration]
 
-    def end(self, session):
-        if current_rank() == 0:
-            fname = "out.csv"
-            np.savetxt(fname, self._output, delimiter=",", header="global_step,sub_step,num_workers,duration,throughput,after_run_duration")
+    def after_train(self):
+        fname = "out_{}.csv".format(current_rank())
+        header = "global_step,sub_step,num_workers,duration,throughput,after_run_duration"
+        np.savetxt(fname, self._output, delimiter=",", header=header)
 
     def read_workers(self, path):
         with open(path, "r") as json_file:
