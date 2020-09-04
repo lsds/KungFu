@@ -279,6 +279,25 @@ You should observe the following ouptut on `10.0.0.19`, indicating the scaling l
 [10.0.0.19.10000::stdout] resize 2 -> 1 took 40.12ms
 ```
 
+We also provide a convenient tool to run this experiment end-to-end. You can install it by running
+
+```
+# Install the command kungfu-run-scaling-experiments in $HOME/go/bin
+go install -v ./experiments/cmd/kungfu-run-scaling-experiments
+```
+
+then you can run the experiment in one command:
+
+```bash
+hostfile=hosts.txt # contains IPv4 addresses, one per line.
+np=$(wc -l $hostfile | awk '{print $1}') # get number of machines
+
+# alternate the cluster size between 1 and $np at step 10, 20, 30, ..., resize to 0 at last
+resize_schedule="10:$np,20:1,30:$np,40:1,50:$np,60:1,70:$np,80:1,90:$np,100:0"
+
+kungfu-run-scaling-experiments -u $USER -nic eth0 -hostfile hosts.txt -resize-schedule $resize_schedule
+```
+
 ### 3.4. NCCL scheduler (Figure 10)
 
 [...]
