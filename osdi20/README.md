@@ -69,7 +69,7 @@ onsider adding this directory to PATH or, if you prefer to suppress this warning
 Please add `kungfu-run` to your PATH:
 
 ```bash
-PATH=$PATH:/home/user/.local/bin
+PATH=$PATH:$HOME/.local/bin
 ```
 
 **Important**: We provide a prepared VM for facilitating the above environment.
@@ -85,7 +85,7 @@ In this experiment, we measure the overhead of computing online
 monitored training metrics: (i) gradient noise scale and (ii) gradient variance. To run this experiment, you would need to
 start a VM that has 4 K80 GPUs. In the paper, we present
 the result on a dedicated DGX-1 with 8 V100 GPUs. We no longer
-has the access to this machine.
+have access to this machine.
 
 You need to SSH to this VM. We first measure
 the training throughput of each GPU without monitoring:
@@ -161,23 +161,39 @@ asynchronous collective communication layer in KungFu.
 We compare the ideal throughput (i.e., training throughput without
 communication) and actual training throughput.
 
-You will need to launch 8, 16, 32 VMs, respectively.
-To measure the training performance
-for ResNet50, on every VM, you need to run the following command:
+You will need to launch a cluster that has `N` VMs.
+For simplicity, assuming we have 2 VMs with the private IPs: `10.0.0.19` and `10.0.0.20`.
+These IPs are bind with the NIC: `eth0`.
+You can launch the 2-VM data parallel training by running the following command on **each** VM.
 
-[...]
+```bash
+kungfu-run -np 2 -H 10.0.0.19:1,10.0.0.20:1 -nic=eth0 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
+```
 
-You would expect the following outputs:
+You would expect outputs like below in the end on one of the VMs:
 
-[...]
+```text
+...
+[10.0.0.19.10000::stdout] Running benchmark...
+[10.0.0.19.10000::stdout] Iter #0: 50.5 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #1: 50.5 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #2: 50.4 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #3: 50.1 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #4: 50.1 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #5: 50.0 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #6: 50.1 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #7: 49.9 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #8: 49.7 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Iter #9: 49.8 img/sec per /gpu:0
+[10.0.0.19.10000::stdout] Img/sec per /gpu:0: 50.1 +-0.5
+[10.0.0.19.10000::stdout] RESULT: 50.118283 +-0.494631 {"framework":"kungfu","np":2,"strategy":"BINARY_TREE_STAR","bs":64,"model":"ResNet50","xla":false,"kf-opt":"sync-sgd","fuse":false,"nvlink":"false"}
+[I] all 1/2 local peers finished, took 2m40.691635844s
+```
 
-To measure the performance of MobileNetV2, you need to
-run:
+To run the scalability experiment using another model: `MobileNetV2`, you
+only need to replace the `--model=ResNet50` with `--model=MobileNetV2`.
 
-[...]
-
-You would expect the following outputs:
-
-[...]
+The same operation is applied to cluster with any number (i.e.,
+8, 16, 32, ...) of VMs.
 
 ### Scaling Performance (Figure 7)
