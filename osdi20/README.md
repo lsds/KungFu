@@ -123,7 +123,7 @@ You should see the output below:
 [I] all 4/4 local peers finished, took 1m11.316665569s
 ```
 
-This shows that the training throughput drops from 30.5 to 29.1 images per second with extra gradient noise scale computation.
+This shows that the training throughput slightly drops from 30.5 to 29.1 images per second with extra gradient noise scale computation.
 
 The same measurement is done for **gradient variance** monitoring:
 
@@ -180,7 +180,7 @@ You should expect following output:
 [I] all 4/4 local peers finished, took 1m13.139775458s
 ```
 
-This shows that the monitoring interval recovers the training throughput to 29.6,
+This shows that the monitoring interval recovers the training throughput from 24.3 to 29.6,
 which is consistent with the results in Figure 8.
 
 
