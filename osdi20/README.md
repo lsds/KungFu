@@ -197,3 +197,89 @@ The same operation is applied to cluster with any number (i.e.,
 8, 16, 32, ...) of VMs.
 
 ### Scaling Performance (Figure 7)
+
+### Adaptive Communication Strategy (Figure 5)
+
+In this experiment, we showcase the power of adaptation of KungFu in combating adversarial network conditions. Specifically, we utilise low-level monitoring inside KungFu's communication stack to monitor the throughput from the all-reduce operation and detect network interference or contention. In such a case, the policy adjust the communication strategy (topology used by the all-reduce) in order to reduce the use of contended network links. We are simulating the network contention by manually introducing background traffic between the master node of the default communication strategy and an external node (a node that isn't taking part in the training).
+
+For this experiment we are launching 4 VMs (can be any number above 2) with one K80 GPU per VM and one additional VM in the same VLAN for introducing the background traffic. We use the ResNet50 model for training and specify the communication strategy to be that of a `STAR`. 
+
+In order to start the distributed training, we have to run the following simultaneously on all the VM that will take part in the training:
+
+```bash
+kungfu-run -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --adapt --kf-optimizer=sync-sgd-monitor
+```
+
+where 
+
+```bash
+HOSTS_VAR=<list of comma seperated IPs and processes per machine (e.g., 192.168.10.2:1,192.168.10.2:2)>
+```
+
+We initiate the background traffic between the master node of the strategy (default master node is the first peer from the list defined in `HOSTS_VAR`) and the external to the training VM at an arbitrary time during training. We do so by invoking:
+
+```bash
+kungfu-run -np 32 -H $HOSTS_VAR -strategy STAR -nic eth0 -port-range 11100-11200 kungfu-bench-allreduce -model resnet50-imagenet -mode par -epochs 25
+```
+
+where 
+
+```bash
+HOSTS_VAR=<masterNode>:1,<externalNode>:31
+```
+
+You would expect the following outputs:
+
+```bash
+[10.0.0.7.10000::stdout] Cluster response Iter #20: 30.2 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 119.70 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #21: 29.4 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 114.74 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #22: 26.5 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 101.00 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 1
+[10.0.0.7.10000::stdout] Cluster response Iter #23: 29.4 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 114.95 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #24: 31.4 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 124.96 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #25: 28.9 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 112.70 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #26: 28.7 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 111.98 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #27: 28.0 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 108.53 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #28: 25.8 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 97.76 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #29: 27.9 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 108.60 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #30: 28.6 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 111.05 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 0
+[10.0.0.7.10000::stdout] Cluster response Iter #31: 19.2 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 68.82 MiB/s, reff= 92.11 MiB/s
+[10.0.0.7.10000::stdout] [I] AP:: cluster response -> 7
+[10.0.0.7.10000::stdout] [I] AP:: cluster reached consensus on changing to alternative strategy
+[10.0.0.7.10000::stdout] Cluster response 
+[10.0.0.7.10000::stdout] Interference detected. Changing to alternative comm strategy !
+[10.0.0.7.10000::stdout] Iter #32: 20.9 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] Iter #33: 23.3 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] Iter #34: 26.2 img/sec per /gpu:0
+[10.0.0.7.10000::stdout] Iter #35: 26.9 img/sec per /gpu:0
+```
+
+At around iteration #29 we initiate the background traffic. The effects are visible from the next iterations when the measured throughput drops. After it dropped below a predefined threshold of a reference window, it initiates the change to an alternative communication strategy. Then we see that from iteration #32 the throughput recovers. 
+
+Instead, or measuring the baseline, the same execution scenario but with no adaption enabled, you need to initiate the training by running :
+
+```bash
+kungfu-run -q -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --kf-optimizer=sync-sgd-monitor
+```
