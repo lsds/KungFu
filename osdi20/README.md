@@ -200,7 +200,53 @@ The same operation is applied to cluster with any number (i.e.,
 
 ### 3. Scaling Performance (Figure 7)
 
-[...]
+In this experiment we show the ability to change number of workers of KungFu.
+In addition to installing KungFu, you need to install the example config server.
+
+This can be done by running
+
+```bash
+# build and install the example config server to $HOME/go/bin
+go install -v ./tests/go/cmd/kungfu-config-server-example
+```
+
+You will need to launch a cluster with the same setting as experiment 2. Scalability.
+The first machine will also be used for running the config server.
+For simplicity, assuming we have 2 VMs with IPs `10.0.0.19` and `10.0.0.20`.
+
+You shall start the config server on the first machine
+
+```bash
+$HOME/go/bin/kungfu-config-server-example &
+```
+and reset the state of it
+
+```
+curl http://10.0.0.19:9100/reset
+```
+
+Then you can launch the 2-VM data parallel training by running the following command on **each** VM.
+
+```
+export TF_CPP_MIN_LOG_LEVEL=2
+
+# scale to 2 workers at step 10, and scale to 0 workers at step 100
+resize_schedule='10:2,20:1,30:2,100:0'
+
+kungfu-run \
+    -config-server http://10.0.0.19:9100/get \
+    -w \
+    -np 1 \
+    python3 ./benchmarks/scaling/benchmark_kungfu_scaling.py \
+    --tf-method estimator \
+    --elastic \
+    --resize-schedule "$resize_schedule" \
+    --train-steps 100 \
+    --epoch-size 10000
+```
+
+TODO: log examples
+
 
 ### 4. Adaptive batch size (Figure 4)
 
