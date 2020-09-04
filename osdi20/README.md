@@ -203,7 +203,7 @@ HOSTS_VAR=<list of comma seperated IPs and processes per machine (e.g., 192.168.
 We initiate the background traffic between the master node of the strategy (default master node is the first peer from the list defined in `HOSTS_VAR`) and the external to the training VM at an arbitrary time during training. We do so by invoking:
 
 ```bash
-kungfu-run -np 32 -H $HOSTS_VAR -strategy STAR -nic eth0 -port-range 11100-11200 kungfu-bench-allreduce -model resnet50-imagenet -mode par -epochs 25
+kungfu-run -np 32 -H $HOSTS_VAR -strategy STAR -nic eth0 -port-range 11100-11200 $HOME/go/bin/kungfu-bench-allreduce -model resnet50-imagenet -mode par -epochs 25
 ```
 
 where 
@@ -212,7 +212,13 @@ where
 HOSTS_VAR=<masterNode>:1,<externalNode>:31
 ```
 
-You would expect the following outputs:
+and `kungfu-bench-allreduce` is an network benchmark written in go that we use to create the artificial background traffic. You will need to install it by invoking the following the KungFu directory. You would then find the executable in the `go/bin` directory.
+
+```bash
+go install ./...
+```
+
+After invoking both the training and the background traffic, you would expect the following outputs:
 
 ```bash
 [10.0.0.7.10000::stdout] Cluster response Iter #20: 30.2 img/sec per /gpu:0
