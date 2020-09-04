@@ -70,7 +70,7 @@ PATH=$PATH:$HOME/.local/bin
 
 **Important**: We provide a prepared VM that has already been set up with the above environment. To gain SSH access to such a VM, please contact the authors.
 
-## Evaluation
+## Performance Benchmark
 
 We start by reproducing the performance benchmark results of KungFu. These benchmarks use a synthetic ImageNet workload and are easy to reproduce.
 
@@ -279,7 +279,17 @@ You should observe the following ouptut on `10.0.0.19`, indicating the scaling l
 [10.0.0.19.10000::stdout] resize 2 -> 1 took 40.12ms
 ```
 
-### 4. Adaptive batch size (Figure 4)
+### 4. NCCL scheduler (Figure 10)
+
+[...]
+
+## Adaptation Policies
+
+We provide all necessary steps to reproduce the adaptation policies. Due to the stochastic nature
+of training and the change of hardware environment (i.e., from a 8 V100 machine to 4 K80 machine),
+the policy results won't be exactly the same as shown in the paper.
+
+### 5. Adaptive batch size (Figure 4)
 
 In this experiment, we train the ResNet-56 model with the CIFAR10 dataset using fixed batch sizes (4 x 32 and 4 x 1024) and adaptive batch sizes. To run the experiment, you need a machine with 4 GPUs.
 
@@ -306,7 +316,7 @@ cd models
 It would take ~ 6 hours if you use 4 K80 GPUs, and ~ 3 hours if you use 4 TITAN X.
 Please contact the authors if you need to access the machine.
 
-### 5. Adaptive Communication Strategy (Figure 5)
+### 6. Adaptive Communication Strategy (Figure 5)
 
 In this experiment, we show how KungFu adapts trainig in the light of adversarial network conditions. We utilise low-level monitoring inside KungFu's communication stack to monitor the throughput from the all-reduce operations and detect network interference or contention. In such cases, the adaptation policy (AP) adjusts the communication strategy (i.e., the topology used by the all-reduce operations) to reduce the load on contended network links.
 
@@ -401,7 +411,7 @@ To measure the baseline execution scenario with no adaption enabled, you need to
 kungfu-run -q -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --kf-optimizer=sync-sgd-monitor
 ```
 
-### 6. Adaptive resource provisioning (Figure 6)
+### 7. Adaptive resource provisioning (Figure 6)
 
 In the adaptive resource provisioning experiment, we use KungFu's support for elastic scaling to increase/decrease the cluster size and eventually select the optimal size. We measure the total training throughput and increase the number of workers with a fixed frequency. The addition of workers happens until the total througput has not increased more than a predefined threshold. In this case, the last added worker is removed, and the training is finished with that number of workers.
 
