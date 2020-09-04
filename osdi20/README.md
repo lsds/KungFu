@@ -261,6 +261,9 @@ cd models
 ./plot-all.sh
 ```
 
+It would take ~ 6 hours if you use 4 K80 GPUs, and ~ 3 hours if you use 4 TITAN X.
+Please contact the authors if you need to access the machine.
+
 ### 5. Adaptive Communication Strategy (Figure 5)
 
 In this experiment, we show how KungFu adapts trainig in the light of adversarial network conditions. We utilise low-level monitoring inside KungFu's communication stack to monitor the throughput from the all-reduce operations and detect network interference or contention. In such cases, the adaptation policy (AP) adjusts the communication strategy (i.e., the topology used by the all-reduce operations) to reduce the load on contended network links.
