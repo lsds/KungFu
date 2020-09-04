@@ -4,12 +4,12 @@ This document describes how to evaluate the artifacts of the KungFu paper, which
 contains information about the evaluation environment, the installation of the KungFu library and relevant KungFu policy sample programs,
 and the necessary scripts to re-run the experiments from the evaluation section of the paper.
 
-## Paper
+## 1. Paper
 
 *KungFu: Making Training in Distributed Machine Learning Adaptive.*
 Luo Mai, Guo Li, Marcel Wagenlander, Konstantinos Fertakis, Andrei-Octavian Brabete, Peter Pietzuch (Imperial College London)
 
-## Preliminaries
+## 2. Preliminaries
 
 The evaluation environment is hosted on a public cloud platform: Microsoft Azure. The base Virtual Machine (VM) image is `Canonical:UbuntuServer:18.04-LTS:latest`, and you need to install the following drivers and packages:
 
@@ -70,11 +70,11 @@ PATH=$PATH:$HOME/.local/bin
 
 **Important**: We provide a prepared VM that has already been set up with the above environment. To gain SSH access to such a VM, please contact the authors.
 
-## Performance Benchmark
+## 3. Performance Benchmark
 
 We start by reproducing the performance benchmark results of KungFu. These benchmarks use a synthetic ImageNet workload and are easy to reproduce.
 
-### 1. Monitoring Overhead (Figure 8)
+### 3.1. Monitoring Overhead (Figure 8)
 
 In this experiment, we measure the overhead of computing online monitored training metrics: (i) gradient noise scale and (ii) gradient variance. To run this experiment, you need to start a VM that has 4 K80 GPUs. (In the paper, we present results from a DGX-1 machine with 8 V100 GPUs, but we can no longer provide dedicated access to this machine.)
 
@@ -184,7 +184,7 @@ This shows that the monitoring interval recovers the training throughput from 24
 which is consistent with the results in Figure 8.
 
 
-### 2. Scalability (Figure 9)
+### 3.2. Scalability (Figure 9)
 
 In this experiment, we measure the scalability of the asynchronous collective communication layer in KungFu. We compare the ideal throughput (i.e., training throughput without
 communication) and actual training throughput.
@@ -223,7 +223,7 @@ need to replace `--model=ResNet50` with `--model=MobileNetV2`.
 The same chgange can be applied to clusters with any number (i.e.,
 8, 16, 32, ...) of VMs.
 
-### 3. Scaling Performance (Figure 7)
+### 3.3. Scaling Performance (Figure 7)
 
 In this experiment we show the ability to change number of workers of KungFu.
 In addition to installing KungFu, you need to install the example config server.
@@ -279,17 +279,17 @@ You should observe the following ouptut on `10.0.0.19`, indicating the scaling l
 [10.0.0.19.10000::stdout] resize 2 -> 1 took 40.12ms
 ```
 
-### 4. NCCL scheduler (Figure 10)
+### 3.4. NCCL scheduler (Figure 10)
 
 [...]
 
-## Adaptation Policies
+## 4. Adaptation Policies
 
 We provide all necessary steps to reproduce the adaptation policies. Due to the stochastic nature
 of training and the change of hardware environment (i.e., from a 8 V100 machine to 4 K80 machine),
 the policy results won't be exactly the same as shown in the paper.
 
-### 5. Adaptive batch size (Figure 4)
+### 4.1. Adaptive batch size (Figure 4)
 
 In this experiment, we train the ResNet-56 model with the CIFAR10 dataset using fixed batch sizes (4 x 32 and 4 x 1024) and adaptive batch sizes. To run the experiment, you need a machine with 4 GPUs.
 
@@ -316,7 +316,7 @@ cd models
 It would take ~ 6 hours if you use 4 K80 GPUs, and ~ 3 hours if you use 4 TITAN X.
 Please contact the authors if you need to access the machine.
 
-### 6. Adaptive Communication Strategy (Figure 5)
+### 4.2. Adaptive Communication Strategy (Figure 5)
 
 In this experiment, we show how KungFu adapts trainig in the light of adversarial network conditions. We utilise low-level monitoring inside KungFu's communication stack to monitor the throughput from the all-reduce operations and detect network interference or contention. In such cases, the adaptation policy (AP) adjusts the communication strategy (i.e., the topology used by the all-reduce operations) to reduce the load on contended network links.
 
@@ -411,7 +411,7 @@ To measure the baseline execution scenario with no adaption enabled, you need to
 kungfu-run -q -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --kf-optimizer=sync-sgd-monitor
 ```
 
-### 7. Adaptive resource provisioning (Figure 6)
+### 4.3. Adaptive resource provisioning (Figure 6)
 
 In the adaptive resource provisioning experiment, we use KungFu's support for elastic scaling to increase/decrease the cluster size and eventually select the optimal size. We measure the total training throughput and increase the number of workers with a fixed frequency. The addition of workers happens until the total througput has not increased more than a predefined threshold. In this case, the last added worker is removed, and the training is finished with that number of workers.
 
