@@ -81,66 +81,108 @@ In this experiment, we measure the overhead of computing online monitored traini
 You need to SSH to the VM. We first measure the training throughput of each GPU without monitoring:
 
 ```bash
-kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
+kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=8
 ```
 
 You should see an output with results as follows:
 
 ```text
 ...
-[127.0.0.1.10002::stdout] Iter #0: 49.3 img/sec per /gpu:0
-[127.0.0.1.10000::stdout] Iter #0: 49.4 img/sec per /gpu:0
-[127.0.0.1.10001::stdout] Iter #0: 49.3 img/sec per /gpu:0
-[127.0.0.1.10003::stdout] Iter #0: 49.3 img/sec per /gpu:0
-...
+[127.0.0.1.10003::stdout] Img/sec per /gpu:0: 30.5 +-2.2
+[127.0.0.1.10002::stdout] Img/sec per /gpu:0: 30.5 +-2.2
+[127.0.0.1.10000::stdout] Iter #9: 31.6 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Img/sec per /gpu:0: 30.6 +-2.1
+[127.0.0.1.10001::stdout] Iter #9: 31.6 img/sec per /gpu:0
+[127.0.0.1.10001::stdout] Img/sec per /gpu:0: 30.5 +-2.2
+[I] all 4/4 local peers finished, took 1m56.574329056s
 ```
 
 To measure the overhead of computing **gradient noise scale**, we need to switch the `kf-optimizer` to `noise-scale`:
 
 ```bash
-kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=noise-scale --model=ResNet50 --batch-size=64 --interval==1
+kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=noise-scale --model=ResNet50 --batch-size=8 --interval=1
 ```
 
 You should see the output below:
 
 ```text
 ...
-[127.0.0.1.10003::stderr] Gradient Noise Scale: -1050.39917
-[127.0.0.1.10000::stderr] Gradient Noise Scale: 6270.37646
-[127.0.0.1.10001::stderr] Gradient Noise Scale: 996.805725
-[127.0.0.1.10002::stderr] Gradient Noise Scale: 1410.21326
-[127.0.0.1.10000::stdout] Iter #2: 48.7 img/sec per /gpu:0
-[127.0.0.1.10001::stdout] Iter #2: 48.7 img/sec per /gpu:0
-[127.0.0.1.10002::stdout] Iter #2: 48.8 img/sec per /gpu:0
-[127.0.0.1.10003::stderr] Gradient Noise Scale: -907.974426
-...
+[127.0.0.1.10000::stderr] Gradient Noise Scale: -7.01199627
+[127.0.0.1.10003::stderr] Gradient Noise Scale: 10.2202826
+[127.0.0.1.10000::stderr] Gradient Noise Scale: -6.14511395
+[127.0.0.1.10002::stderr] Gradient Noise Scale: -42.0077705
+[127.0.0.1.10003::stdout] Iter #9: 29.8 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Iter #9: 30.0 img/sec per /gpu:0
+[127.0.0.1.10003::stdout] Img/sec per /gpu:0: 29.2 +-1.7
+[127.0.0.1.10000::stdout] Img/sec per /gpu:0: 29.2 +-1.7
+[127.0.0.1.10002::stdout] Iter #9: 29.7 img/sec per /gpu:0
+[127.0.0.1.10002::stdout] Img/sec per /gpu:0: 29.2 +-1.7
+[127.0.0.1.10001::stderr] Gradient Noise Scale: -5.22375107
+[127.0.0.1.10001::stdout] Iter #9: 29.6 img/sec per /gpu:0
+[127.0.0.1.10001::stdout] Img/sec per /gpu:0: 29.1 +-1.7
+[I] all 4/4 local peers finished, took 1m11.316665569s
 ```
 
-This shows that the training throughput drops from 49.2 to 48.7 images per second with extra gradient noise scale computation.
+This shows that the training throughput drops from 30.5 to 29.1 images per second with extra gradient noise scale computation.
 
 The same measurement is done for **gradient variance** monitoring:
 
 ```bash
-kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=variance --model=ResNet50 --batch-size=64 --interval==1
+kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=variance --model=ResNet50 --batch-size=8 --interval=1
 ```
 
 You should expect the following output:
 
 ```text
 ...
-[127.0.0.1.10001::stderr] Variance: 0.000108428423
-[127.0.0.1.10000::stderr] Variance: 0.000108428423
-[127.0.0.1.10002::stderr] Variance: 0.000108428423
-[127.0.0.1.10000::stdout] Iter #2: 47.4 img/sec per /gpu:0
-[127.0.0.1.10001::stdout] Iter #2: 47.4 img/sec per /gpu:0
-[127.0.0.1.10002::stdout] Iter #2: 47.4 img/sec per /gpu:0
-[127.0.0.1.10003::stderr] Variance: 0.000108428423
-[127.0.0.1.10003::stdout] Iter #2: 47.4 img/sec per /gpu:0
-...
+[127.0.0.1.10002::stderr] Variance: 0.00236957218
+[127.0.0.1.10000::stderr] Variance: 0.00236957218
+[127.0.0.1.10003::stderr] Variance: 0.00740549667
+[127.0.0.1.10003::stdout] Iter #9: 23.6 img/sec per /gpu:0
+[127.0.0.1.10003::stdout] Img/sec per /gpu:0: 24.3 +-1.2
+[127.0.0.1.10001::stderr] Variance: 0.00740549667
+[127.0.0.1.10001::stdout] Iter #9: 23.6 img/sec per /gpu:0
+[127.0.0.1.10001::stdout] Img/sec per /gpu:0: 24.3 +-1.2
+[127.0.0.1.10002::stderr] Variance: 0.00740549667
+[127.0.0.1.10002::stdout] Iter #9: 23.5 img/sec per /gpu:0
+[127.0.0.1.10002::stdout] Img/sec per /gpu:0: 24.3 +-1.3
+[127.0.0.1.10000::stderr] Variance: 0.00740549667
+[127.0.0.1.10000::stdout] Iter #9: 23.6 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Img/sec per /gpu:0: 24.3 +-1.2
+[I] all 4/4 local peers finished, took 1m19.551613879s
 ```
 
-This shows that the training throughput drops from 49.2 to 47.4
+This shows that the training throughput drops from 30.5 to 24.3
 with extra gradient variance computation.
+To amortise monitoring cost, we can increase
+the monitoring interval `-interval` from 1 to 8:
+
+```bash
+kungfu-run -np 4 python3 benchmarks/monitoring/benchmark.py --kf-optimizer=variance --model=ResNet50 --batch-size=8 --interval=8
+```
+
+You should expect following output:
+
+```text
+...
+[127.0.0.1.10003::stderr] Variance: 0.000222897754
+[127.0.0.1.10002::stderr] Variance: 0.000222897754
+[127.0.0.1.10001::stderr] Variance: 0.000222897754
+[127.0.0.1.10000::stderr] Variance: 0.000222897754
+[127.0.0.1.10003::stdout] Iter #9: 29.6 img/sec per /gpu:0
+[127.0.0.1.10003::stdout] Img/sec per /gpu:0: 29.6 +-1.5
+[127.0.0.1.10002::stdout] Iter #9: 29.5 img/sec per /gpu:0
+[127.0.0.1.10002::stdout] Img/sec per /gpu:0: 29.6 +-1.5
+[127.0.0.1.10001::stdout] Iter #9: 29.7 img/sec per /gpu:0
+[127.0.0.1.10001::stdout] Img/sec per /gpu:0: 29.6 +-1.6
+[127.0.0.1.10000::stdout] Iter #9: 29.4 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Img/sec per /gpu:0: 29.6 +-1.5
+[I] all 4/4 local peers finished, took 1m13.139775458s
+```
+
+This shows that the monitoring interval recovers the training throughput to 29.6,
+which is consistent with the results in Figure 8.
+
 
 ### 2. Scalability (Figure 9)
 
