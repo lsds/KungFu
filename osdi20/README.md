@@ -202,7 +202,31 @@ The same operation is applied to cluster with any number (i.e.,
 
 [...]
 
-### 4. Adaptive Communication Strategy (Figure 5)
+### 4. Adaptive batch size (Figure 4)
+
+In this experiment we train the ResNet-56 model with CIFAR10 dataset. Using fixed batch size (4x32 and 4x1024) and adaptive batch size. To run the experiment, you need a machine with 4 GPUs.
+
+In addition to installing KungFu, you need to clone our fork of `http://github.com/tensorflow/models`.
+You can follow the following commands to clone the code and run the experiments.
+
+```
+git clone https://github.com/luomai/models -b osdi20
+cd models
+
+# download dataset to $HOME/var/data/cifar
+./download-cifar10-data.sh
+
+# run static baseline
+./train-cifar10-fixed.sh
+
+# run adaptive batch size
+./train-cifar10-adaptive.sh
+
+# Extract tensorflow log and generate the plots, results will be saved to ./data
+./plot-all.sh
+```
+
+### 5. Adaptive Communication Strategy (Figure 5)
 
 In this experiment, we showcase the power of adaptation of KungFu in combating adversarial network conditions. Specifically, we utilise low-level monitoring inside KungFu's communication stack to monitor the throughput from the all-reduce operation and detect network interference or contention. In such a case, the policy adjust the communication strategy (topology used by the all-reduce) in order to reduce the use of contended network links. We are simulating the network contention by manually introducing background traffic between the master node of the default communication strategy and an external node (a node that isn't taking part in the training).
 
@@ -294,8 +318,9 @@ Instead, or measuring the baseline, the same execution scenario but with no adap
 kungfu-run -q -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --kf-optimizer=sync-sgd-monitor
 ```
 
-### Adaptive resource provisioning
-In the adaptive resource provisioning experiement, we use the elasticity capability of KungFu with which we scale the cluster size up and eventually down to find the optimal cluster size.
+### 6. Adaptive resource provisioning (Figure 5)
+
+In the adaptive resource provisioning experiement, we use the elastic capability of KungFu with which we scale the cluster size up and eventually down to find the optimal cluster size.
 We measure the total throughput of the training and increase the number of workers with a certain frequency.
 The adding of workers happens until the total througput has not increased more than a defined threshold.
 In this case, the lastly added worker will be removed and the training is finished with the number of workers after the removal until.
