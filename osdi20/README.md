@@ -10,8 +10,6 @@ and the necessary scripts to re-run the experiments in the evaluation section of
 *KungFu: Making Training in Distributed Machine Learning Adaptive.*
 Luo Mai, Guo Li, Marcel Wagenlander, Konstantinos Fertakis, Andrei-Octavian Brabete, Peter Pietzuch
 
-Main contact for evaluation: Luo Mai (luo.mai@imperial.ac.uk)
-
 ## Preliminaries
 
 The evaluation environment is hosted by a public cloud platform: Microsoft Azure. The base Virtual Machine (VM) image is `Canonical:UbuntuServer:18.04-LTS:latest` and you need to install
@@ -73,13 +71,13 @@ PATH=$PATH:$HOME/.local/bin
 ```
 
 **Important**: We provide a prepared VM for facilitating the above environment.
-To gain a SSH access to such a VM, please contact the authors.
+To gain SSH access to such a VM, please contact the authors.
 
 ## Evaluation
 
 We start with re-producing the performance benchmark result of KungFu. This benchmark depends on a synthetic ImageNet benchmark and incurs minimal dependency to hardware, real dataset and model implementation. It is thus most easy to re-produce.
 
-### Monitoring Overhead (Figure 8)
+### 1. Monitoring Overhead (Figure 8)
 
 In this experiment, we measure the overhead of computing online
 monitored training metrics: (i) gradient noise scale and (ii) gradient variance. To run this experiment, you would need to
@@ -154,7 +152,7 @@ You would expect outputs like below:
 This shows that the training throughput drops from 49.2 to 47.4
 with extra gradient variance computation.
 
-### Scalability (Figure 9)
+### 2. Scalability (Figure 9)
 
 In this experiment, we measure the scalability of the
 asynchronous collective communication layer in KungFu.
@@ -163,12 +161,16 @@ communication) and actual training throughput.
 
 You will need to launch a cluster that has `N` VMs.
 For simplicity, assuming we have 2 VMs with the private IPs: `10.0.0.19` and `10.0.0.20`.
-These IPs are bind with the NIC: `eth0`.
+These IPs are bound with the NIC: `eth0`.
 You can launch the 2-VM data parallel training by running the following command on **each** VM.
 
 ```bash
 kungfu-run -np 2 -H 10.0.0.19:1,10.0.0.20:1 -nic=eth0 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
 ```
+
+The `-H` is in the format: `<ip1>:<slot>,<ip2>:<slot>` where
+`ip1` is usually the private IP and the `slot` is the number of GPUs per machine.
+The total number of GPUs is specified in the `-np`.
 
 You would expect outputs like below in the end on one of the VMs:
 
@@ -196,13 +198,15 @@ only need to replace the `--model=ResNet50` with `--model=MobileNetV2`.
 The same operation is applied to cluster with any number (i.e.,
 8, 16, 32, ...) of VMs.
 
-### Scaling Performance (Figure 7)
+### 3. Scaling Performance (Figure 7)
 
-### Adaptive Communication Strategy (Figure 5)
+[...]
+
+### 4. Adaptive Communication Strategy (Figure 5)
 
 In this experiment, we showcase the power of adaptation of KungFu in combating adversarial network conditions. Specifically, we utilise low-level monitoring inside KungFu's communication stack to monitor the throughput from the all-reduce operation and detect network interference or contention. In such a case, the policy adjust the communication strategy (topology used by the all-reduce) in order to reduce the use of contended network links. We are simulating the network contention by manually introducing background traffic between the master node of the default communication strategy and an external node (a node that isn't taking part in the training).
 
-For this experiment we are launching 4 VMs (can be any number above 2) with one K80 GPU per VM and one additional VM in the same VLAN for introducing the background traffic. We use the ResNet50 model for training and specify the communication strategy to be that of a `STAR`. 
+For this experiment we are launching 4 VMs (can be any number above 2) with one K80 GPU per VM and one additional VM in the same VLAN for introducing the background traffic. We use the ResNet50 model for training and specify the communication strategy to be that of a `STAR`.
 
 In order to start the distributed training, we have to run the following simultaneously on all the VM that will take part in the training:
 
@@ -210,7 +214,7 @@ In order to start the distributed training, we have to run the following simulta
 kungfu-run -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --adapt --kf-optimizer=sync-sgd-monitor
 ```
 
-where 
+where
 
 ```bash
 HOSTS_VAR=<list of comma seperated IPs and processes per machine (e.g., 192.168.10.2:1,192.168.10.2:2)>
@@ -222,7 +226,7 @@ We initiate the background traffic between the master node of the strategy (defa
 kungfu-run -np 32 -H $HOSTS_VAR -strategy STAR -nic eth0 -port-range 11100-11200 $HOME/go/bin/kungfu-bench-allreduce -model resnet50-imagenet -mode par -epochs 25
 ```
 
-where 
+where
 
 ```bash
 HOSTS_VAR=<masterNode>:1,<externalNode>:31
@@ -274,7 +278,7 @@ After invoking both the training and the background traffic, you would expect th
 [10.0.0.7.10000::stdout] [I] MonitorStrategy:: Checking Throughput = 68.82 MiB/s, reff= 92.11 MiB/s
 [10.0.0.7.10000::stdout] [I] AP:: cluster response -> 7
 [10.0.0.7.10000::stdout] [I] AP:: cluster reached consensus on changing to alternative strategy
-[10.0.0.7.10000::stdout] Cluster response 
+[10.0.0.7.10000::stdout] Cluster response
 [10.0.0.7.10000::stdout] Interference detected. Changing to alternative comm strategy !
 [10.0.0.7.10000::stdout] Iter #32: 20.9 img/sec per /gpu:0
 [10.0.0.7.10000::stdout] Iter #33: 23.3 img/sec per /gpu:0
@@ -282,7 +286,7 @@ After invoking both the training and the background traffic, you would expect th
 [10.0.0.7.10000::stdout] Iter #35: 26.9 img/sec per /gpu:0
 ```
 
-At around iteration #29 we initiate the background traffic. The effects are visible from the next iterations when the measured throughput drops. After it dropped below a predefined threshold of a reference window, it initiates the change to an alternative communication strategy. Then we see that from iteration #32 the throughput recovers. 
+At around iteration #29 we initiate the background traffic. The effects are visible from the next iterations when the measured throughput drops. After it dropped below a predefined threshold of a reference window, it initiates the change to an alternative communication strategy. Then we see that from iteration #32 the throughput recovers.
 
 Instead, or measuring the baseline, the same execution scenario but with no adaption enabled, you need to initiate the training by running :
 
