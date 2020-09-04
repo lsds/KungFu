@@ -73,7 +73,7 @@ PATH=$PATH:$HOME/.local/bin
 ```
 
 **Important**: We provide a prepared VM for facilitating the above environment.
-To gain a SSH access to such a VM, please contact the authors.
+To gain SSH access to such a VM, please contact the authors.
 
 ## Evaluation
 
@@ -163,12 +163,16 @@ communication) and actual training throughput.
 
 You will need to launch a cluster that has `N` VMs.
 For simplicity, assuming we have 2 VMs with the private IPs: `10.0.0.19` and `10.0.0.20`.
-These IPs are bind with the NIC: `eth0`.
+These IPs are bound with the NIC: `eth0`.
 You can launch the 2-VM data parallel training by running the following command on **each** VM.
 
 ```bash
 kungfu-run -np 2 -H 10.0.0.19:1,10.0.0.20:1 -nic=eth0 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
 ```
+
+The `-H` is in the format: `<ip1>:<slot>,<ip2>:<slot>` where
+`ip1` is usually the private IP and the `slot` is the number of GPUs per machine.
+The total number of GPUs is specified in the `-np`.
 
 You would expect outputs like below in the end on one of the VMs:
 
