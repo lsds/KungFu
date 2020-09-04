@@ -289,3 +289,44 @@ Instead, or measuring the baseline, the same execution scenario but with no adap
 ```bash
 kungfu-run -q -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --kf-optimizer=sync-sgd-monitor
 ```
+
+### Adaptive resource provisioning
+In the adaptive resource provisioning experiement, we use the elastic capability of KungFu with which we scale the cluster size up and eventually down to find the optimal cluster size.
+We measure the total throughput of the training and increase the number of workers with a certain frequency.
+The adding of workers happens until the total througput had not increase more than a defined threshold.
+In this case, the lastly added worker will be removed and the training is finished with the number of workers after the removal until.
+
+For this experiment, we use the BERT-base model and the dataset Squad 2.0.
+Therefore, we need to clone a fork of the BERT repository that has all the adjustments to work with KungFu.
+The adjustments for KungFu are done on the branch `kungfu-elastic-scaling`.
+```bash
+git clone git@github.com:marwage/bert.git
+git checkout kungfu-elastic-scaling
+```
+
+The next step is to go into the bert directory.
+```bert
+cd bert
+```
+
+Since we do fine-tuning on the Bert-base model, we require a pretrained BERT-base model.
+The zip file can be downloaded from [Bert-base](https://storage.googleapis.com/bert_models/2020_02_20/uncased_L-12_H-768_A-12.zip)
+When the download finished, unzip the archive.
+
+As well, we need to download the Squad 2.0 datset.
+The necessary files can be found here:
+*   [train-v2.0.json](https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json)
+*   [dev-v2.0.json](https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json)
+*   [evaluate-v2.0.py](https://worksheets.codalab.org/rest/bundles/0x6b567e1cf2e041ec80d7098f031c5c9e/contents/blob/)
+Put those files into a data directory.
+
+Inside the `bert` directory is the shell script `run_elastic_scaling.sh`.
+Adjust the `SQUAD_DIR` variable if it diverges from the given one.
+The same goes for the `BERT_BASE_DIR` variable.
+
+To start the experiment you need to run the following command.
+```bert
+./run_elastic_scaling.sh
+```
+
+After the experiment finished, we have the output file `out.csv` in the `bert` directory.
