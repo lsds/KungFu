@@ -282,15 +282,22 @@ You should observe the following ouptut on `10.0.0.19`, which shows the scaling 
 
 We also provide a convenient tool to run this experiment end-to-end. You can install it by running:
 
+```bash
+# Install the command kungfu-run-scaling-experiments
+# and kungfu-remote-install in $HOME/go/bin
+go install -v ./experiments/cmd/...
 ```
-# Install the command kungfu-run-scaling-experiments in $HOME/go/bin
-go install -v ./experiments/cmd/kungfu-run-scaling-experiments
+
+then you need to prepare the `hosts.txt` and run the `kungfu-remote-install` command to install KungFu on every machine:
+
+```bash
+hostfile=hosts.txt # contains IPv4 addresses, one per line.
+kungfu-remote-install -u $USER -hostfile hosts.txt
 ```
 
 then you can run the experiment in a single command:
 
 ```bash
-hostfile=hosts.txt # contains IPv4 addresses, one per line.
 np=$(wc -l $hostfile | awk '{print $1}') # gets number of machines
 
 # Alternate the cluster size between 1 and $np at steps 10, 20, 30, ..., resize to 0 at the end
