@@ -252,11 +252,9 @@ Total img/sec on 32 GPU(s): 406.5 +-22.7
 RESULT: 12.701925 +-0.708324 {"framework":"horovod","version":"0.16.1","np":32,"bs":32,"model":"ResNet50"}
 ```
 
-As we can see from the above result, KungFu achieves the throughput as 43.4 images per second while
+As we can see from the above result, KungFu achieves 43.4 images per second while
 Horovod achieves 12.7 images per second. This performance difference is consistent
-with Figure 9 in the paper.
-
-<!-- To run the Horovod baseline, you need to install horovod `0.16.1` on the VMs, and make sure they are accessible via SSH. -->
+with what is reportd in Figure 9.
 
 ### 3.3. Dynamic scaling (Figure 7)
 
