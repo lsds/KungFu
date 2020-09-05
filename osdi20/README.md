@@ -189,7 +189,13 @@ which is consistent with the results in Figure 8.
 In this experiment, we measure the scalability of the asynchronous collective communication layer in KungFu. We compare the ideal throughput (i.e., training throughput without
 communication) and actual training throughput.
 
-You need to launch a cluster that has `N` VMs. For example, with 2 VMs, we assume that their private IPs are `10.0.0.19` and `10.0.0.20` (bound to NIC `eth0`). You can launch the 2-VM data parallel training scenario by running the following command on **each** VM:
+You need to launch a cluster that up to 32 VMs.
+We have a relay machine on Azure which contains the scripts to create the VMs and to run the experiments.
+We also prepared a VM image that contains the KungFu library and the baseline: Horovod.
+Please contact the authors if you need access to the relay machine and the VM image.
+
+In the following, we explain our experiment commands using a small cluster that has 2 VMs.
+We assume that the VMs' private IPs are `10.0.0.19` and `10.0.0.20` (bound to NIC `eth0`). You can launch the 2-VM data parallel training scenario by running the following command on **each** VM:
 
 ```bash
 kungfu-run -np 2 -strategy MULTI_BINARY_TREE_STAR -H 10.0.0.19:1,10.0.0.20:1 -nic=eth0 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
@@ -220,10 +226,56 @@ You should observe the following ouptut on one of the VMs:
 To run the scalability experiment using another model, `MobileNetV2`, you
 need to replace `--model=ResNet50` with `--model=MobileNetV2`.
 
-The same change can be applied to clusters with any number (i.e., 8, 16, 32, ...) of VMs.
+If you repeat the above steps of **KungFu** on 32 GPU VMs, you should see the following output on the master VM (i.e.,
+the first machine in the `-H` host list):
 
-We have a relay machine on Azure which contains the scripts to create the VMs and to run the experiments.
-Please contact the authors if you need access to the relay machine.
+```text
+...
+[10.0.0.40.10000::stdout] Model: ResNet50
+[10.0.0.40.10000::stdout] Batch size: 32
+[10.0.0.40.10000::stdout] init took 1.157s
+[10.0.0.40.10000::stdout] bcast_op took 0.964s
+[10.0.0.40.10000::stdout] Running warmup...
+[10.0.0.40.10000::stdout] Warmup Step #0: 6.7 img/sec per /gpu:0, took 4.743s
+[10.0.0.40.10000::stdout] Warmup Step #1: 43.1 img/sec per /gpu:0, took 0.742s
+[10.0.0.40.10000::stdout] Warmup Step #2: 41.9 img/sec per /gpu:0, took 0.763s
+[10.0.0.40.10000::stdout] Warmup Step #3: 39.8 img/sec per /gpu:0, took 0.803s
+[10.0.0.40.10000::stdout] Running benchmark...
+[10.0.0.40.10000::stdout] Iter #0: 44.4 img/sec per /gpu:0
+[10.0.0.40.10000::stdout] Iter #1: 42.8 img/sec per /gpu:0
+[10.0.0.40.10000::stdout] Iter #2: 43.3 img/sec per /gpu:0
+[10.0.0.40.10000::stdout] Iter #3: 43.1 img/sec per /gpu:0
+[10.0.0.40.10000::stdout] Img/sec per /gpu:0: 43.4 +-1.2
+[10.0.0.40.10000::stdout] RESULT: 43.429020 +-1.212320 {"framework":"kungfu","np":32,"strategy":"MULTI_BINARY_TREE_STAR","bs":32,"model":"ResNet50","kf-opt":"sync-sgd","fuse":false}
+```
+
+To run the Horovod baseline, you would need to follow the [Horovod installation guideline](https://horovod.readthedocs.io/en/stable/install_include.html) to configure VMs. We used Horovod 0.16.1 in our experiment. To run a 2-VM Horovod training, you would
+need the following command:
+
+```bash
+mpirun -np 2 -H 10.0.0.19:1,10.0.0.20:1 python3 benchmarks/system/benchmark_horovod.py  --model=ResNet50 --batch-size=64
+```
+
+If you repeat the above steps of **Horovod** on 32 GPU VMs (i.e., the `-np` and `-H` both need to be updated),
+you should see the following output on the master VM (i.e.,
+the first machine in the `-H` host list):
+
+```text
+...
+Running benchmark...
+Iter #0: 12.9 img/sec per GPU
+Iter #1: 12.8 img/sec per GPU
+Iter #2: 12.1 img/sec per GPU
+Iter #3: 13.0 img/sec per GPU
+Img/sec per GPU: 12.7 +-0.7
+Total img/sec on 32 GPU(s): 406.5 +-22.7
+RESULT: 12.701925 +-0.708324 {"framework":"horovod","version":"0.16.1","np":32,"bs":32,"model":"ResNet50"}
+```
+
+As we can see from the above result, KungFu achieves a throughput at 43.4 images per second while
+Horovod achieves 12.7 images per second. This performance difference is consistent
+with Figure 9 in the paper.
+
 <!-- To run the Horovod baseline, you need to install horovod `0.16.1` on the VMs, and make sure they are accessible via SSH. -->
 
 ### 3.3. Dynamic scaling (Figure 7)
