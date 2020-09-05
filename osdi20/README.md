@@ -225,37 +225,38 @@ The same chgange can be applied to clusters with any number (i.e.,
 
 ### 3.3. Dynamic scaling (Figure 7)
 
-In this experiment we show the ability to change number of workers of KungFu.
+In this experiment, we explore KungFu's ability to change number of workers.
 In addition to installing KungFu, you need to install the example config server.
 
-This can be done by running
+This can be done by running:
 
 ```bash
-# build and install the example config server to $HOME/go/bin
+# Build and install the example config server in $HOME/go/bin
 go install -v ./tests/go/cmd/kungfu-config-server-example
 ```
 
-You will need to launch a cluster with the same setting as experiment 2.
-For simplicity, assuming we have 2 VMs with IPs `10.0.0.19` and `10.0.0.20`.
+You will need to launch a cluster with the same settings as for experiment 2.
+For simplicity, we assume 2 VMs with IPs `10.0.0.19` and `10.0.0.20`.
 
-You shall start the config server on `10.0.0.19`
+First start the config server on `10.0.0.19`:
 
 ```bash
 $HOME/go/bin/kungfu-config-server-example
 ```
-and reset the state of it
+and then reset its state:
 
 ```
 curl http://10.0.0.19:9100/reset
 ```
 
-Then you can launch the 2-VM data parallel training by running the following command on **each** VM.
+Ater that, you can launch the 2-VM data parallel training scenario by running the following command on **each** VM:
 
 ```
 export TF_CPP_MIN_LOG_LEVEL=2
 
-# You can customize the resize schedule, in this example
-# it scales up to 2 workers at step 10, and scales down to 0 workers at step 100
+# You can customise the resize schedule. In this example,
+# it scales up to 2 workers at step 10 and scales down to 
+# 0 workers at step 100.
 resize_schedule='10:2,100:0'
 
 kungfu-run \
@@ -272,27 +273,27 @@ kungfu-run \
     --epoch-size 10000
 ```
 
-You should observe the following ouptut on `10.0.0.19`, indicating the scaling latency:
+You should observe the following ouptut on `10.0.0.19`, which shows the scaling latency:
 
 ```
 [10.0.0.19.10000::stdout] resize 1 -> 2 took 20.39s
 [10.0.0.19.10000::stdout] resize 2 -> 1 took 40.12ms
 ```
 
-We also provide a convenient tool to run this experiment end-to-end. You can install it by running
+We also provide a convenient tool to run this experiment end-to-end. You can install it by running:
 
 ```
 # Install the command kungfu-run-scaling-experiments in $HOME/go/bin
 go install -v ./experiments/cmd/kungfu-run-scaling-experiments
 ```
 
-then you can run the experiment in one command:
+then you can run the experiment in a single command:
 
 ```bash
 hostfile=hosts.txt # contains IPv4 addresses, one per line.
-np=$(wc -l $hostfile | awk '{print $1}') # get number of machines
+np=$(wc -l $hostfile | awk '{print $1}') # gets number of machines
 
-# alternate the cluster size between 1 and $np at step 10, 20, 30, ..., resize to 0 at last
+# Alternate the cluster size between 1 and $np at steps 10, 20, 30, ..., resize to 0 at the end
 resize_schedule="10:$np,20:1,30:$np,40:1,50:$np,60:1,70:$np,80:1,90:$np,100:0"
 
 kungfu-run-scaling-experiments -u $USER -nic eth0 -hostfile hosts.txt -resize-schedule $resize_schedule
@@ -300,10 +301,9 @@ kungfu-run-scaling-experiments -u $USER -nic eth0 -hostfile hosts.txt -resize-sc
 
 ### 3.4. NCCL scheduler (Figure 10)
 
-The NCCL scheduler is designed for fully exploiting machines that have NV-Link.
-We no longer have access to the DGX-1 machines and cannot find similar multi-GPU VM that has NV-Link.
-To run this experiment, we provide an on-premise 4 Titan-X GPU machine hosted by our university.
-There are 2 GPUs (i.e., a subset of GPUs)
+The NCCL scheduler is designed to exploit GPU machines that have NV-Link.
+We no longer have access to the original DGX-1 machine use for this experiment.
+To run this experiment, we can provide an on-premise 4 Titan-X GPU machine, which has 2 GPUs (i.e., a subset of GPUs)
 interconnected using NV-Link. Please contact the authors to gain SSH access to this machine.
 
 The machine is shared by multiple users. After SSH to this machine, you need to
@@ -320,23 +320,23 @@ source env/bin/activate
 
 # Install TensorFlow
 pip3 install -U numpy==1.16 tensorflow-gpu==1.13.2
-
+hich 
 # Install KungFu with NCCL (i.e., KUNGFU_ENABLE_NCCL=1)
 KUNGFU_ENABLE_NCCL=1 pip3 install -U .
 ```
 
-To train the ResNet-50 model using a synthetic ImageNet dataset, you can use the following command.
-The training uses the NCCL scheduler to exploit NV-Link.
+To train the ResNet-50 model using a synthetic ImageNet dataset, you can use the following command, in
+which the NCCL scheduler exploits NV-Link:
 
 ```bash
 kungfu-run -allow-nvlink -np 4 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd-nccl --model=ResNet50 --batch-size=64
 ```
 
-The `-allow-nvlink` option allows `kungfu-run` to enable NV-Link.
-The `sync-sgd-nccl` optimizer allows the benchmark program to delegate
+The `-allow-nvlink` option makes `kungfu-run` enable NV-Link.
+The `sync-sgd-nccl` optimiser allows the benchmark program to delegate
 all-reduce requests to the NCCL scheduler.
 
-You would expect output:
+You should observe the following output:
 
 ```text
 [127.0.0.1.10000::stdout] Iter #4: 180.5 img/sec per /gpu:0
@@ -350,8 +350,8 @@ You would expect output:
 [I] all 4/4 local peers finished, took 55.146302161s
 ```
 
-To show the advantages of the NCCL scheduler over KungFu asynchronous communication layer (as shown in Figure 10),
-the evaluators need to access to a DGX-1 machine and repeat the above steps.
+To compare the NCCL scheduler and KungFu's asynchronous communication layer (as shown in Figure 10),
+the above experiment should be run on a DGX-1 machine, as described above.
 
 ## 4. Adaptation Policies
 
