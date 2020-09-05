@@ -255,7 +255,7 @@ Ater that, you can launch the 2-VM data parallel training scenario by running th
 export TF_CPP_MIN_LOG_LEVEL=2
 
 # You can customise the resize schedule. In this example,
-# it scales up to 2 workers at step 10 and scales down to 
+# it scales up to 2 workers at step 10 and scales down to
 # 0 workers at step 100.
 resize_schedule='10:2,100:0'
 
@@ -320,7 +320,7 @@ source env/bin/activate
 
 # Install TensorFlow
 pip3 install -U numpy==1.16 tensorflow-gpu==1.13.2
-hich 
+
 # Install KungFu with NCCL (i.e., KUNGFU_ENABLE_NCCL=1)
 KUNGFU_ENABLE_NCCL=1 pip3 install -U .
 ```
@@ -366,7 +366,7 @@ In this experiment, we train the ResNet-56 model with the CIFAR10 dataset using 
 In addition to installing KungFu, you need to clone our fork of `http://github.com/tensorflow/models`.
 You can use the following commands to clone the code and run the experiments:
 
-```
+```bash
 git clone https://github.com/luomai/models -b osdi20
 cd models
 
@@ -377,7 +377,7 @@ cd models
 ./train-cifar10-fixed.sh
 
 # Run the adaptive batch size experiment.
-You may need to repeat this multiple times to get a good result in the plot.
+# You may need to repeat this multiple times to get a good result in the plot.
 ./train-cifar10-adaptive.sh
 
 # Extract the TensorFlow logs and generate the plots; the results will be saved to ./data.
@@ -394,29 +394,31 @@ In this experiment, we show how KungFu adapts trainig in the light of adversaria
 
 We simiulate network contention by manually introducing background traffic between the master node in the default communication strategy and an external node (i.e., a node that is not taking part in the training process).
 
-For this experiment, we launch 4 VMs (but it can be any number above 2) with 1 K80 GPU per VM and 1 extra VM in the same VLAN for generating background traffic. We use the ResNet50 model for training and specify the communication strategy to be `STAR`.
+For this experiment, we launch 8 VMs (but it can be any number above 2) with 1 K80 GPU per VM and 1 extra VM in the same VLAN for generating background traffic. We use the ResNet50 model for training and specify the communication strategy to be `STAR`.
 
 To start the distributed training, we run the following command concurrently on all VMs that take part in the training process:
 
 ```bash
-kungfu-run -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --adapt --kf-optimizer=sync-sgd-monitor
+kungfu-run -np 8 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --adapt --kf-optimizer=sync-sgd-monitor
 ```
 
 where
 
 ```bash
-HOSTS_VAR=<list of comma seperated IPs and processes per machine (e.g., 192.168.10.2:1, 192.168.10.2:2)>
+HOSTS_VAR=<list of comma seperated IPs and processes per machine (e.g., 192.168.10.2:1,192.168.10.2:2,...)>
 ```
 
 We initiate the background traffic between the master node (note that the default master node is the first peer from the list defined in `HOSTS_VAR`) and the VM external to the training at an arbitrary time during training. We do so by invoking:
 
 ```bash
+# Create 32 workers to generate the background traffic
 kungfu-run -np 32 -H $HOSTS_VAR -strategy STAR -nic eth0 -port-range 11100-11200 $HOME/go/bin/kungfu-bench-allreduce -model resnet50-imagenet -mode par -epochs 25
 ```
 
 where
 
 ```bash
+# Place 1 worker on the master node and 31 workers on the external node
 HOSTS_VAR=<masterNode>:1,<externalNode>:31
 ```
 
@@ -480,7 +482,7 @@ At around iteration #29, we initiate the background traffic. The effects are vis
 To measure the baseline execution scenario with no adaption enabled, you need to launch the training by running:
 
 ```bash
-kungfu-run -q -np 4 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --kf-optimizer=sync-sgd-monitor
+kungfu-run -q -np 8 -strategy STAR -H $HOSTS_VAR -nic eth0 python3 experimental/adapt_strategy/adapt_strategy.py --kf-optimizer=sync-sgd-monitor
 ```
 
 ### 4.3. Adaptive resource provisioning (Figure 6)
