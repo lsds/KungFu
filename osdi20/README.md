@@ -223,7 +223,7 @@ need to replace `--model=ResNet50` with `--model=MobileNetV2`.
 The same chgange can be applied to clusters with any number (i.e.,
 8, 16, 32, ...) of VMs.
 
-### 3.3. Scaling Performance (Figure 7)
+### 3.3. Dynamic scaling (Figure 7)
 
 In this experiment we show the ability to change number of workers of KungFu.
 In addition to installing KungFu, you need to install the example config server.
@@ -300,7 +300,58 @@ kungfu-run-scaling-experiments -u $USER -nic eth0 -hostfile hosts.txt -resize-sc
 
 ### 3.4. NCCL scheduler (Figure 10)
 
-[...]
+The NCCL scheduler is designed for fully exploiting machines that have NV-Link.
+We no longer have access to the DGX-1 machines and cannot find similar multi-GPU VM that has NV-Link.
+To run this experiment, we provide a 4 Titan-X GPU machine at local. There are 2 GPUs (i.e., a subset of GPUs)
+interconnected using NV-Link. Please contact the authors to gain SSH access to this machine.
+
+The machine is shared by multiple users. After SSH to this machine, you need to
+clone the artifact and create a virtual Python environment as follows:
+
+```bash
+# Clone the artifact
+git clone --branch osdi20-artifact https://github.com/lsds/KungFu.git
+cd KungFu
+
+# Create a virtual environment
+virtualenv -p python3 env
+source env/bin/activate
+
+# Install TensorFlow
+pip3 install -U numpy==1.16 tensorflow-gpu==1.13.2
+
+# Install KungFu with NCCL (i.e., KUNGFU_ENABLE_NCCL=1)
+KUNGFU_ENABLE_NCCL=1 pip3 install -U .
+```
+
+To train the ResNet-50 model using a synthetic ImageNet dataset, you can use the following command.
+The training uses the NCCL scheduler to exploit NV-Link.
+
+```bash
+kungfu-run -allow-nvlink -np 4 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd-nccl --model=ResNet50 --batch-size=64
+```
+
+The `-allow-nvlink` option allows `kungfu-run` to enable NV-Link.
+The `sync-sgd-nccl` optimizer allows the benchmark program to delegate
+all-reduce requests to the NCCL scheduler.
+
+You would expect output:
+
+```text
+[127.0.0.1.10000::stdout] Iter #4: 180.5 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Iter #5: 182.3 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Iter #6: 181.6 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Iter #7: 179.1 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Iter #8: 181.1 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Iter #9: 180.3 img/sec per /gpu:0
+[127.0.0.1.10000::stdout] Img/sec per /gpu:0: 181.3 +-2.4
+[127.0.0.1.10000::stdout] RESULT: 181.336683 +-2.371972 {"framework":"kungfu","np":4,"strategy":"BINARY_TREE_STAR","bs":64,"model":"ResNet50","xla":false,"kf-opt":"sync-sgd-nccl","fuse":false,"nvlink":"true"}
+[I] all 4/4 local peers finished, took 55.146302161s
+```
+
+To show the advantages of the NCCL scheduler over KungFu asynchronous communication layer
+(as shown in Figure 10),
+the evaluators need to access to a DGX-1 machine and repeat the above steps.
 
 ## 4. Adaptation Policies
 
