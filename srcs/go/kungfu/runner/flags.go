@@ -66,7 +66,8 @@ type FlagSet struct {
 
 func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.IntVar(&f.ClusterSize, "np", 1, "number of peers")
-	flag.StringVar(&f.hostList, "H", plan.DefaultHostList.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	flag.StringVar(&f.hostList, "H", plan.DefaultHostList.String(),
+		"comma separated list of <internal IP>:<nslots>[:<public addr>], e.g. 192.168.0.10:1,192.168.0.11:1")
 	flag.StringVar(&f.hostFile, "hostfile", "", "path to hostfile, will override -H if specified")
 	flag.StringVar(&f.peerList, "P", "", "comma separated list of <host>:<port>[:slot]")
 
