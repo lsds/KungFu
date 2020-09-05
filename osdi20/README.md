@@ -302,7 +302,8 @@ kungfu-run-scaling-experiments -u $USER -nic eth0 -hostfile hosts.txt -resize-sc
 
 The NCCL scheduler is designed for fully exploiting machines that have NV-Link.
 We no longer have access to the DGX-1 machines and cannot find similar multi-GPU VM that has NV-Link.
-To run this experiment, we provide a 4 Titan-X GPU machine at local. There are 2 GPUs (i.e., a subset of GPUs)
+To run this experiment, we provide an on-premise 4 Titan-X GPU machine hosted by our university.
+There are 2 GPUs (i.e., a subset of GPUs)
 interconnected using NV-Link. Please contact the authors to gain SSH access to this machine.
 
 The machine is shared by multiple users. After SSH to this machine, you need to
@@ -349,8 +350,7 @@ You would expect output:
 [I] all 4/4 local peers finished, took 55.146302161s
 ```
 
-To show the advantages of the NCCL scheduler over KungFu asynchronous communication layer
-(as shown in Figure 10),
+To show the advantages of the NCCL scheduler over KungFu asynchronous communication layer (as shown in Figure 10),
 the evaluators need to access to a DGX-1 machine and repeat the above steps.
 
 ## 4. Adaptation Policies
