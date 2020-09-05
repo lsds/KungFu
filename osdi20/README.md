@@ -192,7 +192,7 @@ communication) and actual training throughput.
 You need to launch a cluster that has `N` VMs. For example, with 2 VMs, we assume that their private IPs are `10.0.0.19` and `10.0.0.20` (bound to NIC `eth0`). You can launch the 2-VM data parallel training scenario by running the following command on **each** VM:
 
 ```bash
-kungfu-run -np 2 -H 10.0.0.19:1,10.0.0.20:1 -nic=eth0 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
+kungfu-run -np 2 -strategy MULTI_BINARY_TREE_STAR -H 10.0.0.19:1,10.0.0.20:1 -nic=eth0 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
 ```
 
 The `-H` parameter is in the format: `<ip1>:<slot>,<ip2>:<slot>` where `ip1` is usually the private IP and the `slot` is the number of GPUs per machine. The total number of GPUs is specified by the `-np` parameter.
@@ -222,6 +222,9 @@ need to replace `--model=ResNet50` with `--model=MobileNetV2`.
 
 The same chgange can be applied to clusters with any number (i.e.,
 8, 16, 32, ...) of VMs.
+
+To run the Horovod baseline, you need to install horovod `0.16.1` on the VMs, and make sure they are accessible via SSH.
+<!-- Then you can use the  -->
 
 ### 3.3. Dynamic scaling (Figure 7)
 
