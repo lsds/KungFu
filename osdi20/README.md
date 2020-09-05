@@ -376,10 +376,12 @@ cd models
 # Run the static baseline
 ./train-cifar10-fixed.sh
 
-# Run the adaptive batch size
+# Run the adaptive batch size experiment.
+You may need to repeat this multiple times to get a good result in the plot.
 ./train-cifar10-adaptive.sh
 
 # Extract the TensorFlow logs and generate the plots; the results will be saved to ./data.
+# The generated plots will be 3 pdf files showing the evaluation accuracy of small/large/adaptive batch size training over time.
 ./plot-all.sh
 ```
 
