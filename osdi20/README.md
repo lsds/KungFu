@@ -194,39 +194,18 @@ We have a relay machine on Azure which contains the scripts to create the VMs an
 We also prepared a VM image that contains the KungFu library and the baseline: Horovod.
 Please contact the authors if you need access to the relay machine and the VM image.
 
-In the following, we explain our experiment commands using a small cluster that has 2 VMs.
+For simplicity, we explain our experiment commands using a small cluster that has 2 VMs.
 We assume that the VMs' private IPs are `10.0.0.19` and `10.0.0.20` (bound to NIC `eth0`). You can launch the 2-VM data parallel training scenario by running the following command on **each** VM:
 
 ```bash
-kungfu-run -np 2 -strategy MULTI_BINARY_TREE_STAR -H 10.0.0.19:1,10.0.0.20:1 -nic=eth0 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=64
+kungfu-run -np 2 -strategy MULTI_BINARY_TREE_STAR -H 10.0.0.19:1,10.0.0.20:1 -nic=eth0 python3 benchmarks/system/benchmark_kungfu.py --kf-optimizer=sync-sgd --model=ResNet50 --batch-size=32
 ```
 
-The `-H` parameter is in the format: `<ip1>:<slot>,<ip2>:<slot>` where `ip1` is usually the private IP and the `slot` is the number of GPUs per machine. The total number of GPUs is specified by the `-np` parameter.
-
-You should observe the following ouptut on one of the VMs:
-
-```text
-...
-[10.0.0.19.10000::stdout] Running benchmark...
-[10.0.0.19.10000::stdout] Iter #0: 50.5 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #1: 50.5 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #2: 50.4 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #3: 50.1 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #4: 50.1 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #5: 50.0 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #6: 50.1 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #7: 49.9 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #8: 49.7 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Iter #9: 49.8 img/sec per /gpu:0
-[10.0.0.19.10000::stdout] Img/sec per /gpu:0: 50.1 +-0.5
-[10.0.0.19.10000::stdout] RESULT: 50.118283 +-0.494631 {"framework":"kungfu","np":2,"strategy":"BINARY_TREE_STAR","bs":64,"model":"ResNet50","xla":false,"kf-opt":"sync-sgd","fuse":false,"nvlink":"false"}
-[I] all 1/2 local peers finished, took 2m40.691635844s
-```
-
-To run the scalability experiment using another model, `MobileNetV2`, you
+The `-H` parameter is in the format: `<ip1>:<slot>,<ip2>:<slot>` where `ip1` is usually the private IP and the `slot` is the number of GPUs per machine. The total number of GPUs is specified by the `-np` parameter. To run the scalability experiment using another model, `MobileNetV2`, you
 need to replace `--model=ResNet50` with `--model=MobileNetV2`.
 
-If you repeat the above steps of **KungFu** on 32 GPU VMs, you should see the following output on the master VM (i.e.,
+If you repeat the above steps of **KungFu** on **32** GPU VMs (i.e., the `-np` and `-H`
+need to be updated), you should see the following output on the master VM (i.e.,
 the first machine in the `-H` host list):
 
 ```text
@@ -253,10 +232,10 @@ To run the Horovod baseline, you would need to follow the [Horovod installation 
 need the following command:
 
 ```bash
-mpirun -np 2 -H 10.0.0.19:1,10.0.0.20:1 python3 benchmarks/system/benchmark_horovod.py  --model=ResNet50 --batch-size=64
+mpirun -np 2 -H 10.0.0.19:1,10.0.0.20:1 python3 benchmarks/system/benchmark_horovod.py  --model=ResNet50 --batch-size=32
 ```
 
-If you repeat the above steps of **Horovod** on 32 GPU VMs (i.e., the `-np` and `-H` both need to be updated),
+If you repeat the above steps of **Horovod** on **32** GPU VMs (i.e., the `-np` and `-H` both need to be updated),
 you should see the following output on the master VM (i.e.,
 the first machine in the `-H` host list):
 
