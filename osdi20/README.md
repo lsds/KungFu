@@ -220,11 +220,11 @@ You should observe the following ouptut on one of the VMs:
 To run the scalability experiment using another model, `MobileNetV2`, you
 need to replace `--model=ResNet50` with `--model=MobileNetV2`.
 
-The same chgange can be applied to clusters with any number (i.e.,
-8, 16, 32, ...) of VMs.
+The same change can be applied to clusters with any number (i.e., 8, 16, 32, ...) of VMs.
 
-To run the Horovod baseline, you need to install horovod `0.16.1` on the VMs, and make sure they are accessible via SSH.
-<!-- Then you can use the  -->
+We have a relay machine on Azure which contains the scripts to create the VMs and to run the experiments.
+Please contact the authors if you need access to the relay machine.
+<!-- To run the Horovod baseline, you need to install horovod `0.16.1` on the VMs, and make sure they are accessible via SSH. -->
 
 ### 3.3. Dynamic scaling (Figure 7)
 
