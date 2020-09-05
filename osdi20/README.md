@@ -204,7 +204,7 @@ kungfu-run -np 2 -strategy MULTI_BINARY_TREE_STAR -H 10.0.0.19:1,10.0.0.20:1 -ni
 The `-H` parameter is in the format: `<ip1>:<slot>,<ip2>:<slot>` where `ip1` is usually the private IP and the `slot` is the number of GPUs per machine. The total number of GPUs is specified by the `-np` parameter. To run the scalability experiment using another model, `MobileNetV2`, you
 need to replace `--model=ResNet50` with `--model=MobileNetV2`.
 
-If you repeat the above steps of **KungFu** on **32** GPU VMs (i.e., the `-np` and `-H`
+If you repeat the above steps of **KungFu** on **every** 32 GPU-VMs (i.e., the `-np` and `-H`
 need to be updated), you should see the following output on the master VM (i.e.,
 the first machine in the `-H` host list):
 
@@ -229,13 +229,14 @@ the first machine in the `-H` host list):
 ```
 
 To run the Horovod baseline, you would need to follow the [Horovod installation guideline](https://horovod.readthedocs.io/en/stable/install_include.html) to configure VMs. We used Horovod 0.16.1 in our experiment. To run a 2-VM Horovod training, you would
-need the following command:
+need the following command (please note that `mpirun` is different from `kungfu-run` because you only need to run `mpirun` on
+a **single** machine):
 
 ```bash
 mpirun -np 2 -H 10.0.0.19:1,10.0.0.20:1 python3 benchmarks/system/benchmark_horovod.py  --model=ResNet50 --batch-size=32
 ```
 
-If you repeat the above steps of **Horovod** on **32** GPU VMs (i.e., the `-np` and `-H` both need to be updated),
+If you repeat the above steps of **Horovod** on 32 GPU-VMs (i.e., the `-np` and `-H` both need to be updated),
 you should see the following output on the master VM (i.e.,
 the first machine in the `-H` host list):
 
@@ -251,7 +252,7 @@ Total img/sec on 32 GPU(s): 406.5 +-22.7
 RESULT: 12.701925 +-0.708324 {"framework":"horovod","version":"0.16.1","np":32,"bs":32,"model":"ResNet50"}
 ```
 
-As we can see from the above result, KungFu achieves a throughput at 43.4 images per second while
+As we can see from the above result, KungFu achieves the throughput as 43.4 images per second while
 Horovod achieves 12.7 images per second. This performance difference is consistent
 with Figure 9 in the paper.
 
