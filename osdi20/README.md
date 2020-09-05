@@ -329,6 +329,13 @@ hostfile=hosts.txt # contains IPv4 addresses, one per line.
 kungfu-remote-install -u $USER -hostfile hosts.txt
 ```
 
+An example of `hosts.txt` containing 2 machines would be look like:
+
+```text
+10.0.0.19
+10.0.0.20
+```
+
 then you can run the experiment in a single command:
 
 ```bash
