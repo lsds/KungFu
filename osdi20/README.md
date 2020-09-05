@@ -432,6 +432,11 @@ cd models
 ./plot-all.sh
 ```
 
+In the generated 3 plots, you should see the large batch size (`fixed-bs-1024/plot.pdf`) finishes fast but can't converge to high accuracy;
+the small batch size (`fixed-bs-32/plot.pdf`) converges to high accuracy but takes too long;
+the adaptive batch size (`adaptive-bs-32/plot.pdf`) can converge to the same accuracy as small batch size, and is faster than small batch size.
+This is consistent as we described in the Paper.
+
 It would take ~ 6 hours if you use 4 K80 GPUs, and ~ 3 hours if you use 4 TITAN X.
 Please contact the authors if you need to access the machine.
 
