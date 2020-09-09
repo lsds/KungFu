@@ -51,3 +51,19 @@ def test_step_based_scheduler():
 def test_detached():
     from kungfu.python import detached
     assert (not detached())
+
+
+def test_rank():
+    from kungfu.tensorflow.ops import rank
+    rank_op = rank()
+    with tf.Session() as sess:
+        v = sess.run(rank_op)
+        assert (v == 0)
+
+
+def test_cluster_size():
+    from kungfu.tensorflow.ops import cluster_size
+    size_op = cluster_size()
+    with tf.Session() as sess:
+        v = sess.run(size_op)
+        assert (v == 1)

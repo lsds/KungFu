@@ -2,6 +2,15 @@ import atexit
 
 from kungfu.loader import _call_method, _load_clib, _module_path
 
+__all__ = [
+    'current_cluster_size',
+    'current_local_rank',
+    'current_local_size',
+    'current_rank',
+    'detached',
+    'run_barrier',
+]
+
 
 def _load_and_init_python_lib():
     _load_clib('libkungfu')
@@ -66,6 +75,17 @@ def propose_new_size(new_size):
     # FIXME: check ctypes
     _python_lib.kungfu_propose_new_size(int(new_size))
 
+def check_interference():
+    return _python_lib.kungfu_check_interference()
+
+def calc_stats():
+    return _python_lib.kungfu_calc_stats()
+
+def log_stats():
+    return _python_lib.kungfu_log_stats()
+
+def print_strategy_stats():
+    return _python_lib.kungfu_print_strategy_stats()
 
 def _get_other_ranks():
     self_rank = current_rank()

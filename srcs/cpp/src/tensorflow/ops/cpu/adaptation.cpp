@@ -28,4 +28,20 @@ class SetTree : public OpKernel
 };
 
 REGISTER_KUNGFU_KERNEL_BUILDER(SetTree, DEVICE_CPU);
+
+REGISTER_KUNGFU_OP(CalcStats)
+    .SetIsStateful();
+
+class CalcStats : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+  public:
+    void Compute(OpKernelContext *context) override
+    {
+        _default_peer->CalcStats();
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(CalcStats, DEVICE_CPU);
 }  // namespace tensorflow

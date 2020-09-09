@@ -22,6 +22,7 @@ __pycache__
 /bin
 /checkpoints
 /cmake-build
+/data
 /external
 /go
 /go-output
@@ -44,3 +45,4 @@ kungfu.cbp
 Makefile.auto
 Testing/
 venv
+/build
