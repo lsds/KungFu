@@ -29,6 +29,24 @@ def step_based_schedule(config, step=None):
                                               strict=False)
 
 
+def resize(n):
+    """Resize the cluster to n.
+
+    Inputs:
+        n: A scalar tensor of uint32.
+    Returns:
+        A pair of scalar tensors (changed, keep) of type bool,
+        {changed} indicates if the cluster has been changed,
+        {keep} indicates if the current peer is still in the new cluster,
+        the peer should quit if it is not in the new cluster.
+    """
+    resize_op = _op_lib.kungfu_resize_cluster(n)
+    if hasattr(_op_lib, 'kungfu_reset_nccl_helper'):
+        # TODO: reset NCCL
+        pass
+    return resize_op
+
+
 def set_tree(tree):
     """Set the default communication tree.
 
@@ -40,8 +58,7 @@ def set_tree(tree):
     """
     return _op_lib.kungfu_set_tree(tree)
 
-def calc_stats():
-    """Calculate key communication stratetgy metrics based on current state 
 
-    """
+def calc_stats():
+    """Calculate key communication stratetgy metrics based on current state."""
     return _op_lib.kungfu_calc_stats()
