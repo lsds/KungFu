@@ -158,7 +158,7 @@ func runConfigServer(hostname string, port int) (context.CancelFunc, *sync.WaitG
 	args := []string{`-port`, strconv.Itoa(port)}
 	p := proc.Proc{
 		Name:     `config-server`,
-		Prog:     `kungfu-config-server-example`,
+		Prog:     `kungfu-config-server`,
 		Args:     args,
 		Hostname: hostname,
 		Envs:     envs,

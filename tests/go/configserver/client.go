@@ -2,6 +2,7 @@ package configserver
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
+	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
 type Client struct {
@@ -18,16 +20,14 @@ type Client struct {
 }
 
 func NewClient(endpoint string) *Client {
-	return &Client{endpoint: endpoint}
+	return &Client{
+		endpoint: endpoint,
+		client:   http.Client{Timeout: 1 * time.Second},
+	}
 }
 
 func (cc *Client) Reset() error {
-	u, err := url.Parse(cc.endpoint)
-	if err != nil {
-		return err
-	}
-	u.Path = `/reset`
-	resp, err := cc.client.Post(u.String(), "application/json", nil)
+	resp, err := cc.client.Post(cc.endpoint, "application/json", nil)
 	if err != nil {
 		return err
 	}
@@ -36,16 +36,15 @@ func (cc *Client) Reset() error {
 }
 
 func (cc *Client) Update(cluster plan.Cluster) error {
-	u, err := url.Parse(cc.endpoint)
-	if err != nil {
-		return err
-	}
-	u.Path = `/put`
 	var body bytes.Buffer
 	if err := json.NewEncoder(&body).Encode(cluster); err != nil {
 		return err
 	}
-	resp, err := cc.client.Post(u.String(), "application/json", &body)
+	req, err := http.NewRequest(http.MethodPut, cc.endpoint, &body)
+	if err != nil {
+		return err
+	}
+	resp, err := cc.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -56,20 +55,15 @@ func (cc *Client) Update(cluster plan.Cluster) error {
 }
 
 func (cc *Client) WaitServer() error {
-	u, err := url.Parse(cc.endpoint)
-	if err != nil {
-		return err
-	}
-	u.Path = `/ping`
-	for {
-		resp, err := cc.client.Get(u.String())
+	utils.Poll(context.TODO(), func() bool {
+		resp, err := cc.client.Get(cc.endpoint)
 		if err == nil {
 			resp.Body.Close()
-			break
+		} else {
+			log.Warnf("config server is not ready: %v", err)
 		}
-		log.Warnf("server is not ready: %v", err)
-		time.Sleep(2000 * time.Millisecond)
-	}
+		return err == nil
+	})
 	return nil
 }
 
@@ -79,7 +73,7 @@ func (cc *Client) StopServer() error {
 		return err
 	}
 	u.Path = `/stop`
-	resp, err := cc.client.Get(u.String())
+	resp, err := cc.client.Post(u.String(), "", nil)
 	if err != nil {
 		return err
 	}
