@@ -2,7 +2,9 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path"
@@ -142,4 +144,9 @@ func Poll(ctx context.Context, cond func() bool) (int, bool) {
 			// user should sleep in cond
 		}
 	}
+}
+
+func ReadJSON(r io.Reader, i interface{}) error {
+	d := json.NewDecoder(r)
+	return d.Decode(&i)
 }

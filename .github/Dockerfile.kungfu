@@ -11,6 +11,6 @@ ADD . .
 RUN pip3 install --no-index -U .
 
 ENV GOBIN /root/go/bin
-RUN go install -v ./tests/go/cmd/...
+RUN go install -v ./...
 ENV PATH ${GOBIN}:${PATH}
 ENV KUNGFU_CONFIG_ENABLE_STALL_DETECTION=true
