@@ -23,7 +23,10 @@ def create_extension():
     srcs += glob.glob('srcs/cpp/src/torch/common.cpp')
     srcs += glob.glob('srcs/cpp/src/torch/ops/cpu/*.cpp')
 
-    include_dirs = ['./srcs/cpp/include']
+    include_dirs = [
+        # FIXME: use tmp dir of pip
+        os.path.join(os.path.dirname(__file__), './srcs/cpp/include')
+    ]
     library_dirs = [kungfu_library_dir()]
     libraries = ['kungfu', 'kungfu_python']
 
