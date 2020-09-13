@@ -41,3 +41,8 @@ def broadcast_parameters(state_dict):
         h = inplace_broadcast_async_op(value, name)
         handles.append(h)
     wait_all_handles(handles)
+
+def all_gather(x):
+    out: [torch.Tensor] = []
+    ops.all_gather_cuda(x, out, x.type())
+    return out

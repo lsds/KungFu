@@ -29,4 +29,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 
     m.def("wait_handle", &kungfu::wait_handle);
     m.def("wait_all_handles", &kungfu::wait_all_handles);
+
+    m.def("all_gather_cuda", &kungfu::wait_all_handles);
 }
