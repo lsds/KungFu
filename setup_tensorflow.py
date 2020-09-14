@@ -111,7 +111,9 @@ setup(
     ],
     cmdclass=dict(build_ext=CMakeBuild),
     setup_requires=[],
-    install_requires=[],
+    install_requires=[
+        'deprecation',
+    ],
     entry_points={
         'console_scripts': [
             'kungfu-run = kungfu.cmd:run',
