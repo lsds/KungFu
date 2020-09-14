@@ -32,7 +32,7 @@ class ResizeClusterFromURL : public OpKernel
     }
 };
 
-REGISTER_KUNGFU_KERNEL_BUILDER(ResizeCluster, DEVICE_CPU);
+REGISTER_KUNGFU_KERNEL_BUILDER(ResizeClusterFromURL, DEVICE_CPU);
 
 REGISTER_KUNGFU_OP(ResizeCluster)
     .Input("new_size: uint32")
@@ -61,7 +61,7 @@ class ResizeCluster : public OpKernel
         Tensor *keep = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(1, MakeTensorShape(), &keep));
-        _default_peer->ResizeCluster(new_size.scalar<uint32_t>(),
+        _default_peer->ResizeCluster(new_size.scalar<uint32_t>()(),
                                      changed->scalar<bool>().data(),
                                      keep->scalar<bool>().data());
     }
