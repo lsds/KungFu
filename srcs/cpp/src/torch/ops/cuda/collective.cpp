@@ -81,10 +81,10 @@ void all_gather_cuda(torch::Tensor input, torch::Tensor output,
                      const std::string &type)
 {
     const KungFu_Datatype dtype = from(_torch_tensor_types.at(type));
+    const int np = _default_peer->Size();
     std::vector<char> send_buffer(data_size(input));
-    std::vector<char> receive_buffer(data_size(input));
+    std::vector<char> receive_buffer(data_size(input) * np);
     _torch_cuda_helper.from_cuda(send_buffer.data(), input);
-    _torch_cuda_helper.from_cuda(receive_buffer.data(), input);
     _default_peer->AllGather(send_buffer.data(), input.numel(), dtype,
                              receive_buffer.data(), "");
     _torch_cuda_helper.to_cuda(output, receive_buffer.data());
