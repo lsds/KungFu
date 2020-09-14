@@ -8,6 +8,7 @@ from .collective import (all_gather, all_reduce, barrier, broadcast, consensus,
                          monitored_all_reduce)
 from .local import save_variable, save_variables
 from .monitor import global_noise_scale
+from .nccl import group_nccl_all_reduce_v2
 from .p2p import request_variable, request_variable_with_template
 from .state import counter, exponential_moving_average
 from .topology import cluster_size, peer_info, rank

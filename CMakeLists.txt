@@ -43,6 +43,11 @@ IF(KUNGFU_ENABLE_NCCL)
     INCLUDE(srcs/cmake/nccl.cmake)
 ENDIF()
 
+FUNCTION(TARGET_SOURCES_GLOB target)
+    FILE(GLOB SRCS ${ARGN})
+    TARGET_SOURCES(${target} PRIVATE ${SRCS})
+ENDFUNCTION()
+
 IF(KUNGFU_BUILD_TF_OPS)
     INCLUDE(srcs/cmake/tf-op.cmake)
 
@@ -54,8 +59,6 @@ IF(KUNGFU_BUILD_TF_OPS)
 
     FILE(GLOB CPU_OP_SRCS
          ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/cpu/*.cpp)
-    FILE(GLOB GPU_OP_SRCS
-         ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/gpu/*.cpp)
 
     ADD_TF_OP_LIB(kungfu_tensorflow_ops ${CPU_OP_SRCS})
     TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
@@ -68,8 +71,15 @@ IF(KUNGFU_BUILD_TF_OPS)
                     srcs/cpp/src/nccl/controller.cpp
                     srcs/cpp/src/nccl/helper.cpp
                     srcs/cpp/src/nccl/gpu_collective.cpp)
+        TARGET_SOURCES_GLOB(kungfu_python
+                            ${CMAKE_SOURCE_DIR}/srcs/cpp/src/ncclv2/*.cpp)
         USE_NCCL(kungfu_python)
-        TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${GPU_OP_SRCS})
+        TARGET_SOURCES_GLOB(
+            kungfu_tensorflow_ops
+            ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/gpu/*.cpp)
+        TARGET_SOURCES_GLOB(
+            kungfu_tensorflow_ops
+            ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/gpuv2/*.cpp)
         USE_NCCL(kungfu_tensorflow_ops)
     ENDIF()
     IF(KUNGFU_ENABLE_TRACE)

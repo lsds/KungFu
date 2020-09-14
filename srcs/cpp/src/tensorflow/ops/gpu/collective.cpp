@@ -2,37 +2,13 @@
 #include <thread>
 
 #include <kungfu/nccl/helper.hpp>
+#include <kungfu/tensorflow/gpu_helpers.hpp>
 #include <kungfu/tensorflow/ops.h>
 #include <kungfu/utils/trace.hpp>
 #include <tensorflow/stream_executor/stream.h>
 
 namespace tensorflow
 {
-void spin_wait(perftools::gputools::Event *event, int ms = 100)
-{
-    TRACE_SCOPE(__func__);
-    while (event->PollForStatus() ==
-           perftools::gputools::Event::Status::kPending) {
-        std::this_thread::sleep_for(std::chrono::microseconds(ms));
-    }
-}
-
-perftools::gputools::Event *create_init_ready_event(OpKernelContext *context)
-{
-    auto device_context = context->op_device_context();
-    auto executor       = device_context->stream()->parent();
-    auto ready_event    = new perftools::gputools::Event(executor);
-    ready_event->Init();
-    device_context->stream()->ThenRecordEvent(ready_event);
-    return ready_event;
-}
-
-void wait_delete_ready_event(perftools::gputools::Event *ready_event)
-{
-    spin_wait(ready_event);
-    delete ready_event;
-}
-
 REGISTER_KUNGFU_OP(ScheduledNcclAllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("op_name: string")
@@ -45,6 +21,9 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
     const KungFu_NCCLScope nccl_scope_;
     std::string op_name_;
 
+    kungfu::NCCLScheduler *scheduler_;
+    kungfu::NCCLController *nccl_;
+
   public:
     explicit ScheduledNcclAllReduce(OpKernelConstruction *context)
         : AsyncOpKernel(context), nccl_scope_(KungFu_NCCL_GLOBAL)
@@ -52,12 +31,14 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
         OP_REQUIRES_OK(context, context->GetAttr("op_name", &op_name_));
         OP_REQUIRES(context, op_name_.size() >= 0,
                     errors::InvalidArgument("op_name must not be empty"));
+        scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
+        // scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        // nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -112,6 +93,9 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
     std::string reduce_op_;
     std::string bcast_op_;
 
+    kungfu::NCCLScheduler *scheduler_;
+    kungfu::NCCLController *nccl_;
+
   public:
     explicit ScheduledHierarchicalNcclAllReduce(OpKernelConstruction *context)
         : AsyncOpKernel(context), nccl_scope_(KungFu_NCCL_LOCAL)
@@ -122,12 +106,15 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
                     errors::InvalidArgument("op_names.size() must be 2"));
         reduce_op_ = op_names[0];
         bcast_op_  = op_names[1];
+
+        scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
+        // scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        // nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(

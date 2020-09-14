@@ -17,6 +17,8 @@ from kungfu.python import _get_cuda_index
 from kungfu.tensorflow.ops import (current_cluster_size, current_rank,
                                    group_all_reduce, group_nccl_all_reduce)
 from kungfu.tensorflow.ops.collective import group_hierarchical_nccl_all_reduce
+from kungfu.tensorflow.ops.nccl import (group_hierarchical_nccl_all_reduce_v2,
+                                        group_nccl_all_reduce_v2)
 from kungfu.tensorflow.v1.benchmarks import model_sizes
 from kungfu.tensorflow.v1.helpers.utils import show_rate, show_size
 from tensorflow.python.util import deprecation
@@ -57,7 +59,9 @@ def get_rank(method):
 _group_all_reduce_func = {
     'CPU': group_all_reduce,
     'NCCL': group_nccl_all_reduce,
+    'NCCLv2': group_nccl_all_reduce_v2,
     'NCCL+CPU': group_hierarchical_nccl_all_reduce,
+    'NCCLv2+CPU': group_hierarchical_nccl_all_reduce_v2,
     'HOROVOD': hvd_group_all_reduce,
 }
 
