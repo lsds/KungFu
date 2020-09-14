@@ -18,6 +18,11 @@ int broadcast_cuda_async(torch::Tensor input, torch::Tensor output,
 
 void wait_handle(int handle);
 void wait_all_handles(const std::vector<int> &handles);
+
+void all_gather_cpu(torch::Tensor input, torch::Tensor output,
+                    const std::string &type);
+void all_gather_cuda(torch::Tensor input, torch::Tensor output,
+                     const std::string &type);
 }  // namespace kungfu
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
@@ -29,4 +34,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 
     m.def("wait_handle", &kungfu::wait_handle);
     m.def("wait_all_handles", &kungfu::wait_all_handles);
+
+    m.def("all_gather_cpu", &kungfu::all_gather_cpu);
+    m.def("all_gather_cuda", &kungfu::all_gather_cuda);
 }
