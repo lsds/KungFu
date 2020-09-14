@@ -48,7 +48,7 @@ func example(c *cluster, prog string, args []string) {
 	const configServerPort = 9100
 	server := c.Start(ctx, wg, `kf-config-server`,
 		proc{
-			cmd: `kungfu-config-server-example`,
+			cmd: `kungfu-config-server`,
 			args: []string{
 				`-ttl`, ttl.String(),
 			},
@@ -56,8 +56,8 @@ func example(c *cluster, prog string, args []string) {
 		},
 	)
 
-	getConfigURL := fmt.Sprintf("http://%s:%d/get", server.ip, configServerPort)
-	putConfigURL := fmt.Sprintf("http://%s:%d/put", `127.0.0.1`, configServerPort)
+	configURL := fmt.Sprintf("http://%s:%d/config", server.ip, configServerPort)
+	putConfigURL := fmt.Sprintf("http://%s:%d/config", `127.0.0.1`, configServerPort)
 	cc := configserver.NewClient(putConfigURL)
 	cc.WaitServer()
 
@@ -97,7 +97,7 @@ func example(c *cluster, prog string, args []string) {
 			`-H`, hl.String(),
 			`-self`, ip,
 			`-w`,
-			`-config-server`, getConfigURL,
+			`-config-server`, configURL,
 			`-init-version`, strconv.Itoa(initVersion),
 			`-delay`, delay,
 			prog,
