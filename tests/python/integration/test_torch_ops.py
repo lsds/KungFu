@@ -2,25 +2,28 @@
 
 import kungfu.torch as kf
 import torch
-from kungfu.python import current_cluster_size
+from kungfu.python import current_cluster_size, current_rank
 
 
 def test_all_reduce():
-    x = torch.ones([2, 2])
+    x = torch.ones([2, 3])
     y = kf.ops.collective.all_reduce_fn(x)
     assert (x.shape == y.shape)
-    # TODO: check value of y
-    # np = current_cluster_size()
-    # z = x * np
-    # assert (y == z)
+    np = current_cluster_size()
+    z = x * np
+    assert z.equal(y)
 
 
 def test_all_gather():
-    x = torch.ones([2, 2])
-    # print(x)
-
+    rank = current_rank()
+    x = torch.ones([2, 3]) * rank
     y = kf.ops.collective.all_gather(x)
-    # TODO: check shape and value of y
+    z = []
+    np = current_cluster_size()
+    for i in range(np):
+        z.append(torch.ones([2, 3]) * i)
+    z = torch.stack(z)
+    assert (z.equal(y))
 
 
 def test_all():
