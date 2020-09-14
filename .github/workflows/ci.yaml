@@ -57,6 +57,8 @@ jobs:
         DATA_DIR=$HOME/var/data \
         ./scripts/download-mnist.sh
     - run: ./scripts/tests/run-train-tests.sh
+
+    - run: pip install deprecation #
     - run: ./scripts/tests/run-elastic-test.sh
 
     # Doc test

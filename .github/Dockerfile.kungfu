@@ -9,7 +9,6 @@ WORKDIR /src/kungfu
 ADD . .
 
 RUN pip3 install --no-index -U .
-RUN pip3 install deprecation
 
 ENV GOBIN /root/go/bin
 RUN go install -v ./...
