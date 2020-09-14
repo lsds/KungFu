@@ -1,6 +1,8 @@
 import torch
+from kungfu.python import current_cluster_size
 
-from .clib import all_reduce_async_op_map, all_reduce_op_map, broadcast_async_op_map, ops
+from .clib import (all_gather_op_map, all_reduce_async_op_map,
+                   all_reduce_op_map, broadcast_async_op_map, ops)
 
 
 def all_reduce_fn(x, op=None):
@@ -41,3 +43,10 @@ def broadcast_parameters(state_dict):
         h = inplace_broadcast_async_op(value, name)
         handles.append(h)
     wait_all_handles(handles)
+
+
+def all_gather(x):
+    np = current_cluster_size()
+    y = x.new(torch.Size([np] + list(x.shape)))
+    all_gather_op_map[x.type()](x, y, x.type())
+    return y

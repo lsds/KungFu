@@ -36,3 +36,8 @@ jobs:
     - run: python ./examples/torch_simple_example.py
 
     - run: kungfu-run -q -np 2 python ./examples/torch_simple_example.py
+
+    - run: |
+        for np in $(echo 1 2 3 4); do
+          kungfu-run -q -H 127.0.0.1:$np -np $np python ./tests/python/integration/test_torch_ops.py
+        done
