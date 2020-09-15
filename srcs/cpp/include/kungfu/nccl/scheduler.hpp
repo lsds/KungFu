@@ -33,6 +33,21 @@ class order_group
 };
 */
 
+class NCCLThread
+{
+    using Task      = std::function<void()>;
+    using TaskQueue = MpscChannel<Task>;
+
+    TaskQueue queue_;
+    std::unique_ptr<std::thread> thread_;
+
+  public:
+    NCCLThread();
+    ~NCCLThread();
+    void Put(std::function<void()> task);
+    void Do(std::function<void()> task);
+};
+
 class LinearExecutor
 {
     const int size_;
@@ -47,30 +62,17 @@ class LinearExecutor
     std::vector<bool> is_started_;
     std::vector<DoneCallback> tasks_;
     std::unique_ptr<std::thread> executor_;
+    NCCLThread *nccl_thread_;
 
   public:
     LinearExecutor(const std::vector<std::string> &names,
-                   const std::vector<int32_t> &order);
+                   const std::vector<int32_t> &order, NCCLThread *nccl_thread);
 
     ~LinearExecutor();
 
     void Start(const std::string &name, const DoneCallback &task);
 
     std::vector<int32_t> Wait();
-};
-
-class NCCLThread
-{
-    using Task      = std::function<void()>;
-    using TaskQueue = MpscChannel<Task>;
-
-    TaskQueue queue_;
-    std::unique_ptr<std::thread> thread_;
-
-  public:
-    NCCLThread();
-    ~NCCLThread();
-    void Do(std::function<void()> task);
 };
 
 class NCCLScheduler
@@ -82,7 +84,6 @@ class NCCLScheduler
     int counter_;
     std::vector<int32_t> order_;
 
-    // std::unique_ptr<order_group> order_group_;
     std::unique_ptr<NCCLThread> nccl_thread_;
     std::unique_ptr<LinearExecutor> executor_;
 

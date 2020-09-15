@@ -34,10 +34,40 @@ std::vector<int32_t> order_group::Wait()
 }
 */
 
+NCCLThread::NCCLThread()
+{
+    thread_.reset(new std::thread([&] {
+        for (;;) {
+            auto t = queue_.get();
+            if (t == nullptr) { break; }
+            t();
+        }
+    }));
+}
+
+NCCLThread::~NCCLThread()
+{
+    queue_.put(nullptr);
+    thread_->join();
+}
+
+void NCCLThread::Put(std::function<void()> task) { queue_.put(task); }
+
+void NCCLThread::Do(std::function<void()> task)
+{
+    Waiter waiter;
+    queue_.put([=, waiter = &waiter] {
+        task();
+        waiter->done();
+    });
+    waiter.wait();
+}
+
 LinearExecutor::LinearExecutor(const std::vector<std::string> &names,
-                               const std::vector<int32_t> &order)
+                               const std::vector<int32_t> &order,
+                               NCCLThread *nccl_thread)
     : size_(names.size()), started_(0), arrive_order_(size_),
-      is_started_(size_), tasks_(size_)
+      is_started_(size_), tasks_(size_), nccl_thread_(nccl_thread)
 {
     for (int i = 0; i < size_; ++i) { ranks_[names[order[i]]] = i; }
     std::fill(is_started_.begin(), is_started_.end(), false);
@@ -47,8 +77,9 @@ LinearExecutor::LinearExecutor(const std::vector<std::string> &names,
                 std::unique_lock<std::mutex> lk(mu_);
                 cv_.wait(lk, [&] { return is_started_[i]; });
             }
-            tasks_[i]();
+            nccl_thread_->Put(tasks_[i]);
         }
+        nccl_thread_->Do([] {});  // do an empty task to wait all previous tasks
     }));
 }
 
@@ -72,33 +103,6 @@ std::vector<int32_t> LinearExecutor::Wait()
         cv_.wait(lk, [&] { return started_ == size_; });
     }
     return arrive_order_;
-}
-
-NCCLThread::NCCLThread()
-{
-    thread_.reset(new std::thread([&] {
-        for (;;) {
-            auto t = queue_.get();
-            if (t == nullptr) { break; }
-            t();
-        }
-    }));
-}
-
-NCCLThread::~NCCLThread()
-{
-    queue_.put(nullptr);
-    thread_->join();
-}
-
-void NCCLThread::Do(std::function<void()> task)
-{
-    Waiter waiter;
-    queue_.put([=, waiter = &waiter] {
-        task();
-        waiter->done();
-    });
-    waiter.wait();
 }
 
 NCCLScheduler::NCCLScheduler(const KungFu_NCCLScope scope,
@@ -139,7 +143,7 @@ void NCCLScheduler::Reset(const std::vector<std::string> &names)
             }
         }
     }
-    executor_.reset(new LinearExecutor(names, order_));
+    executor_.reset(new LinearExecutor(names, order_, nccl_thread_.get()));
     ++counter_;
 }
 
