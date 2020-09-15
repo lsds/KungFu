@@ -12,8 +12,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
-const defaultPath = `/config`
-
 type ConfigServer struct {
 	sync.RWMutex
 	cancel  context.CancelFunc
@@ -23,9 +21,9 @@ type ConfigServer struct {
 	version int
 }
 
-func New(cancel context.CancelFunc, initCluster *plan.Cluster) http.Handler {
+func New(cancel context.CancelFunc, initCluster *plan.Cluster, path string) http.Handler {
 	s := &ConfigServer{
-		Path:    defaultPath,
+		Path:    path,
 		cluster: initCluster,
 		cancel:  cancel,
 	}

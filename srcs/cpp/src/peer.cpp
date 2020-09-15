@@ -90,12 +90,17 @@ int Peer::GetPeerLatencies(float *recvbuf, int recv_count)
     return GoKungfuGetPeerLatencies(recvbuf, recv_count, KungFu_FLOAT);
 }
 
-int Peer::CheckInterference()
-{
-    return GoKungfuCheckInterference();
-}
+int Peer::CheckInterference() { return GoKungfuCheckInterference(); }
 
 // control APIs
+int Peer::ResizeCluster(const uint32_t new_size, bool *changed, bool *keep)
+{
+    static_assert(sizeof(bool) == sizeof(char), "");
+    return GoKungfuResizeCluster(GoInt(new_size),
+                                 reinterpret_cast<char *>(changed),
+                                 reinterpret_cast<char *>(keep));
+}
+
 int Peer::ResizeClusterFromURL(bool *changed, bool *keep)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
@@ -103,20 +108,11 @@ int Peer::ResizeClusterFromURL(bool *changed, bool *keep)
                                         reinterpret_cast<char *>(keep));
 }
 
-void Peer::LogStats()
-{
-    GoLogStats();
-}
+void Peer::LogStats() { GoLogStats(); }
 
-void Peer::CalcStats()
-{
-    GoCalcStats();
-}
+void Peer::CalcStats() { GoCalcStats(); }
 
-void Peer::PrintStategyStats()
-{
-    GoPrintStategyStats();
-}
+void Peer::PrintStategyStats() { GoPrintStategyStats(); }
 
 int Peer::ProposeNewSize(int new_size)
 {
