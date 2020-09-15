@@ -8,6 +8,7 @@
 
 #include <kungfu.h>
 #include <kungfu/nccl/common.hpp>
+#include <kungfu/utils/channel.hpp>
 
 namespace kungfu
 {
@@ -58,6 +59,20 @@ class LinearExecutor
     std::vector<int32_t> Wait();
 };
 
+class NCCLThread
+{
+    using Task      = std::function<void()>;
+    using TaskQueue = MpscChannel<Task>;
+
+    TaskQueue queue_;
+    std::unique_ptr<std::thread> thread_;
+
+  public:
+    NCCLThread();
+    ~NCCLThread();
+    void Do(std::function<void()> task);
+};
+
 class NCCLScheduler
 {
     const std::string name_;
@@ -68,6 +83,7 @@ class NCCLScheduler
     std::vector<int32_t> order_;
 
     // std::unique_ptr<order_group> order_group_;
+    std::unique_ptr<NCCLThread> nccl_thread_;
     std::unique_ptr<LinearExecutor> executor_;
 
     void ResetOrder(int n);

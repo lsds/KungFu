@@ -2,6 +2,7 @@
 
 #include <kungfu/nccl/scheduler.hpp>
 #include <kungfu/python/init.h>  // FIXME: remove
+#include <kungfu/utils/waiter.hpp>
 
 namespace kungfu
 {
@@ -73,10 +74,38 @@ std::vector<int32_t> LinearExecutor::Wait()
     return arrive_order_;
 }
 
+NCCLThread::NCCLThread()
+{
+    thread_.reset(new std::thread([&] {
+        for (;;) {
+            auto t = queue_.get();
+            if (t == nullptr) { break; }
+            t();
+        }
+    }));
+}
+
+NCCLThread::~NCCLThread()
+{
+    queue_.put(nullptr);
+    thread_->join();
+}
+
+void NCCLThread::Do(std::function<void()> task)
+{
+    Waiter waiter;
+    queue_.put([=, waiter = &waiter] {
+        task();
+        waiter->done();
+    });
+    waiter.wait();
+}
+
 NCCLScheduler::NCCLScheduler(const KungFu_NCCLScope scope,
                              const bool auto_order)
     : name_("NCCLScheduler_" + std::to_string(int(scope))),
-      auto_order_(auto_order), scope_(scope), counter_(0)
+      auto_order_(auto_order), scope_(scope), counter_(0),
+      nccl_thread_(new NCCLThread)
 {
 }
 
@@ -121,7 +150,6 @@ void NCCLScheduler::Start(const std::string &name, const DoneCallback &task)
 
 void NCCLScheduler::Do(std::function<void()> task)
 {
-    // FIXME: run it in a dedicated thread
-    task();
+    nccl_thread_->Do(std::move(task));
 }
 }  // namespace kungfu
