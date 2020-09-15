@@ -42,9 +42,10 @@ def resize(n):
     """
     resize_op = _op_lib.kungfu_resize_cluster(n)
     if hasattr(_op_lib, 'kungfu_reset_nccl_helper'):
-        # TODO: reset NCCL
-        pass
-    return resize_op
+        changed, keep = resize_op
+        return _op_lib.kungfu_reset_nccl_helper(changed, keep)
+    else:
+        return resize_op
 
 
 def set_tree(tree):

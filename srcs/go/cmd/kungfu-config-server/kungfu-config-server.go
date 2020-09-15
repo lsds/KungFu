@@ -5,6 +5,7 @@ import (
 	"flag"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -16,6 +17,7 @@ import (
 )
 
 var (
+	host     = flag.String("host", "0.0.0.0", "")
 	port     = flag.Int("port", 9100, "")
 	initFile = flag.String("init", "", "")
 	ttl      = flag.Duration("ttl", 0, "time to live")
@@ -25,6 +27,12 @@ var (
 func main() {
 	t0 := time.Now()
 	flag.Parse()
+	listenURL := url.URL{
+		Scheme: `http`,
+		Host:   net.JoinHostPort(*host, strconv.Itoa(*port)),
+		Path:   *endpoint,
+	}
+	log.Infof("listening %s", listenURL.String())
 	var initCluster *plan.Cluster
 	if len(*initFile) > 0 {
 		f, err := os.Open(*initFile)
