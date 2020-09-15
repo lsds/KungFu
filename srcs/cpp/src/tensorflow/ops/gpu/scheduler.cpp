@@ -24,7 +24,8 @@ class StartNcclScheduler : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
-        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        auto scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        auto controller_ = _default_nccl_helper->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         const auto t_names  = input.vec<std::string>();
         std::vector<std::string> names;
@@ -32,6 +33,7 @@ class StartNcclScheduler : public OpKernel
             names.push_back(t_names(i));
         }
         scheduler_->Reset(names);
+        scheduler_->Do([=] { controller_->InitOnce(); });
     }
 };
 

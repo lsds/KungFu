@@ -5,6 +5,7 @@
 
 namespace kungfu
 {
+/*
 order_group::order_group(const std::vector<std::string> &names,
                          const std::vector<int32_t> &order)
     : og_(new_ranked_order_group(names.size()))
@@ -30,6 +31,7 @@ std::vector<int32_t> order_group::Wait()
     order_group_wait(og_, arrive_order.data());
     return arrive_order;
 }
+*/
 
 LinearExecutor::LinearExecutor(const std::vector<std::string> &names,
                                const std::vector<int32_t> &order)
@@ -115,5 +117,11 @@ void NCCLScheduler::Reset(const std::vector<std::string> &names)
 void NCCLScheduler::Start(const std::string &name, const DoneCallback &task)
 {
     executor_->Start(name, task);
+}
+
+void NCCLScheduler::Do(std::function<void()> task)
+{
+    // FIXME: run it in a dedicated thread
+    task();
 }
 }  // namespace kungfu

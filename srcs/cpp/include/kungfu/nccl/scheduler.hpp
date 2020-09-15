@@ -12,6 +12,7 @@
 namespace kungfu
 {
 // order_group wraps order_group_t
+/*
 class order_group
 {
     order_group_t *og_;
@@ -29,6 +30,7 @@ class order_group
 
     std::vector<int32_t> Wait();
 };
+*/
 
 class LinearExecutor
 {
@@ -76,5 +78,8 @@ class NCCLScheduler
     void Reset(const std::vector<std::string> &names);
 
     void Start(const std::string &name, const DoneCallback &task);
+
+    // Run a task in the dedicated NCCL thread
+    void Do(std::function<void()> task);
 };
 }  // namespace kungfu

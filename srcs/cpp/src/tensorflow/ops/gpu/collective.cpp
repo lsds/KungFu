@@ -56,8 +56,8 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
+        auto scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        auto controller_ = _default_nccl_helper->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -66,7 +66,7 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
         auto ready_event = create_init_ready_event(context);
         scheduler_->Start(op_name_, [=] {
             wait_delete_ready_event(ready_event);
-            nccl_->AllReduce(w, KungFu_SUM, done);
+            controller_->AllReduce(w, KungFu_SUM, done);
         });
     }
 };
@@ -86,13 +86,17 @@ class NcclAllReduce : public AsyncOpKernel
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto nccl_ = _default_nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
+        auto scheduler_ =
+            _default_nccl_helper->EnsureScheduler(KungFu_NCCL_GLOBAL);
+        auto controller_ =
+            _default_nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
+        scheduler_->Do([=] { controller_->InitOnce(); });
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
         wait_delete_ready_event(create_init_ready_event(context));
-        nccl_->AllReduce(make_workspace(input, output), KungFu_SUM, done);
+        controller_->AllReduce(make_workspace(input, output), KungFu_SUM, done);
     }
 };
 
@@ -126,8 +130,8 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_ = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto nccl_      = _default_nccl_helper->EnsureController(nccl_scope_);
+        auto scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
+        auto controller_ = _default_nccl_helper->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -138,10 +142,11 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
         auto w_bcast      = make_workspace(*output, output);
         scheduler_->Start(reduce_op_, [=] {
             wait_delete_ready_event(ready_event);
-            nccl_->Reduce(w_reduce, KungFu_SUM, [=] {
+            controller_->Reduce(w_reduce, KungFu_SUM, [=] {
                 CrossAllReduceGpu(w_all_reduce, KungFu_SUM, name(), [=] {
-                    scheduler_->Start(bcast_op_,
-                                      [=] { nccl_->Broadcast(w_bcast, done); });
+                    scheduler_->Start(bcast_op_, [=] {
+                        controller_->Broadcast(w_bcast, done);
+                    });
                 });
             });
         });
