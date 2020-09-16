@@ -12,27 +12,6 @@
 
 namespace kungfu
 {
-// order_group wraps order_group_t
-/*
-class order_group
-{
-    order_group_t *og_;
-    std::map<std::string, int> ranks_;
-
-  public:
-    using Task = DoneCallback;
-
-    order_group(const std::vector<std::string> &names,
-                const std::vector<int32_t> &order);
-
-    ~order_group();
-
-    void Start(const std::string &name, const Task &task);
-
-    std::vector<int32_t> Wait();
-};
-*/
-
 class NCCLThread
 {
     using Task      = std::function<void()>;
