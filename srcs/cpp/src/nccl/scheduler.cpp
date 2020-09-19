@@ -2,39 +2,44 @@
 
 #include <kungfu/nccl/scheduler.hpp>
 #include <kungfu/python/init.h>  // FIXME: remove
+#include <kungfu/utils/waiter.hpp>
 
 namespace kungfu
 {
-order_group::order_group(const std::vector<std::string> &names,
-                         const std::vector<int32_t> &order)
-    : og_(new_ranked_order_group(names.size()))
+NCCLThread::NCCLThread()
 {
-    const int n = names.size();
-    for (int i = 0; i < n; ++i) { ranks_[names[order[i]]] = i; }
+    thread_.reset(new std::thread([&] {
+        for (;;) {
+            auto t = queue_.get();
+            if (t == nullptr) { break; }
+            t();
+        }
+    }));
 }
 
-order_group::~order_group()
+NCCLThread::~NCCLThread()
 {
-    Wait();
-    del_order_group(og_);
+    queue_.put(nullptr);
+    thread_->join();
 }
 
-void order_group::Start(const std::string &name, const Task &task)
-{
-    order_group_do_rank(og_, ranks_.at(name), new CallbackWrapper(task));
-}
+void NCCLThread::Put(std::function<void()> task) { queue_.put(task); }
 
-std::vector<int32_t> order_group::Wait()
+void NCCLThread::Do(std::function<void()> task)
 {
-    std::vector<int32_t> arrive_order(ranks_.size());
-    order_group_wait(og_, arrive_order.data());
-    return arrive_order;
+    Waiter waiter;
+    queue_.put([=, waiter = &waiter] {
+        task();
+        waiter->done();
+    });
+    waiter.wait();
 }
 
 LinearExecutor::LinearExecutor(const std::vector<std::string> &names,
-                               const std::vector<int32_t> &order)
+                               const std::vector<int32_t> &order,
+                               NCCLThread *nccl_thread)
     : size_(names.size()), started_(0), arrive_order_(size_),
-      is_started_(size_), tasks_(size_)
+      is_started_(size_), tasks_(size_), nccl_thread_(nccl_thread)
 {
     for (int i = 0; i < size_; ++i) { ranks_[names[order[i]]] = i; }
     std::fill(is_started_.begin(), is_started_.end(), false);
@@ -44,8 +49,9 @@ LinearExecutor::LinearExecutor(const std::vector<std::string> &names,
                 std::unique_lock<std::mutex> lk(mu_);
                 cv_.wait(lk, [&] { return is_started_[i]; });
             }
-            tasks_[i]();
+            nccl_thread_->Put(tasks_[i]);
         }
+        nccl_thread_->Do([] {});  // do an empty task to wait all previous tasks
     }));
 }
 
@@ -74,7 +80,8 @@ std::vector<int32_t> LinearExecutor::Wait()
 NCCLScheduler::NCCLScheduler(const KungFu_NCCLScope scope,
                              const bool auto_order)
     : name_("NCCLScheduler_" + std::to_string(int(scope))),
-      auto_order_(auto_order), scope_(scope), counter_(0)
+      auto_order_(auto_order), scope_(scope), counter_(0),
+      nccl_thread_(new NCCLThread)
 {
 }
 
@@ -108,12 +115,17 @@ void NCCLScheduler::Reset(const std::vector<std::string> &names)
             }
         }
     }
-    executor_.reset(new LinearExecutor(names, order_));
+    executor_.reset(new LinearExecutor(names, order_, nccl_thread_.get()));
     ++counter_;
 }
 
 void NCCLScheduler::Start(const std::string &name, const DoneCallback &task)
 {
     executor_->Start(name, task);
+}
+
+void NCCLScheduler::Do(std::function<void()> task)
+{
+    nccl_thread_->Do(std::move(task));
 }
 }  // namespace kungfu

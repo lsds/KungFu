@@ -10,10 +10,7 @@ NCCLController *NCCLHelper::EnsureController(const KungFu_NCCLScope scope)
 {
     std::lock_guard<std::mutex> _lk(mu_);
     auto &ptr = controllers_[scope];
-    if (ptr.get() == nullptr) {
-        ptr.reset(new NCCLController(scope));
-        ptr->InitOnce();
-    }
+    if (ptr.get() == nullptr) { ptr.reset(new NCCLController(scope)); }
     return ptr.get();
 }
 

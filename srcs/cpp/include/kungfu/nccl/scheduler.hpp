@@ -8,26 +8,23 @@
 
 #include <kungfu.h>
 #include <kungfu/nccl/common.hpp>
+#include <kungfu/utils/channel.hpp>
 
 namespace kungfu
 {
-// order_group wraps order_group_t
-class order_group
+class NCCLThread
 {
-    order_group_t *og_;
-    std::map<std::string, int> ranks_;
+    using Task      = std::function<void()>;
+    using TaskQueue = MpscChannel<Task>;
+
+    TaskQueue queue_;
+    std::unique_ptr<std::thread> thread_;
 
   public:
-    using Task = DoneCallback;
-
-    order_group(const std::vector<std::string> &names,
-                const std::vector<int32_t> &order);
-
-    ~order_group();
-
-    void Start(const std::string &name, const Task &task);
-
-    std::vector<int32_t> Wait();
+    NCCLThread();
+    ~NCCLThread();
+    void Put(std::function<void()> task);
+    void Do(std::function<void()> task);
 };
 
 class LinearExecutor
@@ -44,10 +41,11 @@ class LinearExecutor
     std::vector<bool> is_started_;
     std::vector<DoneCallback> tasks_;
     std::unique_ptr<std::thread> executor_;
+    NCCLThread *nccl_thread_;
 
   public:
     LinearExecutor(const std::vector<std::string> &names,
-                   const std::vector<int32_t> &order);
+                   const std::vector<int32_t> &order, NCCLThread *nccl_thread);
 
     ~LinearExecutor();
 
@@ -65,7 +63,7 @@ class NCCLScheduler
     int counter_;
     std::vector<int32_t> order_;
 
-    // std::unique_ptr<order_group> order_group_;
+    std::unique_ptr<NCCLThread> nccl_thread_;
     std::unique_ptr<LinearExecutor> executor_;
 
     void ResetOrder(int n);
@@ -76,5 +74,8 @@ class NCCLScheduler
     void Reset(const std::vector<std::string> &names);
 
     void Start(const std::string &name, const DoneCallback &task);
+
+    // Run a task in the dedicated NCCL thread
+    void Do(std::function<void()> task);
 };
 }  // namespace kungfu
