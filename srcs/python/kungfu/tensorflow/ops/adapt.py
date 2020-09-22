@@ -35,17 +35,14 @@ def resize(n):
     Inputs:
         n: A scalar tensor of uint32.
     Returns:
-        A pair of scalar tensors (changed, keep) of type bool,
-        {changed} indicates if the cluster has been changed,
-        {keep} indicates if the current peer is still in the new cluster,
-        the peer should quit if it is not in the new cluster.
+        A scalar tensor of bool, indicates if the cluster has been changed.
     """
-    resize_op = _op_lib.kungfu_resize_cluster(n)
+    changed, keep = _op_lib.kungfu_resize_cluster(n)
     if hasattr(_op_lib, 'kungfu_reset_nccl_helper'):
-        changed, keep = resize_op
-        return _op_lib.kungfu_reset_nccl_helper(changed, keep)
+        changed, keep = _op_lib.kungfu_reset_nccl_helper(changed, keep)
+        return changed
     else:
-        return resize_op
+        return changed
 
 
 def set_tree(tree):
