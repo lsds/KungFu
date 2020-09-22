@@ -2,6 +2,7 @@ import argparse
 
 import kungfu
 import tensorflow as tf
+from kungfu.python import detached
 from kungfu.tensorflow.ops import all_reduce, resize
 
 
@@ -37,7 +38,6 @@ def main():
     inc_gs = tf.assign_add(gs, 1)
     new_size = tf.placeholder(dtype=tf.uint32)
     resize_op = resize(new_size)
-
     train_op = build_fake_train_op(args.use_nccl)
     init = tf.global_variables_initializer()
 
@@ -57,11 +57,11 @@ def main():
             # END train
 
             if step in fake_schedule:
-                changed, keep = sess.run(
-                    resize_op, feed_dict={new_size: fake_schedule[step]})
+                changed = sess.run(resize_op,
+                                   feed_dict={new_size: fake_schedule[step]})
                 if changed:
                     need_sync = True
-                    if not keep:
+                    if detached():
                         break
                 else:
                     print('cluster not changed')
