@@ -2,8 +2,6 @@ package session
 
 import (
 	"fmt"
-	"sync"
-	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -16,31 +14,8 @@ const (
 	alternativeStrategy   = 1
 )
 
-func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
-	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
-	errs := make([]error, k)
-	var wg sync.WaitGroup
-	for i, w := range w.Split(p, k) {
-		wg.Add(1)
-		go func(i int, w kb.Workspace, s strategy) {
-			startTime := time.Now()
-			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
-			endTime := time.Now()
-			s.stat.Update(startTime, endTime, w.SendBuf.Count*w.SendBuf.Type.Size())
-			wg.Done()
-		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
-	}
-	wg.Wait()
-	return utils.MergeErrors(errs, "runMonitoredStrategiesWithHash")
-}
-
-func (sess *Session) runMonitoredStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {
-	return sess.runMonitoredStrategiesWithHash(w, p, strategies, sess.strategyHash)
-}
-
 //CalcStats reports a Stat object for the current active strategyt
 func (sess *Session) CalcStats() {
-
 	if len(sess.globalStrategies) != 1 {
 		log.Errorf("CalcStats should only be called with one active communication strategy")
 		return
@@ -53,7 +28,6 @@ func (sess *Session) CalcStats() {
 	if stats.accSize == 0 {
 		return
 	}
-
 	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds() //time.Duration(stats.lastEnd-*stats.firstBegin)
 	stats.Throughput = t
 

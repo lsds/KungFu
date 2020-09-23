@@ -1,6 +1,5 @@
-from kungfu._utils import map_maybe
-
 import tensorflow as tf
+from kungfu._utils import map_maybe
 
 from ._tf_oplib import _op_lib
 from .topology import peer_info
@@ -25,7 +24,7 @@ def all_reduce(t, op='sum'):
     return _op_lib.kungfu_all_reduce(t, op=op)
 
 
-def monitored_all_reduce(t, tree, op='sum'):
+def monitored_all_reduce(t, tree=None, op='sum'):
     """Create a new all_reduce operator for given tensor and topology.
 
     Inputs:
@@ -35,6 +34,12 @@ def monitored_all_reduce(t, tree, op='sum'):
             - tree[i] is the father of i if tree[i] != i;
             - i is the root if tree[i] == i.
     """
+    if tree is None:
+        tree = []
+    else:
+        print(
+            'calling monitored_all_reduce with tree is deprecated, please use set_tree API'
+        )
     # TODO: return monitoring metrics
     return _op_lib.kungfu_monitored_all_reduce(t, tree, op=op)
 
