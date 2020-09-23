@@ -3,6 +3,54 @@
 
 namespace tensorflow
 {
+REGISTER_KUNGFU_OP(Rank)
+    .Output("rank: int32")
+    .SetIsStateful()
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->Scalar());
+        return Status::OK();
+    });
+
+class Rank : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+  public:
+    void Compute(OpKernelContext *context) override
+    {
+        Tensor *rank = nullptr;
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, MakeTensorShape(), &rank));
+        rank->scalar<int32_t>()() = _default_peer->Rank();
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(Rank, DEVICE_CPU);
+
+REGISTER_KUNGFU_OP(ClusterSize)
+    .Output("cluster_size: int32")
+    .SetIsStateful()
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->Scalar());
+        return Status::OK();
+    });
+
+class ClusterSize : public OpKernel
+{
+    using OpKernel::OpKernel;
+
+  public:
+    void Compute(OpKernelContext *context) override
+    {
+        Tensor *cluster_size = nullptr;
+        OP_REQUIRES_OK(context, context->allocate_output(0, MakeTensorShape(),
+                                                         &cluster_size));
+        cluster_size->scalar<int32_t>()() = _default_peer->Size();
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(ClusterSize, DEVICE_CPU);
+
 REGISTER_KUNGFU_OP(GetPeerInfo)
     .Output("rank: int32")
     .Output("cluster_size: int32")
@@ -13,25 +61,21 @@ REGISTER_KUNGFU_OP(GetPeerInfo)
         return Status::OK();
     });
 
-class GetPeerInfo : public AsyncOpKernel
+class GetPeerInfo : public OpKernel
 {
-    using AsyncOpKernel::AsyncOpKernel;
+    using OpKernel::OpKernel;
 
   public:
-    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    void Compute(OpKernelContext *context) override
     {
         Tensor *rank         = nullptr;
         Tensor *cluster_size = nullptr;
-        OP_REQUIRES_OK_ASYNC(
-            context, context->allocate_output(0, MakeTensorShape(), &rank),
-            done);
-        OP_REQUIRES_OK_ASYNC(
-            context,
-            context->allocate_output(1, MakeTensorShape(), &cluster_size),
-            done);
+        OP_REQUIRES_OK(context,
+                       context->allocate_output(0, MakeTensorShape(), &rank));
+        OP_REQUIRES_OK(context, context->allocate_output(1, MakeTensorShape(),
+                                                         &cluster_size));
         rank->scalar<int32_t>()()         = _default_peer->Rank();
         cluster_size->scalar<int32_t>()() = _default_peer->Size();
-        done();
     }
 };
 

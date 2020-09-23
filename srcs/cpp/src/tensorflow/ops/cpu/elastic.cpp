@@ -59,7 +59,7 @@ class StepBasedSchedule : public OpKernel
                                                          &cluster_size));
         bool found = false;
         int result = default_;
-        for (const auto sch : schedule_) {  // FIXME: use binary search
+        for (const auto &sch : schedule_) {  // FIXME: use binary search
             const auto r = sch.first;
             if (r.first <= step && step < r.second) {
                 result = sch.second;

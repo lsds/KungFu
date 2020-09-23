@@ -224,6 +224,15 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 	return true, keep
 }
 
+func (p *Peer) ResizeCluster(newSize int) (bool, bool, error) {
+	if p.currentSession.Rank() == 0 {
+		if err := p.ProposeNewSize(newSize); err != nil {
+			log.Warnf("Peer::ResizeCluster failed: %v", err)
+		}
+	}
+	return p.ResizeClusterFromURL()
+}
+
 func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 	var cluster *plan.Cluster
 	for i := 0; ; i++ {

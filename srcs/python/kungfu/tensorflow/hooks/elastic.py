@@ -1,6 +1,8 @@
 import os
 
+import deprecation
 import numpy as np
+import tensorflow as tf
 from kungfu._utils import _log_event
 from kungfu.python import propose_new_size
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
@@ -8,10 +10,9 @@ from kungfu.tensorflow.ops import (all_reduce, consensus, current_cluster_size,
                                    resize_cluster_from_url,
                                    step_based_schedule)
 
-import tensorflow as tf
-
 
 class KungFuElasticTrainHook(tf.train.SessionRunHook):
+    @deprecation.deprecated()
     def __init__(self, schedule, max_step, model_dir, save_final_model=False):
         self._schedule = schedule
         self._max_step = max_step

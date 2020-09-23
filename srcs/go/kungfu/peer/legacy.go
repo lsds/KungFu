@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
@@ -26,12 +25,7 @@ func (p *Peer) ProposeNewSize(newSize int) error {
 	if err := json.NewEncoder(buf).Encode(newCluster); err != nil {
 		return err
 	}
-	u, err := url.Parse(p.configServerURL)
-	if err != nil {
-		return err
-	}
-	u.Path = `/put`
-	req, err := http.NewRequest(http.MethodPut, u.String(), buf)
+	req, err := http.NewRequest(http.MethodPut, p.configServerURL, buf)
 	if err != nil {
 		return err
 	}
@@ -40,6 +34,6 @@ func (p *Peer) ProposeNewSize(newSize int) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	resp.Body.Close()
 	return nil
 }

@@ -3,6 +3,9 @@
 https://github.com/uber/horovod/blob/master/examples/tensorflow_synthetic_benchmark.py
 
 Please refer to Horovod page to see how to run this script.
+
+$ horovodrun -np 4 python3 benchmark_horovod_torch.py
+
 """
 
 from __future__ import absolute_import, division, print_function

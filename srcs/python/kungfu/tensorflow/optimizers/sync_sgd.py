@@ -1,8 +1,12 @@
 from kungfu._utils import map_maybe
+from kungfu.tensorflow.ops import (defuse, fuse, group_all_reduce,
+                                   group_nccl_all_reduce, peer_info,
+                                   monitored_all_reduce)
 from kungfu.tensorflow.ops import defuse, fuse, peer_info
 from kungfu.tensorflow.ops.collective import (
     group_all_reduce, group_hierarchical_nccl_all_reduce,
     group_nccl_all_reduce)
+from kungfu.tensorflow.ops.adapt import calc_stats
 
 import tensorflow as tf
 
@@ -14,6 +18,7 @@ def SynchronousSGDOptimizer(optimizer,
                             nccl=False,
                             nccl_fusion=False,
                             hierarchical_nccl=False,
+                            monitor=False,
                             name=None,
                             use_locking=False,
                             with_keras=False):
@@ -43,7 +48,8 @@ def SynchronousSGDOptimizer(optimizer,
     """
     sync_sgd_algo = _SynchronousSGD(nccl=nccl,
                                     nccl_fusion=nccl_fusion,
-                                    hierarchical_nccl=hierarchical_nccl)
+                                    hierarchical_nccl=hierarchical_nccl,
+                                    monitor=monitor)
     if with_keras:
         return _create_kungfu_keras_optimizer(optimizer, sync_sgd_algo)
     else:
@@ -52,9 +58,10 @@ def SynchronousSGDOptimizer(optimizer,
 
 
 class _SynchronousSGD(_KungFuAlgorithm):
-    def __init__(self, nccl=False, nccl_fusion=True, hierarchical_nccl=False):
+    def __init__(self, nccl=False, nccl_fusion=True, hierarchical_nccl=False, monitor=False):
         self._nccl = nccl
         self._nccl_fusion = nccl_fusion
+        self._monitor = monitor
 
         if self._nccl:
             if hierarchical_nccl:
@@ -84,7 +91,12 @@ class _SynchronousSGD(_KungFuAlgorithm):
             else:
                 summed_gradients = self._group_all_reduce_fn(gradients)
         else:
-            summed_gradients = self._group_all_reduce_fn(gradients)
+            if self._monitor:
+                summed_gradients = map_maybe(lambda g: monitored_all_reduce(g, []), gradients)
+                # with tf.control_dependencies(summed_gradients):
+                #     return calc_stats()
+            else:
+                summed_gradients = self._group_all_reduce_fn(gradients)
 
         np = tf.cast(self._num_workers, tf.float32)
         reduced_grads = map_maybe(lambda g: g / np, summed_gradients)

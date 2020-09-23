@@ -87,7 +87,7 @@ def gen_compose(ttl, np, n_nodes, node_cap, tag, user_command):
     nodes = gen_services(net, node_ips, tag, command)
 
     config_server = gen_service(net, config_server_ip, tag, [
-        'kungfu-config-server-example',
+        'kungfu-config-server',
         '-ttl',
         ttl,
     ])

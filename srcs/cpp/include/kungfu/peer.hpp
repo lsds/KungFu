@@ -159,10 +159,16 @@ class Peer
 
     // monitoring APIs
     int GetPeerLatencies(float *recvbuf, int recv_count);
+    int CheckInterference();
 
     // control APIs
+    int ResizeCluster(const uint32_t new_size, bool *changed, bool *keep);
     int ResizeClusterFromURL(bool *changed, bool *keep);
 
     int ProposeNewSize(int new_size);
+
+    void CalcStats();
+    void LogStats();
+    void PrintStategyStats();
 };
 }  // namespace kungfu

@@ -9,6 +9,7 @@ enum KungFu_Strategy {
     KungFu_BinaryTree,
     KungFu_Ring,
     KungFu_Star,
+    KungFu_MultiStar,
     KungFu_Clique,
     KungFu_BinaryTreeStar,
     KungFu_MultiBinaryTreeStar,

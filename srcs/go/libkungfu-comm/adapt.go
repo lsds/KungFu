@@ -12,6 +12,17 @@ import (
 */
 import "C"
 
+//export GoKungfuResizeCluster
+func GoKungfuResizeCluster(newSize int, pChanged, pKeep *C.char) int {
+	changed, keep, err := defaultPeer.ResizeCluster(newSize)
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	*pChanged = boolToChar(changed)
+	*pKeep = boolToChar(keep)
+	return 0
+}
+
 //export GoKungfuResizeClusterFromURL
 func GoKungfuResizeClusterFromURL(c *C.struct_peer_s, pChanged, pKeep *C.char) int {
 	changed, keep, err := toPeer(c).ResizeClusterFromURL()

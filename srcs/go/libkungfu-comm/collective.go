@@ -68,8 +68,14 @@ func GoKungfuMonitoredAllReduce(c *C.struct_peer_s, sendBuf, recvBuf unsafe.Poin
 	}
 	sess := toPeer(c).CurrentSession()
 	np := sess.Size()
-	tree := toVector(pTree, np, C.KungFu_INT32) // TODO: ensure pTree has size np in C++
-	f := func(w kb.Workspace) error { return sess.AllReduceWith(tree.AsI32(), w) }
+
+	var f func(w kb.Workspace) error
+	if pTree == nil {
+		f = func(w kb.Workspace) error { return sess.AllReduceWith(nil, w) }
+	} else {
+		tree := toVector(pTree, np, C.KungFu_INT32) // TODO: ensure pTree has size np in C++
+		f = func(w kb.Workspace) error { return sess.AllReduceWith(tree.AsI32(), w) }
+	}
 	return callCollectiveOP("GoKungfuAllReduceWith", name, f, w, done)
 }
 

@@ -1,0 +1,43 @@
+name: PyTorch
+
+on: [push]
+
+jobs:
+  test:
+    # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
+    runs-on: ubuntu-18.04
+
+    # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/using-environment-variables
+    env:
+      PYTHONWARNINGS: 'ignore'
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+
+    - run: |
+        nproc
+        echo $PATH
+
+    # FIXME: don't install tensorflow
+    - run: pip install -r tests/requirements.txt
+    - run: pip install torch==1.5
+
+    - run: pip install --no-index . # install kungfu tensorflow
+
+    - run: |
+        rm setup.py
+        ln -s setup_pytorch.py setup.py
+        pip install --no-index .
+
+    - run: python ./examples/torch_simple_example.py
+
+    - run: kungfu-run -q -np 2 python ./examples/torch_simple_example.py
+
+    - run: |
+        for np in $(echo 1 2 3 4); do
+          kungfu-run -q -H 127.0.0.1:$np -np $np python ./tests/python/integration/test_torch_ops.py
+        done
