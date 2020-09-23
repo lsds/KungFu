@@ -10,6 +10,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/rchannel/client"
 )
 
+// GetPeerLatencies is deprecated
 func (sess *Session) GetPeerLatencies() []time.Duration {
 	results := make([]time.Duration, len(sess.peers))
 	var wg sync.WaitGroup
