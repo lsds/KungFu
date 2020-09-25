@@ -147,6 +147,7 @@ class Peer
     // monitoring APIs
     int GetPeerLatencies(float *recvbuf, int recv_count);
     int CheckInterference();
+    int GetEgressRates(float *rates);
 
     // control APIs
     int ResizeCluster(const uint32_t new_size, bool *changed, bool *keep);

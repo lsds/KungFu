@@ -184,4 +184,6 @@ int Peer::SetTree(const int32_t *tree)
 {
     return GoKungfuSetTree(const_cast<int32_t *>(tree));
 }
+
+int Peer::GetEgressRates(float *rates) { return GoKungfuGetEgressRates(rates); }
 }  // namespace kungfu

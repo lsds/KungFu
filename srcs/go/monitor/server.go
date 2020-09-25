@@ -15,7 +15,7 @@ var (
 func StartServer(port int) {
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(int(port)))
 	monitoringServer = &http.Server{
-		Handler: monitor,
+		Handler: defaultMonitor,
 		Addr:    addr,
 	}
 	go func() {

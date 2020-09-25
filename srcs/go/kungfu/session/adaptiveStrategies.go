@@ -28,7 +28,7 @@ func (sess *Session) CalcStats() {
 	if stats.accSize == 0 {
 		return
 	}
-	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds() //time.Duration(stats.lastEnd-*stats.firstBegin)
+	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds()
 	stats.Throughput = t
 
 	//reset counters

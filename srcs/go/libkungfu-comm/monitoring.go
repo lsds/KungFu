@@ -9,6 +9,17 @@ package main
 import "C"
 import "unsafe"
 
+//export GoKungfuGetEgressRates
+func GoKungfuGetEgressRates(pRates unsafe.Pointer) int {
+	sess := defaultPeer.CurrentSession()
+	rates := toVector(pRates, sess.Size(), C.KungFu_FLOAT).AsF32()
+	results := sess.GetEgressRates()
+	for i, x := range results {
+		rates[i] = float32(x)
+	}
+	return 0
+}
+
 //export GoKungfuGetPeerLatencies
 func GoKungfuGetPeerLatencies(recvBuf unsafe.Pointer, recvCount int, recvDtype C.KungFu_Datatype) int {
 	results := toVector(recvBuf, recvCount, recvDtype).AsF32()

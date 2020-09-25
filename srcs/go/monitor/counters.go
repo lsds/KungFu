@@ -3,7 +3,6 @@ package monitor
 import (
 	"fmt"
 	"io"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -58,6 +57,12 @@ const (
 	rateTimeUnit    = float64(time.Second)
 )
 
+func (r *rate) getValue() float64 {
+	r.Lock()
+	defer r.Unlock()
+	return r.value
+}
+
 func (r *rate) update(p time.Duration) {
 	now := r.target.Get()
 	r.Lock()
@@ -105,8 +110,12 @@ func newRateAccumulatorGroup(prefix string) *rateAccumulatorGroup {
 	}
 }
 
+func key(a plan.NetAddr) string {
+	return fmt.Sprintf(`{peer="%s"}`, a)
+}
+
 func (g *rateAccumulatorGroup) getOrCreate(a plan.NetAddr) *rateAccumulator {
-	labels := fmt.Sprintf(`{peer="%s"}`, a)
+	labels := key(a)
 	g.Lock()
 	defer g.Unlock()
 	if ra, ok := g.rateAccumulators[labels]; !ok {
@@ -118,12 +127,19 @@ func (g *rateAccumulatorGroup) getOrCreate(a plan.NetAddr) *rateAccumulator {
 	}
 }
 
+func (g *rateAccumulatorGroup) reset(a plan.NetAddr) {
+	g.Lock()
+	defer g.Unlock()
+	for k := range g.rateAccumulators {
+		delete(g.rateAccumulators, k)
+	}
+}
+
 func (g *rateAccumulatorGroup) update(p time.Duration) {
 	g.Lock()
 	defer g.Unlock()
 	for _, ra := range g.rateAccumulators {
 		ra.r.update(p)
-		ra.WriteTo(os.Stdout)
 	}
 }
 
@@ -133,4 +149,16 @@ func (g *rateAccumulatorGroup) WriteTo(w io.Writer) {
 	for _, ra := range g.rateAccumulators {
 		ra.WriteTo(w)
 	}
+}
+
+func (g *rateAccumulatorGroup) GetRates(addrs []plan.NetAddr) []float64 {
+	g.Lock()
+	defer g.Unlock()
+	rates := make([]float64, len(addrs))
+	for i, a := range addrs {
+		if ra, ok := g.rateAccumulators[key(a)]; ok {
+			rates[i] = ra.r.getValue()
+		}
+	}
+	return rates
 }

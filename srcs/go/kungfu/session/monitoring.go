@@ -62,3 +62,11 @@ func getLatency(self, peer plan.PeerID) time.Duration {
 	}
 	return d
 }
+
+func (sess *Session) GetEgressRates() []float64 {
+	addrs := make([]plan.NetAddr, len(sess.peers))
+	for i, p := range sess.peers {
+		addrs[i] = plan.NetAddr(p)
+	}
+	return sess.client.GetEgressRates(addrs)
+}
