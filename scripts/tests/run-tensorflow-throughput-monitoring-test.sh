@@ -18,7 +18,8 @@ kungfu_run() {
 }
 
 kungfu_run \
-    env KUNGFU_CONFIG_ENABLE_MONITORING=true \
+    env \
+    KUNGFU_CONFIG_ENABLE_MONITORING=true \
     python3 \
     tests/python/integration/test_tensorflow_throughput_monitoring.py \
     --max-step 1000 \

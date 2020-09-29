@@ -3,6 +3,9 @@ import argparse
 import kungfu
 import tensorflow as tf
 from kungfu.tensorflow.ops import egress_rates, monitored_all_reduce
+from tensorflow.python.util import deprecation
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def parse_args():
