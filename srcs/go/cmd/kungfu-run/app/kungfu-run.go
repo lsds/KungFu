@@ -22,6 +22,9 @@ func Main(args []string) {
 		log.Warnf("delay start for %s", f.DelayStart)
 		time.Sleep(f.DelayStart)
 	}
+	if f.BuiltinConfigPort > 0 {
+		go runBuiltinConfigServer(f.BuiltinConfigPort)
+	}
 	if logfile := f.Logfile; len(logfile) > 0 {
 		if len(f.LogDir) > 0 {
 			logfile = path.Join(f.LogDir, logfile)
