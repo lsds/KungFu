@@ -6,12 +6,15 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
 type netMonitor interface {
 	Egress(n int64, a plan.NetAddr)
 	Ingress(n int64, a plan.NetAddr)
+
+	GetEgressRates(addrs []plan.NetAddr) []float64
 }
 
 type Monitor interface {
@@ -22,14 +25,14 @@ type Monitor interface {
 	writeTo(w io.Writer) // For testing
 }
 
-var monitor Monitor
+var defaultMonitor Monitor
 
 func init() {
-	monitor = newMonitor(config.MonitoringPeriod)
+	defaultMonitor = newMonitor(config.MonitoringPeriod)
 }
 
 func GetMonitor() Monitor {
-	return monitor
+	return defaultMonitor
 }
 
 type noopMonitor struct {
@@ -38,6 +41,12 @@ type noopMonitor struct {
 func (m *noopMonitor) Egress(n int64, a plan.NetAddr) {}
 
 func (m *noopMonitor) Ingress(n int64, a plan.NetAddr) {}
+
+func (m *noopMonitor) GetEgressRates(addrs []plan.NetAddr) []float64 {
+	log.Warnf("monitoring is not enabled")
+	rates := make([]float64, len(addrs))
+	return rates
+}
 
 func (m *noopMonitor) ServeHTTP(w http.ResponseWriter, req *http.Request) {}
 
@@ -77,6 +86,10 @@ func (m *netMetrics) Egress(n int64, a plan.NetAddr) {
 func (m *netMetrics) Ingress(n int64, a plan.NetAddr) {
 	ra := m.ingressCounters.getOrCreate(a)
 	ra.a.Add(n)
+}
+
+func (m *netMetrics) GetEgressRates(addrs []plan.NetAddr) []float64 {
+	return m.egressCounters.GetRates(addrs)
 }
 
 func (m *netMetrics) WriteTo(w io.Writer) {

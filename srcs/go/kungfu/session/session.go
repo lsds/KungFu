@@ -2,7 +2,6 @@ package session
 
 import (
 	"sync"
-	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/execution"
@@ -17,51 +16,6 @@ import (
 )
 
 const defaultRoot = 0
-
-//StrategyStatSnapshot holds a snapshot of major metrics
-//from the `StrategyStat` object
-type StrategyStatSnapshot struct {
-	Throughput float64
-}
-
-//StrategyStat holds statistical data for a specific strategy
-type StrategyStat struct {
-	Throughput float64
-	accSize    int
-	firstBegin *time.Time
-	lastEnd    time.Time
-	reff       StrategyStatSnapshot
-	lock       sync.Mutex
-}
-
-//GetSnapshot return a StrategyStatSnapshot object containing
-//a snapshot of the strategy's statistics
-func (ss *StrategyStat) GetSnapshot() StrategyStatSnapshot {
-	return StrategyStatSnapshot{Throughput: ss.Throughput}
-}
-
-//Reset resets the counters associated with a specfiic `StrategyStat` object
-func (ss *StrategyStat) Reset() {
-	ss.accSize = 0
-	ss.firstBegin = nil
-	ss.lastEnd = time.Unix(0, 0)
-}
-
-//Update set the appropriate counters associated with a specific
-//`StrategyStat` object
-func (ss *StrategyStat) Update(begin, end time.Time, size int) {
-
-	ss.lock.Lock()
-	defer ss.lock.Unlock()
-
-	if ss.firstBegin == nil {
-		ss.firstBegin = &begin
-	}
-	if end.After(ss.lastEnd) {
-		ss.lastEnd = end
-	}
-	ss.accSize = ss.accSize + size
-}
 
 // Session contains the immutable peer list for a given period of logical duration
 type Session struct {
@@ -355,7 +309,7 @@ func (sess *Session) runStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, s
 		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
 	}
 	wg.Wait()
-	return utils.MergeErrors(errs, "runStrategies")
+	return utils.MergeErrors(errs, "runStrategiesWithHash")
 }
 
 func (sess *Session) runStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {

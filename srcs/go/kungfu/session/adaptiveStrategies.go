@@ -2,8 +2,6 @@ package session
 
 import (
 	"fmt"
-	"sync"
-	"time"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -16,32 +14,8 @@ const (
 	alternativeStrategy   = 1
 )
 
-func (sess *Session) runMonitoredStrategiesWithHash(w kb.Workspace, p kb.PartitionFunc, strategies strategyList, strategyHash strategyHashFunc) error {
-	k := ceilDiv(w.RecvBuf.Count*w.RecvBuf.Type.Size(), chunkSize)
-	errs := make([]error, k)
-	var wg sync.WaitGroup
-	for i, w := range w.Split(p, k) {
-		wg.Add(1)
-		go func(i int, w kb.Workspace, s strategy) {
-			var startTime, endTime time.Time
-			startTime = time.Now()
-			errs[i] = sess.runGraphs(w, s.reduceGraph, s.bcastGraph)
-			endTime = time.Now()
-			s.stat.Update(startTime, endTime, w.SendBuf.Count*w.SendBuf.Type.Size())
-			wg.Done()
-		}(i, w, strategies.choose(int(strategyHash(i, w.Name))))
-	}
-	wg.Wait()
-	return utils.MergeErrors(errs, "runStrategies")
-}
-
-func (sess *Session) runMonitoredStrategies(w kb.Workspace, p kb.PartitionFunc, strategies strategyList) error {
-	return sess.runMonitoredStrategiesWithHash(w, p, strategies, sess.strategyHash)
-}
-
 //CalcStats reports a Stat object for the current active strategyt
 func (sess *Session) CalcStats() {
-
 	if len(sess.globalStrategies) != 1 {
 		log.Errorf("CalcStats should only be called with one active communication strategy")
 		return
@@ -54,8 +28,7 @@ func (sess *Session) CalcStats() {
 	if stats.accSize == 0 {
 		return
 	}
-
-	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds() //time.Duration(stats.lastEnd-*stats.firstBegin)
+	t := float64(stats.accSize) / stats.lastEnd.Sub(*stats.firstBegin).Seconds()
 	stats.Throughput = t
 
 	//reset counters
@@ -64,12 +37,10 @@ func (sess *Session) CalcStats() {
 
 //LogStats stores a snapshot of the `StrategyStat` object for the current active communication strategy
 func (sess *Session) LogStats() {
-
 	if len(sess.globalStrategies) != 1 {
 		log.Errorf("LogStats should only be called with one active communication strategy")
 		return
 	}
-
 	sess.strategyStats = append(sess.strategyStats, sess.globalStrategies[0].stat.GetSnapshot())
 }
 
@@ -89,18 +60,13 @@ func (sess *Session) PrintStategyStats() {
 //flase otherwise.
 func (sess *Session) CheckInterference() bool {
 	var ret = false
-
 	if len(sess.globalStrategies) != 1 {
 		log.Errorf("CheckInterference should only be called with one active communication strategy")
 		return ret
 	}
-
 	s := sess.globalStrategies[0]
-
 	if s.stat.reff.Throughput == 0 {
-
 		s.stat.reff.Throughput = s.stat.Throughput
-
 		if sess.rank == 0 {
 			log.Infof("AP:: Taking reff window snapshot")
 			log.Infof("AP:: Thrroughput = %s", utils.ShowRate(s.stat.reff.Throughput))
