@@ -82,3 +82,7 @@ func (c *Client) send(a plan.Addr, msg connection.Message, t connection.ConnType
 func (c *Client) ResetConnections(keeps plan.PeerList, token uint32) {
 	c.connPool.reset(keeps, token)
 }
+
+func (c *Client) GetEgressRates(addrs []plan.NetAddr) []float64 {
+	return c.monitor.GetEgressRates(addrs)
+}

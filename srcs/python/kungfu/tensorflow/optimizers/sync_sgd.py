@@ -1,14 +1,12 @@
+import tensorflow as tf
 from kungfu._utils import map_maybe
 from kungfu.tensorflow.ops import (defuse, fuse, group_all_reduce,
-                                   group_nccl_all_reduce, peer_info,
-                                   monitored_all_reduce)
-from kungfu.tensorflow.ops import defuse, fuse, peer_info
+                                   group_nccl_all_reduce, monitored_all_reduce,
+                                   peer_info)
+from kungfu.tensorflow.ops.adapt import calc_stats
 from kungfu.tensorflow.ops.collective import (
     group_all_reduce, group_hierarchical_nccl_all_reduce,
     group_nccl_all_reduce)
-from kungfu.tensorflow.ops.adapt import calc_stats
-
-import tensorflow as tf
 
 from .core import (_create_kungfu_keras_optimizer, _create_kungfu_optimizer,
                    _KungFuAlgorithm)
@@ -58,7 +56,11 @@ def SynchronousSGDOptimizer(optimizer,
 
 
 class _SynchronousSGD(_KungFuAlgorithm):
-    def __init__(self, nccl=False, nccl_fusion=True, hierarchical_nccl=False, monitor=False):
+    def __init__(self,
+                 nccl=False,
+                 nccl_fusion=True,
+                 hierarchical_nccl=False,
+                 monitor=False):
         self._nccl = nccl
         self._nccl_fusion = nccl_fusion
         self._monitor = monitor
@@ -92,7 +94,7 @@ class _SynchronousSGD(_KungFuAlgorithm):
                 summed_gradients = self._group_all_reduce_fn(gradients)
         else:
             if self._monitor:
-                summed_gradients = map_maybe(lambda g: monitored_all_reduce(g, []), gradients)
+                summed_gradients = map_maybe(monitored_all_reduce, gradients)
                 # with tf.control_dependencies(summed_gradients):
                 #     return calc_stats()
             else:
