@@ -16,8 +16,10 @@ kungfu_run() {
 
 train_flags() {
     echo --model ResNet50
+    echo --epoch-size 1024
+    echo --epoch-num 2
+    echo --max-train-steps 100
     echo --batch-size 32
-    echo --train-steps 100
 }
 
 main() {
