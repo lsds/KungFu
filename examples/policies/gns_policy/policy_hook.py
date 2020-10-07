@@ -1,3 +1,4 @@
+import kungfu.tensorflow as kf
 import tensorflow as tf
 from kungfu.python import current_cluster_size
 from kungfu.tensorflow.v1.helpers.utils import must_get_tensor_by_name
@@ -22,16 +23,6 @@ class PolicyHook(tf.estimator.SessionRunHook):
 
     def begin(self):
         print('%s' % 'begin')
-        batch_size_tensor = must_get_tensor_by_name('kungfu_device_batch_size')
-        batch_size_place = tf.placeholder(dtype=tf.int64)
-        set_batch_size_op = tf.assign(batch_size_tensor, batch_size_place)
-
-        print('%s' % (batch_size_tensor))
-
-        def set_batch_size(sess, bs):
-            sess.run(set_batch_size_op, feed_dict={batch_size_place: bs})
-
-        self._set_batch_size = set_batch_size
 
         variables = []  # TODO
         params = []  # TODO
@@ -41,7 +32,7 @@ class PolicyHook(tf.estimator.SessionRunHook):
         print('%s' % 'after_create_session')
 
     def before_run(self, run_context):
-        print('%s' % 'before_run')
+        # print('%s' % 'before_run')
 
         variables = []  # TODO
         params = []  # TODO
@@ -54,21 +45,19 @@ class PolicyHook(tf.estimator.SessionRunHook):
         params = []  # TODO
         grads = []  # TODO
 
-        self._policy._sess = run_context.session
-        self._policy.after_step(variables, params, grads)
-
+        self._policy.after_step(run_context.session, variables, params, grads)
         self._trained_steps += 1
         self._trained_samples += self._batch_size * self._cluster_size
         self._trained_epochs = int(self._trained_samples / self._epoch_size)
 
         if self._trained_epochs > self._last_trained_epochs:
-            self._policy.after_epoch(variables, params)
+            self._policy.after_epoch(run_context.session, variables, params)
 
         if self._trained_samples >= self._total_samples:
             print('%s' % 'request_stop ...')
             run_context.request_stop()
 
-        print('%s' % 'after_run')
+        # print('%s' % 'after_run')
 
     def end(self, session):
         print('%s' % 'end')

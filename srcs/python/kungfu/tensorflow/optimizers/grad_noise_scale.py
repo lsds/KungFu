@@ -38,6 +38,33 @@ def MonitorGradientNoiseScaleOptimizer(optimizer,
     return _create_kungfu_optimizer(optimizer, mon_gns_algo, name, use_locking)
 
 
+# TODO: put it in a dict
+_gns_tensor = None
+
+
+def create_gns_tensor():
+    global _gns_tensor
+    if _gns_tensor is None:
+        _gns_tensor = tf.Variable(0,
+                                  dtype=tf.float32,
+                                  trainable=False,
+                                  name='kungfu_gns')
+    return _gns_tensor
+
+
+def get_gns_tensor():
+    global _gns_tensor
+    assert (_gns_tensor is not None)
+    return _gns_tensor
+
+
+def gns(sess):
+    global _gns_tensor
+    if _gns_tensor is None:
+        _gns_tensor = get_gns_tensor()
+    return sess.run(_gns_tensor)
+
+
 class _GradientNoiseScale(_KungFuAlgorithm):
     def __init__(self,
                  device_batch_size,
@@ -64,12 +91,8 @@ class _GradientNoiseScale(_KungFuAlgorithm):
             print_op = tf.print('Gradient Noise Scale:', noise_op)
             return print_op
         else:
-            # user can access the result calling get_gns_tensor()
-            last_gns = tf.Variable(0,
-                                   dtype=tf.float32,
-                                   trainable=False,
-                                   name='last_gns')
-            with tf.control_dependencies([tf.assign(last_gns, noise_op)]):
+            gns = create_gns_tensor()
+            with tf.control_dependencies([tf.assign(gns, noise_op)]):
                 monitor_op = tf.no_op()
                 return monitor_op
 
@@ -90,7 +113,3 @@ class _GradientNoiseScale(_KungFuAlgorithm):
 
         with tf.control_dependencies([monitor_grads_op]):
             return apply_grads_func(zip(reduced_grads, variables), **kwargs)
-
-
-def get_gns_tensor():
-    return must_get_tensor_by_name('monitor_grads_cond/last_gns')

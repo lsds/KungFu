@@ -33,8 +33,8 @@ class KungFuPolicy(object):
     def before_epoch(self, vars, params):
         print('%s' % ('before_epoch'))
 
-    def after_step(self, vars, params, grads):
+    def after_step(self, sess, vars, params, grads):
         print('%s' % ('after_step'))
 
-    def after_epoch(self, vars, params):
+    def after_epoch(self, sess, vars, params):
         print('%s' % ('after_epoch'))

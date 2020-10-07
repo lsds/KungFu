@@ -1,6 +1,7 @@
 import argparse
 import os
 
+import kungfu.tensorflow as kf
 import tensorflow as tf
 from kungfu.python import current_cluster_size, detached
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
@@ -76,10 +77,7 @@ def random_dataset(epoch_size, init_batch_size=32):
 
 def build_input_fn(init_batch_size, steps=None):
     def input_fn():
-        batch_size = tf.Variable(init_batch_size,
-                                 dtype=tf.int64,
-                                 name='kungfu_device_batch_size',
-                                 trainable=False)
+        batch_size = kf.get_or_create_batch_size_tensor(init_batch_size)
         samples, labels = batched_random_input(batch_size)
         samples = tf.data.Dataset.from_tensors(samples)
         labels = tf.data.Dataset.from_tensors(labels)
