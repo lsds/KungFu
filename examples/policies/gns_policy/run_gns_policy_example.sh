@@ -19,7 +19,8 @@ train_flags() {
     echo --epoch-size 1024
     echo --epoch-num 2
     echo --max-train-steps 100
-    echo --batch-size 32
+    echo --init-batch-size 32
+    echo --model-dir checkpoints
 }
 
 main() {
