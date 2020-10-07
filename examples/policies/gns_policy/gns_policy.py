@@ -3,57 +3,50 @@ from kungfu.python import current_cluster_size
 from kungfu.tensorflow.optimizers.grad_noise_scale import get_gns_tensor
 from kungfu.tensorflow.v1.helpers.utils import must_get_tensor_by_name
 
-from policy_hook import PolicyHook
+from base_policy import KungFuPolicy
+from ema import EMA
 
 
-class KungFuPolicy(object):
-    def get_tensorflow_hook(self):
-        return PolicyHook(self)
+def get_batch_size_tensor():
+    return must_get_tensor_by_name('kungfu_device_batch_size')
 
 
 class GNSPolicy(KungFuPolicy):
-    def __init__(self, epoch_size, epoch_num, init_batch_size):
-        self._epoch_size = epoch_size
-        self._epoch_num = epoch_num
-        self._total_samples = int(epoch_size * epoch_num)
-        self._init_batch_size = init_batch_size
+    def __init__(self, *args, **kwargs):
+        super(GNSPolicy, self).__init__(*args, **kwargs)
 
-    @property
-    def epoch_size(self):
-        return self._epoch_size
-
-    @property
-    def epoch_num(self):
-        return self._epoch_num
-
-    @property
-    def total_samples(self):
-        return self._total_samples
-
-    @property
-    def init_batch_size(self):
-        return self._init_batch_size
+        self._ratio_ema = EMA(0.9, 2)
+        self._prev_ave = None
+        self._prev = None
 
     def before_train(self, vars, params):
         print('%s' % ('before_train'))
 
-        self._gns = get_gns_tensor()
-        print(self._gns)
+        self._last_gns = get_gns_tensor()
+        self._device_batch_size = get_batch_size_tensor()
+
+        self._need_sync = True  # Worker state synchronisation flag
 
         # self.prev = None
-        # self.ema = kf.ema(0.01) # Local GNS EMA
-        # self.sync = True # Worker state synchronisation flag
+
+    def _run_sync_op(self):
+        pass
 
     def before_epoch(self, vars, params):
         print('%s' % ('before_epoch'))
-        # if self.sync:
-        #     for v in vars:
-        #     v = kf.broadcast(v, 0) # Communication 15 self.sync = False
+        if self._need_sync:
+            self._run_sync_op()
+            self._need_sync = False
 
     def after_step(self, vars, params, grads):
         print('%s' % ('after_step'))
-        # sess = tf.get_default_session()
-        gns = self._sess.run(self._gns)
+
+        bs = self._sess.run(self._device_batch_size)
+        gns = self._sess.run(self._last_gns)
+        gns_abs = abs(gns)
+        ratio = gns_abs / bs
+        self._ratio_ema.update(ratio)
+
         print('gns = %s' % (gns))
 
         # gns = kf.gns(grads, avg_grads) # Monitoring
@@ -61,6 +54,10 @@ class GNSPolicy(KungFuPolicy):
 
     def after_epoch(self, vars, params):
         print('%s' % ('after_epoch'))
+        ave = self._ratio_ema.get()
+        if self._prev_ave is not None:
+            pass
+        self._prev_ave = ave
 
         # gns = self.ema.value()
         # avg = kf.allreduce(gns) / kf.size() # Communication

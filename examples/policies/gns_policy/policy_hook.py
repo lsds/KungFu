@@ -25,7 +25,13 @@ class PolicyHook(tf.estimator.SessionRunHook):
         batch_size_tensor = must_get_tensor_by_name('kungfu_device_batch_size')
         batch_size_place = tf.placeholder(dtype=tf.int64)
         set_batch_size_op = tf.assign(batch_size_tensor, batch_size_place)
+
         print('%s' % (batch_size_tensor))
+
+        def set_batch_size(sess, bs):
+            sess.run(set_batch_size_op, feed_dict={batch_size_place: bs})
+
+        self._set_batch_size = set_batch_size
 
         variables = []  # TODO
         params = []  # TODO

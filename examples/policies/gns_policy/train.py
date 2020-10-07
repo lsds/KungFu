@@ -26,9 +26,15 @@ def parse_args():
     return p.parse_args()
 
 
+image_shape = {
+    'ImageNet': [224, 224, 3],
+    'CIFAR10': [32, 32, 3],
+}
+
+
 def random_input(sample_shape=None, feature_shape=None):
     if sample_shape is None:
-        sample_shape = [224, 224, 3]
+        sample_shape = image_shape['CIFAR10']
     if feature_shape is None:
         feature_shape = []
     samples = tf.random_uniform(sample_shape)
@@ -41,7 +47,7 @@ def random_input(sample_shape=None, feature_shape=None):
 
 def batched_random_input(batch_size, sample_shape=None, feature_shape=None):
     if sample_shape is None:
-        sample_shape = [224, 224, 3]
+        sample_shape = image_shape['CIFAR10']
     if feature_shape is None:
         feature_shape = []
     samples = tf.random_uniform([batch_size] + sample_shape)
@@ -91,11 +97,13 @@ def build_optimizer(learning_rate=0.01, init_device_batch_size=32):
                                     dtype=tf.int32,
                                     trainable=False,
                                     name='device_batch_size')
-    opt = MonitorGradientNoiseScaleOptimizer(opt, device_batch_size)
+    opt = MonitorGradientNoiseScaleOptimizer(opt,
+                                             device_batch_size,
+                                             verbose=False)
     return opt
 
 
-def get_model(name):
+def get_model(name):  # name = 'ResNet50'
     from tensorflow.keras import applications
     return getattr(applications, name)(weights=None)
 
