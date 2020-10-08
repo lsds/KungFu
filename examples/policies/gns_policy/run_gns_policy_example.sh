@@ -17,10 +17,11 @@ kungfu_run() {
 train_flags() {
     echo --model ResNet50
     echo --epoch-size 1024
-    echo --epoch-num 20
+    echo --epoch-num 3
     echo --max-train-steps 100
     echo --init-batch-size 32
     echo --model-dir checkpoints
+    # echo --fake-data
 }
 
 main() {
@@ -28,3 +29,5 @@ main() {
 }
 
 main
+
+# python3 examples/policies/gns_policy/test_input_data.py
