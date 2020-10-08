@@ -60,8 +60,9 @@ type FlagSet struct {
 	Prog         string
 	Args         []string
 
-	// testing flag
-	DelayStart time.Duration
+	// debug and testing flags
+	BuiltinConfigPort int
+	DelayStart        time.Duration
 }
 
 func (f *FlagSet) Register(flag *flag.FlagSet) {
@@ -97,6 +98,7 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.BoolVar(&f.Quiet, "q", false, "don't log debug info")
 
 	flag.DurationVar(&f.DelayStart, "delay", 0, "delay start for testing purpose")
+	flag.IntVar(&f.BuiltinConfigPort, "builtin-config-port", 0, "will run a builtin config server if not zero")
 }
 
 var errMissingProgramName = errors.New("missing program name")

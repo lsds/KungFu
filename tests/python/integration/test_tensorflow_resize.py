@@ -4,6 +4,9 @@ import kungfu
 import tensorflow as tf
 from kungfu.python import detached
 from kungfu.tensorflow.ops import all_reduce, resize
+from tensorflow.python.util import deprecation
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 def parse_args():
