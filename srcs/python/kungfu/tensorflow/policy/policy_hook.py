@@ -39,7 +39,7 @@ class PolicyHook(tf.estimator.SessionRunHook):
     def before_run(self, run_context):
         if self._trained_epochs > self._last_trained_epochs:
             for policy in self._policies:
-                policy.before_epoch()
+                policy.before_epoch(run_context.session)
             self._last_trained_epochs = self._trained_epochs
 
     def after_run(self, run_context, run_values):

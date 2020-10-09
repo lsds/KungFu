@@ -1,15 +1,23 @@
-class BasePolicy(object):
+import abc
+from abc import abstractmethod
+
+
+class BasePolicy(abc.ABC):
     def __init__(self, *args, **kwargs):
         pass
 
-    def before_train(self, vars, params):
+    @abstractmethod
+    def before_train(self):
         pass
 
-    def before_epoch(self, vars, params):
+    @abstractmethod
+    def before_epoch(self, sess):
         pass
 
-    def after_step(self, sess, vars, params, grads):
+    @abstractmethod
+    def after_step(self, sess):
         pass
 
-    def after_epoch(self, sess, vars, params):
+    @abstractmethod
+    def after_epoch(self, sess):
         pass
