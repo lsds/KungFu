@@ -3,6 +3,16 @@ from tensorflow.python.eager import context
 from tensorflow.python.platform import tf_logging as logging
 
 
+def create_placeholder_for(t):
+    return tf.placeholder(dtype=t.dtype, shape=t.shape)
+
+
+def create_assign_op_for(t):
+    p = create_placeholder_for(t)
+    op = t.assign(p)
+    return op, p
+
+
 def get_global_variable(name, graph=None):
     graph = graph or tf.get_default_graph()
     global_variable_tensor = None
@@ -73,6 +83,7 @@ def eval_global_variable(name, sess=None, graph=None):
 class GraphKeys(object):
     BATCH_SIZE = "kungfu_batch_size"
     GRADIENT_NOISE_SCALE = "kungfu_gradient_noise_scale"
+    TOTAL_SAMPLES = "kungfu_total_samples"
 
 
 def get_or_create_batch_size(init=None):
