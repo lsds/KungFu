@@ -42,7 +42,7 @@ def create_global_variable(name, shape, dtype, graph=None, init=None):
             trainable=False,
             # aggregation=variables.VariableAggregation.ONLY_FIRST_REPLICA,
             collections=[
-                tf.GraphKeys.GLOBAL_VARIABLES,
+                tf.GraphKeys.LOCAL_VARIABLES,  # FIXME: use KUNGFU_VARIABLES
                 name,
             ],
         )
