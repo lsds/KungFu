@@ -12,12 +12,16 @@ class PolicyHook(tf.estimator.SessionRunHook):
         self._epoch_num = epoch_num
         self._total_samples = int(epoch_size * epoch_num)
 
-        self._batch_size = init_batch_size
+        kf.get_or_create_batch_size(init_batch_size)
 
         self._trained_samples = 0
         self._trained_steps = 0
         self._trained_epochs = 0
         self._last_trained_epochs = -1
+
+    @property
+    def policies(self):
+        return self._policies
 
     def begin(self):
         total_samples = create_global_variable(GraphKeys.TOTAL_SAMPLES,
@@ -45,7 +49,7 @@ class PolicyHook(tf.estimator.SessionRunHook):
         self._trained_epochs = int(self._trained_samples / self._epoch_size)
 
         for policy in self._policies:
-            policy.after_step(run_context.session, )
+            policy.after_step(run_context.session)
 
         if self._trained_epochs > self._last_trained_epochs:
             for policy in self._policies:
@@ -62,4 +66,4 @@ class PolicyHook(tf.estimator.SessionRunHook):
         pass
 
     def get_batch_size(self, sess):
-        return kf.batch_size(sess)
+        return kf.eval_batch_size(sess)

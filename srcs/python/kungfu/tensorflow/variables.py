@@ -93,9 +93,16 @@ def get_or_create_batch_size(init=None):
                                          init=init)
 
 
-def batch_size(sess=None):
+def get_batch_size():
+    """Returns the batch size tensor."""
+    return get_global_variable(GraphKeys.BATCH_SIZE)
+
+
+def eval_batch_size(sess=None):
+    """Returns the value of batch size in given session."""
     return eval_global_variable(GraphKeys.BATCH_SIZE, sess)
 
 
-def gradient_noise_scale(sess=None):
+def eval_gradient_noise_scale(sess=None):
+    """Returns the value of gradient noise scale in given session."""
     return eval_global_variable(GraphKeys.GRADIENT_NOISE_SCALE, sess)

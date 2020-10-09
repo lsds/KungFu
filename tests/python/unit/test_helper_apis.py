@@ -16,7 +16,7 @@ class TestHook(tf.estimator.SessionRunHook):
         pass
 
     def after_create_session(self, session, coord):
-        bs = kf.batch_size(session)
+        bs = kf.eval_batch_size(session)
         assert (bs == 32)
 
     def before_run(self, run_context):
