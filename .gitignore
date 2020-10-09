@@ -20,7 +20,7 @@ __pycache__
 *.whl
 /3rdparty
 /bin
-/checkpoints
+checkpoints
 /cmake-build
 /data
 /external

@@ -15,6 +15,10 @@ class BasePolicy(abc.ABC):
         pass
 
     @abstractmethod
+    def before_step(self, sess):
+        pass
+
+    @abstractmethod
     def after_step(self, sess):
         pass
 

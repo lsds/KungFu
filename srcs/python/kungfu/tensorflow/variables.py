@@ -52,7 +52,8 @@ def create_global_variable(name, shape, dtype, graph=None, init=None):
             trainable=False,
             # aggregation=variables.VariableAggregation.ONLY_FIRST_REPLICA,
             collections=[
-                tf.GraphKeys.LOCAL_VARIABLES,  # FIXME: use KUNGFU_VARIABLES
+                tf.GraphKeys.GLOBAL_VARIABLES,
+                # tf.GraphKeys.LOCAL_VARIABLES,  # FIXME: use KUNGFU_VARIABLES
                 name,
             ],
         )
@@ -83,7 +84,11 @@ def eval_global_variable(name, sess=None, graph=None):
 class GraphKeys(object):
     BATCH_SIZE = "kungfu_batch_size"
     GRADIENT_NOISE_SCALE = "kungfu_gradient_noise_scale"
+
     TOTAL_SAMPLES = "kungfu_total_samples"
+
+    # TRAINED_STEPS = "kungfu_trained_steps"
+    TRAINED_SAMPLES = "kungfu_trained_samples"
 
 
 def get_or_create_batch_size(init=None):
@@ -111,7 +116,7 @@ def eval_gradient_noise_scale(sess=None):
 def create_setter(v):
     op, place = create_assign_op_for(v)
 
-    def set_value(sess,  value):
-        sess.run(op, feed_dict = {place : value})
+    def set_value(sess, value):
+        sess.run(op, feed_dict={place: value})
 
     return set_value
