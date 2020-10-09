@@ -74,7 +74,7 @@ def build_cifar10_input_fn(init_batch_size=32):
         features = {'x': samples}
         ds = tf.data.Dataset.zip((features, labels))
         ds = ds.repeat()
-        batch_size = kf.get_or_create_batch_size_tensor(init_batch_size)
+        batch_size = kf.get_or_create_batch_size(init_batch_size)
         ds = ds.batch(batch_size)
         return ds
 

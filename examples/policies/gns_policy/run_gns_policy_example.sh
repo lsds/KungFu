@@ -25,6 +25,7 @@ train_flags() {
 }
 
 main() {
+    rm -fr checkpoints
     kungfu_run python3 examples/policies/gns_policy/train.py $(train_flags)
 }
 

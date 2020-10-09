@@ -3,6 +3,30 @@ import shutil
 import kungfu.tensorflow as kf
 import tensorflow as tf
 from kungfu.tensorflow.v1.helpers import random_input
+from tensorflow.python.util import deprecation
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
+
+
+class TestHook(tf.estimator.SessionRunHook):
+    def __init__(self):
+        pass
+
+    def begin(self):
+        pass
+
+    def after_create_session(self, session, coord):
+        bs = kf.batch_size(session)
+        assert (bs == 32)
+
+    def before_run(self, run_context):
+        pass
+
+    def after_run(self, run_context, run_values):
+        pass
+
+    def end(self, session):
+        pass
 
 
 def build_random_input_fn():
@@ -19,7 +43,7 @@ def build_random_input_fn():
 
 def build_model_fn():
     def model_fn(features, labels, mode):
-        print('model_fn called')
+        batch_size = kf.get_or_create_batch_size(32)
         x = kf.get_or_create_global_variable('x', [], tf.int64)
         loss = tf.constant(1.0)
         gs = tf.train.get_or_create_global_step()
@@ -45,7 +69,7 @@ def run_estimator():
     input_fn = build_random_input_fn()
     classifier = build_estimator()
     for i in range(2):
-        classifier.train(input_fn=input_fn, max_steps=10)
+        classifier.train(input_fn=input_fn, max_steps=10, hooks=[TestHook()])
         print('#%d train finished' % (i))
         classifier.evaluate(input_fn=input_fn, steps=10)
         print('#%d evaluate finished' % (i))
@@ -69,3 +93,11 @@ def test_kungfu_global_variables_with_estimator():
     for i in range(2):
         run_estimator()
         run_estimator()
+
+
+def main():
+    run_estimator()
+
+
+if __name__ == "__main__":
+    main()

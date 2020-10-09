@@ -31,10 +31,7 @@ def parse_args():
 
 def build_optimizer(learning_rate=0.01, init_device_batch_size=32):
     opt = tf.train.GradientDescentOptimizer(learning_rate)
-    device_batch_size = tf.Variable(init_device_batch_size,
-                                    dtype=tf.int32,
-                                    trainable=False,
-                                    name='device_batch_size')
+    device_batch_size = kf.get_or_create_batch_size(init_device_batch_size)
     opt = MonitorGradientNoiseScaleOptimizer(opt,
                                              device_batch_size,
                                              verbose=False)

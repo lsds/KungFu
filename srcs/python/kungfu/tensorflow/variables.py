@@ -21,18 +21,24 @@ def get_global_variable(name, graph=None):
     return global_variable_tensor
 
 
-def create_global_variable(name, shape, dtype, graph=None):
+def create_global_variable(name, shape, dtype, graph=None, init=None):
     graph = graph or tf.get_default_graph()
     if get_global_variable(name, graph) is not None:
         raise ValueError('"%s" already exists.' % (name))
     if context.executing_eagerly():
         raise ValueError('TODO: support eager mode.')
+
+    if init is None:
+        init = tf.zeros_initializer()
+    else:
+        shape = None  # If initializer is a constant, do not specify shape.
+
     with graph.as_default() as g, g.name_scope(None):
         return tf.get_variable(
             name,
             shape=shape,
             dtype=dtype,
-            initializer=tf.zeros_initializer(),
+            initializer=init,
             trainable=False,
             # aggregation=variables.VariableAggregation.ONLY_FIRST_REPLICA,
             collections=[
@@ -42,12 +48,15 @@ def create_global_variable(name, shape, dtype, graph=None):
         )
 
 
-def get_or_create_global_variable(name, shape, dtype, graph=None):
+def get_or_create_global_variable(name, shape, dtype, graph=None, init=None):
     graph = graph or tf.get_default_graph()
     global_variable_tensor = get_global_variable(name, graph)
     if global_variable_tensor is None:
-        global_variable_tensor = create_global_variable(
-            name, shape, dtype, graph)
+        global_variable_tensor = create_global_variable(name,
+                                                        shape=shape,
+                                                        dtype=dtype,
+                                                        graph=graph,
+                                                        init=init)
     else:
         pass
         # FIXME: check type <dtype: 'int32'> != <dtype: 'int32_ref'>
@@ -67,10 +76,10 @@ class GraphKeys(object):
 
 
 def get_or_create_batch_size(init=None):
-    # TODO assign init
     return get_or_create_global_variable(GraphKeys.BATCH_SIZE,
                                          shape=[],
-                                         dtype=tf.int32)
+                                         dtype=tf.int32,
+                                         init=init)
 
 
 def batch_size(sess=None):
@@ -78,8 +87,8 @@ def batch_size(sess=None):
 
 
 def set_batch_size(sess, new_batch_size):
+    print('TODO: set_batch_size')
     pass
-    # TODO
 
 
 def gradient_noise_scale(sess=None):
