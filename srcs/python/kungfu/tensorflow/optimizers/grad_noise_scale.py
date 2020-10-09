@@ -43,7 +43,7 @@ class _GradientNoiseScale(_KungFuAlgorithm):
                  device_batch_size,
                  monitor_interval=1,
                  alpha=0.9,
-                 verbose=True):
+                 verbose=False):
         self._num_workers = current_cluster_size()
         self._alpha = alpha
         self._step = counter()
