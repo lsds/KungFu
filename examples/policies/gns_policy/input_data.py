@@ -52,7 +52,7 @@ def random_dataset(epoch_size, init_batch_size=32):
 
 def build_random_input_fn(init_batch_size, steps=None):
     def input_fn():
-        batch_size = kf.get_or_create_batch_size_tensor(init_batch_size)
+        batch_size = kf.get_or_create_batch_size(init_batch_size)
         samples, labels = batched_random_input(batch_size)
         samples = tf.data.Dataset.from_tensors(samples)
         labels = tf.data.Dataset.from_tensors(labels)

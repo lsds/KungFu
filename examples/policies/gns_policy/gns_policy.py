@@ -37,7 +37,7 @@ class GNSPolicy(KungFuPolicy):
 
         # bs = sess.run(self._device_batch_size)
         bs = kf.batch_size(sess)
-        gns = kf.gns(sess)  #  get monitored valued
+        gns = kf.gradient_noise_scale(sess)  #  get monitored valued
         gns_abs = abs(gns)
         ratio = gns_abs / bs
         self._ratio_ema.update(ratio)

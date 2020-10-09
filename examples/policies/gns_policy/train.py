@@ -7,7 +7,6 @@ from kungfu.python import current_cluster_size, detached
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import resize
 from kungfu.tensorflow.optimizers import MonitorGradientNoiseScaleOptimizer
-from kungfu.tensorflow.optimizers.grad_noise_scale import get_gns_tensor
 from tensorflow.python.util import deprecation
 
 from gns_policy import GNSPolicy
