@@ -106,3 +106,12 @@ def eval_batch_size(sess=None):
 def eval_gradient_noise_scale(sess=None):
     """Returns the value of gradient noise scale in given session."""
     return eval_global_variable(GraphKeys.GRADIENT_NOISE_SCALE, sess)
+
+
+def create_setter(v):
+    op, place = create_assign_op_for(v)
+
+    def set_value(sess,  value):
+        sess.run(op, feed_dict = {place : value})
+
+    return set_value

@@ -95,6 +95,23 @@ def test_kungfu_global_variables_with_estimator():
         run_estimator()
 
 
+def test_setter():
+    x = kf.get_or_create_global_variable('test_setter_x',
+                                         shape=[],
+                                         dtype=tf.int32,
+                                         init=10)
+    set_x = kf.create_setter(x)
+    init = tf.local_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+        v = sess.run(x)
+        assert (v == 10)
+
+        set_x(sess, 11)
+        v = sess.run(x)
+        assert (v == 11)
+
+
 def main():
     run_estimator()
 

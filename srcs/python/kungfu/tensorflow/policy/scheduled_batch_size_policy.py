@@ -11,8 +11,8 @@ class ScheduledBatchSizePolicyExample(BasePolicy):
     def before_train(self):
         self._trained_steps = 0
         self._trained_epochs = 0
-        self._set_batch_size, self._batch_size_place = kf.create_assign_op_for(
-            kf.get_or_create_batch_size())
+
+        self._set_batch_size = kf.create_setter(kf.get_or_create_batch_size())
 
     def before_epoch(self):
         pass
@@ -22,8 +22,7 @@ class ScheduledBatchSizePolicyExample(BasePolicy):
 
         if self._trained_steps in self._schedule:
             new_batch_size = self._schedule[self._trained_steps]
-            sess.run(self._set_batch_size,
-                     feed_dict={self._batch_size_place: new_batch_size})
+            self._set_batch_size(sess, new_batch_size)
 
     def after_epoch(self, sess):
         self._trained_epochs += 1
