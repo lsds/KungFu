@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu._utils import map_maybe
-from kungfu.tensorflow.ops import (all_reduce, counter, current_cluster_size,
+from kungfu.tensorflow.ops import (all_reduce, cluster_size, counter,
                                    current_rank, fuse, global_noise_scale,
                                    group_all_reduce)
 from kungfu.tensorflow.optimizers.core import (_create_kungfu_optimizer,
@@ -44,7 +44,7 @@ class _GradientNoiseScale(_KungFuAlgorithm):
                  monitor_interval=1,
                  alpha=0.9,
                  verbose=False):
-        self._num_workers = current_cluster_size()
+        self._num_workers = tf.cast(cluster_size(), tf.float32)
         self._alpha = alpha
         self._step = counter()
         self._verbose = verbose
