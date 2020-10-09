@@ -1,7 +1,6 @@
 import kungfu.tensorflow as kf
 import tensorflow as tf
 from kungfu.python import current_cluster_size
-from kungfu.tensorflow.v1.helpers.utils import must_get_tensor_by_name
 
 
 # PolicyHook is a adaptor class to run kungfu policies in tensorflow estimator

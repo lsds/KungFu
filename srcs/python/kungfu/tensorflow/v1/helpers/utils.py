@@ -24,17 +24,3 @@ def show_rate(size, duration):
         return '%.2fMiB/s' % (r / Mi)
     else:
         return '%.2fGiB/s' % (r / Gi)
-
-
-def must_get_tensor_by_name(name):
-    import tensorflow as tf
-    realname = name + ':0'
-    options = []
-    for v in tf.global_variables():
-        if v.name == realname:
-            options.append(v)
-    if len(options) < 1:
-        raise RuntimeError('tensor named %s not found' % (name))
-    if len(options) > 1:
-        raise RuntimeError('more than one tensor named %s found' % (name))
-    return options[0]

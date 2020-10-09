@@ -5,7 +5,6 @@ from kungfu.tensorflow.ops import (all_reduce, counter, current_cluster_size,
                                    group_all_reduce)
 from kungfu.tensorflow.optimizers.core import (_create_kungfu_optimizer,
                                                _KungFuAlgorithm)
-from kungfu.tensorflow.v1.helpers.utils import must_get_tensor_by_name
 from kungfu.tensorflow.variables import GraphKeys, create_global_variable
 
 
