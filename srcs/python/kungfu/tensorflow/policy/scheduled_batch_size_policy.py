@@ -17,6 +17,9 @@ class ScheduledBatchSizePolicyExample(BasePolicy):
     def before_epoch(self, sess):
         pass
 
+    def before_step(self, sess):
+        pass
+
     def after_step(self, sess):
         self._trained_steps += 1
 
