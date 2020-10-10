@@ -7,8 +7,9 @@ from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
-from kungfu.tensorflow.policy import (PolicyHook,
-                                      ScheduledBatchSizePolicyExample)
+from kungfu.tensorflow.policy import PolicyHook
+
+from scheduled_batch_size_policy import ScheduledBatchSizePolicyExample
 
 
 def build_random_input_fn():

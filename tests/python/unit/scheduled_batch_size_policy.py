@@ -1,7 +1,6 @@
 import kungfu.tensorflow as kf
+from kungfu.tensorflow.policy import BasePolicy
 from kungfu.tensorflow.variables import GraphKeys
-
-from .base_policy import BasePolicy
 
 
 class ScheduledBatchSizePolicyExample(BasePolicy):
