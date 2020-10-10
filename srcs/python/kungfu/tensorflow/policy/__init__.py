@@ -1,2 +1,2 @@
-from .policies_hook import PoliciesHook
-from .scaling import ScalingPolicy
+from .base_policy import BasePolicy
+from .policy_hook import PolicyHook

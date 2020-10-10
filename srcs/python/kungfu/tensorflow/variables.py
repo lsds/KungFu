@@ -3,6 +3,16 @@ from tensorflow.python.eager import context
 from tensorflow.python.platform import tf_logging as logging
 
 
+def create_placeholder_for(t):
+    return tf.placeholder(dtype=t.dtype, shape=t.shape)
+
+
+def create_assign_op_for(t):
+    p = create_placeholder_for(t)
+    op = t.assign(p)
+    return op, p
+
+
 def get_global_variable(name, graph=None):
     graph = graph or tf.get_default_graph()
     global_variable_tensor = None
@@ -42,7 +52,8 @@ def create_global_variable(name, shape, dtype, graph=None, init=None):
             trainable=False,
             # aggregation=variables.VariableAggregation.ONLY_FIRST_REPLICA,
             collections=[
-                tf.GraphKeys.LOCAL_VARIABLES,  # FIXME: use KUNGFU_VARIABLES
+                tf.GraphKeys.GLOBAL_VARIABLES,
+                # tf.GraphKeys.LOCAL_VARIABLES,  # FIXME: use KUNGFU_VARIABLES
                 name,
             ],
         )
@@ -74,6 +85,11 @@ class GraphKeys(object):
     BATCH_SIZE = "kungfu_batch_size"
     GRADIENT_NOISE_SCALE = "kungfu_gradient_noise_scale"
 
+    TOTAL_SAMPLES = "kungfu_total_samples"
+
+    # TRAINED_STEPS = "kungfu_trained_steps"
+    TRAINED_SAMPLES = "kungfu_trained_samples"
+
 
 def get_or_create_batch_size(init=None):
     return get_or_create_global_variable(GraphKeys.BATCH_SIZE,
@@ -82,9 +98,25 @@ def get_or_create_batch_size(init=None):
                                          init=init)
 
 
-def batch_size(sess=None):
+def get_batch_size():
+    """Returns the batch size tensor."""
+    return get_global_variable(GraphKeys.BATCH_SIZE)
+
+
+def eval_batch_size(sess=None):
+    """Returns the value of batch size in given session."""
     return eval_global_variable(GraphKeys.BATCH_SIZE, sess)
 
 
-def gradient_noise_scale(sess=None):
+def eval_gradient_noise_scale(sess=None):
+    """Returns the value of gradient noise scale in given session."""
     return eval_global_variable(GraphKeys.GRADIENT_NOISE_SCALE, sess)
+
+
+def create_setter(v):
+    op, place = create_assign_op_for(v)
+
+    def set_value(sess, value):
+        sess.run(op, feed_dict={place: value})
+
+    return set_value

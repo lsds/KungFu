@@ -50,7 +50,7 @@ kungfu-cluster-manager-example kungfu-fake-adaptive-trainer
 
 ```bash
 kungfu-cluster-manager-example \
-    python3 ./examples/elastic/mnist_slp_estimator.py \
+    python3 ./examples/mnist_elastic_docker/mnist_slp_estimator.py \
     --data-dir /root/var/data/mnist \
     --num-epochs 5
 ```

@@ -16,7 +16,7 @@ class TestHook(tf.estimator.SessionRunHook):
         pass
 
     def after_create_session(self, session, coord):
-        bs = kf.batch_size(session)
+        bs = kf.eval_batch_size(session)
         assert (bs == 32)
 
     def before_run(self, run_context):
@@ -77,7 +77,7 @@ def run_estimator():
 
 def run_simple_session():
     x = kf.get_or_create_global_variable('xx', shape=[], dtype=tf.int32)
-    init = tf.local_variables_initializer()
+    init = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init)
         sess.run(x)
@@ -93,6 +93,23 @@ def test_kungfu_global_variables_with_estimator():
     for i in range(2):
         run_estimator()
         run_estimator()
+
+
+def test_setter():
+    x = kf.get_or_create_global_variable('test_setter_x',
+                                         shape=[],
+                                         dtype=tf.int32,
+                                         init=10)
+    set_x = kf.create_setter(x)
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+        v = sess.run(x)
+        assert (v == 10)
+
+        set_x(sess, 11)
+        v = sess.run(x)
+        assert (v == 11)
 
 
 def main():
