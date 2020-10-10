@@ -1,7 +1,4 @@
 import argparse
-import functools
-import operator
-import os
 
 import tensorflow as tf
 from kungfu.python import current_cluster_size, detached
@@ -23,7 +20,7 @@ def parse_args():
     return p.parse_args()
 
 
-def build_ops():
+def build_ops(args):
     model = tf.keras.Sequential([
         tf.keras.layers.Conv2D(32, [3, 3], activation='relu'),
         tf.keras.layers.Conv2D(64, [3, 3], activation='relu'),
@@ -36,15 +33,21 @@ def build_ops():
     ])
     loss = tf.losses.SparseCategoricalCrossentropy()
 
-    opt = tf.keras.optimizers.SGD(0.001)
+    opt = tf.keras.optimizers.SGD(args.learning_rate)
     opt = SynchronousSGDOptimizer(opt)
     return model, loss, opt
 
 
 @tf.function
-def sync_step(model, opt):
+def sync_model(model, opt):
     broadcast_variables(model.variables)
     broadcast_variables(opt.variables())
+
+
+@tf.function
+def sync_offsets(xs):
+    # TODO: use all_reduce with max op
+    broadcast_variables(xs)
 
 
 @tf.function
@@ -74,29 +77,38 @@ def build_dataset(args):
     ds = tf.data.Dataset.zip((samples, labels))
     ds = ds.batch(args.batch_size)
     ds = ds.shuffle(10000)
-    ds = ds.repeat()
+    ds = ds.repeat()  # repeat infinitely
     return ds
 
 
 def train(args):
+    step_based_schedule = {
+        100: 2,
+        200: 3,
+        300: 4,
+        400: 2,
+        500: 3,
+        600: 1,
+    }
     ds = build_dataset(args)
-    model, loss, opt = build_ops()
+    model, loss, opt = build_ops(args)
     need_sync = True
     total_samples = int(MNIST_DATA_SIZE * args.num_epochs)
-    trained_samples = 0
+    trained_samples = tf.Variable(0)
+    global_step = tf.Variable(0)
     for local_step, (images, labels) in enumerate(ds):
-        # TODO: sync trained_samples
-        trained_samples += current_cluster_size() * args.batch_size
+        global_step.assign_add(1)
+        trained_samples.assign_add(current_cluster_size() * args.batch_size)
         loss_value = training_step(model, loss, opt, images, labels)
         if need_sync:
-            if detached():
-                break
-            sync_step(model, opt)
+            sync_offsets([global_step, trained_samples])
+            sync_model(model, opt)
             need_sync = False
-        print('step: %d loss: %f' % (local_step, loss_value))
-
-        if local_step == 200:
-            need_sync = resize_cluster(1)
+        step = int(global_step)
+        print('step: %d loss: %f' % (step, loss_value))
+        if step in step_based_schedule:
+            new_size = step_based_schedule[step]
+            need_sync = resize_cluster(new_size)
             if detached():
                 break
 
