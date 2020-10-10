@@ -77,7 +77,7 @@ def run_estimator():
 
 def run_simple_session():
     x = kf.get_or_create_global_variable('xx', shape=[], dtype=tf.int32)
-    init = tf.local_variables_initializer()
+    init = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init)
         sess.run(x)
