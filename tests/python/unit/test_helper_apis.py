@@ -101,7 +101,7 @@ def test_setter():
                                          dtype=tf.int32,
                                          init=10)
     set_x = kf.create_setter(x)
-    init = tf.local_variables_initializer()
+    init = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(init)
         v = sess.run(x)
