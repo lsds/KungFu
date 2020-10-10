@@ -9,7 +9,7 @@ kungfu_run_flags() {
     echo -w
     echo -builtin-config-port 9100
     echo -config-server http://127.0.0.1:9100/config
-    echo -np 4
+    echo -np 1
 }
 
 kungfu_run() {
@@ -20,7 +20,6 @@ train_flags() {
     echo --data-dir $HOME/var/data/mnist
     echo --model-dir checkpoints
     echo --num-epochs 1
-    # echo --batch-size 32
     echo --batch-size 32
 }
 
