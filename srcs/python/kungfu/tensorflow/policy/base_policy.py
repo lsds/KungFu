@@ -6,22 +6,26 @@ class BasePolicy(abc.ABC):
     def __init__(self, *args, **kwargs):
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def before_train(self):
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def before_epoch(self, sess):
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def before_step(self, sess):
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def after_step(self, sess):
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def after_epoch(self, sess):
+        pass
+
+    # @abstractmethod
+    def after_train(self, sess):
         pass
