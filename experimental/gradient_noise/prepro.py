@@ -6,7 +6,7 @@ import time
 
 import tensorflow as tf
 from kungfu.datasets.adaptor import ExampleDatasetAdaptor
-from kungfu.helpers import imagenet
+from kungfu.tensorflow.v1.helpers import imagenet
 
 parser = argparse.ArgumentParser(
     description='imagenet dataset example',

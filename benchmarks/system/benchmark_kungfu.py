@@ -7,11 +7,14 @@ https://github.com/uber/horovod/blob/master/examples/tensorflow_synthetic_benchm
 from __future__ import absolute_import, division, print_function
 
 import argparse
+import glob
 import os
 import timeit
 
 import numpy as np
 import tensorflow as tf
+from kungfu.tensorflow.ops import current_cluster_size, current_rank
+from kungfu.tensorflow.v1.helpers import imagenet
 from tensorflow.keras import applications
 from tensorflow.python.util import deprecation
 
@@ -67,6 +70,8 @@ parser.add_argument('--xla',
                     action='store_true',
                     default=False,
                     help='enable XLA')
+parser.add_argument('--data-dir', type=str, default='', help='dir to dataset')
+parser.add_argument('--file-pattern', type=str, default='train-*-of-*')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
@@ -125,14 +130,27 @@ if args.kf_optimizer:
     else:
         raise Exception('Unknown kungfu option')
 
-data = tf.random_uniform([args.batch_size, 224, 224, 3])
-target = tf.random_uniform([args.batch_size, 1],
-                           minval=0,
-                           maxval=999,
-                           dtype=tf.int64)
+
+def random_input():
+    data = tf.random_uniform([args.batch_size, 224, 224, 3])
+    target = tf.random_uniform([args.batch_size, 1],
+                               minval=0,
+                               maxval=999,
+                               dtype=tf.int64)
+    return data, target
+
+
+def disk_input(data_dir):
+    filenames = glob.glob(os.path.join(data_dir, args.file_pattern))
+    filenames *= 100  # make it long enough
+    return imagenet.create_dataset_from_files(filenames, args.batch_size)
 
 
 def loss_function():
+    if args.data_dir:
+        data, target = disk_input(args.data_dir)
+    else:
+        data, target = random_input()
     logits = model(data, training=True)
     return tf.losses.sparse_softmax_cross_entropy(target, logits)
 
@@ -157,7 +175,6 @@ def log_detailed_result(value, error, attrs):
 
 
 def log_final_result(value, error):
-    from kungfu.tensorflow.ops import current_rank, current_cluster_size
     if current_rank() != 0:
         return
     attrs = {
