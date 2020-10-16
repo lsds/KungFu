@@ -187,6 +187,7 @@ def log_final_result(value, error):
         'kf-opt': args.kf_optimizer,
         'fuse': args.fuse,
         'nvlink': os.getenv('KUNGFU_ALLOW_NVLINK'),
+        'data': 'disk' if args.data_dir else 'memory',
     }
     log_detailed_result(value, error, attrs)
 

@@ -152,6 +152,7 @@ def log_final_result(value, error):
         'bs': args.batch_size,
         'model': args.model,
         'xla': args.xla,
+        'data': 'disk' if args.data_dir else 'memory',
     }
     try:
         attrs['nccl_built'] = hvd.nccl_built()
