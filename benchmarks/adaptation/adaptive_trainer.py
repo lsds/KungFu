@@ -101,7 +101,7 @@ with tf.Session() as sess:
                 print('resize %d -> %d took %s' %
                       (np, new_np, show_duration(time.time() - t0)))
                 np = new_np
-                if detached
+                if detached:
                     break
                 if changed:
                     shoud_sync = True
