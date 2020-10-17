@@ -41,9 +41,9 @@ REGISTER_KUNGFU_KERNEL_BUILDER(StartNcclScheduler, DEVICE_CPU);
 
 REGISTER_KUNGFU_OP(ResetNcclHelper)
     .Input("in_changed: bool")
-    .Input("in_keep: bool")
+    .Input("in_detached: bool")
     .Output("out_changed: bool")
-    .Output("out_keep: bool")
+    .Output("out_detached: bool")
     .SetIsStateful();
 
 class ResetNcclHelper : public OpKernel
@@ -53,18 +53,18 @@ class ResetNcclHelper : public OpKernel
   public:
     void Compute(OpKernelContext *context) override
     {
-        const bool changed = context->input(0).scalar<bool>()();
-        const bool keep    = context->input(1).scalar<bool>()();
-        if (changed && keep) { kungfu_python_init_nccl(); }
+        const bool changed  = context->input(0).scalar<bool>()();
+        const bool detached = context->input(1).scalar<bool>()();
+        if (changed && !detached) { kungfu_python_init_nccl(); }
 
         Tensor *p_changed = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, MakeTensorShape(),
                                                          &p_changed));
-        Tensor *p_keep = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(1, MakeTensorShape(), &p_keep));
-        p_changed->scalar<bool>()() = changed;
-        p_keep->scalar<bool>()()    = keep;
+        Tensor *p_detached = nullptr;
+        OP_REQUIRES_OK(context, context->allocate_output(1, MakeTensorShape(),
+                                                         &p_detached));
+        p_changed->scalar<bool>()()  = changed;
+        p_detached->scalar<bool>()() = detached;
     }
 };
 

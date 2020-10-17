@@ -6,16 +6,16 @@ def resize_cluster_from_url():
     """Resize cluster from config server.
 
     Returns:
-        A pair of scalar tensors (changed, keep) of type bool,
+        A pair of scalar tensors (changed, detached) of type bool,
         {changed} indicates if the cluster has been changed,
-        {keep} indicates if the current peer is still in the new cluster,
+        {detached} indicates if the current peer is detached from the old cluster,
         the peer should quit if it is not in the new cluster.
     """
 
     resize_op = _op_lib.kungfu_resize_cluster_from_url()
     if hasattr(_op_lib, 'kungfu_reset_nccl_helper'):
-        changed, keep = resize_op
-        return _op_lib.kungfu_reset_nccl_helper(changed, keep)
+        changed, detached = resize_op
+        return _op_lib.kungfu_reset_nccl_helper(changed, detached)
     else:
         return resize_op
 
@@ -37,9 +37,9 @@ def resize(n):
     Returns:
         A scalar tensor of bool, indicates if the cluster has been changed.
     """
-    changed, keep = _op_lib.kungfu_resize_cluster(n)
+    changed, detached = _op_lib.kungfu_resize_cluster(n)
     if hasattr(_op_lib, 'kungfu_reset_nccl_helper'):
-        changed, keep = _op_lib.kungfu_reset_nccl_helper(changed, keep)
+        changed, detached = _op_lib.kungfu_reset_nccl_helper(changed, detached)
         return changed
     else:
         return changed

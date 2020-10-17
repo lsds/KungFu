@@ -1,5 +1,5 @@
 import tensorflow as tf
-from kungfu.tensorflow.ops import (counter, all_reduce, broadcast,
+from kungfu.tensorflow.ops import (all_reduce, broadcast, counter,
                                    resize_cluster_from_url,
                                    step_based_schedule)
 
@@ -49,7 +49,7 @@ with tf.Session() as sess:
         # must be called exactly once per step
         new_step = sess.run(new_step_op, feed_dict={step_place: i})
         print('propose new_step: %d' % (new_step))
-        need_sync, keep = sess.run(resize_op)
-        if not keep:
+        need_sync, detached = sess.run(resize_op)
+        if detached:
             break
         i += 1

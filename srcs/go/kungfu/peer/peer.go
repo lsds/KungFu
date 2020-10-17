@@ -181,11 +181,11 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 	}
 	if p.currentCluster.Eq(cluster) {
 		log.Debugf("ingore unchanged proposal")
-		return false, true
+		return false, false
 	}
 	if digest := cluster.Bytes(); !p.consensus(digest) {
 		log.Errorf("diverge proposal detected among %d peers! I proposed %s", len(cluster.Workers), cluster.Workers)
-		return false, true
+		return false, false
 	}
 	{
 		stage := runner.Stage{
@@ -221,7 +221,7 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 		p.updated = false
 	}()
 	_, keep := cluster.Workers.Rank(p.self)
-	return true, keep
+	return true, !keep
 }
 
 func (p *Peer) ResizeCluster(newSize int) (bool, bool, error) {
@@ -253,13 +253,13 @@ func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(p.currentCluster.Workers), cluster.DebugString())
 		time.Sleep(50 * time.Millisecond)
 	}
-	changed, keep := p.propose(*cluster)
-	if keep {
-		p.Update()
-	} else {
+	changed, detached := p.propose(*cluster)
+	if detached {
 		p.detached = true
+	} else {
+		p.Update()
 	}
-	return changed, keep, nil
+	return changed, detached, nil
 }
 
 func (p *Peer) getClusterConfig(url string) (*plan.Cluster, error) {

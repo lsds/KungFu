@@ -97,11 +97,11 @@ with tf.Session() as sess:
             if new_np != np:
                 t0 = time.time()
                 print('TODO: propose new np: %d' % (np))
-                changed, keep = sess.run(resize_op)
+                changed, detached = sess.run(resize_op)
                 print('resize %d -> %d took %s' %
                       (np, new_np, show_duration(time.time() - t0)))
                 np = new_np
-                if not keep:
+                if detached:
                     break
                 if changed:
                     shoud_sync = True

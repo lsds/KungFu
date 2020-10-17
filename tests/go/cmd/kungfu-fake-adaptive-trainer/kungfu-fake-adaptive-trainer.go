@@ -74,8 +74,8 @@ func fakeTrainLoop(peer *peer.Peer) {
 		}
 
 		// BEGIN tf.train.SessionRunHook::after_run
-		changed, keep := resize(peer)
-		if !keep {
+		changed, detached := resize(peer)
+		if detached {
 			break
 		}
 		if changed {
@@ -106,19 +106,19 @@ func resize(peer *peer.Peer) (bool, bool) {
 	oldRank := sess.Rank()
 	oldSize := sess.Size()
 	t0 := time.Now()
-	changed, keep, err := peer.ResizeClusterFromURL()
+	changed, detached, err := peer.ResizeClusterFromURL()
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	if changed {
-		if keep {
+		if detached {
+			log.Infof("resize took %s, I'm not in the cluster of %d peers any more.", time.Since(t0), oldSize)
+		} else {
 			sess := peer.CurrentSession()
 			newRank := sess.Rank()
 			newSize := sess.Size()
 			log.Infof("resize %d -> %d took %s, rank %d -> %d", oldSize, newSize, time.Since(t0), oldRank, newRank)
-		} else {
-			log.Infof("resize took %s, I'm not in the cluster of %d peers any more.", time.Since(t0), oldSize)
 		}
 	}
-	return changed, keep
+	return changed, detached
 }

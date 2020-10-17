@@ -93,19 +93,19 @@ int Peer::GetPeerLatencies(float *recvbuf, int recv_count)
 int Peer::CheckInterference() { return GoKungfuCheckInterference(); }
 
 // control APIs
-int Peer::ResizeCluster(const uint32_t new_size, bool *changed, bool *keep)
+int Peer::ResizeCluster(const uint32_t new_size, bool *changed, bool *detached)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
     return GoKungfuResizeCluster(GoInt(new_size),
                                  reinterpret_cast<char *>(changed),
-                                 reinterpret_cast<char *>(keep));
+                                 reinterpret_cast<char *>(detached));
 }
 
-int Peer::ResizeClusterFromURL(bool *changed, bool *keep)
+int Peer::ResizeClusterFromURL(bool *changed, bool *detached)
 {
     static_assert(sizeof(bool) == sizeof(char), "");
     return GoKungfuResizeClusterFromURL(reinterpret_cast<char *>(changed),
-                                        reinterpret_cast<char *>(keep));
+                                        reinterpret_cast<char *>(detached));
 }
 
 void Peer::LogStats() { GoLogStats(); }
