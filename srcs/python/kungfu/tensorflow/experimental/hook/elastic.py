@@ -1,12 +1,11 @@
 import time
 
-from kungfu.python import current_cluster_size
+import tensorflow as tf
 from kungfu._utils import _log_event, show_duration
+from kungfu.python import current_cluster_size
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
 from kungfu.tensorflow.ops import (all_reduce, current_cluster_size,
                                    resize_cluster_from_url)
-
-import tensorflow as tf
 
 
 class ResizeProfiler():
@@ -90,8 +89,8 @@ class ElasticHook(tf.train.SessionRunHook):
         self._trained_samples += self._local_batch_size * np
 
         self._profiler.begin()
-        changed, keep = run_context.session.run(self._resize_op)
-        if not keep:
+        changed, detached = run_context.session.run(self._resize_op)
+        if detached:
             run_context.request_stop()
             self._exit_reason = 'change cluster'
             self._profiler.end()

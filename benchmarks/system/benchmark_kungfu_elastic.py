@@ -126,6 +126,7 @@ def loss_function():
 
 def log(s, nl=True):
     from kungfu.tensorflow.ops import current_rank
+
     #if current_rank() != 0:
     #    return
     print(s, end='\n' if nl else '')
@@ -143,7 +144,7 @@ def log_detailed_result(value, error, attrs):
 
 
 def log_final_result(value, error):
-    from kungfu.tensorflow.ops import current_rank, current_cluster_size
+    from kungfu.tensorflow.ops import current_cluster_size, current_rank
     if current_rank() != 0:
         return
     attrs = {
@@ -186,8 +187,8 @@ def run(sess, train_op, bcast_op):
         log('Iter #%d: %.1f img/sec per %s' % (step, img_sec, device))
         img_secs.append(img_sec)
 
-        changed, keep = sess.run(resize_op)
-        if not keep:
+        changed, detached = sess.run(resize_op)
+        if detached:
             return
         if changed:
             need_sync = True

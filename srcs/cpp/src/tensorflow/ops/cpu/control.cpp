@@ -5,8 +5,8 @@ namespace tensorflow
 REGISTER_KUNGFU_OP(ResizeClusterFromURL)
     // indicats if cluster is changed
     .Output("changed: bool")
-    // indicats if self is still in the new cluster
-    .Output("keep: bool")
+    // indicats if self is detached from the old cluster
+    .Output("detached: bool")
     .SetIsStateful()
     .SetShapeFn([](shape_inference::InferenceContext *c) {
         c->set_output(0, c->Scalar());
@@ -24,11 +24,11 @@ class ResizeClusterFromURL : public OpKernel
         Tensor *changed = nullptr;
         OP_REQUIRES_OK(
             context, context->allocate_output(0, MakeTensorShape(), &changed));
-        Tensor *keep = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(1, MakeTensorShape(), &keep));
+        Tensor *detached = nullptr;
+        OP_REQUIRES_OK(
+            context, context->allocate_output(1, MakeTensorShape(), &detached));
         _default_peer->ResizeClusterFromURL(changed->scalar<bool>().data(),
-                                            keep->scalar<bool>().data());
+                                            detached->scalar<bool>().data());
     }
 };
 
@@ -38,8 +38,8 @@ REGISTER_KUNGFU_OP(ResizeCluster)
     .Input("new_size: uint32")
     // indicats if cluster is changed
     .Output("changed: bool")
-    // indicats if self is still in the new cluster
-    .Output("keep: bool")
+    // indicats if self is detached from the old cluster
+    .Output("detached: bool")
     .SetIsStateful()
     .SetShapeFn([](shape_inference::InferenceContext *c) {
         c->set_output(0, c->Scalar());
@@ -58,12 +58,12 @@ class ResizeCluster : public OpKernel
         Tensor *changed        = nullptr;
         OP_REQUIRES_OK(
             context, context->allocate_output(0, MakeTensorShape(), &changed));
-        Tensor *keep = nullptr;
-        OP_REQUIRES_OK(context,
-                       context->allocate_output(1, MakeTensorShape(), &keep));
+        Tensor *detached = nullptr;
+        OP_REQUIRES_OK(
+            context, context->allocate_output(1, MakeTensorShape(), &detached));
         _default_peer->ResizeCluster(new_size.scalar<uint32_t>()(),
                                      changed->scalar<bool>().data(),
-                                     keep->scalar<bool>().data());
+                                     detached->scalar<bool>().data());
     }
 };
 

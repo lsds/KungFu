@@ -13,24 +13,24 @@ import (
 import "C"
 
 //export GoKungfuResizeCluster
-func GoKungfuResizeCluster(newSize int, pChanged, pKeep *C.char) int {
-	changed, keep, err := defaultPeer.ResizeCluster(newSize)
+func GoKungfuResizeCluster(newSize int, pChanged, pDetached *C.char) int {
+	changed, detached, err := defaultPeer.ResizeCluster(newSize)
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	*pChanged = boolToChar(changed)
-	*pKeep = boolToChar(keep)
+	*pDetached = boolToChar(detached)
 	return 0
 }
 
 //export GoKungfuResizeClusterFromURL
-func GoKungfuResizeClusterFromURL(pChanged, pKeep *C.char) int {
-	changed, keep, err := defaultPeer.ResizeClusterFromURL()
+func GoKungfuResizeClusterFromURL(pChanged, pDetached *C.char) int {
+	changed, detached, err := defaultPeer.ResizeClusterFromURL()
 	if err != nil {
 		utils.ExitErr(err)
 	}
 	*pChanged = boolToChar(changed)
-	*pKeep = boolToChar(keep)
+	*pDetached = boolToChar(detached)
 	return 0
 }
 

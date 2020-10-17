@@ -60,8 +60,8 @@ class KungFuElasticTrainHook(tf.train.SessionRunHook):
         new_size = run_context.session.run(
             self._new_size_op, feed_dict={self._step_place: self._step})
         propose_new_size(new_size)
-        changed, keep = run_context.session.run(self._resize_op)
-        if not keep:
+        changed, detached = run_context.session.run(self._resize_op)
+        if detached:
             run_context.request_stop()
             return
         if changed:

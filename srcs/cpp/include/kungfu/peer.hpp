@@ -150,8 +150,8 @@ class Peer
     int GetEgressRates(float *rates);
 
     // control APIs
-    int ResizeCluster(const uint32_t new_size, bool *changed, bool *keep);
-    int ResizeClusterFromURL(bool *changed, bool *keep);
+    int ResizeCluster(const uint32_t new_size, bool *changed, bool *detached);
+    int ResizeClusterFromURL(bool *changed, bool *detached);
 
     int ProposeNewSize(int new_size);
 
