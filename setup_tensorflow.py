@@ -69,6 +69,7 @@ class CMakeBuild(build_ext):
             cmake_flag('PYTHON', sys.executable),
         ] + cmake_tf_ext_flags() + list(
             pass_env([
+                'KUNGFU_ENABLE_PROFILE',
                 'KUNGFU_ENABLE_TRACE',
                 'CMAKE_VERBOSE_MAKEFILE',
                 'CMAKE_EXPORT_COMPILE_COMMANDS',

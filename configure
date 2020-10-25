@@ -12,6 +12,7 @@ BUILD_TESTS=0 # build unit tests
 BUILD_TOOLS=0
 ENABLE_MPI=0
 ENABLE_NCCL=0
+ENABLE_PROFILE=0
 ENABLE_TRACE=0
 VERBOSE=0
 
@@ -39,6 +40,9 @@ parse_args() {
             ;;
         --no-tests)
             BUILD_TESTS=0
+            ;;
+        --enable-profile)
+            ENABLE_PROFILE=1
             ;;
         --enable-trace)
             ENABLE_TRACE=1
@@ -80,6 +84,7 @@ add_cmake_flags() {
         add_cmake_flag GTEST_GIT_URL ${GTEST_GIT_URL}
     fi
 
+    add_cmake_flag KUNGFU_ENABLE_PROFILE ${ENABLE_PROFILE}
     if [ ! -z ${ENABLE_TRACE} ]; then
         add_cmake_flag KUNGFU_ENABLE_TRACE ${ENABLE_TRACE}
         if [ ! -z ${STDTRACER_GIT_URL} ]; then

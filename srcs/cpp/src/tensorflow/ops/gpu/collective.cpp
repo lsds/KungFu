@@ -2,6 +2,7 @@
 #include <thread>
 
 #include <kungfu/nccl/helper.hpp>
+#include <kungfu/profile/profile.hpp>
 #include <kungfu/tensorflow/ops.h>
 #include <kungfu/utils/trace.hpp>
 #include <tensorflow/stream_executor/stream.h>
@@ -45,6 +46,10 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
     const KungFu_NCCLScope nccl_scope_;
     std::string op_name_;
 
+#ifdef KUNGFU_ENABLE_PROFILE
+    std::unique_ptr<kungfu::ScheduledNcclAllReduceProfiler> profiler_;
+#endif
+
   public:
     explicit ScheduledNcclAllReduce(OpKernelConstruction *context)
         : AsyncOpKernel(context), nccl_scope_(KungFu_NCCL_GLOBAL)
@@ -52,6 +57,10 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
         OP_REQUIRES_OK(context, context->GetAttr("op_name", &op_name_));
         OP_REQUIRES(context, op_name_.size() >= 0,
                     errors::InvalidArgument("op_name must not be empty"));
+
+#ifdef KUNGFU_ENABLE_PROFILE
+        profiler_.reset(new kungfu::ScheduledNcclAllReduceProfiler(op_name_));
+#endif
     }
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
@@ -65,8 +74,19 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
         const auto w     = make_workspace(input, output);
         auto ready_event = create_init_ready_event(context);
         scheduler_->Start(op_name_, [=] {
+#ifdef KUNGFU_ENABLE_PROFILE
+            auto d1 = KUNGFU_MEASURE(wait_delete_ready_event(ready_event));
+            profiler_->wait_took(d1);
+#else
             wait_delete_ready_event(ready_event);
+#endif
+#ifdef KUNGFU_ENABLE_PROFILE
+            auto d2 =
+                KUNGFU_MEASURE(controller_->AllReduce(w, KungFu_SUM, done));
+            profiler_->run_took(d2);
+#else
             controller_->AllReduce(w, KungFu_SUM, done);
+#endif
         });
     }
 };
