@@ -45,7 +45,7 @@ class ScheduledNcclAllReduceProfiler
         fprintf(fp, "%s\n", name_.c_str());
         fprintf(fp, "called %d times\n", n);
         fprintf(fp, "%s %s\n", "wait", "run");
-        fprintf(fp, "%s\n", string('-', 80).c_str());
+        fprintf(fp, "%s\n", std::string('-', 80).c_str());
         for (int i = 0; i < n; ++i) {
             fprintf(fp, "%.3fms %.3fms\n",  //
                     wait_durations_.at(i).count() * 1000,
