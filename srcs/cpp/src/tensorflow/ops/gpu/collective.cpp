@@ -83,7 +83,7 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
 #ifdef KUNGFU_ENABLE_PROFILE
             auto d2 =
                 KUNGFU_MEASURE(controller_->AllReduce(w, KungFu_SUM, done));
-            profiler_->run_took(d2);
+            profiler_->run_took(d2, data_size(w));
 #else
             controller_->AllReduce(w, KungFu_SUM, done);
 #endif

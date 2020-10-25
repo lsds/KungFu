@@ -19,5 +19,10 @@ struct Workspace {
     const KungFu_Datatype dtype;
 };
 
+inline size_t data_size(const Workspace &w)
+{
+    return kungfu_type_size(w.dtype) * w.count;
+}
+
 extern const std::map<std::string, KungFu_NCCLScope> _nccl_scopes;
 }  // namespace kungfu

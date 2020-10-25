@@ -24,6 +24,7 @@ class ScheduledNcclAllReduceProfiler
 
     std::vector<profile::duration_t> wait_durations_;
     std::vector<profile::duration_t> run_durations_;
+    std::vector<size_t> data_sizes_;
 
   public:
     ScheduledNcclAllReduceProfiler(const std::string name)
@@ -44,12 +45,18 @@ class ScheduledNcclAllReduceProfiler
         const int n = wait_durations_.size();
         fprintf(fp, "%s\n", name_.c_str());
         fprintf(fp, "called %d times\n", n);
-        fprintf(fp, "%s %s\n", "wait", "run");
-        fprintf(fp, "%s\n", std::string('-', 80).c_str());
+        fprintf(fp, "%s %s %s %s\n",  //
+                "wait(ms)", "run(ms)", "size(KiB)", "rate(Gi/s)");
+        fprintf(fp, "%s\n", std::string(80, '-').c_str());
         for (int i = 0; i < n; ++i) {
-            fprintf(fp, "%.3fms %.3fms\n",  //
-                    wait_durations_.at(i).count() * 1000,
-                    run_durations_.at(i).count() * 1000);
+            const auto d1      = wait_durations_.at(i);
+            const auto d2      = run_durations_.at(i);
+            const auto size    = data_sizes_.at(i);
+            constexpr float Ki = static_cast<float>(1 << 10);
+            constexpr float Gi = static_cast<float>(1 << 30);
+            const float rate   = (size / Gi) / d2.count();
+            fprintf(fp, "%.3f %.3f %.3f, %.3f\n", d1.count() * 1000,
+                    d2.count() * 1000, size / Ki, rate);
         }
         fclose(fp);
     }
@@ -59,7 +66,11 @@ class ScheduledNcclAllReduceProfiler
         wait_durations_.push_back(d);
     }
 
-    void run_took(const profile::duration_t &d) { run_durations_.push_back(d); }
+    void run_took(const profile::duration_t &d, size_t size)
+    {
+        run_durations_.push_back(d);
+        data_sizes_.push_back(size);
+    }
 };
 }  // namespace kungfu
 
