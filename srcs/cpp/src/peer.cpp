@@ -10,9 +10,18 @@ Peer::Peer()
         fprintf(stderr, "%s failed\n", "GoKungfuInit");
         exit(1);
     }
+    if (std::getenv("KUNGFU_DEBUG_BOOT_FROM_MPI")) {
+        // TODO: call MPI_Init();
+    }
 }
 
-Peer::~Peer() { GoKungfuFinalize(); }
+Peer::~Peer()
+{
+    GoKungfuFinalize();
+    if (std::getenv("KUNGFU_DEBUG_BOOT_FROM_MPI")) {
+        // TODO: call MPI_Finalize();
+    }
+}
 
 bool Peer::Detached() const { return GoKungfuDetached(); }
 
