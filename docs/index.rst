@@ -194,7 +194,7 @@ Here is a full Keras training example: `Keras <https://github.com/lsds/KungFu/bl
 .. toctree::
   :maxdepth: 2
 
-  apis
+  api
 
 Indices and tables
 ==================
