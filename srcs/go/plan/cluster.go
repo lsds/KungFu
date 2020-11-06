@@ -69,8 +69,13 @@ func (c Cluster) Clone() Cluster {
 	}
 }
 
+var errNoRunnerInCluster = errors.New("no runner in cluster")
+
 // append one worker to the runner which has the minimal number of workers
 func (c *Cluster) growOne() error {
+	if len(c.Runners) == 0 {
+		return errNoRunnerInCluster
+	}
 	usedSlots := make(map[uint32]int)
 	for _, r := range c.Runners {
 		usedSlots[r.IPv4] = 0
