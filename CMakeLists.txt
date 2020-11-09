@@ -10,6 +10,7 @@ SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 OPTION(KUNGFU_BUILD_TESTS "Build tests." OFF)
 OPTION(KUNGFU_BUILD_TF_OPS "Build tensorflow operators." OFF)
 OPTION(KUNGFU_BUILD_TOOLS "Build kungfu tools." OFF)
+OPTION(KUNGFU_ENABLE_AFFINITY "Enable affinity." OFF)
 OPTION(KUNGFU_ENABLE_FLOAT16 "Enable float16." ON)
 OPTION(KUNGFU_ENABLE_TRACE "Enable trace." OFF)
 
@@ -32,6 +33,10 @@ ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 
 ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/peer.cpp
                           srcs/cpp/src/session.cpp)
+IF(KUNGFU_ENABLE_AFFINITY)
+    ADD_DEFINITIONS(-DKUNGFU_ENABLE_AFFINITY)
+    TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/affinity.cpp)
+ENDIF()
 TARGET_LINK_LIBRARIES(kungfu kungfu-comm)
 ADD_DEPENDENCIES(kungfu libkungfu-comm)
 ADD_CGO_DEPS(kungfu)

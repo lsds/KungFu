@@ -18,6 +18,7 @@ extern int kungfu_size();        // get current size
 extern int kungfu_local_rank();  // get current local rank
 extern int kungfu_local_size();  // get current local size
 extern void kungfu_barrier();
+extern void kungfu_set_affinity();
 
 extern int kungfu_propose_new_size(int new_size);
 

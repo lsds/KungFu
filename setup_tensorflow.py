@@ -74,6 +74,9 @@ class CMakeBuild(build_ext):
                 'CMAKE_EXPORT_COMPILE_COMMANDS',
             ]))
 
+        if sys.platform == 'linux':
+            cmake_args.append(cmake_flag('KUNGFU_ENABLE_AFFINITY', 1))
+
         use_nccl = os.getenv('KUNGFU_ENABLE_NCCL')
         if use_nccl:
             cmake_args.append(cmake_flag('KUNGFU_ENABLE_NCCL', use_nccl))
