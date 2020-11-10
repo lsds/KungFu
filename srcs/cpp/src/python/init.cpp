@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 #include <numeric>
 
@@ -9,13 +10,20 @@ DEFINE_TRACE_CONTEXT(kungfu);
 
 std::unique_ptr<kungfu::Peer> _default_peer;
 
+bool parse_bool_env(const char *name)
+{
+    const char *ptr = std::getenv(name);
+    if (ptr == nullptr) { return false; }
+    std::string val(ptr);
+    std::transform(val.begin(), val.end(), val.begin(), tolower);
+    return val == "1" || val == "true" || val == "on";
+}
+
 void kungfu_python_init()
 {
     _default_peer.reset(new kungfu::Peer);
 #ifdef KUNGFU_ENABLE_AFFINITY
-    if (std::getenv("KUNGFU_USE_AFFINITY") != nullptr) {
-        kungfu_set_affinity();
-    }
+    if (parse_bool_env("KUNGFU_USE_AFFINITY")) { kungfu_set_affinity(); }
 #endif
 }
 
