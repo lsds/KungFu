@@ -13,8 +13,9 @@ void kungfu_python_init()
 {
     _default_peer.reset(new kungfu::Peer);
 #ifdef KUNGFU_ENABLE_AFFINITY
-    bool kungfu_use_affinity = true;  // TODO: parse from env
-    if (kungfu_use_affinity) { kungfu_set_affinity(); }
+    if (std::getenv("KUNGFU_USE_AFFINITY") != nullptr) {
+        kungfu_set_affinity();
+    }
 #endif
 }
 
