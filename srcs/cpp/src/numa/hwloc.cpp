@@ -46,11 +46,17 @@ class hw_top
     ~hw_top() { hwloc_topology_destroy(topology); }
 
     std::vector<int> get_pu_numa_order() const { return get_order("PU"); }
+
+    size_t get_numa_node_count() const
+    {
+        const auto nodes = get_order("NUMANode");
+        return nodes.size();
+    }
 };
 
-std::vector<int> get_pu_numa_order()
-{
-    hw_top ht;
-    return ht.get_pu_numa_order();
-}
+static hw_top ht;
+
+std::vector<int> get_pu_numa_order() { return ht.get_pu_numa_order(); }
+
+size_t get_numa_node_count() { return ht.get_numa_node_count(); }
 }  // namespace kungfu

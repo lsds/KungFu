@@ -32,8 +32,9 @@ ENDIF()
 INCLUDE(srcs/cmake/cgo.cmake)
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 
-ADD_LIBRARY(kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/peer.cpp
-                          srcs/cpp/src/session.cpp)
+ADD_LIBRARY(
+    kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/peer.cpp
+                  srcs/cpp/src/session.cpp srcs/cpp/src/numa/placement.cpp)
 IF(KUNGFU_ENABLE_AFFINITY)
     ADD_DEFINITIONS(-DKUNGFU_ENABLE_AFFINITY)
     TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/numa/affinity.cpp)
