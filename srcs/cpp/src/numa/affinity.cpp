@@ -48,6 +48,7 @@ int set_affinity(const Peer &peer)
     std::vector<int> cpu_order;
 #ifdef KUNGFU_ENABLE_HWLOC
     cpu_order = get_pu_numa_order();
+    fprintf(stderr, "using numa cpu order: %s\n", show(cpu_order).c_str());
 #else
     cpu_order.resize(std::thread::hardware_concurrency());
     std::iota(cpu_order.begin(), cpu_order.end(), 0);

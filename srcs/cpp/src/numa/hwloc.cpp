@@ -15,7 +15,7 @@ class hw_top
                   const int depth) const
     {
         f(node, depth);
-        for (int i = 0; i < node->arity; i++) {
+        for (int i = 0; i < static_cast<int>(node->arity); i++) {
             traverse_numa(node->children[i], f, depth + 1);
         }
     }
@@ -44,13 +44,6 @@ class hw_top
     }
 
     ~hw_top() { hwloc_topology_destroy(topology); }
-
-    std::vector<int> print_tree() const
-    {
-        std::vector<int> order;
-        traverse_numa(hwloc_get_root_obj(topology), show_node_info, 0);
-        return order;
-    }
 
     std::vector<int> get_pu_numa_order() const { return get_order("PU"); }
 };
