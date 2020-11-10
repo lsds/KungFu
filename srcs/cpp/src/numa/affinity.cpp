@@ -21,6 +21,17 @@ std::string show(const std::vector<int> &arr)
     return s;
 }
 
+std::vector<int> select_cpus(const std::vector<int> &all_cpus,
+                             const size_t local_rank, const size_t local_size)
+{
+    const auto mid = all_cpus.begin() + all_cpus.size() / 2;
+    if (local_rank < local_size / 2) {
+        return std::vector<int>(all_cpus.begin(), mid);
+    } else {
+        return std::vector<int>(mid, all_cpus.end());
+    }
+}
+
 int set_affinity(const std::vector<int> &cpu_order, const size_t local_rank,
                  const size_t local_size)
 {
@@ -28,18 +39,14 @@ int set_affinity(const std::vector<int> &cpu_order, const size_t local_rank,
         fprintf(stderr, "no enough cpus to bind\n");
         return 0;
     }
-    const int cores = cpu_order.size() / local_size;
-    std::vector<int> selected_cpus(cores);
-    std::copy(cpu_order.begin() + local_rank * cores,
-              cpu_order.begin() + (local_rank + 1) * cores,
-              selected_cpus.begin());
+    const auto selected_cpus = select_cpus(cpu_order, local_rank, local_size);
     fprintf(stderr, "binding local rank %d to %d cpus: %s\n",
             static_cast<int>(local_rank),
             static_cast<int>(selected_cpus.size()),
             show(selected_cpus).c_str());
     cpu_set_t cpu;
     CPU_ZERO(&cpu);
-    for (int i = 0; i < cores; ++i) { CPU_SET(selected_cpus[i], &cpu); }
+    for (auto i : selected_cpus) { CPU_SET(i, &cpu); }
     return sched_setaffinity(0, sizeof(cpu_set_t), &cpu);
 }
 
