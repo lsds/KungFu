@@ -55,9 +55,13 @@ IF(KUNGFU_ENABLE_NCCL)
     INCLUDE(srcs/cmake/nccl.cmake)
     ADD_LIBRARY(
         kungfu_nccl
-        srcs/cpp/src/cuda/stream.cpp srcs/cpp/src/nccl/helper.cpp
-        srcs/cpp/src/python/cuda.cpp srcs/cpp/src/nccl/common.cpp
-        srcs/cpp/src/nccl/scheduler.cpp)
+        srcs/cpp/src/cuda/stream.cpp #
+        srcs/cpp/src/nccl/common.cpp #
+        srcs/cpp/src/nccl/controller.cpp #
+        srcs/cpp/src/nccl/helper.cpp #
+        srcs/cpp/src/nccl/scheduler.cpp #
+        srcs/cpp/src/python/cuda.cpp #
+    )
     TARGET_LINK_LIBRARIES(kungfu_nccl kungfu)
     USE_NCCL(kungfu_nccl)
 ENDIF()
