@@ -90,7 +90,8 @@ class NcclAllReduce : public AsyncOpKernel
             _default_nccl_helper->EnsureScheduler(KungFu_NCCL_GLOBAL);
         auto controller_ =
             _default_nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
-        scheduler_->Do([=] { controller_->InitOnce(); });
+        auto peer = _default_peer.get();
+        scheduler_->Do([=] { controller_->InitOnce(peer); });
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -140,10 +141,11 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
         auto w_reduce     = make_workspace(input, output);
         auto w_all_reduce = make_workspace(*output, output);
         auto w_bcast      = make_workspace(*output, output);
+        auto peer         = _default_peer.get();
         scheduler_->Start(reduce_op_, [=] {
             wait_delete_ready_event(ready_event);
             controller_->Reduce(w_reduce, KungFu_SUM, [=] {
-                CrossAllReduceGpu(w_all_reduce, KungFu_SUM, name(), [=] {
+                CrossAllReduceGpu(peer, w_all_reduce, KungFu_SUM, name(), [=] {
                     scheduler_->Start(bcast_op_, [=] {
                         controller_->Broadcast(w_bcast, done);
                     });

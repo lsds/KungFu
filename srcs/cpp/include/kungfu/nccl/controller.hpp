@@ -6,7 +6,7 @@
 
 namespace kungfu
 {
-void CrossAllReduceGpu(const Workspace &w, KungFu_Op op,
+void CrossAllReduceGpu(Peer *peer, const Workspace &w, KungFu_Op op,
                        const std::string &name, DoneCallback done);
 
 class NCCLController
@@ -17,7 +17,7 @@ class NCCLController
   public:
     NCCLController(const KungFu_NCCLScope scope);
 
-    void InitOnce();
+    void InitOnce(Peer *peer);
 
     int Reduce(const Workspace &w, KungFu_Op op, DoneCallback done);
 
