@@ -71,7 +71,7 @@ class NCCLScheduler
   public:
     NCCLScheduler(const KungFu_NCCLScope scope, const bool auto_order = true);
 
-    void Reset(const std::vector<std::string> &names);
+    void Reset(const std::vector<std::string> &names, Peer *peer);
 
     void Start(const std::string &name, const DoneCallback &task);
 

@@ -1,7 +1,6 @@
 #include <numeric>
 
 #include <kungfu/nccl/scheduler.hpp>
-#include <kungfu/python/init.h>  // FIXME: remove
 #include <kungfu/utils/waiter.hpp>
 
 namespace kungfu
@@ -91,7 +90,7 @@ void NCCLScheduler::ResetOrder(int n)
     std::iota(order_.begin(), order_.end(), 0);
 }
 
-void NCCLScheduler::Reset(const std::vector<std::string> &names)
+void NCCLScheduler::Reset(const std::vector<std::string> &names, Peer *peer)
 {
     if (names.size() != order_.size()) {
         // FIXME: also check value of names
@@ -104,13 +103,13 @@ void NCCLScheduler::Reset(const std::vector<std::string> &names)
             const std::vector<T> arrive_order = executor_->Wait();
             if (arrive_order.size() == order_.size()) {
                 if (scope_ == KungFu_NCCL_LOCAL) {
-                    _default_peer->LocalBroadcast(
+                    peer->LocalBroadcast(
                         arrive_order.data(), order_.data(), order_.size(),
                         type_encoder::value<T>(), name_.c_str());
                 } else {
-                    _default_peer->Broadcast(
-                        arrive_order.data(), order_.data(), order_.size(),
-                        type_encoder::value<T>(), name_.c_str());
+                    peer->Broadcast(arrive_order.data(), order_.data(),
+                                    order_.size(), type_encoder::value<T>(),
+                                    name_.c_str());
                 }
             }
         }

@@ -32,7 +32,7 @@ class StartNcclScheduler : public OpKernel
         for (int i = 0; i < t_names.size(); ++i) {
             names.push_back(t_names(i));
         }
-        scheduler_->Reset(names);
+        scheduler_->Reset(names, _default_peer.get());
         scheduler_->Do([=] { controller_->InitOnce(); });
     }
 };
