@@ -54,8 +54,9 @@ INSTALL(DIRECTORY lib DESTINATION .)
 IF(KUNGFU_ENABLE_NCCL)
     INCLUDE(srcs/cmake/nccl.cmake)
     ADD_LIBRARY(
-        kungfu_nccl srcs/cpp/src/python/cuda.cpp srcs/cpp/src/nccl/common.cpp
-                    srcs/cpp/src/nccl/scheduler.cpp)
+        kungfu_nccl
+        srcs/cpp/src/nccl/helper.cpp srcs/cpp/src/python/cuda.cpp
+        srcs/cpp/src/nccl/common.cpp srcs/cpp/src/nccl/scheduler.cpp)
     TARGET_LINK_LIBRARIES(kungfu_nccl kungfu)
 ENDIF()
 
