@@ -72,4 +72,12 @@ int NCCLController::AllReduce(const Workspace &w, KungFu_Op op,
     done();
     return 0;
 }
+
+int NCCLController::AllReduce(const Workspace &w, KungFu_Op op,
+                              void *stream_ptr)
+{
+    gpu_collective_->all_reduce(w.sendbuf, w.recvbuf, w.count, w.dtype,
+                                stream_ptr);
+    return 0;
+}
 }  // namespace kungfu

@@ -24,5 +24,7 @@ class NCCLController
     int Broadcast(const Workspace &w, DoneCallback done);
 
     int AllReduce(const Workspace &w, KungFu_Op op, DoneCallback done);
+
+    int AllReduce(const Workspace &w, KungFu_Op op, void *stream_ptr);
 };
 }  // namespace kungfu
