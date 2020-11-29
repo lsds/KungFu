@@ -14,7 +14,16 @@ var Models = map[string][]int{
 	"vgg16-imagenet":    vgg16Imagenet,
 	"slp-mnist":         slpMNIST,
 	"bert":              bert,
+	"1024x100":          const1024x100,
 }
+
+var const1024x100 = func() []int {
+	var ss []int
+	for i := 0; i < 100; i++ {
+		ss = append(ss, 1024)
+	}
+	return ss
+}()
 
 var Names = func(m map[string][]int) []string {
 	var ks []string
