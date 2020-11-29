@@ -53,6 +53,20 @@ INSTALL(DIRECTORY lib DESTINATION .)
 
 IF(KUNGFU_ENABLE_NCCL)
     INCLUDE(srcs/cmake/nccl.cmake)
+    ADD_LIBRARY(
+        kungfu_nccl
+        # BEGIN sort
+        srcs/cpp/src/cuda/stream.cpp
+        srcs/cpp/src/nccl/common.cpp
+        srcs/cpp/src/nccl/controller.cpp
+        srcs/cpp/src/nccl/gpu_collective.cpp
+        srcs/cpp/src/nccl/helper.cpp
+        srcs/cpp/src/nccl/scheduler.cpp
+        srcs/cpp/src/python/cuda.cpp
+        # END sort
+    )
+    TARGET_LINK_LIBRARIES(kungfu_nccl kungfu)
+    USE_NCCL(kungfu_nccl)
 ENDIF()
 
 IF(KUNGFU_BUILD_TF_OPS)

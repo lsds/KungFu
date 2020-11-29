@@ -13,8 +13,9 @@
 struct show_nccl_error {
     std::string operator()(ncclResult_t err) const
     {
-        return std::to_string(static_cast<int>(err)) + ": " +
-               ncclGetErrorString(err);
+        std::string msg = ncclGetErrorString(err);
+        msg += "(" + std::to_string(static_cast<int>(err)) + ")";
+        return msg;
     }
 };
 
@@ -73,24 +74,24 @@ ncclDataType_t to_nccl_type(const KungFu_Datatype dtype)
 
 class gpu_collective_nccl : public gpu_collective
 {
-    ncclComm_t comm;
-    const int _root;
-    const int _rank;
-    const int _cluster_size;
+    ncclComm_t comm_;
+    const int root_;
+    const int rank_;
+    const int cluster_size_;
 
-    CudaStream _stream;
+    CudaStream stream_;
 
   public:
     gpu_collective_nccl(ncclUniqueId id, int cluster_size, int rank, int root)
-        : _root(root), _rank(rank), _cluster_size(cluster_size)
+        : root_(root), rank_(rank), cluster_size_(cluster_size)
     {
         KUNGFU_CHECK(nccl_checker)
-            << ncclCommInitRank(&comm, cluster_size, id, rank);
+            << ncclCommInitRank(&comm_, cluster_size, id, rank);
     }
 
     ~gpu_collective_nccl()
     {
-        KUNGFU_CHECK(nccl_checker) << ncclCommDestroy(comm);
+        KUNGFU_CHECK(nccl_checker) << ncclCommDestroy(comm_);
     }
 
     void reduce(const void *send_buf, void *recv_buf, size_t count,
@@ -100,8 +101,8 @@ class gpu_collective_nccl : public gpu_collective
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclreduce
         KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
-                          ncclSum, _root, comm, _stream);
-        _stream.sync();
+                          ncclSum, root_, comm_, stream_);
+        stream_.sync();
     }
 
     void broadcast(const void *send_buf, void *recv_buf, size_t count,
@@ -111,8 +112,8 @@ class gpu_collective_nccl : public gpu_collective
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclbroadcast
         KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclBroadcast(send_buf, recv_buf, count, to_nccl_type(dtype),
-                             _root, comm, _stream);
-        _stream.sync();
+                             root_, comm_, stream_);
+        stream_.sync();
     }
 
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
@@ -122,8 +123,19 @@ class gpu_collective_nccl : public gpu_collective
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallreduce
         KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
-                             ncclSum, comm, _stream);
-        _stream.sync();
+                             ncclSum, comm_, stream_);
+        stream_.sync();
+    }
+
+    void all_reduce(const void *send_buf, void *recv_buf, size_t count,
+                    KungFu_Datatype dtype, void *stream_ptr)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallreduce
+        cudaStream_t stream = reinterpret_cast<cudaStream_t>(stream_ptr);
+        KUNGFU_CHECK_HINT(nccl_checker, __func__)
+            << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
+                             ncclSum, comm_, stream);
     }
 };
 

@@ -17,7 +17,7 @@ namespace kungfu
 class gpu_collective
 {
   public:
-    virtual ~gpu_collective() {}
+    virtual ~gpu_collective() = default;
 
     virtual void reduce(const void *send_buf, void *recv_buf, size_t count,
                         KungFu_Datatype dtype) = 0;
@@ -27,6 +27,9 @@ class gpu_collective
 
     virtual void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                             KungFu_Datatype dtype) = 0;
+
+    virtual void all_reduce(const void *send_buf, void *recv_buf, size_t count,
+                            KungFu_Datatype dtype, void *stream_ptr) = 0;
 
     template <typename T>
     void all_reduce(const T *send_buf, T *recv_buf, size_t count)
