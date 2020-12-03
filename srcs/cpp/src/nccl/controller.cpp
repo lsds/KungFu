@@ -68,7 +68,7 @@ int NCCLController::Broadcast(const Workspace &w, DoneCallback done)
 int NCCLController::AllReduce(const Workspace &w, KungFu_Op op,
                               DoneCallback done)
 {
-    gpu_collective_->all_reduce(w.sendbuf, w.recvbuf, w.count, w.dtype);
+    gpu_collective_->all_reduce(w.sendbuf, w.recvbuf, w.count, w.dtype, op);
     done();
     return 0;
 }
@@ -76,7 +76,7 @@ int NCCLController::AllReduce(const Workspace &w, KungFu_Op op,
 int NCCLController::AllReduce(const Workspace &w, KungFu_Op op,
                               void *stream_ptr)
 {
-    gpu_collective_->all_reduce(w.sendbuf, w.recvbuf, w.count, w.dtype,
+    gpu_collective_->all_reduce(w.sendbuf, w.recvbuf, w.count, w.dtype, op,
                                 stream_ptr);
     return 0;
 }
