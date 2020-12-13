@@ -75,6 +75,13 @@ int NCCLController::Broadcast(const Workspace &w, DoneCallback done)
     return 0;
 }
 
+int NCCLController::Broadcast(const Workspace &w, void *stream_ptr)
+{
+    gpu_collective_->broadcast(w.sendbuf, w.recvbuf, w.count, w.dtype,
+                               stream_ptr);
+    return 0;
+}
+
 int NCCLController::AllReduce(const Workspace &w, KungFu_Op op,
                               DoneCallback done)
 {

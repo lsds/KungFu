@@ -132,6 +132,17 @@ class gpu_collective_nccl : public gpu_collective
         stream_.sync();
     }
 
+    void broadcast(const void *send_buf, void *recv_buf, size_t count,
+                   KungFu_Datatype dtype, void *stream_ptr)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclbroadcast
+        cudaStream_t stream = reinterpret_cast<cudaStream_t>(stream_ptr);
+        KUNGFU_CHECK_HINT(nccl_checker, __func__)
+            << ncclBroadcast(send_buf, recv_buf, count, to_nccl_type(dtype),
+                             root_, comm_, stream);
+    }
+
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                     KungFu_Datatype dtype, KungFu_Op op)
     {

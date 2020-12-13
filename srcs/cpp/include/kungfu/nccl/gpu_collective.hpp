@@ -25,6 +25,9 @@ class gpu_collective
     virtual void broadcast(const void *send_buf, void *recv_buf, size_t count,
                            KungFu_Datatype dtype) = 0;
 
+    virtual void broadcast(const void *send_buf, void *recv_buf, size_t count,
+                           KungFu_Datatype dtype, void *stream_ptr) = 0;
+
     virtual void all_reduce(const void *send_buf, void *recv_buf, size_t count,
                             KungFu_Datatype dtype, KungFu_Op op) = 0;
 
