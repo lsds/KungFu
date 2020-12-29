@@ -72,6 +72,22 @@ ncclDataType_t to_nccl_type(const KungFu_Datatype dtype)
     }
 }
 
+ncclRedOp_t to_nccl_op(const KungFu_Op op)
+{
+    switch (op) {
+    case KungFu_SUM:
+        return ncclSum;
+    case KungFu_MIN:
+        return ncclMin;
+    case KungFu_MAX:
+        return ncclMax;
+    case KungFu_PROD:
+        return ncclProd;
+    default:
+        throw std::invalid_argument("unsupported op");
+    }
+}
+
 class gpu_collective_nccl : public gpu_collective
 {
     ncclComm_t comm_;
@@ -116,26 +132,37 @@ class gpu_collective_nccl : public gpu_collective
         stream_.sync();
     }
 
+    void broadcast(const void *send_buf, void *recv_buf, size_t count,
+                   KungFu_Datatype dtype, void *stream_ptr)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclbroadcast
+        cudaStream_t stream = reinterpret_cast<cudaStream_t>(stream_ptr);
+        KUNGFU_CHECK_HINT(nccl_checker, __func__)
+            << ncclBroadcast(send_buf, recv_buf, count, to_nccl_type(dtype),
+                             root_, comm_, stream);
+    }
+
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
-                    KungFu_Datatype dtype)
+                    KungFu_Datatype dtype, KungFu_Op op)
     {
         TRACE_SCOPE(__func__);
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallreduce
         KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
-                             ncclSum, comm_, stream_);
+                             to_nccl_op(op), comm_, stream_);
         stream_.sync();
     }
 
     void all_reduce(const void *send_buf, void *recv_buf, size_t count,
-                    KungFu_Datatype dtype, void *stream_ptr)
+                    KungFu_Datatype dtype, KungFu_Op op, void *stream_ptr)
     {
         TRACE_SCOPE(__func__);
         // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallreduce
         cudaStream_t stream = reinterpret_cast<cudaStream_t>(stream_ptr);
         KUNGFU_CHECK_HINT(nccl_checker, __func__)
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
-                             ncclSum, comm_, stream);
+                             to_nccl_op(op), comm_, stream);
     }
 };
 
