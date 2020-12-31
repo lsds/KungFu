@@ -22,6 +22,9 @@ type Config struct {
 }
 
 func ParseConfigFromEnv() (*Config, error) {
+	if _, ok := os.LookupEnv(BootFromMPI); ok {
+		return ParseConfigFromOpenMPIEnv()
+	}
 	if _, ok := os.LookupEnv(SelfSpecEnvKey); !ok {
 		return singleEnv(), nil
 	}

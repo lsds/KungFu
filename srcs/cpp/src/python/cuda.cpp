@@ -29,6 +29,11 @@ std::vector<int> parse_cuda_visible_devices(const std::string &val)
 int kungfu_get_cuda_index()
 {
     int dev = 0;
+    if (std::getenv("KUNGFU_DEBUG_BOOT_FROM_MPI")) {
+        const char *ptr = std::getenv("OMPI_COMM_WORLD_LOCAL_RANK");
+        if (ptr != nullptr) { dev = std::stoi(ptr); }
+        return dev;
+    }
     {
         const char *ptr = std::getenv("KUNGFU_CUDA_VISIBLE_DEVICES");
         if (ptr != nullptr) { dev = std::stoi(ptr); }

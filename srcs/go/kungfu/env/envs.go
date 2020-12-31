@@ -15,4 +15,6 @@ const (
 	ProcStartTimestamp = `KUNGFU_PROC_START_TIMESTAMP`
 
 	AllowNvLink = `KUNGFU_ALLOW_NVLINK`
+
+	BootFromMPI = `KUNGFU_DEBUG_BOOT_FROM_MPI`
 )
