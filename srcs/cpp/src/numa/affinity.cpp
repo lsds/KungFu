@@ -46,6 +46,11 @@ int set_affinity(const Peer &peer)
 #ifdef KUNGFU_ENABLE_HWLOC
     cpu_order       = get_pu_numa_order();
     numa_node_count = get_numa_node_count();
+    if (numa_node_count <= 0) {
+        fprintf(stderr, "numa_node_count = %d, reset to 1\n",
+                static_cast<int>(numa_node_count));
+        numa_node_count = 1;
+    }
     fprintf(stderr, "using numa cpu order: %s with %d numa nodes\n",
             show(cpu_order).c_str(), static_cast<int>(numa_node_count));
 #else
