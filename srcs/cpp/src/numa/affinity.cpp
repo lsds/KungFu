@@ -13,7 +13,7 @@ namespace kungfu
 extern std::vector<int> get_pu_numa_order();
 extern size_t get_numa_node_count();
 
-std::string show(const std::vector<int> &arr)
+static std::string show(const std::vector<int> &arr)
 {
     std::string s;
     for (auto x : arr) {
@@ -23,9 +23,9 @@ std::string show(const std::vector<int> &arr)
     return s;
 }
 
-int set_affinity(const std::vector<int> &cpu_order,
-                 const size_t numa_node_count, const size_t local_rank,
-                 const size_t local_size)
+static int set_affinity(const std::vector<int> &cpu_order,
+                        const size_t numa_node_count, const size_t local_rank,
+                        const size_t local_size)
 {
     const auto selected_cpus =
         select_cpus(cpu_order, numa_node_count, local_rank, local_size);
@@ -46,7 +46,8 @@ int set_affinity(const Peer &peer)
 #ifdef KUNGFU_ENABLE_HWLOC
     cpu_order       = get_pu_numa_order();
     numa_node_count = get_numa_node_count();
-    fprintf(stderr, "using numa cpu order: %s\n", show(cpu_order).c_str());
+    fprintf(stderr, "using numa cpu order: %s with %d numa nodes\n",
+            show(cpu_order).c_str(), static_cast<int>(numa_node_count));
 #else
     cpu_order.resize(std::thread::hardware_concurrency());
     std::iota(cpu_order.begin(), cpu_order.end(), 0);
