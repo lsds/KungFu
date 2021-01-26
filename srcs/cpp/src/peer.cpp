@@ -12,6 +12,15 @@ Peer::Peer()
     }
 }
 
+Peer::Peer(int rank, int size)
+{
+    const int err = GoKungfuInitSingleMachine(GoInt(rank), GoInt(size));
+    if (err) {
+        fprintf(stderr, "%s failed\n", "GoKungfuInitSingleMachine");
+        exit(1);
+    }
+}
+
 Peer::~Peer() { GoKungfuFinalize(); }
 
 bool Peer::Detached() const { return GoKungfuDetached(); }

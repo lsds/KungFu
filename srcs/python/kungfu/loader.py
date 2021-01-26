@@ -21,3 +21,10 @@ def _call_method(lib, name, force=False):
     if force:
         raise RuntimeError('failed to call %s' % name)
     return False
+
+
+def _call_method_with(lib, name, *args):
+    if hasattr(lib, name):
+        getattr(lib, name)(*args)
+    else:
+        raise RuntimeError('failed to call %s' % name)
