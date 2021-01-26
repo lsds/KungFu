@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import tensorflow as tf
-from kungfu.cmd import launch
+from kungfu.cmd import launch_multiprocess
 from tensorflow.python.util import deprecation
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -24,7 +24,7 @@ def worker(rank):
 
 def main():
     np = 4
-    launch(worker, np)
+    launch_multiprocess(worker, np)
 
 
 main()

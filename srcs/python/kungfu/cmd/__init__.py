@@ -20,7 +20,7 @@ class _RunWorker(object):
         self._f(rank)
 
 
-def launch(f, np):
+def launch_multiprocess(f, np):
     child_env = os.environ.copy()
     child_env['KUNGFU_SINGLE_MACHINE_MULTIPROCESS'] = 'true'
     with mp.Pool(np, initargs=(child_env, )) as p:
