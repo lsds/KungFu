@@ -1,6 +1,8 @@
 import atexit
+import os
 
-from kungfu.loader import _call_method, _load_clib, _module_path
+from kungfu.loader import (_call_method, _call_method_with, _load_clib,
+                           _module_path)
 
 __all__ = [
     'current_cluster_size',
@@ -15,12 +17,25 @@ __all__ = [
 def _load_and_init_python_lib():
     _load_clib('libkungfu')
     _python_lib = _load_clib('libkungfu_python')
-    _call_method(_python_lib, 'kungfu_python_init')
+    if not os.getenv('KUNGFU_SINGLE_MACHINE_MULTIPROCESS'):
+        _call_method(_python_lib, 'kungfu_python_init')
     has_nccl = _call_method(_python_lib, 'kungfu_python_init_nccl')
     return _python_lib, has_nccl
 
 
+_python_lib = None
+_has_nccl = None
 _python_lib, _has_nccl = _load_and_init_python_lib()
+
+
+def _init_single_machine_multiple_process(rank, size):
+    global _python_lib
+    global _has_nccl
+    _load_clib('libkungfu')
+    _python_lib = _load_clib('libkungfu_python')
+    _call_method_with(_python_lib, 'kungfu_python_init_single_machine', rank,
+                      size)
+    _has_nccl = _call_method(_python_lib, 'kungfu_python_init_nccl')
 
 
 def _finalize_python_lib():
@@ -75,17 +90,22 @@ def propose_new_size(new_size):
     # FIXME: check ctypes
     _python_lib.kungfu_propose_new_size(int(new_size))
 
+
 def check_interference():
     return _python_lib.kungfu_check_interference()
+
 
 def calc_stats():
     return _python_lib.kungfu_calc_stats()
 
+
 def log_stats():
     return _python_lib.kungfu_log_stats()
 
+
 def print_strategy_stats():
     return _python_lib.kungfu_print_strategy_stats()
+
 
 def _get_other_ranks():
     self_rank = current_rank()

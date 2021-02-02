@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <numeric>
+#include <string>
 
 #include <kungfu.h>
 #include <kungfu/python/init.h>
@@ -19,12 +20,23 @@ bool parse_bool_env(const char *name)
     return val == "1" || val == "true" || val == "on";
 }
 
-void kungfu_python_init()
+static void _init_affinity()
 {
-    _default_peer.reset(new kungfu::Peer);
 #ifdef KUNGFU_ENABLE_AFFINITY
     if (parse_bool_env("KUNGFU_USE_AFFINITY")) { kungfu_set_affinity(); }
 #endif
+}
+
+void kungfu_python_init()
+{
+    _default_peer.reset(new kungfu::Peer);
+    _init_affinity();
+}
+
+void kungfu_python_init_single_machine(int rank, int size)
+{
+    _default_peer.reset(new kungfu::Peer(rank, size));
+    _init_affinity();
 }
 
 void kungfu_python_finialize() { _default_peer.reset(nullptr); }

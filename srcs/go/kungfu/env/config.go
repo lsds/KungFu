@@ -23,7 +23,7 @@ type Config struct {
 
 func ParseConfigFromEnv() (*Config, error) {
 	if _, ok := os.LookupEnv(SelfSpecEnvKey); !ok {
-		return singleEnv(), nil
+		return singleProcessEnv(), nil
 	}
 	self, err := getSelfFromEnv()
 	if err != nil {
@@ -56,7 +56,19 @@ func ParseConfigFromEnv() (*Config, error) {
 	}, nil
 }
 
-func singleEnv() *Config {
+func SingleMachineEnv(rank, size int) (*Config, error) {
+	pl, err := plan.DefaultHostList.GenPeerList(size, plan.DefaultPortRange)
+	if err != nil {
+		return nil, err
+	}
+	return &Config{
+		Self:      pl[rank],
+		InitPeers: pl,
+		Strategy:  kb.DefaultStrategy,
+	}, nil
+}
+
+func singleProcessEnv() *Config {
 	pl, _ := plan.DefaultHostList.GenPeerList(1, plan.DefaultPortRange)
 	self := pl[0]
 	return &Config{

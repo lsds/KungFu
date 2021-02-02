@@ -5,8 +5,9 @@ import (
 	"reflect"
 	"unsafe"
 
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -28,6 +29,19 @@ func GoKungfuInit() int {
 	defaultPeer, err = peer.New()
 	if err != nil {
 		return errorCode("New", err)
+	}
+	return errorCode("Start", defaultPeer.Start())
+}
+
+//export GoKungfuInitSingleMachine
+func GoKungfuInitSingleMachine(rank, size C.int) int {
+	cfg, err := env.SingleMachineEnv(int(rank), int(size))
+	if err != nil {
+		return errorCode("SingleMachineEnv", err)
+	}
+	defaultPeer, err = peer.NewFromConfig(cfg)
+	if err != nil {
+		return errorCode("NewFromConfig", err)
 	}
 	return errorCode("Start", defaultPeer.Start())
 }
@@ -133,20 +147,20 @@ func main() {
 	fmt.Printf("%s is a library\n", utils.ProgName())
 }
 
-func toVector(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *kb.Vector {
+func toVector(ptr unsafe.Pointer, count int, dtype C.KungFu_Datatype) *base.Vector {
 	if ptr == nil {
 		if count > 0 {
 			utils.ExitErr(fmt.Errorf("toVector: ptr is nil but count = %d", count))
 		}
 	}
-	dt := kb.DataType(dtype)
+	dt := base.DataType(dtype)
 	size := count * dt.Size()
 	sh := &reflect.SliceHeader{
 		Data: uintptr(ptr),
 		Len:  size,
 		Cap:  size,
 	}
-	return &kb.Vector{
+	return &base.Vector{
 		Data:  *(*[]byte)(unsafe.Pointer(sh)),
 		Count: count,
 		Type:  dt,

@@ -15,6 +15,8 @@ class Peer
   public:
     Peer();
 
+    Peer(int rank, int size);  // Single Machine Multi-Process
+
     ~Peer();
 
     bool Detached() const;
