@@ -1,9 +1,8 @@
-
 #include <kungfu/numa/placement.hpp>
 
 namespace kungfu
 {
-int ceil_div(int a, int b) { return a / b + (a % b ? 1 : 0); }
+static int ceil_div(int a, int b) { return a / b + (a % b ? 1 : 0); }
 
 std::vector<int> select_cpus(const std::vector<int> &all_cpus,
                              const size_t numa_node_count,

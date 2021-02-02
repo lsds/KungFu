@@ -47,6 +47,7 @@ class hw_top
 
     std::vector<int> get_pu_numa_order() const { return get_order("PU"); }
 
+    // FIXME: may return 0 when numa node is 1
     size_t get_numa_node_count() const
     {
         const auto nodes = get_order("NUMANode");
