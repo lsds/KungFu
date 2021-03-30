@@ -1,4 +1,4 @@
-#include <kungfu/python/init.h>
+#include <kungfu/python/c_api.h>
 
 int main()
 {

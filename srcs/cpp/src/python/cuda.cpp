@@ -2,7 +2,7 @@
 #include <sstream>
 #include <vector>
 
-#include <kungfu/python/init.h>
+#include <kungfu/python/c_api.h>
 
 std::vector<std::string> split(const std::string &s, char sep)
 {
