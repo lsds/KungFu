@@ -1,7 +1,10 @@
 #pragma once
 #include <memory>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
+
 extern void kungfu_python_init();
 extern void kungfu_python_init_single_machine(int rank, int size);
 extern void kungfu_python_init_nccl();
@@ -30,7 +33,15 @@ extern void kungfu_calc_stats();
 extern void kungfu_log_stats();
 
 extern void kungfu_print_strategy_stats();
+
+// unstable APIs
+void kungfu_resize(int n, char *changed, char *detached);
+
+#ifdef __cplusplus
 }
+#endif
+
+#include <kungfu/python/collective.h>
 
 namespace kungfu
 {

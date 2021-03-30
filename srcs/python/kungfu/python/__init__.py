@@ -125,3 +125,21 @@ def show_nccl_version():
         _call_method(_python_lib, 'kungfu_show_nccl_version', force=True)
     else:
         print('NCCL is NOT enabled')
+
+
+# unstable APIs
+
+from ctypes import byref, c_int, c_char
+
+
+def resize(n):
+    changed = c_char()
+    detached = c_char()
+    _python_lib.kungfu_resize(c_int(n), byref(changed), byref(detached))
+    return bool(ord(changed.value)), bool(ord(detached.value))
+
+
+def all_reduce_int_max(x):
+    y = c_int(x)
+    _python_lib.kungfu_all_reduce_int_max(byref(y))
+    return int(y.value)
