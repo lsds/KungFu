@@ -33,8 +33,8 @@ INCLUDE(srcs/cmake/cgo.cmake)
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 
 ADD_LIBRARY(
-    kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/peer.cpp
-                  srcs/cpp/src/session.cpp srcs/cpp/src/numa/placement.cpp)
+    kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/numa/placement.cpp
+                  srcs/cpp/src/peer.cpp srcs/cpp/src/session.cpp)
 IF(KUNGFU_ENABLE_AFFINITY)
     ADD_DEFINITIONS(-DKUNGFU_ENABLE_AFFINITY)
     TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/numa/affinity.cpp)
@@ -75,8 +75,9 @@ IF(KUNGFU_BUILD_TF_OPS)
 
     ADD_LIBRARY(
         kungfu_python SHARED
-        srcs/cpp/src/python/init.cpp srcs/cpp/src/python/cuda.cpp
-        srcs/cpp/src/nccl/common.cpp srcs/cpp/src/nccl/scheduler.cpp)
+        srcs/cpp/src/nccl/common.cpp srcs/cpp/src/nccl/scheduler.cpp
+        srcs/cpp/src/python/c_api.cpp srcs/cpp/src/python/cuda.cpp
+        srcs/cpp/src/python/init.cpp)
     TARGET_LINK_LIBRARIES(kungfu_python kungfu)
 
     FILE(GLOB CPU_OP_SRCS

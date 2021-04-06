@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <kungfu.h>
-#include <kungfu/python/init.h>
+#include <kungfu/python/c_api.h>
 #include <kungfu/utils/handler_manager.hpp>
 #include <torch/extension.h>
 

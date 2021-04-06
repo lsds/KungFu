@@ -4,7 +4,7 @@
 #include <string>
 
 #include <kungfu.h>
-#include <kungfu/python/init.h>
+#include <kungfu/python/c_api.h>
 #include <kungfu/utils/trace.hpp>
 
 DEFINE_TRACE_CONTEXT(kungfu);
