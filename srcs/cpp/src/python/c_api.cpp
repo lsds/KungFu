@@ -1,11 +1,12 @@
 #include <kungfu.h>
 #include <kungfu/python/c_api.h>
 
-void kungfu_all_reduce_int_max(int *x)
+void kungfu_all_reduce_int_max(int *px)
 {
-    int y;
-    _default_peer->AllReduce(x, &y, 1, KungFu_INT32, KungFu_MAX, "");
-    *x = y;
+    int32_t x, y;
+    x = *px;
+    _default_peer->AllReduce(&x, &y, 1, KungFu_INT32, KungFu_MAX, "");
+    *px = y;
 }
 
 void kungfu_resize(int n, char *p_changed, char *p_detached)

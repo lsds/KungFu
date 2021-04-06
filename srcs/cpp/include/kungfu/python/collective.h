@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-extern void kungfu_all_reduce_int_max(int *x);
+extern void kungfu_all_reduce_int_max(int *px);
 
 #ifdef __cplusplus
 }
