@@ -13,6 +13,7 @@ cd mnist
 
 download_mnist_data() {
     local prefix=http://yann.lecun.com/exdb/mnist
+    export DATA_MIRROR_PREFIX=https://storage.googleapis.com/cvdf-datasets
     # export DATA_MIRROR_PREFIX=https://kungfudata.blob.core.windows.net/data
     if [ ! -z ${DATA_MIRROR_PREFIX} ]; then
         prefix=${DATA_MIRROR_PREFIX}/mnist

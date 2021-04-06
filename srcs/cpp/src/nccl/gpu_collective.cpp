@@ -5,7 +5,7 @@
 
 #include <kungfu/cuda/stream.hpp>
 #include <kungfu/nccl/gpu_collective.hpp>
-#include <kungfu/python/init.h>
+#include <kungfu/python/c_api.h>
 #include <kungfu/utils/trace.hpp>
 
 #include <nccl.h>

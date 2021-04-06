@@ -7,7 +7,7 @@
 
 #include <kungfu.h>
 #include <kungfu/nccl/common.hpp>
-#include <kungfu/python/init.h>
+#include <kungfu/python/c_api.h>
 
 namespace tensorflow
 {
