@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
+import kungfu.python as kfpy
 
 
 class SLP(nn.Module):
@@ -42,15 +43,45 @@ def train_step(model, optimizer, data, label, device):
     return loss
 
 
-def train(args, model, device, train_loader, optimizer, epoch):
+def sync_model(model):
+    import kungfu.torch as kf
+    kf.broadcast_parameters(model.state_dict())
+
+
+def train(args, model, device, optimizer, step_based_schedule):
     model.train()
-    for batch_idx, (data, target) in enumerate(train_loader):
-        loss = train_step(model, optimizer, data, target, device)
-        # TODO: resize cluster
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+    train_loader = create_datasets(args)
+
+    it = enumerate(train_loader)
+
+    def get_next(it):
+        while True:
+            try:
+                return next(it), it
+            except StopIteration:
+                it = enumerate(train_loader)
+
+    max_step = args.epochs * 60000 // args.batch_size
+
+    need_sync = True
+    step = 0
+    while step < max_step:
+        if need_sync:
+            step = kfpy.all_reduce_int_max(step)
+            sync_model(model)
+            need_sync = False
+
+        (_batch_idx, (data, label)), it = get_next(it)
+        loss = train_step(model, optimizer, data, label, device)
+        print('step %d loss: %f' % (step, loss.item()))
+
+        if step in step_based_schedule:
+            new_size = step_based_schedule[step]
+            need_sync, detached = kfpy.resize(new_size)
+            if detached:
+                break
+
+        step += 1
 
 
 def create_datasets(args):
@@ -81,7 +112,6 @@ def parse_args():
     p.add_argument('--momentum', type=float, default=0.5, metavar='M')
     p.add_argument('--no-cuda', action='store_true', default=False)
     p.add_argument('--seed', type=int, default=1, metavar='S')
-    p.add_argument('--log-interval', type=int, default=10, metavar='N')
     p.add_argument('--data-dir', type=str, default='data')
     p.add_argument('--download', action='store_true', default=False)
     return p.parse_args()
@@ -92,7 +122,6 @@ def main():
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     torch.manual_seed(args.seed)
-    train_loader = create_datasets(args)
 
     model = SLP(28 * 28, 10).to(device)
     optimizer = optim.SGD(model.parameters(),
@@ -103,11 +132,17 @@ def main():
     import kungfu.torch as kf
     optimizer = kf.optimizers.SynchronousSGDOptimizer(
         optimizer, named_parameters=model.named_parameters())
-    kf.broadcast_parameters(model.state_dict())
     # END kungfu
 
-    for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
+    step_based_schedule = {
+        100: 2,
+        200: 3,
+        300: 4,
+        400: 2,
+        500: 3,
+        600: 1,
+    }
+    train(args, model, device, optimizer, step_based_schedule)
 
 
 if __name__ == '__main__':

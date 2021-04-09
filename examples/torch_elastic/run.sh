@@ -7,12 +7,15 @@ cd $(dirname $0)
 
 train_flags() {
     echo --batch-size 100
-    echo --epochs 3
+    echo --epochs 1
 }
 
 main() {
     rm -fr checkpoints
-    python3 ./torch_mnist_example.py --epochs 0 --download # Download dataset
+    if [ ! -d data ]; then
+        srun python3 ./torch_mnist_example.py --epochs 0 --download # Download dataset took 6s
+    fi
+
     erun 1 python3 torch_mnist_example.py $(train_flags)
 }
 
