@@ -15,3 +15,10 @@ void kungfu_resize(int n, char *p_changed, char *p_detached)
     _default_peer->ResizeCluster(n, reinterpret_cast<bool *>(p_changed),
                                  reinterpret_cast<bool *>(p_detached));
 }
+
+void kungfu_resize_from_url(char *p_changed, char *p_detached)
+{
+    static_assert(sizeof(bool) == sizeof(char), "");
+    _default_peer->ResizeClusterFromURL(reinterpret_cast<bool *>(p_changed),
+                                        reinterpret_cast<bool *>(p_detached));
+}
