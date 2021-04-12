@@ -132,7 +132,17 @@ def show_nccl_version():
 from ctypes import byref, c_int, c_char
 
 
-def resize(n):
+def _resize_from_url():
+    changed = c_char()
+    detached = c_char()
+    _python_lib.kungfu_resize_from_url(byref(changed), byref(detached))
+    return bool(ord(changed.value)), bool(ord(detached.value))
+
+
+def resize(n=None):
+    """Resize cluster with given new size, or from config server if n is None."""
+    if n is None:
+        return _resize_from_url()
     changed = c_char()
     detached = c_char()
     _python_lib.kungfu_resize(c_int(n), byref(changed), byref(detached))
