@@ -84,6 +84,21 @@ def train(args, model, device, optimizer, step_based_schedule):
         step += 1
 
 
+class MNIST(datasets.MNIST):
+    prefix = "https://storage.googleapis.com/cvdf-datasets/mnist/"
+
+    resources = [
+        (prefix + "train-images-idx3-ubyte.gz",
+         "f68b3c2dcbeaaa9fbdd348bbdeb94873"),
+        (prefix + "train-labels-idx1-ubyte.gz",
+         "d53e105ee54ea40749a09fcbcd1e9432"),
+        (prefix + "t10k-images-idx3-ubyte.gz",
+         "9fb629c4189551a2d022fa330f9573f3"),
+        (prefix + "t10k-labels-idx1-ubyte.gz",
+         "ec29112dd5afa0611ce80d1b7f02629c"),
+    ]
+
+
 def create_datasets(args):
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     config = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
@@ -92,14 +107,16 @@ def create_datasets(args):
         transforms.Normalize((0.1307, ), (0.3081, )),
     ])
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST(args.data_dir,
-                       train=True,
-                       download=args.download,
-                       transform=transform),
+        MNIST(
+            args.data_dir,
+            train=True,
+            download=args.download,
+            transform=transform,
+        ),
         batch_size=args.batch_size,
         shuffle=True,
-        **config)
-
+        **config,
+    )
     return train_loader
 
 
