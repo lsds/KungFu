@@ -82,6 +82,14 @@ class Peer
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   const DoneCallback &done);
 
+    int SubsetAllReduce(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, KungFu_Op op,
+                        const int32_t *topology, const char *name);
+    int SubsetAllReduce(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, KungFu_Op op,
+                        const int32_t *topology, const char *name,
+                        const DoneCallback &done);
+
     int CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
                        KungFu_Datatype dtype, KungFu_Op op, const char *name);
     int CrossAllReduce(const void *sendbuf, void *recvbuf, int count,

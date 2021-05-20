@@ -64,6 +64,26 @@ int Peer::AllReduce(const void *sendbuf, void *recvbuf, int count,
                              new CallbackWrapper(done));
 }
 
+int Peer::SubsetAllReduce(const void *sendbuf, void *recvbuf, int count,
+                          KungFu_Datatype dtype, KungFu_Op op,
+                          const int32_t *topology, const char *name)
+{
+    return GoKungfuSubsetAllReduce(
+        const_cast<void *>(sendbuf), recvbuf, GoInt(count), dtype, op,
+        const_cast<int32_t *>(topology), const_cast<char *>(name), nullptr);
+}
+
+int Peer::SubsetAllReduce(const void *sendbuf, void *recvbuf, int count,
+                          KungFu_Datatype dtype, KungFu_Op op,
+                          const int32_t *topology, const char *name,
+                          const DoneCallback &done)
+{
+    return GoKungfuSubsetAllReduce(
+        const_cast<void *>(sendbuf), recvbuf, GoInt(count), dtype, op,
+        const_cast<int32_t *>(topology), const_cast<char *>(name),
+        new CallbackWrapper(done));
+}
+
 int Peer::CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
                          KungFu_Datatype dtype, KungFu_Op op, const char *name)
 {
