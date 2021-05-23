@@ -35,6 +35,11 @@ def train(agent):
     n_steps = 1
     for i in range1(n_steps):
         print('step %d' % (i))
+        model = agent.request(rlzoo.Role.Server,
+                              0,
+                              'model',
+                              shape=[1],
+                              dtype=tf.float32)
         x = tf.Variable([10], dtype=tf.float32)
         y = agent.all_reduce(x)
         print(x)
@@ -42,15 +47,19 @@ def train(agent):
 
 
 def run_leaner(agent):
+    agent.barrier()
     train(agent)
 
 
 def run_actor(agent):
-    pass
+    agent.barrier()
 
 
 def run_server(agent):
-    pass
+    model = tf.Variable([10], dtype=tf.float32)
+    agent.save(model, name='model')
+    print('saved')
+    agent.barrier()  # save before barrier
 
 
 def main():

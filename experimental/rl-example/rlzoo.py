@@ -1,5 +1,6 @@
 import enum
 
+import tensorflow as tf
 from kungfu.python import current_cluster_size, current_rank
 from kungfu.tensorflow.ops import (barrier, request_variable,
                                    request_variable_with_template,
@@ -76,22 +77,27 @@ class Agent:
         return subset_all_reduce(x, topology)
 
     # p2p APIs
-    def save(self, x):
-        return save_variable(x)
+    def save(self, x, name=None):
+        return save_variable(x, name=name)
 
-    def request(self, role: Role, role_rank, x):
+    def request(self, role: Role, role_rank, name, shape, dtype):
         role_size = self._role_sizes[role]
         assert (0 <= role_rank and role_rank < role_size)
         target = self._to_global_rank(role, role_rank)
-        return request_variable_with_template(target, x)
+        return request_variable(
+            target,
+            name=name,
+            shape=shape,
+            dtype=dtype,
+        )
 
-    def send(self, role: Role, role_rank):
-        target = self._to_global_rank(role, role_rank)
-        pass
+    # def send(self, role: Role, role_rank):
+    #     target = self._to_global_rank(role, role_rank)
+    #     pass
 
-    def recv(self, role: Role, role_rank):
-        target = self._to_global_rank(role, role_rank)
-        pass
+    # def recv(self, role: Role, role_rank):
+    #     target = self._to_global_rank(role, role_rank)
+    #     pass
 
 
 class LeanerExample:
