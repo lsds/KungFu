@@ -41,7 +41,7 @@ def train(agent):
                               shape=[1],
                               dtype=tf.float32)
         x = tf.Variable([10], dtype=tf.float32)
-        y = agent.all_reduce(x)
+        y = agent.role_all_reduce(x)
         print(x)
         print(y)
 

@@ -206,4 +206,24 @@ int Peer::SetTree(const int32_t *tree)
 }
 
 int Peer::GetEgressRates(float *rates) { return GoKungfuGetEgressRates(rates); }
+
+int Peer::NewQueue(int src, int dst, int *queueID)
+{
+    return GoKungfuQueueNew(GoInt(src), GoInt(dst), queueID);
+}
+
+int Peer::QueueGet(int src, int dst, int queueID, void *buf, int count,
+                   KungFu_Datatype dtype)
+{
+    return GoKungfuQueueGet(GoInt(src), GoInt(dst), queueID, buf, GoInt(count),
+                            dtype);  //
+}
+
+int Peer::QueuePut(int src, int dst, int queueID, const void *buf, int count,
+                   KungFu_Datatype dtype)
+{
+    return GoKungfuQueuePut(GoInt(src), GoInt(dst), queueID,
+                            const_cast<void *>(buf), GoInt(count),
+                            dtype);  //
+}
 }  // namespace kungfu

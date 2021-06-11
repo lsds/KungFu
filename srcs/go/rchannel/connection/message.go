@@ -14,6 +14,7 @@ const (
 	ConnControl    ConnType = iota
 	ConnCollective ConnType = iota
 	ConnPeerToPeer ConnType = iota
+	ConnQueue      ConnType = iota // experimental feature
 )
 
 var (
@@ -30,6 +31,8 @@ func (t ConnType) String() string {
 		return "Collective"
 	case ConnPeerToPeer:
 		return "PeerToPeer"
+	case ConnQueue:
+		return "Queue"
 	default:
 		return ""
 	}

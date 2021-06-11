@@ -15,6 +15,7 @@ type router struct {
 	self        plan.PeerID
 	Collective  *handler.CollectiveEndpoint
 	P2P         *handler.PeerToPeerEndpoint
+	Queue       *handler.QueueHandler
 	ctrlHandler *handler.ControlHandler
 	pingHandler *handler.PingHandler
 	client      *client.Client
@@ -26,6 +27,7 @@ func NewRouter(self plan.PeerID) *router {
 		self:        self,
 		Collective:  handler.NewCollectiveEndpoint(),
 		P2P:         handler.NewPeerToPeerEndpoint(client),
+		Queue:       handler.NewQueueHandler(),
 		ctrlHandler: &handler.ControlHandler{},
 		pingHandler: &handler.PingHandler{},
 		client:      client,
@@ -63,6 +65,8 @@ func (r *router) Handle(conn connection.Connection) (int, error) {
 		return r.Collective.Handle(conn)
 	case connection.ConnPeerToPeer:
 		return r.P2P.Handle(conn)
+	case connection.ConnQueue:
+		return r.Queue.Handle(conn)
 	case connection.ConnControl:
 		return r.ctrlHandler.Handle(conn)
 	case connection.ConnPing:

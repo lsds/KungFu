@@ -56,7 +56,7 @@ func GoKungfuSubsetAllReduce(sendBuf, recvBuf unsafe.Pointer, count int, dtype C
 	sess := defaultPeer.CurrentSession()
 	topology := toVector(pTopology, sess.Size(), C.KungFu_INT32) // TODO: ensure pTopology has size np in C++
 	f := func(w kb.Workspace) error { return sess.SubsetAllReduce(topology.AsI32(), w) }
-	return callCollectiveOP("AllReduce", name, f, w, done)
+	return callCollectiveOP("SubsetAllReduce", name, f, w, done)
 }
 
 //export GoKungfuCrossAllReduce

@@ -68,7 +68,7 @@ class Agent:
     def barrier(self):
         return barrier()
 
-    def all_reduce(self, x):
+    def role_all_reduce(self, x):
         role_ranks = self._roles[self._role]
         topology = [i for i in range(self._global_size)]
         for i in role_ranks:

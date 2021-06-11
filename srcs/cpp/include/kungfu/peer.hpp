@@ -59,6 +59,13 @@ class Peer
     int Request(int rank, const char *version, const char *name, void *buf,
                 int count, KungFu_Datatype dtype, const DoneCallback &done);
 
+    // Queue APIs
+    int NewQueue(int src, int dst, int *queueID);
+    int QueueGet(int src, int dst, int queueID, void *buf, int count,
+                 KungFu_Datatype dtype);
+    int QueuePut(int src, int dst, int queueID, const void *buf, int count,
+                 KungFu_Datatype dtype);
+
     // FIXME: move Session APIs to Session class in C++
 
     // collective APIs

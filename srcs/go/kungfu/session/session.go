@@ -32,11 +32,12 @@ type Session struct {
 	hostCount         int
 	client            *client.Client
 	collectiveHandler *handler.CollectiveEndpoint
+	queueHandler      *handler.QueueHandler
 	strategyHash      strategyHashFunc
 	strategyStats     []StrategyStatSnapshot
 }
 
-func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint) (*Session, bool) {
+func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint, queueHandler *handler.QueueHandler) (*Session, bool) {
 	rank, ok := pl.Rank(self)
 	if !ok {
 		return nil, false
@@ -60,6 +61,7 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 		hostCount:         pl.HostCount(),
 		client:            client,
 		collectiveHandler: collectiveHandler,
+		queueHandler:      queueHandler,
 		strategyHash:      getStrategyHash(),
 	}
 	return sess, true
