@@ -37,7 +37,7 @@ func (h *QueueHandler) accept(conn connection.Connection) (string, *connection.M
 }
 
 func (h *QueueHandler) handle(name string, msg *connection.Message, conn connection.Connection) {
-	log.Errorf(`got new item from queue[%s] %d bytes`, name, msg.Length)
+	log.Debugf(`got new item from queue[%s] %d bytes`, name, msg.Length)
 	// TODO: ACK
 	h.qs.require(conn.Src().WithName(name)) <- msg
 }

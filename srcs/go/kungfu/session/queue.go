@@ -44,7 +44,7 @@ type Queue struct {
 
 func (q *Queue) Get() ([]byte, error) {
 	assert.True(q.self == q.dst)
-	log.Errorf("getting from %s %s", q.dstID, q.name)
+	log.Debugf("getting from %s %s", q.dstID, q.name)
 	m := q.handler.Get(q.srcID, q.name)
 	return m.Data, nil
 }
