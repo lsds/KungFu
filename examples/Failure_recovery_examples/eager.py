@@ -73,6 +73,8 @@ def train(args):
     file_name=os.path.basename(__file__)
     stem,suffix = os.path.splitext(file_name)
     save_dir_be = os.path.join(os.getcwd(), 'saved_models')
+    if not os.path.exists(save_dir_be) and shard_id==0:
+        os.mkdir(save_dir_be)
     save_dir = os.path.join(save_dir_be, stem)
     if not os.path.exists(save_dir) and shard_id==0:
         os.mkdir(save_dir)

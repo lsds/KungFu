@@ -107,8 +107,10 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000, monitor = False, re
         file_name=os.path.basename(__file__)
         stem,suffix = os.path.splitext(file_name)
         save_dir_be = os.path.join(os.getcwd(), 'saved_models')
+        if not os.path.exists(save_dir_be) and shard_id==0:
+            os.mkdir(save_dir_be)
         save_dir = os.path.join(save_dir_be, stem)
-        if not os.path.exists(save_dir):
+        if not os.path.exists(save_dir) and shard_id==0:
             os.mkdir(save_dir)
         filepath = "model_"+str(shard_id)+".hdf5"
         if(os.path.exists(os.path.join(save_dir,filepath)) and restart == 1):
