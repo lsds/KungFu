@@ -6,7 +6,7 @@ In the distributed training process, each process sends "BEGIN" and "END" signal
 ## Project Architecture
 
 <div align="center">
-    <img src="Failure_detection_architecture.png" width="50%" height="30%"/>
+    <img src="failure_detection_architecture.png" width="50%" height="30%"/>
 </div>
 
 
@@ -14,7 +14,7 @@ In the distributed training process, each process sends "BEGIN" and "END" signal
 
 
 <div align="center">
-    <img src="Failure_detection_implementation.png" width="50%" height="30%"/>
+    <img src="failure_detection_implementation.png" width="50%" height="30%"/>
 </div>
 
 KungFu currently implement failure detection and recovery in TF2_keras, Eager and TF1_session.
