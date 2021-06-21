@@ -34,10 +34,6 @@ func (r *StdReaders) Stream(ws ...*StdWriters) interface{ Wait() } {
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
-		Tee(r.Stdout, outs...)
-		wg.Done()
-	}()
-	go func() {
 		errsig := Tee(r.Stdout, outs...)
 		if errsig != nil{
 			erros := errsig.Error()
@@ -52,6 +48,11 @@ func (r *StdReaders) Stream(ws ...*StdWriters) interface{ Wait() } {
 		}
 
 		wg.Done()
+	}()
+	go func() {
+		Tee(r.Stderr, errs...)
+		wg.Done()
+
 	}()
 	return &wg
 }
