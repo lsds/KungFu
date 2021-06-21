@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-
+    "strconv"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
@@ -50,20 +50,60 @@ func runWith(redirectors []*iostream.StdWriters, cmd *exec.Cmd) error {
 		return err
 	}
 	defer stderr.Close()
-	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr}
+	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr, Flagdown: 0, Epochfinish: 0}
 	ioDone := results.Stream(redirectors...)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 	ioDone.Wait() // call this before cmd.Wait!
-	return cmd.Wait()
+	errs := cmd.Wait()
+	if errs == nil {
+		if results.Flagdown != 0{
+			return fmt.Errorf("some machine died:"+strconv.Itoa(results.Epochfinish))
+		} else{
+			return errs
+		}
+	}else{
+		return errs
+	}
 }
 
-func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool) error {
+func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool, Monitor int) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
 	var fail int32
+	var dumpmachine int32
+    epochsfi := ""
+    if Monitor == 1 {
+        wg.Add(1)
+        go func(){
+            machines := "-machines="+strconv.Itoa(len(ps))
+            args := []string{"run","srcs/go/cmd/kungfu-recovery/monitor.go", machines}
+            r := &Runner{
+            Name:          "monitor",
+            Color:         xterm.BasicColors.Choose(0),
+            VerboseLog:    verboseLog,
+            LogFilePrefix: strings.Replace("monitor", "/", "-", -1),
+            LogDir:        "",
+        }
+        if err := r.Run(exec.Command("go", args...)); err != nil {
+            log.Errorf("exited with error: %v", err)
+            errorst := err.Error()
+            datas := strings.Split(errorst, ":")
+            if datas[0] == "some machine died"{
+                atomic.AddInt32(&dumpmachine, 1)
+                epochsfi = datas[1]
+            }
+            atomic.AddInt32(&fail, 1)
+            cancel()
+        } else {
+            log.Infof("finished successfully")
+        }
+        wg.Done()
+        }()
+    }
+
 	for i, p := range ps {
 		wg.Add(1)
 		go func(i int, p proc.Proc) {
@@ -86,7 +126,11 @@ func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool) error {
 	}
 	wg.Wait()
 	if fail != 0 {
-		return fmt.Errorf("%d tasks failed", fail)
+		if dumpmachine != 0{
+			return fmt.Errorf("server dump:"+epochsfi)
+		}else{
+			return fmt.Errorf("%d tasks failed", fail)
+		}
 	}
 	return nil
 }

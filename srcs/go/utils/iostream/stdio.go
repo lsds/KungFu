@@ -4,6 +4,8 @@ import (
 	"io"
 	"os"
 	"sync"
+	"strings"
+    "strconv"
 )
 
 var Std = StdWriters{
@@ -14,6 +16,8 @@ var Std = StdWriters{
 type StdReaders struct {
 	Stdout io.Reader
 	Stderr io.Reader
+	Flagdown int
+    Epochfinish int
 }
 
 type StdWriters struct {
@@ -34,7 +38,19 @@ func (r *StdReaders) Stream(ws ...*StdWriters) interface{ Wait() } {
 		wg.Done()
 	}()
 	go func() {
-		Tee(r.Stderr, errs...)
+		errsig := Tee(r.Stdout, outs...)
+		if errsig != nil{
+			erros := errsig.Error()
+                        datas := strings.Split(erros, ":")
+			if  datas[0] == "some machine died"{
+				epochfi, err := strconv.Atoi(datas[1])
+                if err != nil{
+                }
+                r.Flagdown = 1
+                r.Epochfinish = epochfi
+			}
+		}
+
 		wg.Done()
 	}()
 	return &wg

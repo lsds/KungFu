@@ -8,7 +8,18 @@ def run():
     clib = _load_clib('libkungfu')
     clib.kungfu_run_main()
 
-
+def monitor_batch_begin():
+    clib = _load_clib('libkungfu')
+    clib.kungfu_run_send_begin()
+def monitor_batch_end():
+    clib = _load_clib('libkungfu')
+    clib.kungfu_run_send_end()
+def monitor_train_end():
+    clib = _load_clib('libkungfu')
+    clib.kungfu_run_send_trainend()
+def monitor_epoch_end():
+    clib = _load_clib('libkungfu')
+    clib.kungfu_run_send_epoch()
 class _RunWorker(object):
     def __init__(self, f, np):
         self._np = np
