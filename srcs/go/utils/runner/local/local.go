@@ -3,16 +3,16 @@ package local
 import (
 	"context"
 	"fmt"
-	"os/exec"
-	"path"
-	"strings"
-	"sync"
-	"sync/atomic"
-    "strconv"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
+	"os/exec"
+	"path"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
 )
 
 type Runner struct {
@@ -58,12 +58,12 @@ func runWith(redirectors []*iostream.StdWriters, cmd *exec.Cmd) error {
 	ioDone.Wait() // call this before cmd.Wait!
 	errs := cmd.Wait()
 	if errs == nil {
-		if results.Flagdown != 0{
-			return fmt.Errorf("some machine died:"+strconv.Itoa(results.Epochfinish))
-		} else{
+		if results.Flagdown != 0 {
+			return fmt.Errorf("some machine died:" + strconv.Itoa(results.Epochfinish))
+		} else {
 			return errs
 		}
-	}else{
+	} else {
 		return errs
 	}
 }
@@ -74,35 +74,35 @@ func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool, Monitor int) e
 	var wg sync.WaitGroup
 	var fail int32
 	var dumpmachine int32
-    epochsfi := ""
-    if Monitor == 1 {
-        wg.Add(1)
-        go func(){
-            machines := "-machines="+strconv.Itoa(len(ps))
-            args := []string{"run","srcs/go/cmd/kungfu-recovery/monitor.go", machines}
-            r := &Runner{
-            Name:          "monitor",
-            Color:         xterm.BasicColors.Choose(0),
-            VerboseLog:    verboseLog,
-            LogFilePrefix: strings.Replace("monitor", "/", "-", -1),
-            LogDir:        "",
-        }
-        if err := r.Run(exec.Command("go", args...)); err != nil {
-            log.Errorf("exited with error: %v", err)
-            errorst := err.Error()
-            datas := strings.Split(errorst, ":")
-            if datas[0] == "some machine died"{
-                atomic.AddInt32(&dumpmachine, 1)
-                epochsfi = datas[1]
-            }
-            atomic.AddInt32(&fail, 1)
-            cancel()
-        } else {
-            log.Infof("finished successfully")
-        }
-        wg.Done()
-        }()
-    }
+	epochsfi := ""
+	if Monitor == 1 {
+		wg.Add(1)
+		go func() {
+			machines := "-machines=" + strconv.Itoa(len(ps))
+			args := []string{"run", "srcs/go/cmd/kungfu-recovery/monitor.go", machines}
+			r := &Runner{
+				Name:          "monitor",
+				Color:         xterm.BasicColors.Choose(0),
+				VerboseLog:    verboseLog,
+				LogFilePrefix: strings.Replace("monitor", "/", "-", -1),
+				LogDir:        "",
+			}
+			if err := r.Run(exec.Command("go", args...)); err != nil {
+				log.Errorf("exited with error: %v", err)
+				errorst := err.Error()
+				datas := strings.Split(errorst, ":")
+				if datas[0] == "some machine died" {
+					atomic.AddInt32(&dumpmachine, 1)
+					epochsfi = datas[1]
+				}
+				atomic.AddInt32(&fail, 1)
+				cancel()
+			} else {
+				log.Infof("finished successfully")
+			}
+			wg.Done()
+		}()
+	}
 
 	for i, p := range ps {
 		wg.Add(1)
@@ -126,9 +126,9 @@ func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool, Monitor int) e
 	}
 	wg.Wait()
 	if fail != 0 {
-		if dumpmachine != 0{
-			return fmt.Errorf("server dump:"+epochsfi)
-		}else{
+		if dumpmachine != 0 {
+			return fmt.Errorf("server dump:" + epochsfi)
+		} else {
 			return fmt.Errorf("%d tasks failed", fail)
 		}
 	}

@@ -28,7 +28,7 @@ func Init(f *FlagSet, args []string) {
 
 type FlagSet struct {
 	ConfigServer string
-	Monitor int
+	Monitor      int
 	ClusterSize  int
 	hostList     string
 	hostFile     string
