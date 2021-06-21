@@ -30,56 +30,33 @@ func GoKungfuRunMain() {
 
 //export GoKungfuRunSendBegin
 func GoKungfuRunSendBegin() {
-    contentType := "application/json;charset=utf-8"
-    data := "begin:" + strconv.Itoa(GoKungfuRank())
-    msg := Message{Key: data}
-    b ,err := json.Marshal(msg)
-    if err != nil {
-        return
-    }
-    body := bytes.NewBuffer(b)
-    resp, err := httpc.Post("http://http.sock",contentType,body)
-    if err != nil {
-        return
-    }
-    defer resp.Body.Close()
+    SignalSend(1)
 }
 //export GoKungfuRunSendEnd
 func GoKungfuRunSendEnd() {
-    contentType := "application/json;charset=utf-8"
-    data := "end:" + strconv.Itoa(GoKungfuRank())
-    msg := Message{Key: data}
-    b ,err := json.Marshal(msg)
-    if err != nil {
-        return
-    }
-    body := bytes.NewBuffer(b)
-    resp, err := httpc.Post("http://http.sock",contentType,body)
-    if err != nil {
-        return
-    }
-    defer resp.Body.Close()
+    SignalSend(2)
 }
 //export GoKungfuRunSendEpoch
 func GoKungfuRunSendEpoch() {
-    contentType := "application/json;charset=utf-8"
-    data := "epoch:" + strconv.Itoa(GoKungfuRank())
-    msg := Message{Key: data}
-    b ,err := json.Marshal(msg)
-    if err != nil {
-        return
-    }
-    body := bytes.NewBuffer(b)
-    resp, err := httpc.Post("http://http.sock",contentType,body)
-    if err != nil {
-        return
-    }
-    defer resp.Body.Close()
+    SignalSend(3)
 }
 //export GoKungfuRunSendTrainend
 func GoKungfuRunSendTrainend() {
+    SignalSend(4)
+}
+
+func SignalSend(signal int) {
     contentType := "application/json;charset=utf-8"
-    data := "trainend:" + strconv.Itoa(GoKungfuRank())
+    data := strconv.Itoa(GoKungfuRank())
+    if signal == 1{
+        data = "begin:" + data
+    } else if signal == 2{
+        data = "end:" + data
+    } else if signal == 3{
+        data = "epoch:" + data
+    } else if signal == 4{
+        data = "trainend:" + data
+    }
     msg := Message{Key: data}
     b ,err := json.Marshal(msg)
     if err != nil {

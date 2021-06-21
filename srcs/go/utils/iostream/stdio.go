@@ -37,7 +37,7 @@ func (r *StdReaders) Stream(ws ...*StdWriters) interface{ Wait() } {
 		errsig := Tee(r.Stdout, outs...)
 		if errsig != nil{
 			erros := errsig.Error()
-                        datas := strings.Split(erros, ":")
+            datas := strings.Split(erros, ":")
 			if  datas[0] == "some machine died"{
 				epochfi, err := strconv.Atoi(datas[1])
                 if err != nil{
