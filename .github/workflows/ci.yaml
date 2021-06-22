@@ -23,6 +23,7 @@ jobs:
     - run: |
         nproc
         echo $PATH
+        go version
 
     # C++ tests
     - run: ./configure --build-tests --build-gtest
