@@ -31,6 +31,7 @@ jobs:
     - run: make test
 
     # Go tests
+    - run: go test ./...
     - run: GOBIN=$PWD/bin go install -v ./...
     - run: ./scripts/tests/run-integration-tests.sh
     - run: |
