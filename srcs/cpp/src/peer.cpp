@@ -21,6 +21,15 @@ Peer::Peer(int rank, int size)
     }
 }
 
+Peer::Peer(const char *pJson)
+{
+    const int err = GoKungfuInitFromJSON(const_cast<char *>(pJson));
+    if (err) {
+        fprintf(stderr, "%s failed\n", "GoKungfuInitFromJSON");
+        exit(1);
+    }
+}
+
 Peer::~Peer() { GoKungfuFinalize(); }
 
 bool Peer::Detached() const { return GoKungfuDetached(); }

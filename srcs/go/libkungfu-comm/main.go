@@ -33,6 +33,21 @@ func GoKungfuInit() int {
 	return errorCode("Start", defaultPeer.Start())
 }
 
+//export GoKungfuInitFromJSON
+func GoKungfuInitFromJSON(pJSON *C.char) int {
+	js := C.GoString(pJSON)
+	log.Errorf("GoKungfuInitFromJSON: %s", js)
+	cfg, err := env.ParseConfigFromJSON(js)
+	if err != nil {
+		errorCode("ParseConfigFromJSON", err)
+	}
+	defaultPeer, err = peer.NewFromConfig(cfg)
+	if err != nil {
+		return errorCode("NewFromConfig", err)
+	}
+	return errorCode("Start", defaultPeer.Start())
+}
+
 //export GoKungfuInitSingleMachine
 func GoKungfuInitSingleMachine(rank, size C.int) int {
 	cfg, err := env.SingleMachineEnv(int(rank), int(size))
