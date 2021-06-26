@@ -49,7 +49,7 @@ func runWith(redirectors []*iostream.StdWriters, cmd *exec.Cmd) error {
 	if err != nil {
 		return err
 	}
-
+	defer stderr.Close()
 	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr}
 	ioDone := results.Stream(redirectors...)
 	if err := cmd.Start(); err != nil {
@@ -64,17 +64,6 @@ func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool) error {
 	defer cancel()
 	var wg sync.WaitGroup
 	var fail int32
-	wg.Add(1)
-	go func(){
-	    args := []string{"examples/monitor.py", "--n-epochs","10"}
-        out, err := exec.Command("python3", args...).Output()
-        if err != nil {
-            log.Errorf("exited with error:", err)
-				atomic.AddInt32(&fail, 1)
-				cancel()
-        }
-        wg.Done()
-	}
 	for i, p := range ps {
 		wg.Add(1)
 		go func(i int, p proc.Proc) {
@@ -96,7 +85,6 @@ func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool) error {
 		}(i, p)
 	}
 	wg.Wait()
-
 	if fail != 0 {
 		return fmt.Errorf("%d tasks failed", fail)
 	}
