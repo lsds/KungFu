@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"time"
+
 	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner"
 	"github.com/lsds/KungFu/srcs/go/log"
@@ -106,7 +107,11 @@ func Main(args []string) {
 		j.ConfigServer = f.ConfigServer
 		runner.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
 	} else {
-		runner.SimpleRun(ctx, localhostIPv4, initCluster, j, f.VerboseLog, f.Monitor)
+		if f.Monitor {
+			runner.MonitoredRun(ctx, localhostIPv4, initCluster, j, f.VerboseLog)
+		} else {
+			runner.SimpleRun(ctx, localhostIPv4, initCluster, j, f.VerboseLog)
+		}
 	}
 }
 

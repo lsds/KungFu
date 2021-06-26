@@ -3,16 +3,16 @@ package local
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"path"
+	"strings"
+	"sync"
+	"sync/atomic"
+
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/proc"
 	"github.com/lsds/KungFu/srcs/go/utils/iostream"
 	"github.com/lsds/KungFu/srcs/go/utils/xterm"
-	"os/exec"
-	"path"
-	"strconv"
-	"strings"
-	"sync"
-	"sync/atomic"
 )
 
 type Runner struct {
@@ -49,61 +49,32 @@ func runWith(redirectors []*iostream.StdWriters, cmd *exec.Cmd) error {
 	if err != nil {
 		return err
 	}
-	defer stderr.Close()
-	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr, Flagdown: 0, Epochfinish: 0}
+
+	results := iostream.StdReaders{Stdout: stdout, Stderr: stderr}
 	ioDone := results.Stream(redirectors...)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 	ioDone.Wait() // call this before cmd.Wait!
-	errs := cmd.Wait()
-	if errs == nil {
-		if results.Flagdown != 0 {
-			return fmt.Errorf("some machine died:" + strconv.Itoa(results.Epochfinish))
-		} else {
-			return errs
-		}
-	} else {
-		return errs
-	}
+	return cmd.Wait()
 }
 
-func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool, Monitor int) error {
+func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
 	var fail int32
-	var dumpmachine int32
-	epochsfi := ""
-	if Monitor == 1 {
-		wg.Add(1)
-		go func() {
-			machines := "-machines=" + strconv.Itoa(len(ps))
-			args := []string{"run", "srcs/go/cmd/kungfu-recovery/monitor.go", machines}
-			r := &Runner{
-				Name:          "monitor",
-				Color:         xterm.BasicColors.Choose(0),
-				VerboseLog:    verboseLog,
-				LogFilePrefix: strings.Replace("monitor", "/", "-", -1),
-				LogDir:        "",
-			}
-			if err := r.Run(exec.Command("go", args...)); err != nil {
-				log.Errorf("exited with error: %v", err)
-				errorst := err.Error()
-				datas := strings.Split(errorst, ":")
-				if datas[0] == "some machine died" {
-					atomic.AddInt32(&dumpmachine, 1)
-					epochsfi = datas[1]
-				}
+	wg.Add(1)
+	go func(){
+	    args := []string{"examples/monitor.py", "--n-epochs","10"}
+        out, err := exec.Command("python3", args...).Output()
+        if err != nil {
+            log.Errorf("exited with error:", err)
 				atomic.AddInt32(&fail, 1)
 				cancel()
-			} else {
-				log.Infof("finished successfully")
-			}
-			wg.Done()
-		}()
+        }
+        wg.Done()
 	}
-
 	for i, p := range ps {
 		wg.Add(1)
 		go func(i int, p proc.Proc) {
@@ -125,12 +96,9 @@ func RunAll(ctx context.Context, ps []proc.Proc, verboseLog bool, Monitor int) e
 		}(i, p)
 	}
 	wg.Wait()
+
 	if fail != 0 {
-		if dumpmachine != 0 {
-			return fmt.Errorf("server dump:" + epochsfi)
-		} else {
-			return fmt.Errorf("%d tasks failed", fail)
-		}
+		return fmt.Errorf("%d tasks failed", fail)
 	}
 	return nil
 }

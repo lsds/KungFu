@@ -8,7 +8,7 @@
 # 2. (Optional) In a distributed training setting, the training dataset is often partitioned.
 # 3. (Optional) Scaling the learning rate of your local optimizer
 # Download the MNIST dataset first
-# $ ./bin/kungfu-run -np 4 -mnt 1 python3 examples/Failure_recovery_examples/tf1_mnist_session.py --data-dir ./mnist --n-epochs 5 --monitor
+# $ ./bin/kungfu-run -np 4 -mnt python3 examples/Failure_recovery_examples/tf1_mnist_session.py --data-dir ./mnist --n-epochs 5 --monitor
 import argparse
 import os
 

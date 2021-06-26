@@ -8,7 +8,7 @@
 # 3. (Optional) Scaling the learning rate of your local optimizer
 #
 # Command to run this script:
-# $ ./bin/kungfu-run -np 4 -mnt 1 python3 examples/Failure_recovery_examples/tf2_mnist_keras.py --n-epochs 10 --monitor
+# $ ./bin/kungfu-run -np 4 -mnt python3 examples/Failure_recovery_examples/tf2_mnist_keras.py --n-epochs 10 --monitor
 import socket
 import json
 import time
