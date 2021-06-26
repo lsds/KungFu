@@ -1,6 +1,6 @@
 name: PyTorch
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   test:
