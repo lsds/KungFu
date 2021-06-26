@@ -217,7 +217,9 @@ examples/Failure_recovery_examples/tf1_mnist_session.py (an example of failure d
 
 examples/Failure_recovery_examples/tf2_mnist_keras.py (an example of failure detection in tf2_keras training)
 
-srcs/go/cmd/kungfu-recovery/monitor.go (an example of detect failures)
+srcs/go/kungfu/runner/monitor.go (an example of detect failures)
+
+srcs/go/kungfu/runner/monitored.go (an example of running monitor training)
 
 docs/Failure_detection_architecture.png (the overall architecture)
 
@@ -235,14 +237,6 @@ srcs/go/kungfu/runner/flags.go (add monitor property)
 
 srcs/go/cmd/kungfu-run/app/kungfu-run.go (add monitor property)
 
-srcs/go/kungfu/runner/simple.go (add restart code)
-
 srcs/go/libkungfu-comm/cmds.go (add the definition of send signals)
-
-srcs/go/utils/iostream/iostream.go (add the "some machine died" signal detection)
-
-srcs/go/utils/iostream/stdio.go (add the "some machine died" signal detection and return signal to main run process)
-
-srcs/go/utils/runner/local.go (add run monitor process and return machine died signal)
 
 srcs/python/kungfu/cmd/__init__.py (add the definition of signal send function)
