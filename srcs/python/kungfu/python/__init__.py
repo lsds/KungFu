@@ -25,18 +25,21 @@ def _load_and_init_python_lib():
     return _python_lib, has_nccl
 
 
+def _load_python_lib():
+    _load_clib('libkungfu')
+    _python_lib = _load_clib('libkungfu_python')
+    return _python_lib
+
+
 if os.getenv('KUNGFU_DISABLE_AUTO_LOAD'):
-    _python_lib = None
+    _python_lib = _load_python_lib()
     _has_nccl = None
 else:
     _python_lib, _has_nccl = _load_and_init_python_lib()
 
 
 def init_from_config(config):
-    global _python_lib
     global _has_nccl
-    _load_clib('libkungfu')
-    _python_lib = _load_clib('libkungfu_python')
     js = json.dumps(config)
     # https://stackoverflow.com/questions/61294630/ctypes-passing-a-·string-as-a-pointer-from-python-to-c
     _call_method_with(_python_lib, 'kungfu_python_init_from_json',

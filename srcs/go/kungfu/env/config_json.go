@@ -5,18 +5,19 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-type taskID plan.PeerID
+type peerID plan.PeerID // customized JSON encoding
 
-func (t taskID) MarshalJSON() ([]byte, error) {
-	port := strconv.Itoa(int(t.Port))
-	addr := net.JoinHostPort(plan.FormatIPv4(t.IPv4), port)
+func (p peerID) MarshalJSON() ([]byte, error) {
+	port := strconv.Itoa(int(p.Port))
+	addr := net.JoinHostPort(plan.FormatIPv4(p.IPv4), port)
 	return json.Marshal(addr)
 }
 
-func (t *taskID) UnmarshalJSON(bs []byte) error {
+func (p *peerID) UnmarshalJSON(bs []byte) error {
 	var s string
 	if err := json.Unmarshal(bs, &s); err != nil {
 		return err
@@ -25,21 +26,21 @@ func (t *taskID) UnmarshalJSON(bs []byte) error {
 	if err != nil {
 		return err
 	}
-	*t = taskID(*id)
+	*p = peerID(*id)
 	return nil
 }
 
 type clusterSpec struct {
-	Worker []taskID `json:"worker"`
+	Peers []peerID `json:"peers"`
 }
 
-type taskSpec struct {
-	Index int `json:"index"`
+type peerSpec struct {
+	Rank int `json:"rank"`
 }
 
 type kungfuConfig struct {
 	Cluster clusterSpec `json:"cluster"`
-	Task    taskSpec    `json:"task"`
+	Self    peerSpec    `json:"self"`
 }
 
 func ParseConfigFromJSON(js string) (*Config, error) {
@@ -48,11 +49,12 @@ func ParseConfigFromJSON(js string) (*Config, error) {
 		return nil, err
 	}
 	var initPeers plan.PeerList
-	for _, p := range kfConfig.Cluster.Worker {
+	for _, p := range kfConfig.Cluster.Peers {
 		initPeers = append(initPeers, plan.PeerID(p))
 	}
 	return &Config{
 		InitPeers: initPeers,
-		// Strategy:  *strategy,
+		Self:      initPeers[kfConfig.Self.Rank],
+		Strategy:  base.DefaultStrategy,
 	}, nil
 }
