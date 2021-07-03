@@ -40,6 +40,9 @@ parse_args() {
         --no-tests)
             BUILD_TESTS=0
             ;;
+        --disable-cxx11-abi)
+            DISABLE_CXX11_ABI=1
+            ;;
         --enable-trace)
             ENABLE_TRACE=1
             ;;
@@ -106,6 +109,8 @@ add_cmake_flags() {
     add_cmake_flag KUNGFU_BUILD_TESTS ${BUILD_TESTS}
     add_cmake_flag KUNGFU_BUILD_TF_OPS ${BUILD_TENSORFLOW_OPS}
     add_cmake_flag KUNGFU_BUILD_TOOLS ${BUILD_TOOLS}
+
+    add_cmake_flag DISABLE_CXX11_ABI $DISABLE_CXX11_ABI
 
     if [ ! -z ${PREFIX} ]; then
         add_cmake_flag CMAKE_INSTALL_PREFIX ${PREFIX}

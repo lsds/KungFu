@@ -67,7 +67,10 @@ IF(KUNGFU_ENABLE_NCCL)
     )
     TARGET_LINK_LIBRARIES(kungfu_nccl kungfu)
     USE_NCCL(kungfu_nccl)
-    TARGET_COMPILE_DEFINITIONS(kungfu_nccl PRIVATE -D_GLIBCXX_USE_CXX11_ABI=0)
+    IF(DISABLE_CXX11_ABI)
+        TARGET_COMPILE_DEFINITIONS(kungfu_nccl
+                                   PRIVATE -D_GLIBCXX_USE_CXX11_ABI=0)
+    ENDIF()
 ENDIF()
 
 IF(KUNGFU_BUILD_TF_OPS)
