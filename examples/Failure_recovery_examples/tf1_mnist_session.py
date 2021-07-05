@@ -7,8 +7,7 @@
 # The distributed optimizer defines how local gradients and model weights are synchronized.
 # 2. (Optional) In a distributed training setting, the training dataset is often partitioned.
 # 3. (Optional) Scaling the learning rate of your local optimizer
-# Download the MNIST dataset first
-# $ ./bin/kungfu-run -np 4 -mnt python3 examples/Failure_recovery_examples/tf1_mnist_session.py --data-dir ./mnist --n-epochs 5 --monitor
+# $ ./bin/kungfu-run -np 4 -mnt 1 python3 examples/Failure_recovery_examples/tf1_mnist_session.py --data-dir ./mnist --n-epochs 5 --monitor
 import argparse
 import os
 
@@ -131,10 +130,13 @@ def train_mnist(sess,
                 optimizer,
                 dataset,
                 n_epochs=1,
-                batch_size=5000, monitor=False,restart=0):
+                batch_size=5000, 
+                monitor=False,
+                restart=0,
+                save_epoch_num = 1):
 
     log_period = 100
-    
+    epoch = 0
     # get the cluster size
     n_shards = current_cluster_size()
     # get the cluster rank of the node
@@ -194,9 +196,12 @@ def train_mnist(sess,
             print('validation accuracy: %f' % result)
         if monitor:
             if step%step_per_epoch == 0 and step !=0:
-                saver.save(sess,savepath)
-                print(step/step_per_epoch)
-                monitor_epoch_end()
+                epoch += 1
+                if epoch % save_epoch_num == 0:
+                    saver.save(sess,savepath)
+                    print(step/step_per_epoch)
+                    for send in range(save_epoch_num):
+                        monitor_epoch_end()
             monitor_batch_end()
 
 # parse arguments from the command line
@@ -226,6 +231,10 @@ def parse_args():
                         type=int,
                         default=0,
                         help='restart')
+    parser.add_argument('--save-epoch',
+                        type=int,
+                        default=1,
+                        help='save-epoch')
     return parser.parse_args()
 
 
@@ -238,7 +247,7 @@ def main():
     
     with tf.Session() as sess:
         train_mnist(sess, x, y_, train_op, test_op, optimizer, mnist,
-                    args.n_epochs, args.batch_size, args.monitor,args.restart)
+                    args.n_epochs, args.batch_size, args.monitor,args.restart,args.save_epoch)
         result = test_mnist(sess, x, y_, test_op, mnist['test_set'])
         print('test accuracy: %f' % result)
         # save_all(sess, 'final')

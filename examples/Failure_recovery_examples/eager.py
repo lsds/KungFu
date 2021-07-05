@@ -1,5 +1,4 @@
- #Download the MNIST dataset first
-#kungfu-run -np 2 -mnt python3 examples/Failure_recovery_examples/eager.py --num-epochs 5 --data-dir ./mnist --model-dir checkpoints --batch-size 32 --monitor
+#kungfu-run -np 2 -mnt 1 python3 examples/Failure_recovery_examples/eager.py --num-epochs 5 --data-dir ./mnist --model-dir checkpoints --batch-size 32 --monitor
 import argparse
 import tensorflow as tf
 import os
@@ -21,6 +20,7 @@ def parse_args():
     p.add_argument('--learning-rate', type=float, default=0.01, help='')
     p.add_argument('--monitor', action='store_true', default=False, help='')
     p.add_argument('--restart', type=int, default=0, help='')
+    p.add_argument('--save-epoch', type=int, default=1, help='')
     return p.parse_args()
 
 def build_ops(args):
@@ -92,9 +92,11 @@ def train(args):
         print('step: %d loss: %f' % (step, loss_value))
         if args.monitor:
             if trained_samples >= MNIST_DATA_SIZE * (epochs+1):
-                model.save(savepath)
-                monitor_epoch_end()
                 epochs = epochs + 1
+                if epochs%args.save_epoch == 0:
+                    model.save(savepath)
+                    for send in range(args.save_epoch):
+                        monitor_epoch_end()
             monitor_batch_end()
         if trained_samples >= total_samples:
             break
