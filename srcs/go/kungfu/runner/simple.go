@@ -16,6 +16,6 @@ func SimpleRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job
 	d, err := utils.Measure(func() error { return local.RunAll(ctx, procs, verboseLog) })
 	log.Infof("all %d/%d local peers finished, took %s", len(procs), len(cluster.Workers), d)
 	if err != nil {
-		utils.ExitErr(err,ctx, selfIPv4, cluster, j, verboseLog)
+		utils.ExitErr(err)
 	}
 }
