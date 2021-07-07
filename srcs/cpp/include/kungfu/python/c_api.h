@@ -7,6 +7,7 @@ extern "C" {
 
 extern void kungfu_python_init();
 extern void kungfu_python_init_single_machine(int rank, int size);
+extern void kungfu_python_init_from_json(const char *pJson);
 extern void kungfu_python_init_nccl();
 
 extern void kungfu_python_finialize();

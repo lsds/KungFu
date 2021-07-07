@@ -13,9 +13,9 @@ using TransformFunc = std::function<void(
 class Peer
 {
   public:
-    Peer();
-
+    Peer();                    // init from env
     Peer(int rank, int size);  // Single Machine Multi-Process
+    Peer(const char *pJson);   // init from JSON
 
     ~Peer();
 
