@@ -1,10 +1,11 @@
 package runner
 
 import (
+	"bytes"
 	"encoding/json"
-	"net"
+	"fmt"
+	"github.com/lsds/KungFu/srcs/go/plan"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,14 +13,18 @@ import (
 )
 
 type monitorserver struct {
-	DownFlag   bool
-	Machines   int
-	Epochnum   int
-	FinishFlag bool
-	trainend   []int
-	times      []int64
-	epochs     []int
-	wg         sync.WaitGroup
+	DownFlag      bool
+	Machines      int
+	Epochnum      int
+	FinishFlag    bool
+	trainend      []int
+	times         []int64
+	epochs        []int
+	wg            sync.WaitGroup
+	OtherFinish   bool
+	OtherEpochnum int
+	OtherDown     bool
+	serverip      string
 }
 type Results struct {
 	DownFlag   bool
@@ -57,33 +62,41 @@ func (h *monitorserver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if datas[0] == "epoch" {
 		h.epochs[intva] = h.epochs[intva] + 1
 	}
+	if datas[0] == "otherfinish" {
+		h.OtherFinish = true
+	}
+	if datas[0] == "otherdown" {
+		h.OtherEpochnum = intva
+		h.OtherDown = true
+	}
 }
-func (s *monitorserver) Start() {
-
+func (s *monitorserver) Start(ip string, h string, ClusterSize int, waittime int) {
+	var otherips []string
+	isMainServer := false
+	if h != plan.DefaultHostList.String() {
+		ipparse := strings.Split(h, ":")
+		if ipparse[0] == ip {
+			isMainServer = true
+		}
+		allips := strings.Split(h, ",")
+		for _, ipport := range allips {
+			ipone := strings.Split(ipport, ":")
+			if ip != ipone[0] {
+				otherips = append(otherips, ipone[0])
+			}
+		}
+	}
 	defer s.wg.Done()
-	for i := 0; i < s.Machines; i++ {
+	for i := 0; i < ClusterSize; i++ {
 		s.trainend = append(s.trainend, 0)
 		s.times = append(s.times, 0)
 		s.epochs = append(s.epochs, 0)
 	}
-	_, err := os.Stat("/tmp/http.sock")
-	if err != nil && os.IsNotExist(err) {
+	if ip != "" {
+		go http.ListenAndServe(ip+":7756", s)
 	} else {
-		err1 := os.Remove("/tmp/http.sock")
-		if err1 != nil {
-			panic("Cannot delete: " + err.Error())
-		}
+		go http.ListenAndServe("127.0.0.1:7756", s)
 	}
-
-	addr, err := net.ResolveUnixAddr("unix", "/tmp/http.sock")
-	if err != nil {
-		panic("Cannot resolve unix addr: " + err.Error())
-	}
-	listener, err := net.ListenUnix("unix", addr)
-	if err != nil {
-		panic("Cannot resolve unix addr: " + err.Error())
-	}
-	go http.Serve(listener, s)
 	for {
 		trainendflag := 0
 		downflag := false
@@ -91,25 +104,65 @@ func (s *monitorserver) Start() {
 			if s.trainend[i] == 1 {
 				trainendflag = trainendflag + 1
 			}
-			if a := time.Now().Unix() - s.times[i]; a > 10 {
+			if a := time.Now().Unix() - s.times[i]; a > int64(waittime) {
 				if s.times[i] != 0 {
 					min := findmin(s.epochs)
 					s.DownFlag = true
 					s.Epochnum = min
 					downflag = true
+					if isMainServer {
+						contentType := "application/json;charset=utf-8"
+						data := "otherdown:" + strconv.Itoa(min)
+						msg := Message{Key: data}
+						b, err := json.Marshal(msg)
+						if err != nil {
+							return
+						}
+						body := bytes.NewBuffer(b)
+						for _, otherip := range otherips {
+							resp, err := http.Post("http://"+otherip+":7756", contentType, body)
+							if err != nil {
+								return
+							}
+							defer resp.Body.Close()
+						}
+					}
 					break
 				}
 			}
 		}
+		if s.OtherDown {
+			s.DownFlag = true
+			s.Epochnum = s.OtherEpochnum
+			break
+		}
 		if downflag {
 			break
 		}
-		if trainendflag == s.Machines {
+		if trainendflag == s.Machines || s.OtherFinish {
+			if isMainServer {
+				contentType := "application/json;charset=utf-8"
+				data := "otherfinish:0"
+				msg := Message{Key: data}
+				b, err := json.Marshal(msg)
+				if err != nil {
+					return
+				}
+				body := bytes.NewBuffer(b)
+				for _, otherip := range otherips {
+					resp, err := http.Post("http://"+otherip+":7756", contentType, body)
+					if err != nil {
+						fmt.Println(err)
+
+						return
+					}
+					defer resp.Body.Close()
+				}
+			}
 			s.FinishFlag = true
 			break
 		}
 	}
-	listener.Close()
 }
 func findmin(array []int) int {
 	min := array[0]

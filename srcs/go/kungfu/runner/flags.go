@@ -28,9 +28,9 @@ func Init(f *FlagSet, args []string) {
 
 type FlagSet struct {
 	ConfigServer string
-	Monitor      bool
+	Monitor      int
 	ClusterSize  int
-	hostList     string
+	H            string
 	hostFile     string
 	HostList     plan.HostList
 	peerList     string
@@ -68,8 +68,8 @@ type FlagSet struct {
 
 func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.IntVar(&f.ClusterSize, "np", 1, "number of peers")
-	flag.BoolVar(&f.Monitor, "mnt", false, "failure recovery")
-	flag.StringVar(&f.hostList, "H", plan.DefaultHostList.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
+	flag.IntVar(&f.Monitor, "mnt", 0, "failure recovery")
+	flag.StringVar(&f.H, "H", plan.DefaultHostList.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
 	flag.StringVar(&f.hostFile, "hostfile", "", "path to hostfile, will override -H if specified")
 	flag.StringVar(&f.peerList, "P", "", "comma separated list of <host>:<port>[:slot]")
 
@@ -129,7 +129,7 @@ func (f *FlagSet) resolveHostList() error {
 		}
 		f.HostList = hl
 	} else {
-		hl, err := plan.ParseHostList(f.hostList)
+		hl, err := plan.ParseHostList(f.H)
 		if err != nil {
 			return err
 		}

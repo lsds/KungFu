@@ -1,4 +1,4 @@
-#kungfu-run -np 2 -mnt 1 python3 examples/Failure_recovery_examples/eager.py --num-epochs 5 --data-dir ./mnist --model-dir checkpoints --batch-size 32 --monitor
+#kungfu-run -np 2 -mnt 10 python3 examples/Failure_recovery_examples/eager.py --num-epochs 5 --data-dir ./mnist --model-dir checkpoints --batch-size 32 --monitor
 import argparse
 import tensorflow as tf
 import os

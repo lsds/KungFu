@@ -4,14 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/lsds/KungFu/srcs/go/cmd/kungfu-run/app"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
+
+	"github.com/lsds/KungFu/srcs/go/cmd/kungfu-run/app"
 )
 
 import "C"
+
+var serverip string
 
 type Message struct {
 	Key string `json:"key"`
@@ -20,7 +24,8 @@ type Message struct {
 var httpc = http.Client{
 	Transport: &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", "/tmp/http.sock")
+			serverip = strings.Split(GoKungfuPeers().String(), ":")[0]
+			return net.Dial("tcp", serverip+":7756")
 		},
 	},
 }
@@ -31,27 +36,8 @@ func GoKungfuRunMain() {
 	app.Main(args)
 }
 
-//export GoKungfuRunSendBegin
-func GoKungfuRunSendBegin() {
-	SignalSend(1)
-}
-
-//export GoKungfuRunSendEnd
-func GoKungfuRunSendEnd() {
-	SignalSend(2)
-}
-
-//export GoKungfuRunSendEpoch
-func GoKungfuRunSendEpoch() {
-	SignalSend(3)
-}
-
-//export GoKungfuRunSendTrainend
-func GoKungfuRunSendTrainend() {
-	SignalSend(4)
-}
-
-func SignalSend(signal int) {
+//export GoKungfuSignalSend
+func GoKungfuSignalSend(signal int) {
 	contentType := "application/json;charset=utf-8"
 	data := strconv.Itoa(GoKungfuRank())
 	if signal == 1 {
@@ -69,7 +55,8 @@ func SignalSend(signal int) {
 		return
 	}
 	body := bytes.NewBuffer(b)
-	resp, err := httpc.Post("http://http.sock", contentType, body)
+	//fmt.Println(runner.GoServerIp())
+	resp, err := httpc.Post("http://"+serverip+":7756", contentType, body)
 	if err != nil {
 		return
 	}

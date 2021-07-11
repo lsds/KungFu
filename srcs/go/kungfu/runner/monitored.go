@@ -7,13 +7,22 @@ import (
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/local"
+	"net"
 	"strconv"
 	"sync"
 	"sync/atomic"
 )
 
-func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job.Job, verboseLog bool) {
+func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job.Job, verboseLog bool, Selfip string, H string, ClusterSize int, waittime int) {
 	for {
+		if Selfip == "" {
+			var bytes [4]byte
+			bytes[0] = byte(selfIPv4 & 0xFF)
+			bytes[1] = byte((selfIPv4 >> 8) & 0xFF)
+			bytes[2] = byte((selfIPv4 >> 16) & 0xFF)
+			bytes[3] = byte((selfIPv4 >> 24) & 0xFF)
+			Selfip = net.IPv4(bytes[3], bytes[2], bytes[1], bytes[0]).String()
+		}
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		var sucessfi int32
@@ -22,7 +31,7 @@ func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j 
 		s := New(len(procs))
 		s.wg.Add(1)
 		log.Infof("will parallel run %d instances of %s with %q under monitor", len(procs), j.Prog, j.Args)
-		go s.Start()
+		go s.Start(Selfip, H, ClusterSize, waittime)
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {

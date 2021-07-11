@@ -8,7 +8,7 @@
 # 3. (Optional) Scaling the learning rate of your local optimizer
 #
 # Command to run this script:
-# $ ./bin/kungfu-run -np 4 -mnt python3 examples/Failure_recovery_examples/tf2_mnist_keras.py --n-epochs 10 --monitor
+# $ ./bin/kungfu-run -np 4 -mnt 10 python3 examples/Failure_recovery_examples/tf2_mnist_keras.py --n-epochs 10 --monitor
 import socket
 import json
 import time
@@ -61,7 +61,6 @@ def load_dataset():
 
 def build_optimizer(name, n_shards=1):
     learning_rate = 0.1
-
     # Scale learning rate according to the level of data parallelism
     optimizer = tf.keras.optimizers.SGD(learning_rate=(learning_rate *
                                                        n_shards))
@@ -104,7 +103,6 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000, monitor = False, re
     # calculate the offset for the data of the KungFu node
     shard_size = train_data_size // n_shards
     offset = batch_size * shard_id
-    
     # extract the data for learning of the KungFu node
     x = dataset['x_train'][offset:offset + shard_size]
     y = dataset['y_train'][offset:offset + shard_size]
