@@ -22,9 +22,8 @@ func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j 
 		}
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		var sucessfi int32
-		var cont int32
-		cont = 0
+		var successFinished int32
+		var cont int32 // continue flag
 		procs := j.CreateProcs(cluster, selfIPv4)
 		s := monitorserver.New(0)
 		log.Infof("will parallel run %d instances of %s with %q under monitor", len(procs), j.Prog, j.Args)
@@ -41,14 +40,14 @@ func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j 
 					utils.ExitErr(err)
 				}
 			} else {
-				atomic.AddInt32(&sucessfi, 1)
+				atomic.AddInt32(&successFinished, 1)
 			}
 			wg.Done()
 		}()
 
 		Results := s.Wait()
 		if Results.FinishFlag {
-			atomic.AddInt32(&sucessfi, 1)
+			atomic.AddInt32(&successFinished, 1)
 		}
 		if Results.DownFlag {
 			atomic.AddInt32(&cont, 1)
@@ -67,7 +66,7 @@ func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j 
 			continue
 		}
 		wg.Wait()
-		if sucessfi == 2 {
+		if successFinished == 2 {
 			log.Infof("success finish")
 			break
 		}
