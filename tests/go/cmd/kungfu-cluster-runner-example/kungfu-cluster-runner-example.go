@@ -60,7 +60,7 @@ func example(c *cluster, prog string, args []string) {
 		for _, ip := range ips {
 			kungfuRunArgs := []string{
 				`-np`, strconv.Itoa(nums * cap),
-				`-mnt`,
+				`-mnt`, `10`,
 				`-H`, hall,
 				//`-self`, ip,
 				`-nic`, `eth0`,

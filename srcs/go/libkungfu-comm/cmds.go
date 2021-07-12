@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/lsds/KungFu/srcs/go/cmd/kungfu-run/app"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/lsds/KungFu/srcs/go/cmd/kungfu-run/app"
 )
 
 import "C"
@@ -24,7 +24,8 @@ type Message struct {
 var httpc = http.Client{
 	Transport: &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			serverip = strings.Split(GoKungfuPeers().String(), ":")[0]
+			peers := defaultPeer.CurrentSession().Peers()
+			serverip = strings.Split(peers.String(), ":")[0]
 			return net.Dial("tcp", serverip+":7756")
 		},
 	},
@@ -44,9 +45,9 @@ func GoKungfuSignalSend(signal int) {
 		data = "begin:" + data
 	} else if signal == 2 {
 		data = "end:" + data
-	} else if signal == 3 {
-		data = "epoch:" + data
 	} else if signal == 4 {
+		data = "epoch:" + data
+	} else if signal == 3 {
 		data = "trainend:" + data
 	}
 	msg := Message{Key: data}
@@ -55,9 +56,9 @@ func GoKungfuSignalSend(signal int) {
 		return
 	}
 	body := bytes.NewBuffer(b)
-	//fmt.Println(runner.GoServerIp())
 	resp, err := httpc.Post("http://"+serverip+":7756", contentType, body)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	defer resp.Body.Close()

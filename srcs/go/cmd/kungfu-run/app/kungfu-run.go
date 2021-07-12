@@ -108,8 +108,7 @@ func Main(args []string) {
 		runner.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
 	} else {
 		if f.Monitor != 0 {
-			fmt.Println(f.HostList)
-			runner.MonitoredRun(ctx, localhostIPv4, initCluster, j, f.VerboseLog, f.Self, f.H, f.ClusterSize, f.Monitor)
+			runner.MonitoredRun(ctx, localhostIPv4, initCluster, j, f.VerboseLog, f.Self, f.HostList, f.ClusterSize, f.Monitor)
 		} else {
 			runner.SimpleRun(ctx, localhostIPv4, initCluster, j, f.VerboseLog)
 		}

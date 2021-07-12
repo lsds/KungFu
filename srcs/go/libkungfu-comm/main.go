@@ -10,7 +10,6 @@ import (
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/kungfu/peer"
 	"github.com/lsds/KungFu/srcs/go/log"
-	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 )
 
@@ -78,11 +77,6 @@ func GoKungfuRank() int {
 func GoKungfuLocalRank() int {
 	sess := defaultPeer.CurrentSession()
 	return sess.LocalRank()
-}
-
-func GoKungfuPeers() plan.PeerList {
-	sess := defaultPeer.CurrentSession()
-	return sess.Peers()
 }
 
 //export GoKungfuLocalSize
