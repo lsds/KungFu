@@ -2,21 +2,22 @@ package runner
 
 import (
 	"context"
+	"strconv"
+	"sync"
+	"sync/atomic"
+
 	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner/monitorserver"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/local"
-	"strconv"
-	"sync"
-	"sync/atomic"
 )
 
-func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job.Job, verboseLog bool, Selfip string, HostList plan.HostList, ClusterSize int, waittime int) {
+func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job.Job, verboseLog bool, selfIP string, hostList plan.HostList, clusterSize int, waitTime int) {
 	for {
-		if Selfip == "" {
-			Selfip = plan.FormatIPv4(selfIPv4)
+		if selfIP == "" {
+			selfIP = plan.FormatIPv4(selfIPv4)
 		}
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
@@ -26,7 +27,7 @@ func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j 
 		procs := j.CreateProcs(cluster, selfIPv4)
 		s := monitorserver.New(0)
 		log.Infof("will parallel run %d instances of %s with %q under monitor", len(procs), j.Prog, j.Args)
-		s.Monitor(Selfip, HostList, ClusterSize, waittime)
+		s.Monitor(selfIP, hostList, clusterSize, waitTime)
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
