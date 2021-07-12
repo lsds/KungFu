@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner/monitorserver"
@@ -14,7 +15,7 @@ import (
 	"github.com/lsds/KungFu/srcs/go/utils/runner/local"
 )
 
-func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job.Job, verboseLog bool, selfIP string, hostList plan.HostList, clusterSize int, waitTime int) {
+func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job.Job, verboseLog bool, selfIP string, hostList plan.HostList, clusterSize int, waitTime time.Duration) {
 	for {
 		if selfIP == "" {
 			selfIP = plan.FormatIPv4(selfIPv4)

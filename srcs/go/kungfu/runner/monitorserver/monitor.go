@@ -70,7 +70,7 @@ func (h *monitorServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *monitorServer) Start(ip string, hl plan.HostList, clusterSize int, waitTime int) {
+func (s *monitorServer) Start(ip string, hl plan.HostList, clusterSize int, waitTime time.Duration) {
 	var otherips []string
 	isMainServer := false
 	ipnum := 0
@@ -192,7 +192,7 @@ func New(procs int) *monitorServer {
 	return &monitorServer{Machines: procs}
 }
 
-func (s *monitorServer) Monitor(ip string, hl plan.HostList, clusterSize int, waitTime int) {
+func (s *monitorServer) Monitor(ip string, hl plan.HostList, clusterSize int, waitTime time.Duration) {
 	s.wg.Add(2)
 	go s.Start(ip, hl, clusterSize, waitTime)
 }
