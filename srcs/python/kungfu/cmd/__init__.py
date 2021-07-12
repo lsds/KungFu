@@ -2,11 +2,31 @@ import multiprocessing as mp
 import os
 
 from kungfu.loader import _load_clib
-
+from ctypes import c_int
 
 def run():
     clib = _load_clib('libkungfu')
     clib.kungfu_run_main()
+
+def _send_monitor_signal(sig):
+    clib = _load_clib('libkungfu')
+    clib.kungfu_run_send_signal(c_int(sig))
+
+
+def monitor_batch_begin():
+    _send_monitor_signal(1)
+
+
+def monitor_batch_end():
+    _send_monitor_signal(2)
+
+
+def monitor_train_end():
+    _send_monitor_signal(3)
+
+
+def monitor_epoch_end():
+    _send_monitor_signal(4)
 
 
 class _RunWorker(object):

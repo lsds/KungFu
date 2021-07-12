@@ -65,6 +65,10 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 	return sess, true
 }
 
+func (sess *Session) Peers() plan.PeerList {
+	return sess.peers
+}
+
 func (sess *Session) Size() int {
 	return len(sess.peers)
 }
