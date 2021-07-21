@@ -1,0 +1,42 @@
+name: Release
+
+on:
+- push
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        os:
+        # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
+        - ubuntu-18.04
+
+        python:
+        - '3.6'
+
+        tensorflow:
+        - '1.13.2'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+
+    - run: |
+        nproc
+        echo $PATH
+        go version
+
+    - name: Install Dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install numpy==1.16 tensorflow==${{ matrix.tensorflow }}
+
+    - run: |
+        env \
+          GIT_COMMIT_TIMESTAMP=$(git log -1 --format=%ct) \
+          python3 -m pip wheel -v .
