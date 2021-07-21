@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import sysconfig
+import time
 
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
@@ -103,9 +104,23 @@ class CMakeBuild(build_ext):
 
 package_dir = './srcs/python'
 
+
+def get_version():
+    t = os.getenv('GIT_COMMIT_TIMESTAMP')
+    if t is None:
+        version = '0.2.2',
+        return version
+    else:
+        major = 0
+        minor = 0
+
+        patch = str(t) if t else int(time.time())
+    return '.'.join([str(x) for x in [major, minor, patch]])
+
+
 setup(
     name='kungfu',
-    version='0.2.2',
+    version=get_version(),
     package_dir={'': package_dir},
     packages=find_packages(package_dir),
     description='KungFu distributed machine learning framework',

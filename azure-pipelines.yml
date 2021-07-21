@@ -1,0 +1,64 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- lg-prebuild
+
+jobs:
+
+- job: publish
+  strategy:
+    matrix:
+      # macOS10.14-py36:
+      #   python.version: '3.6'
+      #   tensorflow.version: '1.13.2'
+      #   imageName: 'macOS-10.14'
+
+      ubuntu18-py36:
+        python.version: '3.6'
+        tensorflow.version: '1.13.2'
+        imageName: 'ubuntu-18.04'
+
+      # ubuntu20-py38:
+      #   python.version: '3.8'
+      #   tensorflow.version: '1.13.2'
+      #   imageName: 'ubuntu-20.04'
+
+  pool:
+    vmImage: $(imageName)
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+
+  - script: |
+      python3-config --exec-prefix
+      python3-config --prefix
+      python3-config --libs
+
+      go version
+    displayName: Show Tool Chain Versions
+
+  - script: python3 -m pip install wheel twine
+    displayName: Install Deps
+
+  - script: python3 -m pip install tensorflow==$(tensorflow.version)
+    displayName: Install TensorFlow
+
+  - task: TwineAuthenticate@1
+    inputs:
+      artifactFeed: 'releases/releases'
+
+  # https://stackoverflow.com/questions/25563455/how-do-i-get-last-commit-date-from-git-repository
+  - script: |
+      env \
+        GIT_COMMIT_TIMESTAMP=$(git log -1 --format=%ct) \
+        python3 -m pip wheel -v .
+    displayName: 'Build Package'
+
+  # https://docs.microsoft.com/en-us/azure/devops/pipelines/artifacts/pypi?view=azure-devops&tabs=yaml
+  - script: python3 -m twine upload -r releases --config-file $(PYPIRC_PATH) ./*.whl
+    displayName: Publish
