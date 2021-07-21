@@ -50,7 +50,7 @@ jobs:
 
   - task: TwineAuthenticate@1
     inputs:
-      artifactFeed: 'releases/releases'
+      artifactFeed: 'releases/kungfu'
 
   # https://stackoverflow.com/questions/25563455/how-do-i-get-last-commit-date-from-git-repository
   - script: |
@@ -60,5 +60,5 @@ jobs:
     displayName: 'Build Package'
 
   # https://docs.microsoft.com/en-us/azure/devops/pipelines/artifacts/pypi?view=azure-devops&tabs=yaml
-  - script: python3 -m twine upload -r releases --config-file $(PYPIRC_PATH) ./*.whl
+  - script: python3 -m twine upload -r kungfu --config-file $(PYPIRC_PATH) ./*.whl
     displayName: Publish
