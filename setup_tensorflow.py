@@ -108,7 +108,7 @@ package_dir = './srcs/python'
 def get_version():
     t = os.getenv('GIT_COMMIT_TIMESTAMP')
     if t is None:
-        version = '0.2.2',
+        version = '0.2.2'
         return version
     else:
         major = 0
