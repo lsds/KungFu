@@ -11,10 +11,10 @@ jobs:
 - job: publish
   strategy:
     matrix:
-      # macOS10.14-py36:
-      #   python.version: '3.6'
-      #   tensorflow.version: '1.13.2'
-      #   imageName: 'macOS-10.14'
+      macOS10.14-py36:
+        python.version: '3.6'
+        tensorflow.version: '1.13.2'
+        imageName: 'macOS-10.14'
 
       ubuntu18-py36:
         python.version: '3.6'
@@ -60,5 +60,6 @@ jobs:
     displayName: 'Build Package'
 
   # https://docs.microsoft.com/en-us/azure/devops/pipelines/artifacts/pypi?view=azure-devops&tabs=yaml
+  # pip3 install -i https://pkgs.dev.azure.com/lg4869/releases/_packaging/kungfu/pypi/simple -U kungfu
   - script: python3 -m twine upload -r kungfu --config-file $(PYPIRC_PATH) ./*.whl
     displayName: Publish
