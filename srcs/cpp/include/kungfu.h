@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 extern void kungfu_run_main();
+extern void kungfu_run_send_signal(int sig);
 
 #ifdef __cplusplus
 }
