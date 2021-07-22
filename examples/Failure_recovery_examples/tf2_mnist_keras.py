@@ -8,7 +8,7 @@
 # 3. (Optional) Scaling the learning rate of your local optimizer
 #
 # Command to run this script:
-# $ ./bin/kungfu-run -np 4 -mnt 10 python3 examples/Failure_recovery_examples/tf2_mnist_keras.py --n-epochs 10 --monitor
+# $ ./bin/kungfu-run -np 4 -auto-recover 10s python3 examples/Failure_recovery_examples/tf2_mnist_keras.py --n-epochs 10 --monitor
 import socket
 import json
 import time
@@ -24,21 +24,26 @@ from kungfu.tensorflow.optimizers import (PairAveragingOptimizer,
                                           SynchronousAveragingOptimizer,
                                           SynchronousSGDOptimizer)
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesCallback
-from kungfu.cmd import monitor_batch_begin,monitor_batch_end,monitor_train_end,monitor_epoch_end
+from kungfu.cmd import monitor_batch_begin, monitor_batch_end, monitor_train_end, monitor_epoch_end
 
 epochnum = 0
 epochsavenum = 1
+
+
 class MonitorDetectionCallback(tf.keras.callbacks.Callback):
     def on_batch_begin(self, batch, logs={}):
         monitor_batch_begin()
+
     def on_batch_end(self, batch, logs={}):
         monitor_batch_end()
+
     def on_epoch_end(self, epoch, logs={}):
         global epochnum
-        epochnum+=1
-        if epochnum%epochsavenum == 0:
+        epochnum += 1
+        if epochnum % epochsavenum == 0:
             for i in range(epochsavenum):
                 monitor_epoch_end()
+
 
 def load_dataset():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -90,15 +95,20 @@ def build_model(optimizer):
     model.compile(optimizer=optimizer,
                   loss='sparse_categorical_crossentropy',
                   metrics=[tf.keras.metrics.SparseCategoricalAccuracy()])
-    
+
     return model
 
 
-def train_model(model, dataset, n_epochs=1, batch_size=5000, monitor = False, restart = 0,save_epoch_num = 1):
+def train_model(model,
+                dataset,
+                n_epochs=1,
+                batch_size=5000,
+                monitor=False,
+                restart=0,
+                save_epoch_num=1):
     n_shards = current_cluster_size()
     shard_id = current_rank()
     train_data_size = len(dataset['x_train'])
-
 
     # calculate the offset for the data of the KungFu node
     shard_size = train_data_size // n_shards
@@ -106,36 +116,46 @@ def train_model(model, dataset, n_epochs=1, batch_size=5000, monitor = False, re
     # extract the data for learning of the KungFu node
     x = dataset['x_train'][offset:offset + shard_size]
     y = dataset['y_train'][offset:offset + shard_size]
-    if(monitor):
-        file_name=os.path.basename(__file__)
-        stem,suffix = os.path.splitext(file_name)
+    if (monitor):
+        file_name = os.path.basename(__file__)
+        stem, suffix = os.path.splitext(file_name)
         save_dir_be = os.path.join(os.getcwd(), 'saved_models')
-        if not os.path.exists(save_dir_be) and shard_id==0:
+        if not os.path.exists(save_dir_be) and shard_id == 0:
             os.mkdir(save_dir_be)
         save_dir = os.path.join(save_dir_be, stem)
-        if not os.path.exists(save_dir) and shard_id==0:
+        if not os.path.exists(save_dir) and shard_id == 0:
             os.mkdir(save_dir)
-        filepath = "model_"+str(shard_id)+".hdf5"
-        if(os.path.exists(os.path.join(save_dir,filepath)) and restart == 1):
+        filepath = "model_" + str(shard_id) + ".hdf5"
+        if (os.path.exists(os.path.join(save_dir, filepath)) and restart == 1):
             model.predict(x)
-            model.load_weights(os.path.join(save_dir,filepath),by_name=True)
-        checkpoint =tf.keras.callbacks.ModelCheckpoint(os.path.join(save_dir,filepath),verbose=1,save_weights_only=True,save_best_only = True, monitor = "val_loss",period = save_epoch_num)
+            model.load_weights(os.path.join(save_dir, filepath), by_name=True)
+        checkpoint = tf.keras.callbacks.ModelCheckpoint(os.path.join(
+            save_dir, filepath),
+                                                        verbose=1,
+                                                        save_weights_only=True,
+                                                        save_best_only=True,
+                                                        monitor="val_loss",
+                                                        period=save_epoch_num)
         # train the model
         model.fit(x,
-	      y,
-	      batch_size=batch_size,
-	      epochs=n_epochs,
-	      validation_data=(dataset['x_val'], dataset['y_val']),
-	      verbose=2,
-	      callbacks=[BroadcastGlobalVariablesCallback(),checkpoint,MonitorDetectionCallback()])
+                  y,
+                  batch_size=batch_size,
+                  epochs=n_epochs,
+                  validation_data=(dataset['x_val'], dataset['y_val']),
+                  verbose=2,
+                  callbacks=[
+                      BroadcastGlobalVariablesCallback(), checkpoint,
+                      MonitorDetectionCallback()
+                  ])
     else:
         model.fit(x,
-              y,
-              batch_size=batch_size,
-              epochs=n_epochs,
-              validation_data=(dataset['x_val'], dataset['y_val']),
-              verbose=2,
-              callbacks=[BroadcastGlobalVariablesCallback()])
+                  y,
+                  batch_size=batch_size,
+                  epochs=n_epochs,
+                  validation_data=(dataset['x_val'], dataset['y_val']),
+                  verbose=2,
+                  callbacks=[BroadcastGlobalVariablesCallback()])
+
 
 def test_model(model, dataset):
     test_metrics = model.evaluate(dataset['x_test'],
@@ -164,14 +184,8 @@ def parse_args():
                         action='store_true',
                         default=False,
                         help='monitor')
-    parser.add_argument('--restart',
-                        type=int,
-                        default=0,
-                        help='restart')
-    parser.add_argument('--save-epoch',
-                        type=int,
-                        default=1,
-                        help='save-epoch')
+    parser.add_argument('--restart', type=int, default=0, help='restart')
+    parser.add_argument('--save-epoch', type=int, default=1, help='save-epoch')
     return parser.parse_args()
 
 
@@ -185,13 +199,14 @@ def main():
     optimizer = build_optimizer(args.kf_optimizer)
     # build the Tensorflow model
     model = build_model(optimizer)
-    
+
     # load mnist dataset
     dataset = load_dataset()
     # train the Tensorflow model
     global epochsavenum
     epochsavenum = args.save_epoch
-    train_model(model, dataset, args.n_epochs, args.batch_size, args.monitor,args.restart,args.save_epoch)
+    train_model(model, dataset, args.n_epochs, args.batch_size, args.monitor,
+                args.restart, args.save_epoch)
     # test the performance of the Tensorflow model
     test_model(model, dataset)
 

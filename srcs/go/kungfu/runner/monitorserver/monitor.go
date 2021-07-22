@@ -5,15 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/lsds/KungFu/srcs/go/plan"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/lsds/KungFu/srcs/go/plan"
 )
 
-type monitorserver struct {
+type monitorServer struct {
 	DownFlag      bool
 	Machines      int
 	Epochnum      int
@@ -27,21 +28,18 @@ type monitorserver struct {
 	OtherDown     bool
 	serverip      string
 }
+
 type Results struct {
 	DownFlag   bool
 	Epochnum   int
 	FinishFlag bool
 }
 
-var trainend []int
-var times []int64
-var epochs []int
-
 type Message struct {
 	Key string `json:"key"`
 }
 
-func (h *monitorserver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *monitorServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var msg Message
 	err := json.NewDecoder(r.Body).Decode(&msg)
 	if err != nil {
@@ -71,7 +69,8 @@ func (h *monitorserver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.OtherDown = true
 	}
 }
-func (s *monitorserver) Start(ip string, hl plan.HostList, ClusterSize int, waittime int) {
+
+func (s *monitorServer) Start(ip string, hl plan.HostList, clusterSize int, waitTime time.Duration) {
 	var otherips []string
 	isMainServer := false
 	ipnum := 0
@@ -92,7 +91,7 @@ func (s *monitorserver) Start(ip string, hl plan.HostList, ClusterSize int, wait
 		Handler: s,
 	}
 	defer s.wg.Done()
-	for i := 0; i < ClusterSize; i++ {
+	for i := 0; i < clusterSize; i++ {
 		s.trainend = append(s.trainend, 0)
 		s.times = append(s.times, 0)
 		s.epochs = append(s.epochs, 0)
@@ -105,7 +104,7 @@ func (s *monitorserver) Start(ip string, hl plan.HostList, ClusterSize int, wait
 		time.Sleep(1)
 		trainendflag := 0
 		downflag := false
-		for i := 0; i < ClusterSize; i++ {
+		for i := 0; i < clusterSize; i++ {
 			if s.trainend[i] == 1 {
 				trainendflag = trainendflag + 1
 			}
@@ -143,7 +142,7 @@ func (s *monitorserver) Start(ip string, hl plan.HostList, ClusterSize int, wait
 			break
 		}
 
-		if trainendflag == ClusterSize || s.OtherFinish {
+		if trainendflag == clusterSize || s.OtherFinish {
 			if isMainServer {
 				contentType := "application/json;charset=utf-8"
 				data := "otherfinish:0"
@@ -169,6 +168,7 @@ func (s *monitorserver) Start(ip string, hl plan.HostList, ClusterSize int, wait
 	}
 	server.Shutdown(context.TODO())
 }
+
 func findmin(array []int) int {
 	min := array[0]
 	for _, v := range array {
@@ -179,7 +179,7 @@ func findmin(array []int) int {
 	return min
 }
 
-func (s *monitorserver) Wait() Results {
+func (s *monitorServer) Wait() Results {
 	s.wg.Wait()
 	return Results{
 		DownFlag:   s.DownFlag,
@@ -188,12 +188,11 @@ func (s *monitorserver) Wait() Results {
 	}
 }
 
-func New(procs int) *monitorserver {
-	return &monitorserver{Machines: procs}
+func New(procs int) *monitorServer {
+	return &monitorServer{Machines: procs}
 }
 
-func (s *monitorserver) Monitor(ip string, hl plan.HostList, ClusterSize int, waittime int) {
+func (s *monitorServer) Monitor(ip string, hl plan.HostList, clusterSize int, waitTime time.Duration) {
 	s.wg.Add(2)
-	go s.Start(ip, hl, ClusterSize, waittime)
-
+	go s.Start(ip, hl, clusterSize, waitTime)
 }

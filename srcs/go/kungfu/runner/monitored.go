@@ -2,31 +2,32 @@ package runner
 
 import (
 	"context"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/kungfu/runner/monitorserver"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/utils"
 	"github.com/lsds/KungFu/srcs/go/utils/runner/local"
-	"strconv"
-	"sync"
-	"sync/atomic"
 )
 
-func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job.Job, verboseLog bool, Selfip string, HostList plan.HostList, ClusterSize int, waittime int) {
+func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j job.Job, verboseLog bool, selfIP string, hostList plan.HostList, clusterSize int, waitTime time.Duration) {
 	for {
-		if Selfip == "" {
-			Selfip = plan.FormatIPv4(selfIPv4)
+		if selfIP == "" {
+			selfIP = plan.FormatIPv4(selfIPv4)
 		}
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		var sucessfi int32
-		var cont int32
-		cont = 0
+		var successFinished int32
+		var cont int32 // continue flag
 		procs := j.CreateProcs(cluster, selfIPv4)
 		s := monitorserver.New(0)
 		log.Infof("will parallel run %d instances of %s with %q under monitor", len(procs), j.Prog, j.Args)
-		s.Monitor(Selfip, HostList, ClusterSize, waittime)
+		s.Monitor(selfIP, hostList, clusterSize, waitTime)
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
@@ -39,14 +40,14 @@ func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j 
 					utils.ExitErr(err)
 				}
 			} else {
-				atomic.AddInt32(&sucessfi, 1)
+				atomic.AddInt32(&successFinished, 1)
 			}
 			wg.Done()
 		}()
 
 		Results := s.Wait()
 		if Results.FinishFlag {
-			atomic.AddInt32(&sucessfi, 1)
+			atomic.AddInt32(&successFinished, 1)
 		}
 		if Results.DownFlag {
 			atomic.AddInt32(&cont, 1)
@@ -65,7 +66,7 @@ func MonitoredRun(ctx context.Context, selfIPv4 uint32, cluster plan.Cluster, j 
 			continue
 		}
 		wg.Wait()
-		if sucessfi == 2 {
+		if successFinished == 2 {
 			log.Infof("success finish")
 			break
 		}

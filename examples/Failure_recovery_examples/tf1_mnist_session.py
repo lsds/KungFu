@@ -7,7 +7,7 @@
 # The distributed optimizer defines how local gradients and model weights are synchronized.
 # 2. (Optional) In a distributed training setting, the training dataset is often partitioned.
 # 3. (Optional) Scaling the learning rate of your local optimizer
-# $ ./bin/kungfu-run -np 4 -mnt 10 python3 examples/Failure_recovery_examples/tf1_mnist_session.py --data-dir ./mnist --n-epochs 5 --monitor
+# $ ./bin/kungfu-run -np 4 -auto-recover 10s python3 examples/Failure_recovery_examples/tf1_mnist_session.py --data-dir ./mnist --n-epochs 5 --monitor
 import argparse
 import os
 
@@ -16,8 +16,9 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 from kungfu.python import current_cluster_size, current_rank
 from kungfu.tensorflow.v1.helpers.mnist import load_datasets
-from kungfu.cmd import monitor_batch_begin,monitor_batch_end,monitor_train_end,monitor_epoch_end
+from kungfu.cmd import monitor_batch_begin, monitor_batch_end, monitor_train_end, monitor_epoch_end
 tf.disable_v2_behavior()
+
 
 def save_vars(sess, variables, filename):
     values = sess.run(variables)
@@ -130,10 +131,10 @@ def train_mnist(sess,
                 optimizer,
                 dataset,
                 n_epochs=1,
-                batch_size=5000, 
+                batch_size=5000,
                 monitor=False,
                 restart=0,
-                save_epoch_num = 1):
+                save_epoch_num=1):
 
     log_period = 100
     epoch = 0
@@ -142,17 +143,17 @@ def train_mnist(sess,
     # get the cluster rank of the node
     shard_id = current_rank()
     #get checkpoint save path
-    saver = tf.train.Saver(tf.global_variables(),max_to_keep=1)
-    file_name=os.path.basename(__file__)
-    stem,suffix = os.path.splitext(file_name)
+    saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
+    file_name = os.path.basename(__file__)
+    stem, suffix = os.path.splitext(file_name)
     save_dir_be = os.path.join(os.getcwd(), 'saved_models')
-    if not os.path.exists(save_dir_be) and shard_id==0:
+    if not os.path.exists(save_dir_be) and shard_id == 0:
         os.mkdir(save_dir_be)
     save_dir = os.path.join(save_dir_be, stem)
-    if not os.path.exists(save_dir) and shard_id==0:
+    if not os.path.exists(save_dir) and shard_id == 0:
         os.mkdir(save_dir)
-    filepath = "model_"+str(shard_id)
-    savepath = os.path.join(save_dir,filepath)
+    filepath = "model_" + str(shard_id)
+    savepath = os.path.join(save_dir, filepath)
     # calculate number of datapoints per node
     training_set_size = dataset['training_set']['x'].shape[0]
     shard_size = training_set_size // n_shards
@@ -169,9 +170,12 @@ def train_mnist(sess,
     from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
     sess.run(BroadcastGlobalVariablesOp())
     #load ckpt
-    if(os.path.exists(os.path.join(save_dir,"model_"+str(shard_id)+".meta")) and restart == 1):
-        saver1 = tf.train.import_meta_graph(os.path.join(save_dir,"model_"+str(shard_id)+".meta"))
-        saver1.restore(sess,savepath)
+    if (os.path.exists(
+            os.path.join(save_dir, "model_" + str(shard_id) + ".meta"))
+            and restart == 1):
+        saver1 = tf.train.import_meta_graph(
+            os.path.join(save_dir, "model_" + str(shard_id) + ".meta"))
+        saver1.restore(sess, savepath)
     print('training')
     # train the model with all batches allocated to the node
     for step in range(n_steps):
@@ -195,14 +199,15 @@ def train_mnist(sess,
                                 dataset['validation_set'])
             print('validation accuracy: %f' % result)
         if monitor:
-            if step%step_per_epoch == 0 and step !=0:
+            if step % step_per_epoch == 0 and step != 0:
                 epoch += 1
                 if epoch % save_epoch_num == 0:
-                    saver.save(sess,savepath)
-                    print(step/step_per_epoch)
+                    saver.save(sess, savepath)
+                    print(step / step_per_epoch)
                     for send in range(save_epoch_num):
                         monitor_epoch_end()
             monitor_batch_end()
+
 
 # parse arguments from the command line
 def parse_args():
@@ -227,14 +232,8 @@ def parse_args():
                         action='store_true',
                         default=False,
                         help='monitor')
-    parser.add_argument('--restart',
-                        type=int,
-                        default=0,
-                        help='restart')
-    parser.add_argument('--save-epoch',
-                        type=int,
-                        default=1,
-                        help='save-epoch')
+    parser.add_argument('--restart', type=int, default=0, help='restart')
+    parser.add_argument('--save-epoch', type=int, default=1, help='save-epoch')
     return parser.parse_args()
 
 
@@ -244,10 +243,11 @@ def main():
                                 batch_size=args.batch_size)
     x, y_, train_op, test_op = build_model(optimizer)
     mnist = load_mnist(args.data_dir)
-    
+
     with tf.Session() as sess:
         train_mnist(sess, x, y_, train_op, test_op, optimizer, mnist,
-                    args.n_epochs, args.batch_size, args.monitor,args.restart,args.save_epoch)
+                    args.n_epochs, args.batch_size, args.monitor, args.restart,
+                    args.save_epoch)
         result = test_mnist(sess, x, y_, test_op, mnist['test_set'])
         print('test accuracy: %f' % result)
         # save_all(sess, 'final')
