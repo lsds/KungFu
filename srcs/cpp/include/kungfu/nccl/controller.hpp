@@ -30,5 +30,8 @@ class NCCLController
 
     int AllReduce(const Workspace &w, KungFu_Op op, DoneCallback done);
     int AllReduce(const Workspace &w, KungFu_Op op, void *stream_ptr);
+
+    int AllGather(const Workspace &w, DoneCallback done);
+    int AllGather(const Workspace &w, void *stream_ptr);
 };
 }  // namespace kungfu

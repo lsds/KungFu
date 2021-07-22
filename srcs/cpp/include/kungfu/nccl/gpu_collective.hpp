@@ -35,6 +35,13 @@ class gpu_collective
                             KungFu_Datatype dtype, KungFu_Op op,
                             void *stream_ptr) = 0;
 
+    virtual void all_gather(const void *send_buf, void *recv_buf,
+                            size_t send_count, KungFu_Datatype dtype) = 0;
+
+    virtual void all_gather(const void *send_buf, void *recv_buf,
+                            size_t send_count, KungFu_Datatype dtype,
+                            void *stream_ptr) = 0;
+
     template <typename T>
     void all_reduce(const T *send_buf, T *recv_buf, size_t count)
     {
