@@ -220,7 +220,7 @@ gpu_collective *gpu_collective::new_group(kungfu::Peer &self,
     const int size = std::count(topology.begin(), topology.end(), root);
     int group_rank = 0;
     for (int i = 0; i < rank; ++i) {
-        if (topology[i] == topology[rank]) { ++group_rank; }
+        if (topology[i] == root) { ++group_rank; }
     }
     KUNGFU_CHECK(cuda_checker) << cudaSetDevice(kungfu_get_cuda_index());
     if (root == rank) { KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id); }
