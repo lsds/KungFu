@@ -164,6 +164,27 @@ class gpu_collective_nccl : public gpu_collective
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
                              to_nccl_op(op), comm_, stream);
     }
+
+    void all_gather(const void *send_buf, void *recv_buf, size_t send_count,
+                    KungFu_Datatype dtype)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallgather
+        KUNGFU_CHECK_HINT(nccl_checker, __func__)
+            << ncclAllGather(send_buf, recv_buf, send_count,
+                             to_nccl_type(dtype), comm_, stream_);
+        stream_.sync();
+    }
+
+    void all_gather(const void *send_buf, void *recv_buf, size_t send_count,
+                    KungFu_Datatype dtype, void *stream_ptr)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallgather
+        cudaStream_t stream = reinterpret_cast<cudaStream_t>(stream_ptr);
+        KUNGFU_CHECK_HINT(nccl_checker, __func__) << ncclAllGather(
+            send_buf, recv_buf, send_count, to_nccl_type(dtype), comm_, stream);
+    }
 };
 
 gpu_collective *new_global_gpu_collective(kungfu::Peer &self)

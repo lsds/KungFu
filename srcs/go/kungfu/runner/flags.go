@@ -28,6 +28,7 @@ func Init(f *FlagSet, args []string) {
 
 type FlagSet struct {
 	ConfigServer string
+	AutoRecover  time.Duration
 	ClusterSize  int
 	hostList     string
 	hostFile     string
@@ -67,6 +68,7 @@ type FlagSet struct {
 
 func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.IntVar(&f.ClusterSize, "np", 1, "number of peers")
+	flag.DurationVar(&f.AutoRecover, "auto-recover", 0, "threshold duration of auto recovery, disabled if not set.")
 	flag.StringVar(&f.hostList, "H", plan.DefaultHostList.String(), "comma separated list of <internal IP>:<nslots>[:<public addr>]")
 	flag.StringVar(&f.hostFile, "hostfile", "", "path to hostfile, will override -H if specified")
 	flag.StringVar(&f.peerList, "P", "", "comma separated list of <host>:<port>[:slot]")
