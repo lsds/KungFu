@@ -33,7 +33,7 @@ class NewQueue : public OpKernel
     void Compute(OpKernelContext *context) override
     {
         int queueID = -1;
-        _default_peer->NewQueue(src_, dst_, &queueID);
+        kungfu::Peer::GetDefault()->NewQueue(src_, dst_, &queueID);
 
         Tensor *output = nullptr;
         OP_REQUIRES_OK(context,
@@ -72,9 +72,9 @@ class QueuePut : public OpKernel
     void Compute(OpKernelContext *context) override
     {
         const Tensor &input = context->input(0);
-        _default_peer->QueuePut(src_, dst_, qid_, input.tensor_data().data(),
-                                input.NumElements(),
-                                to_kungfu_type(input.dtype()));
+        kungfu::Peer::GetDefault()->QueuePut(
+            src_, dst_, qid_, input.tensor_data().data(), input.NumElements(),
+            to_kungfu_type(input.dtype()));
     }
 };
 
@@ -121,7 +121,7 @@ class QueueGet : public OpKernel
     {
         Tensor *output = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, shape_, &output));
-        _default_peer->QueueGet(
+        kungfu::Peer::GetDefault()->QueueGet(
             src_, dst_, qid_, const_cast<char *>(output->tensor_data().data()),
             output->NumElements(), to_kungfu_type(output->dtype()));
     }
