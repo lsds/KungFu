@@ -187,7 +187,7 @@ class gpu_collective_nccl : public gpu_collective
     }
 };
 
-gpu_collective *new_global_gpu_collective(kungfu::Peer &self)
+gpu_collective *gpu_collective::new_global(kungfu::Peer &self)
 {
     ncclUniqueId id;
     const int root = 0;
@@ -199,7 +199,7 @@ gpu_collective *new_global_gpu_collective(kungfu::Peer &self)
     return new gpu_collective_nccl(id, self.Size(), rank, root);
 }
 
-gpu_collective *new_local_gpu_collective(kungfu::Peer &self)
+gpu_collective *gpu_collective::new_local(kungfu::Peer &self)
 {
     ncclUniqueId id;
     const int root = 0;
@@ -209,5 +209,23 @@ gpu_collective *new_local_gpu_collective(kungfu::Peer &self)
     self.LocalBroadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
                         "local nccl id");
     return new gpu_collective_nccl(id, self.LocalSize(), rank, root);
+}
+
+gpu_collective *gpu_collective::new_group(kungfu::Peer &self,
+                                          const std::vector<int32_t> &topology)
+{
+    ncclUniqueId id;
+    const int rank = self.Rank();
+    const int root = topology[rank];
+    const int size = std::count(topology.begin(), topology.end(), root);
+    int group_rank = 0;
+    for (int i = 0; i < rank; ++i) {
+        if (topology[i] == root) { ++group_rank; }
+    }
+    KUNGFU_CHECK(cuda_checker) << cudaSetDevice(kungfu_get_cuda_index());
+    if (root == rank) { KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id); }
+    self.SubsetBroadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
+                         topology.data(), "group nccl id");
+    return new gpu_collective_nccl(id, size, group_rank, 0);
 }
 }  // namespace kungfu

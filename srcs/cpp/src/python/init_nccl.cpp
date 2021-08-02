@@ -2,11 +2,10 @@
 #include <kungfu/nccl/helper.hpp>
 #include <kungfu/python/c_api.h>
 
-std::unique_ptr<kungfu::NCCLHelper> _default_nccl_helper;
+void kungfu_python_init_nccl() { kungfu::NCCLHelper::GetDefault(true); }
 
-void kungfu_python_init_nccl()
+void kungfu_python_finialize_nccl()
 {
-    _default_nccl_helper.reset(new kungfu::NCCLHelper);
+    auto &p = kungfu::NCCLHelper::GetDefault();
+    p.reset(nullptr);
 }
-
-void kungfu_python_finialize_nccl() { _default_nccl_helper.reset(nullptr); }

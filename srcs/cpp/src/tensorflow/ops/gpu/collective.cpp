@@ -56,8 +56,10 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto controller_ = _default_nccl_helper->EnsureController(nccl_scope_);
+        auto scheduler_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureScheduler(nccl_scope_);
+        auto controller_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -86,10 +88,10 @@ class NcclAllReduce : public AsyncOpKernel
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_ =
-            _default_nccl_helper->EnsureScheduler(KungFu_NCCL_GLOBAL);
-        auto controller_ =
-            _default_nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
+        auto scheduler_ = kungfu::NCCLHelper::GetDefault()->EnsureScheduler(
+            KungFu_NCCL_GLOBAL);
+        auto controller_ = kungfu::NCCLHelper::GetDefault()->EnsureController(
+            KungFu_NCCL_GLOBAL);
         auto peer = _default_peer.get();
         scheduler_->Do([=] { controller_->InitOnce(peer); });
         const Tensor &input = context->input(0);
@@ -131,8 +133,10 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto controller_ = _default_nccl_helper->EnsureController(nccl_scope_);
+        auto scheduler_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureScheduler(nccl_scope_);
+        auto controller_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(

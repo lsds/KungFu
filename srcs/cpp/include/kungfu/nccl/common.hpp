@@ -7,6 +7,9 @@
 enum KungFu_NCCLScope {
     KungFu_NCCL_GLOBAL,
     KungFu_NCCL_LOCAL,
+
+    // the group scope is user defined, there can be multiple group scopes
+    KungFu_NCCL_GROUP,
 };
 
 namespace kungfu

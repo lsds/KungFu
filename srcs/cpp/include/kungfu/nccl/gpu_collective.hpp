@@ -14,6 +14,8 @@ extern void kungfu_show_nccl_version();
 
 namespace kungfu
 {
+// gpu_collective wraps NCCL APIs for internal use.
+// User should use NCCLController
 class gpu_collective
 {
   public:
@@ -47,8 +49,10 @@ class gpu_collective
     {
         all_reduce(send_buf, recv_buf, count, type_encoder::value<T>());
     }
-};
 
-extern gpu_collective *new_global_gpu_collective(kungfu::Peer &);
-extern gpu_collective *new_local_gpu_collective(kungfu::Peer &);
+    static gpu_collective *new_global(kungfu::Peer &);
+    static gpu_collective *new_local(kungfu::Peer &);
+    static gpu_collective *new_group(kungfu::Peer &,
+                                     const std::vector<int32_t> &topology);
+};
 }  // namespace kungfu

@@ -181,6 +181,13 @@ func (sess *Session) LocalBroadcast(w kb.Workspace) error {
 	return sess.runGraphs(w, strategy.bcastGraph)
 }
 
+func (sess *Session) SubsetBroadcast(topology []int32, w kb.Workspace) error {
+	bg, _, ok := graph.FromForestArrayI32(topology)
+	assert.True(ok)
+	sl := simpleSingleGraphStrategy(bg)
+	return sess.runGraphs(w, sl[0].bcastGraph)
+}
+
 func asMessage(b *kb.Vector) connection.Message {
 	return connection.Message{
 		Length: uint32(len(b.Data)),

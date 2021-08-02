@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <mutex>
+#include <vector>
 
 #include <kungfu.h>
 #include <kungfu/cuda/stream.hpp>
@@ -15,14 +16,20 @@ class NCCLHelper
 {
     std::mutex mu_;
 
-    std::map<KungFu_NCCLScope, std::unique_ptr<NCCLController>> controllers_;
     std::map<KungFu_NCCLScope, std::unique_ptr<NCCLScheduler>> schedulers_;
+    std::map<KungFu_NCCLScope, std::unique_ptr<NCCLController>> controllers_;
+
+    std::map<std::string, std::unique_ptr<NCCLController>> group_controllers_;
 
   public:
     NCCLHelper();
 
+    NCCLScheduler *EnsureScheduler(const KungFu_NCCLScope scope);
+
     NCCLController *EnsureController(const KungFu_NCCLScope scope);
 
-    NCCLScheduler *EnsureScheduler(const KungFu_NCCLScope scope);
+    NCCLController *EnsureGroupController(std::vector<int32_t> topology);
+
+    static std::unique_ptr<NCCLHelper> &GetDefault(bool reinit = false);
 };
 }  // namespace kungfu

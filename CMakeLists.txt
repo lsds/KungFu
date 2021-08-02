@@ -32,21 +32,25 @@ ENDIF()
 INCLUDE(srcs/cmake/cgo.cmake)
 ADD_CGO_LIBRARY(libkungfu-comm ${CMAKE_SOURCE_DIR}/srcs/go/libkungfu-comm)
 
-ADD_LIBRARY(
-    kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/numa/placement.cpp
-                  srcs/cpp/src/peer.cpp srcs/cpp/src/session.cpp)
-IF(KUNGFU_ENABLE_AFFINITY)
-    ADD_DEFINITIONS(-DKUNGFU_ENABLE_AFFINITY)
-    TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/numa/affinity.cpp)
-    IF(KUNGFU_ENABLE_HWLOC)
-        ADD_DEFINITIONS(-DKUNGFU_ENABLE_HWLOC)
-        TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/numa/hwloc.cpp)
-        TARGET_LINK_LIBRARIES(kungfu hwloc)
+FUNCTION(BUILD_KUNGFU_LIB)
+    ADD_LIBRARY(
+        kungfu SHARED srcs/cpp/src/kungfu.cpp srcs/cpp/src/numa/placement.cpp
+                      srcs/cpp/src/peer.cpp srcs/cpp/src/session.cpp)
+    IF(KUNGFU_ENABLE_AFFINITY)
+        ADD_DEFINITIONS(-DKUNGFU_ENABLE_AFFINITY)
+        TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/numa/affinity.cpp)
+        IF(KUNGFU_ENABLE_HWLOC)
+            ADD_DEFINITIONS(-DKUNGFU_ENABLE_HWLOC)
+            TARGET_SOURCES(kungfu PRIVATE srcs/cpp/src/numa/hwloc.cpp)
+            TARGET_LINK_LIBRARIES(kungfu hwloc)
+        ENDIF()
     ENDIF()
-ENDIF()
-TARGET_LINK_LIBRARIES(kungfu kungfu-comm)
-ADD_DEPENDENCIES(kungfu libkungfu-comm)
-ADD_CGO_DEPS(kungfu)
+    TARGET_LINK_LIBRARIES(kungfu kungfu-comm)
+    ADD_DEPENDENCIES(kungfu libkungfu-comm)
+    ADD_CGO_DEPS(kungfu)
+ENDFUNCTION()
+
+BUILD_KUNGFU_LIB() # build libkungfu.{so|dylib}
 
 INSTALL(DIRECTORY srcs/cpp/include DESTINATION .)
 INSTALL(DIRECTORY lib DESTINATION .)
@@ -73,23 +77,13 @@ IF(KUNGFU_ENABLE_NCCL)
     ENDIF()
 ENDIF()
 
-IF(KUNGFU_BUILD_TF_OPS)
-    INCLUDE(srcs/cmake/tf-op.cmake)
-
+FUNCTION(BUILD_KUNGFU_PYTHON_LIB)
     ADD_LIBRARY(
         kungfu_python SHARED
         srcs/cpp/src/nccl/common.cpp srcs/cpp/src/nccl/scheduler.cpp
         srcs/cpp/src/python/c_api.cpp srcs/cpp/src/python/cuda.cpp
         srcs/cpp/src/python/init.cpp)
     TARGET_LINK_LIBRARIES(kungfu_python kungfu)
-
-    FILE(GLOB CPU_OP_SRCS
-         ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/cpu/*.cpp)
-    FILE(GLOB GPU_OP_SRCS
-         ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/gpu/*.cpp)
-
-    ADD_TF_OP_LIB(kungfu_tensorflow_ops ${CPU_OP_SRCS})
-    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
 
     IF(KUNGFU_ENABLE_NCCL)
         TARGET_SOURCES(
@@ -100,11 +94,31 @@ IF(KUNGFU_BUILD_TF_OPS)
                     srcs/cpp/src/nccl/helper.cpp
                     srcs/cpp/src/nccl/gpu_collective.cpp)
         USE_NCCL(kungfu_python)
+    ENDIF()
+
+    IF(KUNGFU_ENABLE_TRACE)
+        USE_STDTRACER(kungfu_python)
+    ENDIF()
+ENDFUNCTION()
+
+BUILD_KUNGFU_PYTHON_LIB() # build libkungfu_python.{so|dylib}
+
+IF(KUNGFU_BUILD_TF_OPS)
+    INCLUDE(srcs/cmake/tf-op.cmake)
+
+    FILE(GLOB CPU_OP_SRCS
+         ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/cpu/*.cpp)
+    FILE(GLOB GPU_OP_SRCS
+         ${CMAKE_SOURCE_DIR}/srcs/cpp/src/tensorflow/ops/gpu/*.cpp)
+
+    ADD_TF_OP_LIB(kungfu_tensorflow_ops ${CPU_OP_SRCS})
+    TARGET_LINK_LIBRARIES(kungfu_tensorflow_ops kungfu_python kungfu)
+
+    IF(KUNGFU_ENABLE_NCCL)
         TARGET_SOURCES(kungfu_tensorflow_ops PRIVATE ${GPU_OP_SRCS})
         USE_NCCL(kungfu_tensorflow_ops)
     ENDIF()
     IF(KUNGFU_ENABLE_TRACE)
-        USE_STDTRACER(kungfu_python)
         USE_STDTRACER(kungfu_tensorflow_ops)
     ENDIF()
 
