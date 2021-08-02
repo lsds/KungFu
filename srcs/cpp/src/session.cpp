@@ -160,6 +160,25 @@ int Peer::LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
                                   new CallbackWrapper(done));
 }
 
+int Peer::SubsetBroadcast(const void *sendbuf, void *recvbuf, int count,
+                          KungFu_Datatype dtype, const int32_t *topology,
+                          const char *name)
+{
+    return GoSubsetBroadcast(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
+                             dtype, const_cast<int32_t *>(topology),
+                             const_cast<char *>(name), nullptr);
+}
+
+int Peer::SubsetBroadcast(const void *sendbuf, void *recvbuf, int count,
+                          KungFu_Datatype dtype, const int32_t *topology,
+                          const char *name, const DoneCallback &done)
+{
+    return GoSubsetBroadcast(const_cast<void *>(sendbuf), recvbuf, GoInt(count),
+                             dtype, const_cast<int32_t *>(topology),
+                             const_cast<char *>(name),
+                             new CallbackWrapper(done));
+}
+
 int Peer::Gather(const void *sendbuf, int send_count,
                  KungFu_Datatype send_dtype, void *recvbuf, int recv_count,
                  KungFu_Datatype recv_dtype, const char *name)

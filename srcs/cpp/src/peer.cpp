@@ -3,6 +3,12 @@
 
 namespace kungfu
 {
+Peer &Peer::GetDefault()
+{
+    static Peer instance;
+    return instance;
+}
+
 Peer::Peer()
 {
     const int err = GoKungfuInit();

@@ -167,6 +167,20 @@ func GoKungfuLocalBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.
 	return callCollectiveOP("LocalBroadcast", name, sess.LocalBroadcast, w, done)
 }
 
+//export GoSubsetBroadcast
+func GoSubsetBroadcast(sendBuf, recvBuf unsafe.Pointer, count int, dtype C.KungFu_Datatype, pTopology unsafe.Pointer, pName *C.char, done *C.callback_t) int {
+	name := C.GoString(pName)
+	w := kb.Workspace{
+		SendBuf: toVector(sendBuf, count, dtype),
+		RecvBuf: toVector(recvBuf, count, dtype),
+		Name:    name,
+	}
+	sess := defaultPeer.CurrentSession()
+	topology := toVector(pTopology, sess.Size(), C.KungFu_INT32) // TODO: ensure pTopology has size np in C++
+	f := func(w kb.Workspace) error { return sess.SubsetBroadcast(topology.AsI32(), w) }
+	return callCollectiveOP("SubsetBroadcast", name, f, w, done)
+}
+
 func callCollectiveOP(opName, name string, op func(kb.Workspace) error, w kb.Workspace, done *C.callback_t) int {
 	return callOP(opName+"("+name+")", func() error { return op(w) }, done)
 }

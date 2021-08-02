@@ -13,6 +13,8 @@ using TransformFunc = std::function<void(
 class Peer
 {
   public:
+    static Peer &GetDefault();
+
     Peer();
 
     Peer(int rank, int size);  // Single Machine Multi-Process
@@ -126,6 +128,13 @@ class Peer
     int LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
                        KungFu_Datatype dtype, const char *name,
                        const DoneCallback &done);
+
+    int SubsetBroadcast(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, const int32_t *topology,
+                        const char *name);
+    int SubsetBroadcast(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, const int32_t *topology,
+                        const char *name, const DoneCallback &done);
 
     // variant of https://www.open-mpi.org/doc/v4.0/man3/MPI_Gather.3.php
     int Gather(const void *sendbuf, int send_count, KungFu_Datatype send_dtype,
