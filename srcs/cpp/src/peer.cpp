@@ -3,9 +3,10 @@
 
 namespace kungfu
 {
-Peer &Peer::GetDefault()
+std::unique_ptr<Peer> &Peer::GetDefault(bool reinit)
 {
-    static Peer instance;
+    static std::unique_ptr<Peer> instance;
+    if (reinit) { instance.reset(new Peer); }
     return instance;
 }
 

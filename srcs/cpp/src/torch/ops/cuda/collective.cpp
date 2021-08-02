@@ -23,8 +23,9 @@ void all_reduce_cuda(torch::Tensor input, torch::Tensor output,
     const KungFu_Datatype dtype = from(_torch_tensor_types.at(type));
     std::vector<char> buffer(data_size(input));
     _torch_cuda_helper.from_cuda(buffer.data(), input);
-    _default_peer->AllReduce(buffer.data(), buffer.data(), input.numel(), dtype,
-                             _kungfu_ops.at(op_name), "");
+    kungfu::Peer::GetDefault()->AllReduce(buffer.data(), buffer.data(),
+                                          input.numel(), dtype,
+                                          _kungfu_ops.at(op_name), "");
     _torch_cuda_helper.to_cuda(output, buffer.data());
 }
 
@@ -40,10 +41,10 @@ int all_reduce_cuda_async(torch::Tensor input, torch::Tensor output,
     void *py                    = output.data_ptr();
 
     const int handle = _torch_cuda_helper.handle_manager().create();
-    _default_peer->Noop([=] {
+    kungfu::Peer::GetDefault()->Noop([=] {
         char *buffer = new char[size];
         _torch_cuda_helper.from_cuda(buffer, px, size);
-        _default_peer->AllReduce(
+        kungfu::Peer::GetDefault()->AllReduce(
             buffer, buffer, count, dtype, op, tensor_name.c_str(), [=] {
                 _torch_cuda_helper.to_cuda(py, buffer, size);
                 delete[] buffer;
@@ -64,10 +65,10 @@ int broadcast_cuda_async(torch::Tensor input, torch::Tensor output,
     void *py                    = output.data_ptr();
 
     const int handle = _torch_cuda_helper.handle_manager().create();
-    _default_peer->Noop([=] {
+    kungfu::Peer::GetDefault()->Noop([=] {
         char *buffer = new char[size];
         _torch_cuda_helper.from_cuda(buffer, px, size);
-        _default_peer->Broadcast(
+        kungfu::Peer::GetDefault()->Broadcast(
             buffer, buffer, count, dtype, tensor_name.c_str(), [=] {
                 _torch_cuda_helper.to_cuda(py, buffer, size);
                 delete[] buffer;
@@ -84,8 +85,8 @@ void all_gather_cuda(torch::Tensor input, torch::Tensor output,
     std::vector<char> send_buffer(data_size(input));
     std::vector<char> receive_buffer(data_size(output));
     _torch_cuda_helper.from_cuda(send_buffer.data(), input);
-    _default_peer->AllGather(send_buffer.data(), input.numel(), dtype,
-                             receive_buffer.data(), "");
+    kungfu::Peer::GetDefault()->AllGather(send_buffer.data(), input.numel(),
+                                          dtype, receive_buffer.data(), "");
     _torch_cuda_helper.to_cuda(output, receive_buffer.data());
 }
 }  // namespace kungfu

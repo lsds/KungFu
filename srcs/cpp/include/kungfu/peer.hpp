@@ -1,5 +1,7 @@
 #pragma once
 #include <functional>
+#include <memory>
+
 #include <kungfu/dtype.hpp>
 
 namespace kungfu
@@ -13,7 +15,7 @@ using TransformFunc = std::function<void(
 class Peer
 {
   public:
-    static Peer &GetDefault();
+    static std::unique_ptr<Peer> &GetDefault(bool reinit = false);
 
     Peer();
 

@@ -9,8 +9,6 @@
 
 DEFINE_TRACE_CONTEXT(kungfu);
 
-std::unique_ptr<kungfu::Peer> _default_peer;
-
 bool parse_bool_env(const char *name)
 {
     const char *ptr = std::getenv(name);
@@ -29,45 +27,55 @@ static void _init_affinity()
 
 void kungfu_python_init()
 {
-    _default_peer.reset(new kungfu::Peer);
+    kungfu::Peer::GetDefault(true);
     _init_affinity();
 }
 
 void kungfu_python_init_single_machine(int rank, int size)
 {
-    _default_peer.reset(new kungfu::Peer(rank, size));
+    auto &peer = kungfu::Peer::GetDefault();
+    peer.reset(new kungfu::Peer(rank, size));
     _init_affinity();
 }
 
-void kungfu_python_finialize() { _default_peer.reset(nullptr); }
+void kungfu_python_finialize() { kungfu::Peer::GetDefault().reset(nullptr); }
 
-uint64_t kungfu_uid() { return _default_peer->Uid(); }
+uint64_t kungfu_uid() { return kungfu::Peer::GetDefault()->Uid(); }
 
-int kungfu_detached() { return _default_peer->Detached(); }
+int kungfu_detached() { return kungfu::Peer::GetDefault()->Detached(); }
 
-int kungfu_rank() { return _default_peer->Rank(); }
+int kungfu_rank() { return kungfu::Peer::GetDefault()->Rank(); }
 
-int kungfu_size() { return _default_peer->Size(); }
+int kungfu_size() { return kungfu::Peer::GetDefault()->Size(); }
 
-int kungfu_local_rank() { return _default_peer->LocalRank(); }
+int kungfu_local_rank() { return kungfu::Peer::GetDefault()->LocalRank(); }
 
-int kungfu_local_size() { return _default_peer->LocalSize(); }
+int kungfu_local_size() { return kungfu::Peer::GetDefault()->LocalSize(); }
 
-void kungfu_barrier() { _default_peer->Barrier(); }
+void kungfu_barrier() { kungfu::Peer::GetDefault()->Barrier(); }
 
 int kungfu_propose_new_size(int new_size)
 {
-    return _default_peer->ProposeNewSize(new_size);
+    return kungfu::Peer::GetDefault()->ProposeNewSize(new_size);
 }
 
 #ifdef KUNGFU_ENABLE_AFFINITY
-void kungfu_set_affinity() { kungfu::set_affinity(*_default_peer); }
+void kungfu_set_affinity()
+{
+    kungfu::set_affinity(*kungfu::Peer::GetDefault());
+}
 #endif
 
-int kungfu_check_interference() { return _default_peer->CheckInterference(); }
+int kungfu_check_interference()
+{
+    return kungfu::Peer::GetDefault()->CheckInterference();
+}
 
-void kungfu_calc_stats() { return _default_peer->CalcStats(); }
+void kungfu_calc_stats() { return kungfu::Peer::GetDefault()->CalcStats(); }
 
-void kungfu_log_stats() { return _default_peer->LogStats(); }
+void kungfu_log_stats() { return kungfu::Peer::GetDefault()->LogStats(); }
 
-void kungfu_print_strategy_stats() { _default_peer->PrintStategyStats(); }
+void kungfu_print_strategy_stats()
+{
+    kungfu::Peer::GetDefault()->PrintStategyStats();
+}

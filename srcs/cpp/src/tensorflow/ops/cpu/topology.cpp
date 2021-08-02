@@ -21,7 +21,7 @@ class Rank : public OpKernel
         Tensor *rank = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &rank));
-        rank->scalar<int32_t>()() = _default_peer->Rank();
+        rank->scalar<int32_t>()() = kungfu::Peer::GetDefault()->Rank();
     }
 };
 
@@ -45,7 +45,7 @@ class ClusterSize : public OpKernel
         Tensor *cluster_size = nullptr;
         OP_REQUIRES_OK(context, context->allocate_output(0, MakeTensorShape(),
                                                          &cluster_size));
-        cluster_size->scalar<int32_t>()() = _default_peer->Size();
+        cluster_size->scalar<int32_t>()() = kungfu::Peer::GetDefault()->Size();
     }
 };
 
@@ -74,8 +74,8 @@ class GetPeerInfo : public OpKernel
                        context->allocate_output(0, MakeTensorShape(), &rank));
         OP_REQUIRES_OK(context, context->allocate_output(1, MakeTensorShape(),
                                                          &cluster_size));
-        rank->scalar<int32_t>()()         = _default_peer->Rank();
-        cluster_size->scalar<int32_t>()() = _default_peer->Size();
+        rank->scalar<int32_t>()()         = kungfu::Peer::GetDefault()->Rank();
+        cluster_size->scalar<int32_t>()() = kungfu::Peer::GetDefault()->Size();
     }
 };
 
@@ -106,7 +106,7 @@ class GetPeerLatencies : public AsyncOpKernel
             context,
             context->allocate_output(0, MakeTensorShape(size_), &latencies),
             done);
-        _default_peer->GetPeerLatencies(
+        kungfu::Peer::GetDefault()->GetPeerLatencies(
             const_cast<float *>(latencies->vec<float>().data()),
             latencies->NumElements());
         done();
@@ -135,7 +135,7 @@ class MinimumSpanningTree : public AsyncOpKernel
             context->allocate_output(0, MakeTensorShape(n - 1, 2), &edges),
             done);
         using Weight = float;  // FIXME: use type switch on T
-        _default_peer->AllGatherTransform(
+        kungfu::Peer::GetDefault()->AllGatherTransform(
             weights.vec<Weight>().data(), n,  //
             const_cast<int32_t *>(edges->matrix<int32_t>().data()),
             2 * (n - 1),  //

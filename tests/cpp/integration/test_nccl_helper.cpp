@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <numeric>
 
@@ -8,8 +9,8 @@
 
 int main()
 {
-    auto &peer = kungfu::Peer::GetDefault();
-    std::cout << peer.Rank() << '/' << peer.Size() << std::endl;
+    auto &peer = kungfu::Peer::GetDefault(true);
+    std::cout << peer->Rank() << '/' << peer->Size() << std::endl;
 
     auto &nccl_helper = kungfu::NCCLHelper::GetDefault(true);
 
@@ -29,7 +30,7 @@ int main()
         };
 
         auto controller = nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
-        controller->InitOnce(&peer);
+        controller->InitOnce(peer.get());
         controller->AllReduce(w, KungFu_SUM, static_cast<cudaStream_t>(s));
         s.sync();
     }
@@ -45,7 +46,8 @@ int main()
         cuda_vector<R> y(n);
 
         kungfu::CudaStream s;
-        std::iota(x_cpu.begin(), x_cpu.end(), 1);
+        std::fill(x_cpu.begin(), x_cpu.end(),
+                  static_cast<R>(1 << peer->Rank()));
         std::fill(y_cpu.begin(), y_cpu.end(), -1);
         s.memcpy(x.data(), x_cpu.data(), n * sizeof(R), cudaMemcpyHostToDevice);
         s.memcpy(y.data(), y_cpu.data(), n * sizeof(R), cudaMemcpyHostToDevice);
@@ -58,14 +60,14 @@ int main()
         };
 
         auto controller = nccl_helper->EnsureGroupController(topology);
-        controller->InitOnce(&peer);
+        controller->InitOnce(peer.get());
         controller->AllReduce(w, KungFu_SUM, static_cast<cudaStream_t>(s));
         s.sync();
         s.memcpy(y_cpu.data(), y.data(), n * sizeof(R), cudaMemcpyDeviceToHost);
         return y_cpu;
     };
 
-    if (peer.Size() == 4) {
+    if (peer->Size() == 4) {
         std::vector<int32_t> topology(4);
         {
             topology[0] = 0;
@@ -73,7 +75,8 @@ int main()
             topology[2] = 0;
             topology[3] = 0;
             auto y      = test_SubsetAllReduce(topology);
-            printf("rank=%d, y[0]=%f, groups={[0,1,2,3]}\n", peer.Rank(), y[0]);
+            printf("rank=%d, y[0]=%f, groups={[0,1,2,3]}\n", peer->Rank(),
+                   y[0]);
         }
         {
             topology[0] = 0;
@@ -81,7 +84,7 @@ int main()
             topology[2] = 1;
             topology[3] = 1;
             auto y      = test_SubsetAllReduce(topology);
-            printf("rank=%d, y[0]=%f, groups={[0], [1,2,3]}\n", peer.Rank(),
+            printf("rank=%d, y[0]=%f, groups={[0], [1,2,3]}\n", peer->Rank(),
                    y[0]);
         }
         {
@@ -90,7 +93,16 @@ int main()
             topology[2] = 2;
             topology[3] = 2;
             auto y      = test_SubsetAllReduce(topology);
-            printf("rank=%d, y[0]=%f, groups={[0,1], [2,3]}\n", peer.Rank(),
+            printf("rank=%d, y[0]=%f, groups={[0,1], [2,3]}\n", peer->Rank(),
+                   y[0]);
+        }
+        {
+            topology[0] = 0;
+            topology[1] = 0;
+            topology[2] = 1;
+            topology[3] = 1;
+            auto y      = test_SubsetAllReduce(topology);
+            printf("rank=%d, y[0]=%f, groups={[0,1,2,3]}\n", peer->Rank(),
                    y[0]);
         }
     }
