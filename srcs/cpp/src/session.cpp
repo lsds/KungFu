@@ -64,6 +64,26 @@ int Peer::AllReduce(const void *sendbuf, void *recvbuf, int count,
                              new CallbackWrapper(done));
 }
 
+int Peer::SubsetAllReduce(const void *sendbuf, void *recvbuf, int count,
+                          KungFu_Datatype dtype, KungFu_Op op,
+                          const int32_t *topology, const char *name)
+{
+    return GoKungfuSubsetAllReduce(
+        const_cast<void *>(sendbuf), recvbuf, GoInt(count), dtype, op,
+        const_cast<int32_t *>(topology), const_cast<char *>(name), nullptr);
+}
+
+int Peer::SubsetAllReduce(const void *sendbuf, void *recvbuf, int count,
+                          KungFu_Datatype dtype, KungFu_Op op,
+                          const int32_t *topology, const char *name,
+                          const DoneCallback &done)
+{
+    return GoKungfuSubsetAllReduce(
+        const_cast<void *>(sendbuf), recvbuf, GoInt(count), dtype, op,
+        const_cast<int32_t *>(topology), const_cast<char *>(name),
+        new CallbackWrapper(done));
+}
+
 int Peer::CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
                          KungFu_Datatype dtype, KungFu_Op op, const char *name)
 {
@@ -186,4 +206,24 @@ int Peer::SetTree(const int32_t *tree)
 }
 
 int Peer::GetEgressRates(float *rates) { return GoKungfuGetEgressRates(rates); }
+
+int Peer::NewQueue(int src, int dst, int *queueID)
+{
+    return GoKungfuQueueNew(GoInt(src), GoInt(dst), queueID);
+}
+
+int Peer::QueueGet(int src, int dst, int queueID, void *buf, int count,
+                   KungFu_Datatype dtype)
+{
+    return GoKungfuQueueGet(GoInt(src), GoInt(dst), queueID, buf, GoInt(count),
+                            dtype);  //
+}
+
+int Peer::QueuePut(int src, int dst, int queueID, const void *buf, int count,
+                   KungFu_Datatype dtype)
+{
+    return GoKungfuQueuePut(GoInt(src), GoInt(dst), queueID,
+                            const_cast<void *>(buf), GoInt(count),
+                            dtype);  //
+}
 }  // namespace kungfu
