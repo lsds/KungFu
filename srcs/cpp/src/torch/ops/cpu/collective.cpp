@@ -12,7 +12,8 @@ void do_all_reduce(void *input, void *output, size_t n, KungFu_Op op)
 {
     T *x = reinterpret_cast<T *>(input);
     T *y = reinterpret_cast<T *>(output);
-    _default_peer->AllReduce(x, y, n, kungfu::type_encoder::value<T>(), op, "");
+    kungfu::Peer::GetDefault()->AllReduce(
+        x, y, n, kungfu::type_encoder::value<T>(), op, "");
 }
 
 void do_all_reduce(torch::Tensor &input, torch::Tensor &output, KungFu_Op op)
@@ -39,7 +40,8 @@ void do_all_gather(void *input, void *output, size_t n)
 {
     T *x = reinterpret_cast<T *>(input);
     T *y = reinterpret_cast<T *>(output);
-    _default_peer->AllGather(x, n, kungfu::type_encoder::value<T>(), y, "");
+    kungfu::Peer::GetDefault()->AllGather(
+        x, n, kungfu::type_encoder::value<T>(), y, "");
 }
 
 void do_all_gather(torch::Tensor &input, torch::Tensor &output)

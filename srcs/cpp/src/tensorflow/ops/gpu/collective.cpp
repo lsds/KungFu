@@ -92,7 +92,7 @@ class NcclAllReduce : public AsyncOpKernel
             KungFu_NCCL_GLOBAL);
         auto controller_ = kungfu::NCCLHelper::GetDefault()->EnsureController(
             KungFu_NCCL_GLOBAL);
-        auto peer = _default_peer.get();
+        auto peer = kungfu::Peer::GetDefault().get();
         scheduler_->Do([=] { controller_->InitOnce(peer); });
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
@@ -145,7 +145,7 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
         auto w_reduce     = make_workspace(input, output);
         auto w_all_reduce = make_workspace(*output, output);
         auto w_bcast      = make_workspace(*output, output);
-        auto peer         = _default_peer.get();
+        auto peer         = kungfu::Peer::GetDefault().get();
         scheduler_->Start(reduce_op_, [=] {
             wait_delete_ready_event(ready_event);
             controller_->Reduce(w_reduce, KungFu_SUM, [=] {

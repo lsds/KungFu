@@ -11,11 +11,11 @@ class EgressRates : public OpKernel
   public:
     void Compute(OpKernelContext *context) override
     {
-        const int np  = _default_peer->Size();
+        const int np  = kungfu::Peer::GetDefault()->Size();
         Tensor *rates = nullptr;
         OP_REQUIRES_OK(
             context, context->allocate_output(0, MakeTensorShape(np), &rates));
-        _default_peer->GetEgressRates(rates->vec<float>().data());
+        kungfu::Peer::GetDefault()->GetEgressRates(rates->vec<float>().data());
     }
 };
 

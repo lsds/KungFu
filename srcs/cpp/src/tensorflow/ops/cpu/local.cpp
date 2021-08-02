@@ -31,14 +31,14 @@ class SaveVariable : public AsyncOpKernel
         const int64_t version = context->input(0).scalar<int64_t>()();
         const Tensor &input   = context->input(1);
         if (use_version_) {
-            _default_peer->Save(std::to_string(version).c_str(),
-                                input_tensor_name_.c_str(),
-                                input.tensor_data().data(), input.NumElements(),
-                                to_kungfu_type(input.dtype()), done);
+            kungfu::Peer::GetDefault()->Save(
+                std::to_string(version).c_str(), input_tensor_name_.c_str(),
+                input.tensor_data().data(), input.NumElements(),
+                to_kungfu_type(input.dtype()), done);
         } else {
-            _default_peer->Save(input_tensor_name_.c_str(),
-                                input.tensor_data().data(), input.NumElements(),
-                                to_kungfu_type(input.dtype()), done);
+            kungfu::Peer::GetDefault()->Save(
+                input_tensor_name_.c_str(), input.tensor_data().data(),
+                input.NumElements(), to_kungfu_type(input.dtype()), done);
         }
     }
 };
@@ -71,8 +71,9 @@ class SaveVariables : public AsyncOpKernel
         for (int i = 0; i < num_tensors_; ++i) {
             const Tensor &t = context->input(i);
             // TODO: get name from t
-            _default_peer->Save(names_.at(i).c_str(), t.tensor_data().data(),
-                                t.NumElements(), to_kungfu_type(t.dtype()));
+            kungfu::Peer::GetDefault()->Save(
+                names_.at(i).c_str(), t.tensor_data().data(), t.NumElements(),
+                to_kungfu_type(t.dtype()));
         }
         done();
     }

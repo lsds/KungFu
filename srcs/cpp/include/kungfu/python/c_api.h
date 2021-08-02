@@ -49,5 +49,3 @@ namespace kungfu
 class Peer;
 class NCCLHelper;
 }  // namespace kungfu
-
-extern std::unique_ptr<kungfu::Peer> _default_peer;

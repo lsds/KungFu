@@ -22,15 +22,15 @@ class SetTree : public OpKernel
         Tensor *succ       = nullptr;
         OP_REQUIRES_OK(context,
                        context->allocate_output(0, MakeTensorShape(), &succ));
-        DCHECK_EQ(_default_peer->SetTree(tree.vec<int32_t>().data()), 0);
+        DCHECK_EQ(
+            kungfu::Peer::GetDefault()->SetTree(tree.vec<int32_t>().data()), 0);
         succ->scalar<bool>()() = true;
     }
 };
 
 REGISTER_KUNGFU_KERNEL_BUILDER(SetTree, DEVICE_CPU);
 
-REGISTER_KUNGFU_OP(CalcStats)
-    .SetIsStateful();
+REGISTER_KUNGFU_OP(CalcStats).SetIsStateful();
 
 class CalcStats : public OpKernel
 {
@@ -39,7 +39,7 @@ class CalcStats : public OpKernel
   public:
     void Compute(OpKernelContext *context) override
     {
-        _default_peer->CalcStats();
+        kungfu::Peer::GetDefault()->CalcStats();
     }
 };
 

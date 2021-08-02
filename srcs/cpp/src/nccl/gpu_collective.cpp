@@ -211,19 +211,32 @@ gpu_collective *gpu_collective::new_local(kungfu::Peer &self)
     return new gpu_collective_nccl(id, self.LocalSize(), rank, root);
 }
 
+std::vector<int32_t> get_root(const std::vector<int32_t> &topology)
+{  // FIXME: check cycle
+    std::vector<int32_t> roots(topology.size());
+    std::copy(topology.begin(), topology.end(), roots.begin());
+    const std::function<int(int)> f = [&](auto i) {
+        if (roots[i] == i) { return i; }
+        roots[i] = f(roots[i]);
+        return roots[i];
+    };
+    for (size_t i = 0; i < roots.size(); ++i) { f(i); }
+    return roots;
+}
+
 gpu_collective *gpu_collective::new_group(kungfu::Peer &self,
                                           const std::vector<int32_t> &topology)
 {
     ncclUniqueId id;
-    const int rank = self.Rank();
-    const int root = topology[rank];
-    const int size = std::count(topology.begin(), topology.end(), root);
-    int group_rank = 0;
-    for (int i = 0; i < rank; ++i) {
-        if (topology[i] == root) { ++group_rank; }
-    }
+    const int rank   = self.Rank();
+    const auto roots = get_root(topology);
+    const int size   = std::count(roots.begin(), roots.end(), roots[rank]);
+    const int group_rank =
+        std::count(roots.begin(), roots.begin() + rank, roots[rank]);
     KUNGFU_CHECK(cuda_checker) << cudaSetDevice(kungfu_get_cuda_index());
-    if (root == rank) { KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id); }
+    if (roots[rank] == rank) {
+        KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id);
+    }
     self.SubsetBroadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
                          topology.data(), "group nccl id");
     return new gpu_collective_nccl(id, size, group_rank, 0);

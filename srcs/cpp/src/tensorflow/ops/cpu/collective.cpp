@@ -13,7 +13,7 @@ class Barrier : public AsyncOpKernel
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        _default_peer->Barrier(done);
+        kungfu::Peer::GetDefault()->Barrier(done);
     }
 };
 
@@ -45,7 +45,7 @@ class Consensus : public AsyncOpKernel
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, MakeTensorShape(), &output),
             done);
-        _default_peer->Consensus(
+        kungfu::Peer::GetDefault()->Consensus(
             input.tensor_data().data(), input.NumElements(),
             to_kungfu_type(input.dtype()),
             reinterpret_cast<bool *>(output->scalar<bool>().data()),
@@ -92,7 +92,7 @@ class AllReduce : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
-        _default_peer->AllReduce(
+        kungfu::Peer::GetDefault()->AllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), op_,
@@ -136,7 +136,7 @@ class SubsetAllReduce : public AsyncOpKernel
         Tensor *output       = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
-        _default_peer->SubsetAllReduce(
+        kungfu::Peer::GetDefault()->SubsetAllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), op_,
@@ -185,7 +185,7 @@ class MonitoredAllReduce : public AsyncOpKernel
         // OP_REQUIRES_OK_ASYNC(
         //     context, context->allocate_output(1, input.shape(), &metrics),
         //     done);  // TODO
-        _default_peer->MonitoredAllReduce(
+        kungfu::Peer::GetDefault()->MonitoredAllReduce(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), op_,
@@ -210,13 +210,13 @@ class AllGather : public AsyncOpKernel
     {
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
-        const int np        = _default_peer->Size();
+        const int np        = kungfu::Peer::GetDefault()->Size();
         OP_REQUIRES_OK_ASYNC(
             context,
             context->allocate_output(0, BatchTensorShape(input.shape(), np),
                                      &output),
             done);
-        _default_peer->AllGather(
+        kungfu::Peer::GetDefault()->AllGather(
             input.tensor_data().data(), input.NumElements(),
             to_kungfu_type(input.dtype()),
             const_cast<char *>(output->tensor_data().data()), name().c_str(),
@@ -243,7 +243,7 @@ class Broadcast : public AsyncOpKernel
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, input.shape(), &output), done);
-        _default_peer->Broadcast(
+        kungfu::Peer::GetDefault()->Broadcast(
             input.tensor_data().data(),
             const_cast<char *>(output->tensor_data().data()),
             input.NumElements(), to_kungfu_type(input.dtype()), name().c_str(),
