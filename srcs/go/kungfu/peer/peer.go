@@ -153,7 +153,7 @@ func (p *Peer) updateTo(pl plan.PeerList) bool {
 	}
 	log.Debugf("Kungfu::updateTo v%d of %d peers: %s", p.clusterVersion, len(pl), pl)
 	p.router.ResetConnections(pl, uint32(p.clusterVersion))
-	sess, exist := session.New(p.strategy, p.self, pl, p.router.client, p.router.Collective)
+	sess, exist := session.New(p.strategy, p.self, pl, p.router.client, p.router.Collective, p.router.Queue)
 	if !exist {
 		return false
 	}

@@ -102,6 +102,50 @@ class AllReduce : public AsyncOpKernel
 
 REGISTER_KUNGFU_KERNEL_BUILDER(AllReduce, DEVICE_CPU);
 
+REGISTER_KUNGFU_OP(SubsetAllReduce)
+    .Attr("T: {int32, int64, float16, float32, float64}")
+    .Attr("op: string")
+    .Input("input: T")
+    .Input("topology: int32")
+    .Output("output: T")
+    .SetShapeFn([](shape_inference::InferenceContext *c) {
+        c->set_output(0, c->input(0));
+        // c->set_output(1, ?); // TODO(optional)
+        return Status::OK();
+    });
+
+class SubsetAllReduce : public AsyncOpKernel
+{
+    KungFu_Op op_;
+
+  public:
+    explicit SubsetAllReduce(OpKernelConstruction *context)
+        : AsyncOpKernel(context)
+    {
+        std::string op;
+        OP_REQUIRES_OK(context, context->GetAttr("op", &op));
+        OP_REQUIRES(context, kungfu_ops.count(op) > 0,
+                    errors::InvalidArgument("invalid op"));
+        op_ = kungfu_ops.at(op);
+    }
+
+    void ComputeAsync(OpKernelContext *context, DoneCallback done) override
+    {
+        const Tensor &input  = context->input(0);
+        const auto &topology = context->input(1).vec<int32_t>();
+        Tensor *output       = nullptr;
+        OP_REQUIRES_OK_ASYNC(
+            context, context->allocate_output(0, input.shape(), &output), done);
+        _default_peer->SubsetAllReduce(
+            input.tensor_data().data(),
+            const_cast<char *>(output->tensor_data().data()),
+            input.NumElements(), to_kungfu_type(input.dtype()), op_,
+            topology.data(), name().c_str(), done);
+    }
+};
+
+REGISTER_KUNGFU_KERNEL_BUILDER(SubsetAllReduce, DEVICE_CPU);
+
 REGISTER_KUNGFU_OP(MonitoredAllReduce)
     .Attr("T: {int32, int64, float16, float32, float64}")
     .Attr("op: string")
