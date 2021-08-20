@@ -122,6 +122,8 @@ add_cmake_flags() {
         add_cmake_flag NCCL_HOME ${NCCL_HOME}
         add_cmake_flag KUNGFU_ENABLE_NCCL 1
     fi
+
+    add_cmake_flag KUNGFU_ENABLE_AFFINITY 1
 }
 
 cleanup_cmake_cache() {
