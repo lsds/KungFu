@@ -97,6 +97,12 @@ IF(KUNGFU_ENABLE_NCCL)
                  ${KUNGFU_TESTS_DIR}/integration/fake_nccl_trainer.cpp)
     USE_NCCL(fake-nccl-trainer)
     USE_MPI(fake-nccl-trainer) # FIXME: don't use MPI for bootsrtap
+
+    ADD_TEST_BIN(test-nccl-helper
+                 ${KUNGFU_TESTS_DIR}/integration/test_nccl_helper.cpp)
+    USE_NCCL(test-nccl-helper)
+    TARGET_LINK_LIBRARIES(test-nccl-helper kungfu_nccl)
+    TARGET_LINK_LIBRARIES(test-nccl-helper kungfu)
 ENDIF()
 
 IF(KUNGFU_BUILD_TF_OPS)

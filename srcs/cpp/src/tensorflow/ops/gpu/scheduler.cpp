@@ -24,16 +24,18 @@ class StartNcclScheduler : public OpKernel
 
     void Compute(OpKernelContext *context) override
     {
-        auto scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto controller_ = _default_nccl_helper->EnsureController(nccl_scope_);
-        auto peer        = _default_peer.get();
+        auto scheduler_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureScheduler(nccl_scope_);
+        auto controller_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureController(nccl_scope_);
+        auto peer           = kungfu::Peer::GetDefault().get();
         const Tensor &input = context->input(0);
         const auto t_names  = input.vec<std::string>();
         std::vector<std::string> names;
         for (int i = 0; i < t_names.size(); ++i) {
             names.push_back(t_names(i));
         }
-        scheduler_->Reset(names, _default_peer.get());
+        scheduler_->Reset(names, kungfu::Peer::GetDefault().get());
         scheduler_->Do([=] { controller_->InitOnce(peer); });
     }
 };

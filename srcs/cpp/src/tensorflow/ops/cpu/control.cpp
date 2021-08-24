@@ -27,8 +27,8 @@ class ResizeClusterFromURL : public OpKernel
         Tensor *detached = nullptr;
         OP_REQUIRES_OK(
             context, context->allocate_output(1, MakeTensorShape(), &detached));
-        _default_peer->ResizeClusterFromURL(changed->scalar<bool>().data(),
-                                            detached->scalar<bool>().data());
+        kungfu::Peer::GetDefault()->ResizeClusterFromURL(
+            changed->scalar<bool>().data(), detached->scalar<bool>().data());
     }
 };
 
@@ -61,9 +61,9 @@ class ResizeCluster : public OpKernel
         Tensor *detached = nullptr;
         OP_REQUIRES_OK(
             context, context->allocate_output(1, MakeTensorShape(), &detached));
-        _default_peer->ResizeCluster(new_size.scalar<uint32_t>()(),
-                                     changed->scalar<bool>().data(),
-                                     detached->scalar<bool>().data());
+        kungfu::Peer::GetDefault()->ResizeCluster(
+            new_size.scalar<uint32_t>()(), changed->scalar<bool>().data(),
+            detached->scalar<bool>().data());
     }
 };
 

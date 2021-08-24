@@ -56,8 +56,10 @@ class ScheduledNcclAllReduce : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto controller_ = _default_nccl_helper->EnsureController(nccl_scope_);
+        auto scheduler_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureScheduler(nccl_scope_);
+        auto controller_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -86,11 +88,11 @@ class NcclAllReduce : public AsyncOpKernel
   public:
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_ =
-            _default_nccl_helper->EnsureScheduler(KungFu_NCCL_GLOBAL);
-        auto controller_ =
-            _default_nccl_helper->EnsureController(KungFu_NCCL_GLOBAL);
-        auto peer = _default_peer.get();
+        auto scheduler_ = kungfu::NCCLHelper::GetDefault()->EnsureScheduler(
+            KungFu_NCCL_GLOBAL);
+        auto controller_ = kungfu::NCCLHelper::GetDefault()->EnsureController(
+            KungFu_NCCL_GLOBAL);
+        auto peer = kungfu::Peer::GetDefault().get();
         scheduler_->Do([=] { controller_->InitOnce(peer); });
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
@@ -131,8 +133,10 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
 
     void ComputeAsync(OpKernelContext *context, DoneCallback done) override
     {
-        auto scheduler_  = _default_nccl_helper->EnsureScheduler(nccl_scope_);
-        auto controller_ = _default_nccl_helper->EnsureController(nccl_scope_);
+        auto scheduler_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureScheduler(nccl_scope_);
+        auto controller_ =
+            kungfu::NCCLHelper::GetDefault()->EnsureController(nccl_scope_);
         const Tensor &input = context->input(0);
         Tensor *output      = nullptr;
         OP_REQUIRES_OK_ASYNC(
@@ -141,7 +145,7 @@ class ScheduledHierarchicalNcclAllReduce : public AsyncOpKernel
         auto w_reduce     = make_workspace(input, output);
         auto w_all_reduce = make_workspace(*output, output);
         auto w_bcast      = make_workspace(*output, output);
-        auto peer         = _default_peer.get();
+        auto peer         = kungfu::Peer::GetDefault().get();
         scheduler_->Start(reduce_op_, [=] {
             wait_delete_ready_event(ready_event);
             controller_->Reduce(w_reduce, KungFu_SUM, [=] {

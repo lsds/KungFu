@@ -1,5 +1,7 @@
 #pragma once
 #include <functional>
+#include <memory>
+
 #include <kungfu/dtype.hpp>
 
 namespace kungfu
@@ -13,7 +15,11 @@ using TransformFunc = std::function<void(
 class Peer
 {
   public:
-    Peer();                    // init from env
+  
+  static std::unique_ptr<Peer> &GetDefault(bool reinit = false);
+
+    Peer();
+
     Peer(int rank, int size);  // Single Machine Multi-Process
     Peer(const char *pJson);   // init from JSON
 
@@ -59,6 +65,13 @@ class Peer
     int Request(int rank, const char *version, const char *name, void *buf,
                 int count, KungFu_Datatype dtype, const DoneCallback &done);
 
+    // Queue APIs
+    int NewQueue(int src, int dst, int *queueID);
+    int QueueGet(int src, int dst, int queueID, void *buf, int count,
+                 KungFu_Datatype dtype);
+    int QueuePut(int src, int dst, int queueID, const void *buf, int count,
+                 KungFu_Datatype dtype);
+
     // FIXME: move Session APIs to Session class in C++
 
     // collective APIs
@@ -81,6 +94,14 @@ class Peer
     int AllReduce(const void *sendbuf, void *recvbuf, int count,
                   KungFu_Datatype dtype, KungFu_Op op, const char *name,
                   const DoneCallback &done);
+
+    int SubsetAllReduce(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, KungFu_Op op,
+                        const int32_t *topology, const char *name);
+    int SubsetAllReduce(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, KungFu_Op op,
+                        const int32_t *topology, const char *name,
+                        const DoneCallback &done);
 
     int CrossAllReduce(const void *sendbuf, void *recvbuf, int count,
                        KungFu_Datatype dtype, KungFu_Op op, const char *name);
@@ -111,6 +132,13 @@ class Peer
     int LocalBroadcast(const void *sendbuf, void *recvbuf, int count,
                        KungFu_Datatype dtype, const char *name,
                        const DoneCallback &done);
+
+    int SubsetBroadcast(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, const int32_t *topology,
+                        const char *name);
+    int SubsetBroadcast(const void *sendbuf, void *recvbuf, int count,
+                        KungFu_Datatype dtype, const int32_t *topology,
+                        const char *name, const DoneCallback &done);
 
     // variant of https://www.open-mpi.org/doc/v4.0/man3/MPI_Gather.3.php
     int Gather(const void *sendbuf, int send_count, KungFu_Datatype send_dtype,

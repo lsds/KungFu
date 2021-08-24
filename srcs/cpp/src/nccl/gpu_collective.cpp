@@ -164,9 +164,30 @@ class gpu_collective_nccl : public gpu_collective
             << ncclAllReduce(send_buf, recv_buf, count, to_nccl_type(dtype),
                              to_nccl_op(op), comm_, stream);
     }
+
+    void all_gather(const void *send_buf, void *recv_buf, size_t send_count,
+                    KungFu_Datatype dtype)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallgather
+        KUNGFU_CHECK_HINT(nccl_checker, __func__)
+            << ncclAllGather(send_buf, recv_buf, send_count,
+                             to_nccl_type(dtype), comm_, stream_);
+        stream_.sync();
+    }
+
+    void all_gather(const void *send_buf, void *recv_buf, size_t send_count,
+                    KungFu_Datatype dtype, void *stream_ptr)
+    {
+        TRACE_SCOPE(__func__);
+        // https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/colls.html#ncclallgather
+        cudaStream_t stream = reinterpret_cast<cudaStream_t>(stream_ptr);
+        KUNGFU_CHECK_HINT(nccl_checker, __func__) << ncclAllGather(
+            send_buf, recv_buf, send_count, to_nccl_type(dtype), comm_, stream);
+    }
 };
 
-gpu_collective *new_global_gpu_collective(kungfu::Peer &self)
+gpu_collective *gpu_collective::new_global(kungfu::Peer &self)
 {
     ncclUniqueId id;
     const int root = 0;
@@ -178,7 +199,7 @@ gpu_collective *new_global_gpu_collective(kungfu::Peer &self)
     return new gpu_collective_nccl(id, self.Size(), rank, root);
 }
 
-gpu_collective *new_local_gpu_collective(kungfu::Peer &self)
+gpu_collective *gpu_collective::new_local(kungfu::Peer &self)
 {
     ncclUniqueId id;
     const int root = 0;
@@ -188,5 +209,36 @@ gpu_collective *new_local_gpu_collective(kungfu::Peer &self)
     self.LocalBroadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
                         "local nccl id");
     return new gpu_collective_nccl(id, self.LocalSize(), rank, root);
+}
+
+std::vector<int32_t> get_root(const std::vector<int32_t> &topology)
+{  // FIXME: check cycle
+    std::vector<int32_t> roots(topology.size());
+    std::copy(topology.begin(), topology.end(), roots.begin());
+    const std::function<int(int)> f = [&](auto i) {
+        if (roots[i] == i) { return i; }
+        roots[i] = f(roots[i]);
+        return roots[i];
+    };
+    for (size_t i = 0; i < roots.size(); ++i) { f(i); }
+    return roots;
+}
+
+gpu_collective *gpu_collective::new_group(kungfu::Peer &self,
+                                          const std::vector<int32_t> &topology)
+{
+    ncclUniqueId id;
+    const int rank   = self.Rank();
+    const auto roots = get_root(topology);
+    const int size   = std::count(roots.begin(), roots.end(), roots[rank]);
+    const int group_rank =
+        std::count(roots.begin(), roots.begin() + rank, roots[rank]);
+    KUNGFU_CHECK(cuda_checker) << cudaSetDevice(kungfu_get_cuda_index());
+    if (roots[rank] == rank) {
+        KUNGFU_CHECK(nccl_checker) << ncclGetUniqueId(&id);
+    }
+    self.SubsetBroadcast(&id, &id, sizeof(id), type_encoder::value<uint8_t>(),
+                         topology.data(), "group nccl id");
+    return new gpu_collective_nccl(id, size, group_rank, 0);
 }
 }  // namespace kungfu

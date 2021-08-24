@@ -32,11 +32,12 @@ type Session struct {
 	hostCount         int
 	client            *client.Client
 	collectiveHandler *handler.CollectiveEndpoint
+	queueHandler      *handler.QueueHandler
 	strategyHash      strategyHashFunc
 	strategyStats     []StrategyStatSnapshot
 }
 
-func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint) (*Session, bool) {
+func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *client.Client, collectiveHandler *handler.CollectiveEndpoint, queueHandler *handler.QueueHandler) (*Session, bool) {
 	rank, ok := pl.Rank(self)
 	if !ok {
 		return nil, false
@@ -60,9 +61,14 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 		hostCount:         pl.HostCount(),
 		client:            client,
 		collectiveHandler: collectiveHandler,
+		queueHandler:      queueHandler,
 		strategyHash:      getStrategyHash(),
 	}
 	return sess, true
+}
+
+func (sess *Session) Peers() plan.PeerList {
+	return sess.peers
 }
 
 func (sess *Session) Size() int {
@@ -173,6 +179,13 @@ func (sess *Session) LocalReduce(w kb.Workspace) error {
 func (sess *Session) LocalBroadcast(w kb.Workspace) error {
 	strategy := sess.localStrategies[0] // len(sess.localStrategies) == 1
 	return sess.runGraphs(w, strategy.bcastGraph)
+}
+
+func (sess *Session) SubsetBroadcast(topology []int32, w kb.Workspace) error {
+	bg, _, ok := graph.FromForestArrayI32(topology)
+	assert.True(ok)
+	sl := simpleSingleGraphStrategy(bg)
+	return sess.runGraphs(w, sl[0].bcastGraph)
 }
 
 func asMessage(b *kb.Vector) connection.Message {

@@ -24,6 +24,10 @@ def all_reduce(t, op='sum'):
     return _op_lib.kungfu_all_reduce(t, op=op)
 
 
+def subset_all_reduce(t, topology, op='sum'):
+    return _op_lib.kungfu_subset_all_reduce(t, topology, op=op)
+
+
 def monitored_all_reduce(t, tree=None, op='sum'):
     """Create a new all_reduce operator for given tensor and topology.
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
@@ -28,6 +29,8 @@ type Job struct {
 	AllowNVLink bool
 }
 
+var warnCudaOption = new(sync.Once)
+
 func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, cluster plan.Cluster) proc.Proc {
 	envs := proc.Envs{
 		env.JobStartTimestamp:        strconv.FormatInt(j.StartTime.Unix(), 10),
@@ -47,7 +50,9 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, cluste
 	cudaIdx := strconv.Itoa(getCudaIndex(gpuID))
 	envs[`KUNGFU_`+cudaVisibleDevicesKey] = cudaIdx
 	if j.AllowNVLink {
-		log.Warnf("Please set `config.gpu_options.visible_device_list = str(local_rank)`")
+		warnCudaOption.Do(func() {
+			log.Warnf("Please set `config.gpu_options.visible_device_list = str(local_rank)`")
+		})
 	} else {
 		envs[cudaVisibleDevicesKey] = cudaIdx
 	}

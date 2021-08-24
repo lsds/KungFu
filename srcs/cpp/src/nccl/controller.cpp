@@ -38,14 +38,27 @@ void CrossAllReduceGpu(Peer *peer, const Workspace &w, KungFu_Op op,
                          });
 }
 
-NCCLController::NCCLController(const KungFu_NCCLScope scope) : scope_(scope) {}
+NCCLController::NCCLController(const KungFu_NCCLScope scope) : scope_(scope)
+{
+    if (scope != KungFu_NCCL_LOCAL && scope != KungFu_NCCL_GLOBAL) {
+        throw std::invalid_argument("topology must be specified");
+    }
+}
+
+NCCLController::NCCLController(std::vector<int32_t> topology)
+    : scope_(KungFu_NCCL_GROUP), topology_(std::move(topology))
+{
+}
 
 gpu_collective *NCCLController::new_gpu_collective(Peer *peer)
 {
-    if (scope_ == KungFu_NCCL_LOCAL) {
-        return new_local_gpu_collective(*peer);
-    } else {
-        return new_global_gpu_collective(*peer);
+    switch (scope_) {
+    case KungFu_NCCL_LOCAL:
+        return gpu_collective::new_local(*peer);
+    case KungFu_NCCL_GLOBAL:
+        return gpu_collective::new_global(*peer);
+    default:
+        return gpu_collective::new_group(*peer, topology_);
     }
 }
 
@@ -94,6 +107,20 @@ int NCCLController::AllReduce(const Workspace &w, KungFu_Op op,
                               void *stream_ptr)
 {
     gpu_collective_->all_reduce(w.sendbuf, w.recvbuf, w.count, w.dtype, op,
+                                stream_ptr);
+    return 0;
+}
+
+int NCCLController::AllGather(const Workspace &w, DoneCallback done)
+{
+    gpu_collective_->all_gather(w.sendbuf, w.recvbuf, w.count, w.dtype);
+    done();
+    return 0;
+}
+
+int NCCLController::AllGather(const Workspace &w, void *stream_ptr)
+{
+    gpu_collective_->all_gather(w.sendbuf, w.recvbuf, w.count, w.dtype,
                                 stream_ptr);
     return 0;
 }

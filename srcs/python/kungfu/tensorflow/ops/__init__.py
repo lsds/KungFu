@@ -6,7 +6,7 @@ from .adapt import (resize, resize_cluster_from_url, set_tree,
                     step_based_schedule)
 from .collective import (all_gather, all_reduce, barrier, broadcast, consensus,
                          group_all_reduce, group_nccl_all_reduce,
-                         monitored_all_reduce)
+                         monitored_all_reduce, subset_all_reduce)
 from .local import save_variable, save_variables
 from .monitor import egress_rates, global_noise_scale
 from .p2p import request_variable, request_variable_with_template

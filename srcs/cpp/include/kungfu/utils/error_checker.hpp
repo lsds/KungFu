@@ -2,7 +2,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-template <typename E, E succ, typename Show> class error_checker
+template <typename E, E succ, typename Show>
+class error_checker
 {
     const char *file_;
     const int line_;
@@ -23,10 +24,10 @@ template <typename E, E succ, typename Show> class error_checker
         if (err != succ) {
             Show show_error;
             if (hint_.empty()) {
-                std::fprintf(stderr, "%s::%d: %s\n", file_, line_,
+                std::fprintf(stderr, "%s:%d: %s\n", file_, line_,
                              show_error(err).c_str());
             } else {
-                std::fprintf(stderr, "%s::%d: %s in %s\n", file_, line_,
+                std::fprintf(stderr, "%s:%d: %s in %s\n", file_, line_,
                              show_error(err).c_str(), hint_.c_str());
             }
             std::exit(1);

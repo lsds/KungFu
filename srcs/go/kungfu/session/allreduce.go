@@ -2,7 +2,6 @@ package session
 
 import (
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
-	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/plan/graph"
 	"github.com/lsds/KungFu/srcs/go/utils/assert"
@@ -12,10 +11,19 @@ func (sess *Session) AllReduce(w base.Workspace) error {
 	return sess.runStrategies(w, plan.EvenPartition, sess.globalStrategies)
 }
 
+func (sess *Session) SubsetAllReduce(topology []int32, w base.Workspace) error {
+	bg, _, ok := graph.FromForestArrayI32(topology)
+	assert.True(ok)
+	// assert.True(m == 1)
+	sl := simpleSingleGraphStrategy(bg)
+	// TODO: check isolated nodes
+	return sess.runStrategies(w, plan.EvenPartition, sl)
+}
+
 //AllReduceWith persoms an AllReduce collective communication operation
 //given a tree topology for the strategy to be executted.
 //ATTENTION: not stable feauture. Only for internal use.
-func (sess *Session) AllReduceWith(tree []int32, w kb.Workspace) error {
+func (sess *Session) AllReduceWith(tree []int32, w base.Workspace) error {
 	//TODO: decide whether the strategy created here should be stored
 	//in the session object
 

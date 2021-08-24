@@ -44,12 +44,12 @@ class RequestVariable : public AsyncOpKernel
         OP_REQUIRES_OK_ASYNC(
             context, context->allocate_output(0, shape_, &output), done);
         if (use_version_) {
-            _default_peer->Request(
+            kungfu::Peer::GetDefault()->Request(
                 target, std::to_string(version).c_str(), tensor_name_.c_str(),
                 const_cast<char *>(output->tensor_data().data()),
                 output->NumElements(), to_kungfu_type(output->dtype()), done);
         } else {
-            _default_peer->Request(
+            kungfu::Peer::GetDefault()->Request(
                 target, tensor_name_.c_str(),
                 const_cast<char *>(output->tensor_data().data()),
                 output->NumElements(), to_kungfu_type(output->dtype()), done);

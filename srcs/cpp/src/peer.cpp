@@ -3,6 +3,13 @@
 
 namespace kungfu
 {
+std::unique_ptr<Peer> &Peer::GetDefault(bool reinit)
+{
+    static std::unique_ptr<Peer> instance;
+    if (reinit) { instance.reset(new Peer); }
+    return instance;
+}
+
 Peer::Peer()
 {
     const int err = GoKungfuInit();
