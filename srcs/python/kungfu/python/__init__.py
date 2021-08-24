@@ -17,6 +17,8 @@ __all__ = [
 def _load_and_init_python_lib():
     _load_clib('libkungfu')
     _python_lib = _load_clib('libkungfu_python')
+    if not os.getenv('KUNGFU_NO_AUTO_INIT') and not os.getenv('KUNGFU_SINGLE_MACHINE_MULTIPROCESS'):
+        _call_method(_python_lib, 'kungfu_python_init')
     has_nccl = _call_method(_python_lib, 'kungfu_python_init_nccl')
     return _python_lib, has_nccl
 
@@ -127,7 +129,7 @@ def show_nccl_version():
 
 # unstable APIs
 
-from ctypes import byref, c_int, c_char
+from ctypes import byref, c_char, c_int
 
 
 def _resize_from_url():
