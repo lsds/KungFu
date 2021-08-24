@@ -4,9 +4,11 @@ import os
 from kungfu.loader import _load_clib
 from ctypes import c_int
 
-def run():
+
+def run(shift_argc = 1):
     clib = _load_clib('libkungfu')
-    clib.kungfu_run_main()
+    clib.kungfu_run_main(shift_argc)
+
 
 def _send_monitor_signal(sig):
     clib = _load_clib('libkungfu')

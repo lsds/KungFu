@@ -9,7 +9,7 @@ import (
 import "C"
 
 //export GoKungfuRunMain
-func GoKungfuRunMain() {
-	args := os.Args[1:] // remove wrapper program name (`which python`)
+func GoKungfuRunMain(shiftArgc int) {
+	args := os.Args[shiftArgc:] // remove wrapper program name (`which python`)
 	app.Main(args)
 }
