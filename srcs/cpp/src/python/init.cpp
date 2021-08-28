@@ -38,6 +38,12 @@ void kungfu_python_init_single_machine(int rank, int size)
     _init_affinity();
 }
 
+void kungfu_python_init_from_json(const char *pJson)
+{
+    kungfu::Peer::GetDefault().reset(new kungfu::Peer(pJson));
+    _init_affinity();
+}
+
 void kungfu_python_finialize() { kungfu::Peer::GetDefault().reset(nullptr); }
 
 uint64_t kungfu_uid() { return kungfu::Peer::GetDefault()->Uid(); }

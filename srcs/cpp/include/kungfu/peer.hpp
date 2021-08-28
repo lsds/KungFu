@@ -15,11 +15,13 @@ using TransformFunc = std::function<void(
 class Peer
 {
   public:
-    static std::unique_ptr<Peer> &GetDefault(bool reinit = false);
+  
+  static std::unique_ptr<Peer> &GetDefault(bool reinit = false);
 
     Peer();
 
     Peer(int rank, int size);  // Single Machine Multi-Process
+    Peer(const char *pJson);   // init from JSON
 
     ~Peer();
 

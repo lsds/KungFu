@@ -1,5 +1,7 @@
 import atexit
+import json
 import os
+from ctypes import byref, c_char, c_char_p, c_int
 
 from kungfu.loader import (_call_method, _call_method_with, _load_clib,
                            _module_path)
@@ -23,9 +25,26 @@ def _load_and_init_python_lib():
     return _python_lib, has_nccl
 
 
-_python_lib = None
-_has_nccl = None
-_python_lib, _has_nccl = _load_and_init_python_lib()
+def _load_python_lib():
+    _load_clib('libkungfu')
+    _python_lib = _load_clib('libkungfu_python')
+    return _python_lib
+
+
+if os.getenv('KUNGFU_DISABLE_AUTO_LOAD'):
+    _python_lib = _load_python_lib()
+    _has_nccl = None
+else:
+    _python_lib, _has_nccl = _load_and_init_python_lib()
+
+
+def init_from_config(config):
+    global _has_nccl
+    js = json.dumps(config)
+    # https://stackoverflow.com/questions/61294630/ctypes-passing-a-·string-as-a-pointer-from-python-to-c
+    _call_method_with(_python_lib, 'kungfu_python_init_from_json',
+                      c_char_p(js.encode()))
+    _has_nccl = _call_method(_python_lib, 'kungfu_python_init_nccl')
 
 
 def _init_single_machine_multiple_process(rank, size):
@@ -128,8 +147,6 @@ def show_nccl_version():
 
 
 # unstable APIs
-
-from ctypes import byref, c_int, c_char
 
 
 def _resize_from_url():
