@@ -64,6 +64,8 @@ type FlagSet struct {
 	// debug and testing flags
 	BuiltinConfigPort int
 	DelayStart        time.Duration
+
+	WatchMode string
 }
 
 func (f *FlagSet) Register(flag *flag.FlagSet) {
@@ -93,6 +95,7 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.BoolVar(&f.Keep, "k", false, "stay alive after works finished")
 	flag.IntVar(&f.InitVersion, "init-version", 0, "initial cluster version")
 	flag.StringVar(&f.ConfigServer, "config-server", "", "config server URL")
+	flag.StringVar(&f.WatchMode, "watch-mode", "delta", "delta or reload")
 
 	flag.IntVar(&f.JobStartTime, "t0", int(time.Now().Unix()), "job start timestamp")
 	flag.StringVar(&f.Logfile, "logfile", "", "path to log file")
