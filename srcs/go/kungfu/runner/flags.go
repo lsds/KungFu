@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/base"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/plan/hostfile"
 	"github.com/lsds/KungFu/srcs/go/utils"
@@ -65,7 +66,7 @@ type FlagSet struct {
 	BuiltinConfigPort int
 	DelayStart        time.Duration
 
-	WatchMode string
+	ElasticMode env.ElasticMode
 }
 
 func (f *FlagSet) Register(flag *flag.FlagSet) {
@@ -95,7 +96,9 @@ func (f *FlagSet) Register(flag *flag.FlagSet) {
 	flag.BoolVar(&f.Keep, "k", false, "stay alive after works finished")
 	flag.IntVar(&f.InitVersion, "init-version", 0, "initial cluster version")
 	flag.StringVar(&f.ConfigServer, "config-server", "", "config server URL")
-	flag.StringVar(&f.WatchMode, "watch-mode", "delta", "delta or reload")
+
+	f.ElasticMode = env.ElasticModeDefault
+	flag.Var(&f.ElasticMode, "elastic-mode", "empty or reload")
 
 	flag.IntVar(&f.JobStartTime, "t0", int(time.Now().Unix()), "job start timestamp")
 	flag.StringVar(&f.Logfile, "logfile", "", "path to log file")

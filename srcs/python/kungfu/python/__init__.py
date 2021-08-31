@@ -149,6 +149,19 @@ def resize(n=None):
     return bool(ord(changed.value)), bool(ord(detached.value))
 
 
+def change_cluster(progress):
+    """Change cluster size if the configuration is updated."""
+    changed = c_char()
+    detached = c_char()
+    _python_lib.kungfu_change_cluster(c_int(progress), byref(changed), byref(detached))
+    return bool(ord(changed.value)), bool(ord(detached.value))
+
+
+def init_progress():
+    progress = _python_lib.kungfu_init_progress()
+    return int(progress)
+
+
 def all_reduce_int_max(x):
     y = c_int(x)
     _python_lib.kungfu_all_reduce_int_max(byref(y))

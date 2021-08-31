@@ -124,6 +124,21 @@ int Peer::ResizeClusterFromURL(bool *changed, bool *detached)
                                         reinterpret_cast<char *>(detached));
 }
 
+int Peer::ChangeCluster(const uint64_t progress, bool *changed, bool *detached)
+{
+    static_assert(sizeof(bool) == sizeof(char), "");
+    return GoKungfuChangeCluster(GoInt(progress),
+                                 reinterpret_cast<char *>(changed),
+                                 reinterpret_cast<char *>(detached));
+}
+
+int Peer::InitProgress() const
+{
+    int progress;
+    GoKungfuInitProgress(&progress);
+    return progress;
+}
+
 void Peer::LogStats() { GoLogStats(); }
 
 void Peer::CalcStats() { GoCalcStats(); }

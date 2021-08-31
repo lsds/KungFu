@@ -83,6 +83,7 @@ func Main(args []string) {
 		Args:        f.Args,
 		LogDir:      f.LogDir,
 		AllowNVLink: f.AllowNVLink,
+		ElasticMode: f.ElasticMode,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	trap(cancel)
@@ -105,11 +106,7 @@ func Main(args []string) {
 			}
 		}
 		j.ConfigServer = f.ConfigServer
-		if f.WatchMode == "reload" {
-			runner.WatchRun2(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
-		} else {
-			runner.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
-		}
+		runner.WatchRun(ctx, self, runners, ch, j, f.Keep, f.DebugPort)
 	} else {
 		if f.AutoRecover > 0 {
 			runner.MonitoredRun(ctx, localhostIPv4, initCluster, j, f.VerboseLog, f.Self, f.HostList, f.ClusterSize, f.AutoRecover)
