@@ -122,6 +122,10 @@ add_cmake_flags() {
         add_cmake_flag NCCL_HOME ${NCCL_HOME}
         add_cmake_flag KUNGFU_ENABLE_NCCL 1
     fi
+
+    if [ $(uname) = "Linux" ]; then 
+        add_cmake_flag KUNGFU_ENABLE_AFFINITY 1
+    fi
 }
 
 cleanup_cmake_cache() {

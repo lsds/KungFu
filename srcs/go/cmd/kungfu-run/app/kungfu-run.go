@@ -83,6 +83,7 @@ func Main(args []string) {
 		Args:        f.Args,
 		LogDir:      f.LogDir,
 		AllowNVLink: f.AllowNVLink,
+		ElasticMode: f.ElasticMode,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	trap(cancel)

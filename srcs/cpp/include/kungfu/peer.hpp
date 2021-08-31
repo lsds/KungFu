@@ -34,6 +34,8 @@ class Peer
     // https://www.open-mpi.org/doc/v4.0/man3/MPI_Comm_size.3.php
     int Size() const;
 
+    int InitProgress() const;
+
     int LocalRank() const;
     int LocalSize() const;
     int HostCount() const;
@@ -180,6 +182,8 @@ class Peer
     // control APIs
     int ResizeCluster(const uint32_t new_size, bool *changed, bool *detached);
     int ResizeClusterFromURL(bool *changed, bool *detached);
+    // will reload all if changed
+    int ChangeCluster(const uint64_t process, bool *changed, bool *detached);
 
     int ProposeNewSize(int new_size);
 

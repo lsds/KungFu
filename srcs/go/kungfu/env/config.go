@@ -3,10 +3,37 @@ package env
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
 	"github.com/lsds/KungFu/srcs/go/plan"
 )
+
+type ElasticMode int
+
+var (
+	ElasticModeDefault ElasticMode = 0
+	ElasticModeReload  ElasticMode = 1
+)
+
+// Set implements flags.Value::Set
+func (e *ElasticMode) Set(val string) error {
+	value, err := parseElasticMode(val)
+	if err != nil {
+		return err
+	}
+	*e = *value
+	return nil
+}
+
+var elasticModeNames = map[ElasticMode]string{
+	ElasticModeDefault: "",
+	ElasticModeReload:  "reload",
+}
+
+func (e ElasticMode) String() string {
+	return elasticModeNames[e]
+}
 
 type Config struct {
 	ConfigServer string
@@ -16,9 +43,11 @@ type Config struct {
 	Strategy     kb.Strategy
 
 	InitClusterVersion string
+	InitProgress       uint64
 	InitPeers          plan.PeerList
 
-	Single bool
+	Single      bool
+	ElasticMode ElasticMode
 }
 
 func ParseConfigFromEnv() (*Config, error) {
@@ -45,6 +74,14 @@ func ParseConfigFromEnv() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	elasticMode, err := parseElasticMode(os.Getenv(ElasticModeEnvKey))
+	if err != nil {
+		return nil, err
+	}
+	initProgress, err := parseInitProgress(os.Getenv(InitProgressEnvKey))
+	if err != nil {
+		return nil, err
+	}
 	return &Config{
 		ConfigServer:       getConfigServerFromEnv(),
 		Self:               *self,
@@ -53,7 +90,30 @@ func ParseConfigFromEnv() (*Config, error) {
 		InitPeers:          initPeers,
 		Strategy:           *strategy,
 		InitClusterVersion: os.Getenv(InitClusterVersionEnvKey),
+		ElasticMode:        *elasticMode,
+		InitProgress:       initProgress,
 	}, nil
+}
+
+func parseElasticMode(val string) (*ElasticMode, error) {
+	if val == "" {
+		return &ElasticModeDefault, nil
+	}
+	if val == "reload" {
+		return &ElasticModeReload, nil
+	}
+	return nil, fmt.Errorf("invalid %s: %q", ElasticModeEnvKey, val)
+}
+
+func parseInitProgress(val string) (uint64, error) {
+	if val == "" {
+		return 0, nil
+	}
+	n, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return uint64(n), nil
 }
 
 func SingleMachineEnv(rank, size int) (*Config, error) {

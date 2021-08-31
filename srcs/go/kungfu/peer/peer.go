@@ -29,7 +29,9 @@ type Peer struct {
 
 	// immutable
 	configServerURL    string
+	elasticMode        env.ElasticMode
 	initClusterVersion int
+	initProgress       uint64
 	parent             plan.PeerID
 	self               plan.PeerID
 	strategy           base.Strategy
@@ -72,11 +74,13 @@ func NewFromConfig(cfg *env.Config) (*Peer, error) {
 	}
 	return &Peer{
 		configServerURL:    cfg.ConfigServer,
+		elasticMode:        cfg.ElasticMode,
 		parent:             cfg.Parent,
 		currentCluster:     initCluster,
 		self:               cfg.Self,
 		strategy:           cfg.Strategy,
 		initClusterVersion: initClusterVersion,
+		initProgress:       cfg.InitProgress,
 		clusterVersion:     initClusterVersion,
 		single:             cfg.Single,
 		router:             router,
@@ -174,7 +178,7 @@ func (p *Peer) consensus(bs []byte) bool {
 	return ok
 }
 
-func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
+func (p *Peer) propose(cluster plan.Cluster, progress uint64) (bool, bool) {
 	if config.EnableStallDetection {
 		name := fmt.Sprintf("propose(%s)", cluster.DebugString())
 		defer utils.InstallStallDetector(name).Stop()
@@ -183,15 +187,16 @@ func (p *Peer) propose(cluster plan.Cluster) (bool, bool) {
 		log.Debugf("ingore unchanged proposal")
 		return false, false
 	}
+	stage := runner.Stage{
+		Progress: progress,
+		Version:  p.clusterVersion + 1,
+		Cluster:  cluster,
+	} // FIXME: do consensus check on stage instead of cluster
 	if digest := cluster.Bytes(); !p.consensus(digest) {
 		log.Errorf("diverge proposal detected among %d peers! I proposed %s", len(cluster.Workers), cluster.Workers)
 		return false, false
 	}
 	{
-		stage := runner.Stage{
-			Version: p.clusterVersion + 1,
-			Cluster: cluster,
-		}
 		var notify execution.PeerFunc = func(ctrl plan.PeerID) error {
 			ctx, cancel := context.WithTimeout(context.TODO(), config.WaitRunnerTimeout)
 			defer cancel()
@@ -233,7 +238,8 @@ func (p *Peer) ResizeCluster(newSize int) (bool, bool, error) {
 	return p.ResizeClusterFromURL()
 }
 
-func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
+// wait new cluster config to become consistent across all workers
+func (p *Peer) waitNewConfig() *plan.Cluster {
 	var cluster *plan.Cluster
 	for i := 0; ; i++ {
 		var err error
@@ -253,13 +259,39 @@ func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
 		log.Warnf("diverge proposal detected among %d peers! I proposed %s", len(p.currentCluster.Workers), cluster.DebugString())
 		time.Sleep(50 * time.Millisecond)
 	}
-	changed, detached := p.propose(*cluster)
+	return cluster
+}
+
+func (p *Peer) ResizeClusterFromURL() (bool, bool, error) {
+	if p.elasticMode == env.ElasticModeReload {
+		utils.ExitErr(fmt.Errorf("should call ChangeCluster with progress"))
+	}
+	cluster := p.waitNewConfig()
+	changed, detached := p.propose(*cluster, 0 /* progress is not used in this case */)
 	if detached {
 		p.detached = true
 	} else {
 		p.Update()
 	}
 	return changed, detached, nil
+}
+
+func (p *Peer) ChangeCluster(progress uint64) (bool, bool, error) {
+	if p.elasticMode != env.ElasticModeReload {
+		utils.ExitErr(fmt.Errorf("should call ResizeClusterFromURL"))
+	}
+	cluster := p.waitNewConfig()
+	changed, detached := p.propose(*cluster, progress)
+	if detached {
+		p.detached = true
+	} else {
+		// not update here, all old workers must exit
+	}
+	return changed, detached, nil
+}
+
+func (p *Peer) InitProgress() uint64 {
+	return p.initProgress
 }
 
 func (p *Peer) getClusterConfig(url string) (*plan.Cluster, error) {

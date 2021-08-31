@@ -17,7 +17,7 @@ __all__ = [
 def _load_and_init_python_lib():
     _load_clib('libkungfu')
     _python_lib = _load_clib('libkungfu_python')
-    if not os.getenv('KUNGFU_SINGLE_MACHINE_MULTIPROCESS'):
+    if not os.getenv('KUNGFU_NO_AUTO_INIT') and not os.getenv('KUNGFU_SINGLE_MACHINE_MULTIPROCESS'):
         _call_method(_python_lib, 'kungfu_python_init')
     has_nccl = _call_method(_python_lib, 'kungfu_python_init_nccl')
     return _python_lib, has_nccl
@@ -129,7 +129,7 @@ def show_nccl_version():
 
 # unstable APIs
 
-from ctypes import byref, c_int, c_char
+from ctypes import byref, c_char, c_int
 
 
 def _resize_from_url():
@@ -147,6 +147,19 @@ def resize(n=None):
     detached = c_char()
     _python_lib.kungfu_resize(c_int(n), byref(changed), byref(detached))
     return bool(ord(changed.value)), bool(ord(detached.value))
+
+
+def change_cluster(progress):
+    """Change cluster size if the configuration is updated."""
+    changed = c_char()
+    detached = c_char()
+    _python_lib.kungfu_change_cluster(c_int(progress), byref(changed), byref(detached))
+    return bool(ord(changed.value)), bool(ord(detached.value))
+
+
+def init_progress():
+    progress = _python_lib.kungfu_init_progress()
+    return int(progress)
 
 
 def all_reduce_int_max(x):

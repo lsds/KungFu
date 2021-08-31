@@ -25,3 +25,16 @@ void kungfu_resize_from_url(char *p_changed, char *p_detached)
         reinterpret_cast<bool *>(p_changed),
         reinterpret_cast<bool *>(p_detached));
 }
+
+void kungfu_change_cluster(int progress, char *p_changed, char *p_detached)
+{
+    static_assert(sizeof(bool) == sizeof(char), "");
+    kungfu::Peer::GetDefault()->ChangeCluster(
+        progress, reinterpret_cast<bool *>(p_changed),
+        reinterpret_cast<bool *>(p_detached));
+}
+
+int kungfu_init_progress()
+{
+    return kungfu::Peer::GetDefault()->InitProgress();
+}

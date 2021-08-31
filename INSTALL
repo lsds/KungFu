@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+# go install -v ./...
+
+PYTHON=$(which python3)
+echo "Using $PYTHON"
+
+$PYTHON -m pip install --no-index -U .
+
+echo "done $0"
