@@ -87,11 +87,11 @@ func (w *watcher) updateFull(s Stage) {
 	w.server.SetToken(uint32(s.Version))
 	del := w.current.Workers.On(w.parent.IPv4)
 	add := s.Cluster.Workers.On(w.parent.IPv4)
-	log.Infof("reloading cluster, waiting %d peers to stop", len(del))
+	log.Infof("reloading cluster, waiting %d peers to stop before creating %d peers", len(del), len(add))
 	for _, id := range del {
 		w.delete(id)
 	}
-	log.Infof("reloading cluster, creating %d peers to", len(add))
+	log.Infof("reloading cluster, creating %d peers", len(add))
 	for _, id := range add {
 		w.create(id, s)
 	}

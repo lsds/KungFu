@@ -41,7 +41,7 @@ def main():
                     propose_new_size(new_size)
                     print('proposed %d' % (new_size))
 
-    print('stopped, reasion: %s' % (es.stop_reason()))
+    print('stopped, reason: %s' % (es.stop_reason()))
 
 
 main()
