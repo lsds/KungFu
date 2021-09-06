@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
 	"github.com/lsds/KungFu/srcs/go/kungfu/env"
@@ -84,6 +85,7 @@ func (w *watcher) updateDelta(s Stage) {
 }
 
 func (w *watcher) updateFull(s Stage) {
+	t0 := time.Now()
 	w.server.SetToken(uint32(s.Version))
 	del := w.current.Workers.On(w.parent.IPv4)
 	add := s.Cluster.Workers.On(w.parent.IPv4)
@@ -95,7 +97,7 @@ func (w *watcher) updateFull(s Stage) {
 	for _, id := range add {
 		w.create(id, s)
 	}
-	log.Infof("reloading cluster, done")
+	log.Infof("reloading cluster, done, took %s", time.Since(t0))
 	w.current = s.Cluster
 }
 
