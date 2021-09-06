@@ -127,6 +127,7 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 }
 
 func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch chan Stage, j job.Job, keep bool, debugPort int) {
+	t0 := time.Now()
 	ctx, cancel := context.WithCancel(ctx)
 	globalCtx, globalCancel := context.WithCancel(ctx)
 	handler := NewHandler(self, ch, globalCancel)
@@ -154,7 +155,7 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 	}
 	log.Infof("watching config server")
 	watcher.watchRun(globalCtx)
-	log.Infof(xterm.Blue.S("stop watching"))
+	log.Infof("%s, took %s", xterm.Blue.S("stop watching"), time.Since(t0))
 }
 
 func runProc(ctx context.Context, cancel context.CancelFunc, p proc.Proc, version int, logDir string) {
