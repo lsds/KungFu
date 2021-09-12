@@ -13,3 +13,9 @@ func GoKungfuRunMain(shiftArgc int) {
 	args := os.Args[shiftArgc:] // remove wrapper program name (`which python`)
 	app.Main(args)
 }
+
+//export GoKungfuElasticRunMain
+func GoKungfuElasticRunMain(shiftArgc int) {
+	args := os.Args[shiftArgc:] // remove wrapper program name (`which python`)
+	app.Main(args)
+}
