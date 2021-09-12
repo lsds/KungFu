@@ -9,4 +9,4 @@
 	url = http://github.com/stdml/stdml-collective-experimental
 [submodule "deps/stdtracer"]
 	path = deps/stdtracer
-	url = http://github.com/stdml/stdml-collective-experimental
+	url = http://github.com/stdml/stdtracer
