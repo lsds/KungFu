@@ -1,0 +1,12 @@
+[submodule "deps/stdtensor"]
+	path = deps/stdtensor
+	url = http://github.com/stdml/stdtensor
+[submodule "deps/stdnn-ops"]
+	path = deps/stdnn-ops
+	url = http://github.com/stdml/stdnn-ops
+[submodule "deps/stdml-collective"]
+	path = deps/stdml-collective
+	url = http://github.com/stdml/stdml-collective-experimental
+[submodule "deps/stdtracer"]
+	path = deps/stdtracer
+	url = http://github.com/stdml/stdml-collective-experimental
