@@ -1,0 +1,29 @@
+// # -*- mode: c++ -*-
+#pragma once
+#include <stdml/bits/utility/hex.hpp>
+#include <stdml/bits/utility/stopwatch.hpp>
+#include <tracer/rate>
+
+template <typename F>
+class traced_func_t
+{
+    const F &f;
+
+  public:
+    traced_func_t(const F &f) : f(f)
+    {
+    }
+
+    template <typename... Args>
+    auto operator()(Args &&... args) const
+    {
+        TRACE_SITE_SCOPE_RATE("step", "step", 1);
+        return f(std::forward<Args>(args)...);
+    }
+};
+
+template <typename F>
+F traced(const F &f)
+{
+    return traced_func_t<F>(f);
+}

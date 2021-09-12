@@ -41,6 +41,8 @@ extern void kungfu_change_cluster(int progress /* FIXME: pass uint64_t */,
                                   char *p_changed, char *p_detached);
 extern int kungfu_init_progress();
 
+extern int create_tf_records();
+
 #ifdef __cplusplus
 }
 #endif
