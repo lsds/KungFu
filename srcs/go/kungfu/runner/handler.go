@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/lsds/KungFu/srcs/go/kungfu/elastic"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
 	"github.com/lsds/KungFu/srcs/go/rchannel/connection"
@@ -40,10 +41,11 @@ func (s Stage) Eq(t Stage) bool {
 type Handler struct {
 	self plan.PeerID
 
-	mu       sync.RWMutex
-	versions map[int]Stage
-	ch       chan Stage
-	cancel   context.CancelFunc
+	mu            sync.RWMutex
+	versions      map[int]Stage
+	latestVersion int
+	ch            chan Stage
+	cancel        context.CancelFunc
 
 	controlHandlers map[string]connection.MsgHandleFunc
 	pingHandler     *handler.PingHandler
@@ -73,6 +75,8 @@ func (h *Handler) Handle(conn connection.Connection) (int, error) {
 		return connection.Stream(conn, connection.Accept, h.handleControl)
 	case connection.ConnPing:
 		return h.pingHandler.Handle(conn)
+	case connection.ConnConfig:
+		return connection.Stream(conn, connection.Accept, h.handleConfig)
 	default:
 		return 0, fmt.Errorf("%v: %s from %s", connection.ErrInvalidConnectionType, t, conn.Src())
 	}
@@ -105,9 +109,39 @@ func (h *Handler) handleContrlUpdate(_name string, msg *connection.Message, _con
 			return
 		}
 		h.versions[s.Version] = s
+		h.latestVersion = s.Version
 		h.ch <- s
 		log.Debugf("update to v%d with %s", s.Version, s.Cluster.DebugString())
 	}()
+}
+
+func (h *Handler) handleConfig(name string, msg *connection.Message, conn connection.Connection) {
+	log.Errorf("debug :: config message %s received from %s.", name, conn.Src()) // debug
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	s := h.versions[h.latestVersion]
+	switch name {
+	case "get-config":
+		config := elastic.State{
+			Progress: s.Progress,
+			Filenames: []string{
+				`1.txt`,
+				`2.txt`,
+			},
+		}
+		bs, _ := json.Marshal(config)
+		reply := connection.Message{
+			Length: uint32(len(bs)),
+			Data:   bs,
+		}
+		conn.Send(name, reply, connection.NoFlag)
+		break
+	case "put-config":
+		// TODO:
+		break
+	default:
+		log.Warnf("invalid config messaeg: %s", name)
+	}
 }
 
 func (h *Handler) handleContrlExit(_name string, msg *connection.Message, _conn connection.Connection) {

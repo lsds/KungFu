@@ -21,7 +21,8 @@ type Connection interface {
 	Src() plan.PeerID
 	Dest() plan.PeerID
 	Send(name string, m Message, flags uint32) error
-	Read(name string, m Message) error
+	Read(name string, m Message) error // Read knowns Message length before read
+	Get(name string) (*Message, error) // Get doesn't know Message length before read
 }
 
 // UpgradeFrom performs the server side operations to upgrade a TCP connection to a Connection
@@ -175,6 +176,23 @@ func (c *tcpConnection) Read(name string, m Message) error {
 		return err
 	}
 	return m.ReadInto(c.conn)
+}
+
+func (c *tcpConnection) Get(name string) (*Message, error) {
+	if err := c.initOnce(); err != nil {
+		return nil, err
+	}
+	c.Lock()
+	defer c.Unlock()
+	var mh MessageHeader
+	if err := mh.Expect(c.conn, name); err != nil {
+		return nil, err
+	}
+	var m Message
+	if err := m.ReadFrom(c.conn); err != nil {
+		return nil, err
+	}
+	return &m, nil
 }
 
 func (c *tcpConnection) Close() error {

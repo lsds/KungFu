@@ -1,11 +1,21 @@
 #!/bin/sh
 set -e
 
+. ./scripts/utils/measure.sh
 # go install -v ./...
 
-PYTHON=$(which python3.7)
+find_python() {
+    if [ $(basename $(realpath $PWD/../..)) = "mindspore" ]; then
+        which python3.7
+    else
+        which python3
+    fi
+}
+
+PYTHON=$(find_python)
+
 echo "Using $PYTHON"
 
-$PYTHON -m pip install --no-index -U .
+measure $PYTHON -m pip install --no-index -U .
 
 echo "done $0"

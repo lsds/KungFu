@@ -79,6 +79,19 @@ func (c *Client) send(a plan.Addr, msg connection.Message, t connection.ConnType
 	return nil
 }
 
+// Talk perform a send and read operation
+func (c *Client) Talk(a plan.Addr, buf []byte, t connection.ConnType, flags uint32) (*connection.Message, error) {
+	msg := connection.Message{
+		Length: uint32(len(buf)),
+		Data:   buf,
+	}
+	conn := c.connPool.get(a.Peer(), c.self, t)
+	if err := conn.Send(a.Name, msg, flags); err != nil {
+		return nil, err
+	}
+	return conn.Get(a.Name)
+}
+
 func (c *Client) ResetConnections(keeps plan.PeerList, token uint32) {
 	c.connPool.reset(keeps, token)
 }

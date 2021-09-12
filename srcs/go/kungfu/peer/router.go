@@ -48,6 +48,10 @@ func (r *router) Send(a plan.Addr, buf []byte, t connection.ConnType, flags uint
 	return r.client.Send(a, buf, t, flags)
 }
 
+func (r *router) Talk(a plan.Addr, buf []byte, t connection.ConnType, flags uint32) (*connection.Message, error) {
+	return r.client.Talk(a, buf, t, flags)
+}
+
 var errWaitPeerFailed = errors.New("wait peer failed")
 
 func (r *router) Wait(ctx context.Context, target plan.PeerID) (int, error) {
