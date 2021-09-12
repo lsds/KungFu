@@ -1,0 +1,25 @@
+name: MS Elastic
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    # https://help.github.com/en/articles/virtual-environments-for-github-actions#supported-virtual-environments
+    runs-on: ubuntu-20.04
+
+    # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/using-environment-variables
+    env:
+      PYTHONWARNINGS: 'ignore'
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+
+    - run: |
+        nproc
+        echo $PATH
+
+    - run: ./deps/build.sh
