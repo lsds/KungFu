@@ -9,11 +9,21 @@
 
 namespace stdml::data
 {
+std::string gen_filename(int64_t progress, int rank, int size, int idx)
+{
+    char filename[256];
+    sprintf(filename, "from-%d-worker-%d-of-%d-%d.tf_record", (int)progress,
+            rank, size, idx);
+    return filename;
+}
+
 std::vector<std::string> write_tf_record(const ElasticState &es, state2 ds,
                                          int global_batch_size,
                                          size_t max_sample_per_file)
 {
-    fprintf(stderr, "%s ...\n", __func__);
+    if (true) {
+        fprintf(stderr, "%s ...\n", __func__);
+    }
     WITH_PATIENT(__func__);
 
     std::vector<std::string> filenames;
@@ -21,11 +31,8 @@ std::vector<std::string> write_tf_record(const ElasticState &es, state2 ds,
     std::vector<std::string> buffer;
 
     auto write_buffer = [&]() {
-        char filename[256];
-        sprintf(filename, "from-%d-worker-%d-of-%d-%d.tf_record",
-                (int)es.progress(), es.rank(), es.size(),
-                (int)filenames.size());
-
+        std::string filename =
+            gen_filename(es.progress(), es.rank(), es.size(), filenames.size());
         std::ofstream f(filename, std::ios::binary);
         for (const auto &text : buffer) {
             f.write(text.data(), text.size());
