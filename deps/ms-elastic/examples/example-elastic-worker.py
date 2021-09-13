@@ -55,10 +55,10 @@ def main():
             step = read_step(es)
             print('init step=%d' % (step))
 
-    filenames = create_tf_records(args.index_file, args.seed,
-                                  args.global_batch_size)
+    shard = create_tf_records(args.index_file, args.seed,
+                              args.global_batch_size)
 
-    print('filenames: %s' % (filenames))
+    print('shard: %s' % (shard))
 
     while not es.stopped():
         delta = global_batch_size

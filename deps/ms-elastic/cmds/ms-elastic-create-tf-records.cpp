@@ -43,10 +43,9 @@ int main(int argc, char *argv[])
 
     const int Ki = 1 << 10;
     int max_sample_per_file = 8 * Ki;
-    auto filenames =
-        write_tf_record(e, ds, global_batch_size, max_sample_per_file);
+    auto shard = write_tf_record(e, ds, global_batch_size, max_sample_per_file);
 
-    for (const auto &f : filenames) {
+    for (const auto &f : shard.filenames) {
         std::cout << f << std::endl;
     }
     return 0;

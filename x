@@ -40,5 +40,8 @@ main() {
 ./INSTALL
 build
 ./deps/build.sh
+
+rm -fr *.tf_record
+rm -fr *.list.txt
 ./deps/run.sh
 # main

@@ -31,15 +31,14 @@ int kungfu_create_tf_records(const char *index_file, int seed,
 
     const int Ki            = 1 << 10;
     int max_sample_per_file = 8 * Ki;
-    auto filenames =
+    auto shard =
         write_tf_record(es, ds, global_batch_size, max_sample_per_file);
 
     {  // FIXME: return filenames to python
         char name_list_file[256];
         sprintf(name_list_file, "tf-files-from-%d-%d-of-%d.list.txt",
                 (int)es.progress(), es.rank(), es.size());
-        std::ofstream f(name_list_file);
-        for (const auto &filename : filenames) { f << filename << std::endl; }
+        save_shard_result(name_list_file, shard);
     }
     return 0;
 }
