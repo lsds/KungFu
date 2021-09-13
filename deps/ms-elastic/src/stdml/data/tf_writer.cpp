@@ -22,6 +22,8 @@ void save_shard_result(const std::string &filename, const shard_result &shard)
     for (const auto [bs, c] : shard.batch_sizes) {
         f << bs << ' ' << c << std::endl;
     }
+
+    f << shard.dropped << std::endl;
 }
 
 std::string gen_filename(int64_t progress, int rank, int size, int idx)
@@ -78,10 +80,18 @@ shard_result write_tf_record(const ElasticState &es, state2 ds,
         buffer.clear();
     };
 
+    bool drop = true;
+    int dropped = 0;
+
     for (;;) {
         YIELD_PATIENT("...");
         auto [batch_idx, total] =
             ds.get_shard(es.rank(), es.size(), global_batch_size);
+
+        if (total < global_batch_size && drop) {
+            dropped = total;
+            break;
+        }
 
         batch_sizes.push_back(batch_idx.len());  // include 0-size batch
         if (batch_idx.len() == 0) {
@@ -116,6 +126,7 @@ shard_result write_tf_record(const ElasticState &es, state2 ds,
     return shard_result{
         .filenames = filenames,
         .batch_sizes = group(batch_sizes),
+        .dropped = dropped,
     };
 }
 }  // namespace stdml::data

@@ -14,6 +14,8 @@ struct shard_result {
 
     // list of (batch_size, count)
     std::vector<std::pair<int, int>> batch_sizes;
+
+    int dropped;  // number of samples dropped at tail
 };
 
 void save_shard_result(const std::string &filename, const shard_result &shard);
