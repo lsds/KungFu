@@ -8,7 +8,7 @@ from ctypes import byref, c_char, c_int, c_char_p
 def read_shard_result(filename):
     lines = [line.strip() for line in open(filename)]
     n = int(lines[0])
-    filenames = [lines[1:n + 1]]
+    filenames = lines[1:n + 1]
     m = int(lines[n + 1])
     batch_sizes = []
     for i in range(m):

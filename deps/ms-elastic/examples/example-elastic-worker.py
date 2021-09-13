@@ -58,7 +58,9 @@ def main():
     shard = create_tf_records(args.index_file, args.seed,
                               args.global_batch_size)
 
+    filenames = shard['filenames']
     print('shard: %s' % (shard))
+    print('%d files: %s' % (len(filenames), filenames))
 
     while not es.stopped():
         delta = global_batch_size
