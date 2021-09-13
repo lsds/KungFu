@@ -12,9 +12,7 @@ def parse_args():
     p.add_argument('--max-progress', type=int, default=10)
     p.add_argument('--global-batch-size', type=int, default=1)
     p.add_argument('--seed', type=int, default=0)
-
     p.add_argument('--index-file', type=str, default='')
-
     return p.parse_args()
 
 
@@ -64,18 +62,15 @@ def main():
         with ElasticContext(es, delta) as should_sync:
             # print('# progress %d' % (es._progress))
             if should_sync:
-                # TODO: in reload mode, is sync required?
-                # print('user should sync states')
-                # sync_ds()
-                #dataset.reset()
-                #it = iter(dataset)
+                # TODO: In reload mode, NO need to sync dataset state
+                # TODO: sync model states
                 # FIXME: move it to es._progress
                 pass
 
             step += 1
             progress = es._progress
             if rank == 0:
-                print('progress: %d/%s' % (progress, args.max_progress))
+                # print('progress: %d/%s' % (progress, args.max_progress))
                 pass
 
             # do step work

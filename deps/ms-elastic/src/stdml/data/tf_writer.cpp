@@ -13,7 +13,6 @@ std::vector<std::string> write_tf_record(const ElasticState &es, state2 ds,
                                          int global_batch_size,
                                          size_t max_sample_per_file)
 {
-
     fprintf(stderr, "%s ...\n", __func__);
     WITH_PATIENT(__func__);
 
@@ -44,7 +43,7 @@ std::vector<std::string> write_tf_record(const ElasticState &es, state2 ds,
         }
 
         auto batch = ds[batch_idx];
-        std::cout << "loaded " << batch.size() << " tf records" << std::endl;
+        // std::cout << "loaded " << batch.size() << " tf records" << std::endl;
 
         if (buffer.size() > 0 &&
             buffer.size() + batch.size() > max_sample_per_file) {

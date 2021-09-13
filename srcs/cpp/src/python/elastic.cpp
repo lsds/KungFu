@@ -22,15 +22,17 @@ int kungfu_create_tf_records(const char *index_file, int seed,
 
     md::state2 ds(index_file, seed);
 
-    ml::ElasticState e;
-    ml::parse_elastic_state(e);
+    ml::ElasticState es;
+    ml::parse_elastic_state(es);
 
-    std::cout << e.str() << std::endl;
+    ds.sync(es.progress());
+
+    std::cout << es.str() << std::endl;
 
     const int Ki            = 1 << 10;
     int max_sample_per_file = 8 * Ki;
     auto filenames =
-        write_tf_record(e, ds, global_batch_size, max_sample_per_file);
+        write_tf_record(es, ds, global_batch_size, max_sample_per_file);
 
     for (const auto &f : filenames) { std::cout << f << std::endl; }
 

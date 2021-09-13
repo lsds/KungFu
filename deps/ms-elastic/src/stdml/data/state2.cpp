@@ -50,7 +50,8 @@ int64_t state2::progress() const
     return iter_.tell();
 }
 
-void state2::sync(const std::function<N(N)> &broadcast, int64_t progress)
+void state2::sync(/* const std::function<N(N)> &broadcast, */
+                  int64_t progress)
 {
     // TRACE_SITE_STMT(hash_.sync(broadcast));
     iter_.seek(progress);

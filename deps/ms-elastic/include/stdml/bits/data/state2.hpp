@@ -62,7 +62,7 @@ class state2
 
     int64_t progress() const;
 
-    void sync(const std::function<N(N)> &broadcast, int64_t progress);
+    void sync(/* const std::function<N(N)> &broadcast, */ int64_t progress);
 
     std::pair<Seq, int64_t> get_shard(int rank, int size, uint32_t bs);
 };
