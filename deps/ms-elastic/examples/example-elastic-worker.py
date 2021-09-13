@@ -1,6 +1,7 @@
 import argparse
 from kungfu.python.elastic_state import ElasticState, ElasticContext
 from kungfu.python import current_rank, current_cluster_size, propose_new_size
+from kungfu.python.elastic import create_tf_records
 
 
 def parse_args():
@@ -10,6 +11,7 @@ def parse_args():
     p.add_argument('--run', action='store_true', default=False)
     p.add_argument('--max-progress', type=int, default=10)
     p.add_argument('--global-batch-size', type=int, default=1)
+    p.add_argument('--seed', type=int, default=0)
 
     p.add_argument('--index-file', type=str, default='')
 
@@ -54,6 +56,8 @@ def main():
         if progress > 0:
             step = read_step(es)
             print('init step=%d' % (step))
+
+    create_tf_records(args.index_file, args.seed, args.global_batch_size)
 
     while not es.stopped():
         delta = global_batch_size

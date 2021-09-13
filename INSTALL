@@ -16,6 +16,8 @@ PYTHON=$(find_python)
 
 echo "Using $PYTHON"
 
+export KUNGFU_ENABLE_MINDSPORE_ELASTIC=1
+
 measure $PYTHON -m pip install --no-index -U .
 
 echo "done $0"

@@ -11,16 +11,15 @@
 namespace ml = stdml;
 namespace md = ml::data;
 
-int create_tf_records(std::string index_file, int global_batch_size)
+int kungfu_create_tf_records(const char *index_file, int seed,
+                             int global_batch_size)
 {
     std::cout << "using global_batch_size: " << global_batch_size << std::endl;
 
-    std::string index_file = argv[1];
-    auto index             = md::load_total_index(index_file);
+    auto index = md::load_total_index(index_file);
 
     std::cout << index.stat() << std::endl;
 
-    int seed = 0;
     md::state2 ds(index_file, seed);
 
     ml::ElasticState e;

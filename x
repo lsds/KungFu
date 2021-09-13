@@ -37,6 +37,7 @@ main() {
     elastic_run_n 1 $PWD/bin/kungfu-test-elastic-worker $(app_flags)
 }
 
+./INSTALL
 build
 ./deps/build.sh
 ./deps/run.sh
