@@ -48,3 +48,4 @@ install_manifest.txt
 kungfu.cbp
 venv
 *.tf_record
+*.list.txt

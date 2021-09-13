@@ -34,7 +34,12 @@ int kungfu_create_tf_records(const char *index_file, int seed,
     auto filenames =
         write_tf_record(es, ds, global_batch_size, max_sample_per_file);
 
-    for (const auto &f : filenames) { std::cout << f << std::endl; }
-
+    {  // FIXME: return filenames to python
+        char name_list_file[256];
+        sprintf(name_list_file, "tf-files-from-%d-%d-of-%d.list.txt",
+                (int)es.progress(), es.rank(), es.size());
+        std::ofstream f(name_list_file);
+        for (const auto &filename : filenames) { f << filename << std::endl; }
+    }
     return 0;
 }
