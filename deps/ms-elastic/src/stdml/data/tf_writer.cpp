@@ -82,10 +82,11 @@ shard_result write_tf_record(const ElasticState &es, state2 ds,
         YIELD_PATIENT("...");
         auto [batch_idx, total] =
             ds.get_shard(es.rank(), es.size(), global_batch_size);
+
+        batch_sizes.push_back(batch_idx.len());  // include 0-size batch
         if (batch_idx.len() == 0) {
             break;
         }
-        batch_sizes.push_back(batch_idx.len());
 
         auto batch = ds[batch_idx];
         // std::cout << "loaded " << batch.size() << " tf records" << std::endl;
