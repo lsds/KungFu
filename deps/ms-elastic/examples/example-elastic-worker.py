@@ -61,6 +61,7 @@ def main():
     filenames = shard['filenames']
     print('shard: %s' % (shard))
     print('%d files: %s' % (len(filenames), filenames))
+    print('dropped %d' % (shard['dropped']))
 
     while not es.stopped():
         delta = global_batch_size

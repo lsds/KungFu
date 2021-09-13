@@ -14,9 +14,13 @@ def read_shard_result(filename):
     for i in range(m):
         bs, count = lines[n + 2 + i].split(' ')
         batch_sizes.append((int(bs), int(count)))
+
+    dropped = int(lines[m + n + 2])
+
     return {
         'filenames': filenames,
         'batch_sizes': batch_sizes,
+        'dropped': dropped,
     }
 
 
