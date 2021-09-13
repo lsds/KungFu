@@ -1,8 +1,9 @@
-#include <kungfu.h>
-#include <kungfu/python/c_api.h>
-
+#include <cstdlib>
 #include <string>
 #include <vector>
+
+#include <kungfu.h>
+#include <kungfu/python/c_api.h>
 
 #include <stdml/bits/data/index.hpp>
 #include <stdml/data/tf_writer>
@@ -11,9 +12,16 @@
 namespace ml = stdml;
 namespace md = ml::data;
 
+const int Ki = 1 << 10;
+
 int kungfu_create_tf_records(const char *index_file, int seed,
                              int global_batch_size)
 {
+    int max_sample_per_file = 8 * Ki;
+    if (const char *p = std::getenv("MAX_SAMPLE_PER_FILE"); p != nullptr) {
+        max_sample_per_file = std::stoi(p);
+    }
+
     std::cout << "using global_batch_size: " << global_batch_size << std::endl;
 
     auto index = md::load_total_index(index_file);
@@ -29,12 +37,10 @@ int kungfu_create_tf_records(const char *index_file, int seed,
 
     std::cout << es.str() << std::endl;
 
-    const int Ki            = 1 << 10;
-    int max_sample_per_file = 8 * Ki;
     auto shard =
         write_tf_record(es, ds, global_batch_size, max_sample_per_file);
 
-    {  // FIXME: return filenames to python
+    {  // FIXME: return struct to python
         char name_list_file[256];
         sprintf(name_list_file, "tf-files-from-%d-%d-of-%d.list.txt",
                 (int)es.progress(), es.rank(), es.size());
