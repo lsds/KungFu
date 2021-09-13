@@ -18,7 +18,7 @@ int kungfu_create_tf_records(const char *index_file, int seed,
 
     auto index = md::load_total_index(index_file);
 
-    std::cout << index.stat() << std::endl;
+    std::cout << "global index: " << index.stat() << std::endl;
 
     md::state2 ds(index_file, seed);
 
