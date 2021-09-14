@@ -1,6 +1,15 @@
 #include <kungfu/peer.hpp>
 #include <libkungfu-comm.h>
 
+#include <unistd.h>
+
+static void log_pid(const char *msg)
+{
+    int pid  = getpid();
+    int ppid = getppid();
+    fprintf(stderr, "%s pid=%d/ppid=%d\n", msg, pid, ppid);
+}
+
 namespace kungfu
 {
 std::unique_ptr<Peer> &Peer::GetDefault(bool reinit)
@@ -12,6 +21,7 @@ std::unique_ptr<Peer> &Peer::GetDefault(bool reinit)
 
 Peer::Peer()
 {
+    if (true) { log_pid("creating kungfu peer using GoKungfuInit"); }
     const int err = GoKungfuInit();
     if (err) {
         fprintf(stderr, "%s failed\n", "GoKungfuInit");
@@ -21,6 +31,9 @@ Peer::Peer()
 
 Peer::Peer(int rank, int size)
 {
+    if (true) {
+        log_pid("creating kungfu peer using GoKungfuInitSingleMachine");
+    }
     const int err = GoKungfuInitSingleMachine(GoInt(rank), GoInt(size));
     if (err) {
         fprintf(stderr, "%s failed\n", "GoKungfuInitSingleMachine");
