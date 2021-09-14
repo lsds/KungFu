@@ -29,6 +29,10 @@ _has_nccl = None
 _python_lib, _has_nccl = _load_and_init_python_lib()
 
 
+def _init():
+    _call_method(_python_lib, 'kungfu_python_init')
+
+
 def _init_single_machine_multiple_process(rank, size):
     global _python_lib
     global _has_nccl
