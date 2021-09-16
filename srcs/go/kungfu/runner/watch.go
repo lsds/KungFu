@@ -88,13 +88,19 @@ func (w *watcher) updateFull(s Stage) {
 	del := w.current.Workers.On(w.parent.IPv4)
 	add := s.Cluster.Workers.On(w.parent.IPv4)
 	log.Infof("reloading cluster, waiting %d peers to stop before creating %d peers", len(del), len(add))
-	for _, id := range del {
-		w.delete(id)
-	}
+	d1 := utils.Measure_(func() {
+		for _, id := range del {
+			w.delete(id)
+		}
+	})
+	log.Infof("wait stop took %s", d1)
 	log.Infof("reloading cluster, creating %d peers", len(add))
-	for _, id := range add {
-		w.create(id, s)
-	}
+	d2 := utils.Measure_(func() {
+		for _, id := range add {
+			w.create(id, s)
+		}
+	})
+	log.Infof("wait start took %s", d2)
 	log.Infof("reloading cluster, done")
 	w.current = s.Cluster
 }
