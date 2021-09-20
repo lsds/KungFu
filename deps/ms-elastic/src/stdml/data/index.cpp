@@ -121,6 +121,9 @@ total_index load_total_index(std::string filename)
 {
     total_index index;
     std::ifstream f(filename);
+    if (!f.is_open()) {
+        throw std::runtime_error("can't open: " + filename);
+    }
     index.load(f);
     return index;
 }
