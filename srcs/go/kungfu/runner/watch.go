@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/lsds/KungFu/srcs/go/kungfu/config"
+	"github.com/lsds/KungFu/srcs/go/kungfu/env"
 	"github.com/lsds/KungFu/srcs/go/kungfu/job"
 	"github.com/lsds/KungFu/srcs/go/log"
 	"github.com/lsds/KungFu/srcs/go/plan"
@@ -47,7 +49,7 @@ func (w *watcher) create(id plan.PeerID, s Stage) {
 	if gpuID < 0 {
 		log.Errorf("gpuID = %d", gpuID)
 	}
-	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster)
+	proc := w.job.NewProc(id, gpuID, s.Version, s.Cluster, s.Progress)
 	go func(g *sync.WaitGroup) {
 		runProc(w.ctx, w.cancel, proc, s.Version, w.job.LogDir)
 		g.Done()
@@ -61,7 +63,7 @@ func (w *watcher) delete(id plan.PeerID) {
 	delete(w.gs, id)
 }
 
-func (w *watcher) update(s Stage) {
+func (w *watcher) updateDelta(s Stage) {
 	w.server.SetToken(uint32(s.Version))
 	if w.current.Workers.Disjoint(s.Cluster.Workers) {
 		log.Errorf("full update detected: %s -> %s", w.current.DebugString(), s.Cluster.DebugString())
@@ -82,11 +84,32 @@ func (w *watcher) update(s Stage) {
 	w.current = s.Cluster
 }
 
+func (w *watcher) updateFull(s Stage) {
+	t0 := time.Now()
+	w.server.SetToken(uint32(s.Version))
+	del := w.current.Workers.On(w.parent.IPv4)
+	add := s.Cluster.Workers.On(w.parent.IPv4)
+	log.Infof("reloading cluster, waiting %d peers to stop", len(del))
+	for _, id := range del {
+		w.delete(id)
+	}
+	log.Infof("reloading cluster, creating %d peers to", len(add))
+	for _, id := range add {
+		w.create(id, s)
+	}
+	log.Infof("reloading cluster, done, took %s", time.Since(t0))
+	w.current = s.Cluster
+}
+
 func (w *watcher) watchRun(globalCtx context.Context) {
 	for {
 		select {
 		case s := <-w.ch:
-			w.update(s)
+			if w.job.ElasticMode == env.ElasticModeReload {
+				w.updateFull(s)
+			} else {
+				w.updateDelta(s)
+			}
 		case <-w.stopped:
 			n := atomic.AddInt32(&w.running, -1)
 			log.Debugf("%s are still running on this host", utils.Pluralize(int(n), "peer", "peers"))
@@ -104,6 +127,7 @@ func (w *watcher) watchRun(globalCtx context.Context) {
 }
 
 func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch chan Stage, j job.Job, keep bool, debugPort int) {
+	t0 := time.Now()
 	ctx, cancel := context.WithCancel(ctx)
 	globalCtx, globalCancel := context.WithCancel(ctx)
 	handler := NewHandler(self, ch, globalCancel)
@@ -131,7 +155,7 @@ func WatchRun(ctx context.Context, self plan.PeerID, runners plan.PeerList, ch c
 	}
 	log.Infof("watching config server")
 	watcher.watchRun(globalCtx)
-	log.Infof(xterm.Blue.S("stop watching"))
+	log.Infof("%s, took %s", xterm.Blue.S("stop watching"), time.Since(t0))
 }
 
 func runProc(ctx context.Context, cancel context.CancelFunc, p proc.Proc, version int, logDir string) {

@@ -27,11 +27,12 @@ type Job struct {
 	LogDir       string
 
 	AllowNVLink bool
+	ElasticMode env.ElasticMode
 }
 
 var warnCudaOption = new(sync.Once)
 
-func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, cluster plan.Cluster) proc.Proc {
+func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, cluster plan.Cluster, initProgress uint64) proc.Proc {
 	envs := proc.Envs{
 		env.JobStartTimestamp:        strconv.FormatInt(j.StartTime.Unix(), 10),
 		env.ProcStartTimestamp:       strconv.FormatInt(time.Now().Unix(), 10),
@@ -43,6 +44,8 @@ func (j Job) NewProc(peer plan.PeerID, gpuID int, initClusterVersion int, cluste
 		env.AllReduceStrategyEnvKey:  j.Strategy.String(),
 		env.ConfigServerEnvKey:       j.ConfigServer,
 		env.AllowNvLink:              fmt.Sprintf("%v", j.AllowNVLink),
+		env.ElasticModeEnvKey:        j.ElasticMode.String(),
+		env.InitProgressEnvKey:       strconv.FormatInt(int64(initProgress), 10),
 	}
 	if len(j.ConfigServer) > 0 {
 		envs[env.ConfigServerEnvKey] = j.ConfigServer
@@ -80,7 +83,7 @@ func (j Job) CreateProcs(cluster plan.Cluster, host uint32) []proc.Proc {
 	var ps []proc.Proc
 	for _, self := range cluster.Workers.On(host) {
 		localRank, _ := cluster.Workers.LocalRank(self)
-		proc := j.NewProc(self, localRank, 0, cluster)
+		proc := j.NewProc(self, localRank, 0, cluster, 0)
 		ps = append(ps, proc)
 	}
 	return ps

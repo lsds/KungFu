@@ -10,6 +10,8 @@ const (
 	RunnerListEnvKey        = `KUNGFU_INIT_RUNNERS`
 	SelfSpecEnvKey          = `KUNGFU_SELF_SPEC` // self spec should never change during the life of a process
 	AllReduceStrategyEnvKey = `KUNGFU_ALLREDUCE_STRATEGY`
+	ElasticModeEnvKey       = `KUNGFU_ELASTIC_MODE`
+	InitProgressEnvKey      = `KUNGFU_INIT_PROGRESS`
 
 	JobStartTimestamp  = `KUNGFU_JOB_START_TIMESTAMP`
 	ProcStartTimestamp = `KUNGFU_PROC_START_TIMESTAMP`

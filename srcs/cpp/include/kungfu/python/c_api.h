@@ -37,6 +37,9 @@ extern void kungfu_print_strategy_stats();
 // unstable APIs
 extern void kungfu_resize(int n, char *changed, char *detached);
 extern void kungfu_resize_from_url(char *p_changed, char *p_detached);
+extern void kungfu_change_cluster(int progress /* FIXME: pass uint64_t */,
+                                  char *p_changed, char *p_detached);
+extern int kungfu_init_progress();
 
 #ifdef __cplusplus
 }

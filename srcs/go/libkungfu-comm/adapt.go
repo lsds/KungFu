@@ -34,6 +34,24 @@ func GoKungfuResizeClusterFromURL(pChanged, pDetached *C.char) int {
 	return 0
 }
 
+//export GoKungfuChangeCluster
+func GoKungfuChangeCluster(progress int, pChanged, pDetached *C.char) int {
+	changed, detached, err := defaultPeer.ChangeCluster(uint64(progress))
+	if err != nil {
+		utils.ExitErr(err)
+	}
+	*pChanged = boolToChar(changed)
+	*pDetached = boolToChar(detached)
+	return 0
+}
+
+//export GoKungfuInitProgress
+func GoKungfuInitProgress(pProgress *C.int) int {
+	progress := defaultPeer.InitProgress()
+	*pProgress = C.int(progress)
+	return 0
+}
+
 //export GoKungfuProposeNewSize
 func GoKungfuProposeNewSize(newSize int) int {
 	err := defaultPeer.ProposeNewSize(newSize)

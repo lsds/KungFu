@@ -17,8 +17,9 @@ import (
 )
 
 type Stage struct {
-	Version int
-	Cluster plan.Cluster
+	Version  int    // the cluster version used internally
+	Progress uint64 // the progress of the user program, must set when elasticMode == reload
+	Cluster  plan.Cluster
 }
 
 func (s Stage) Encode() []byte {
