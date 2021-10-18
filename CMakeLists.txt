@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 PROJECT(kungfu)
 
-SET(CMAKE_CXX_STANDARD 14)
+SET(CMAKE_CXX_STANDARD 17)
 
 ADD_COMPILE_OPTIONS(-fPIC)
 
@@ -77,6 +77,10 @@ IF(KUNGFU_ENABLE_NCCL)
     ENDIF()
 ENDIF()
 
+IF(KUNGFU_ENABLE_MINDSPORE_ELASTIC)
+    INCLUDE(${CMAKE_SOURCE_DIR}/deps/ms-elastic/mindspore.cmake)
+ENDIF()
+
 FUNCTION(BUILD_KUNGFU_PYTHON_LIB)
     ADD_LIBRARY(
         kungfu_python SHARED
@@ -98,6 +102,19 @@ FUNCTION(BUILD_KUNGFU_PYTHON_LIB)
 
     IF(KUNGFU_ENABLE_TRACE)
         USE_STDTRACER(kungfu_python)
+    ENDIF()
+
+    IF(KUNGFU_ENABLE_MINDSPORE_ELASTIC)
+        TARGET_SOURCES(kungfu_python PRIVATE srcs/cpp/src/python/elastic.cpp)
+
+        TARGET_INCLUDE_DIRECTORIES(
+            kungfu_python
+            PRIVATE ${CMAKE_SOURCE_DIR}/deps/ms-elastic/include
+                    ${CMAKE_SOURCE_DIR}/deps/stdtracer/include
+                    ${CMAKE_SOURCE_DIR}/deps/stdtensor/include
+                    ${CMAKE_SOURCE_DIR}/deps/stdnn-ops/include
+                    ${CMAKE_SOURCE_DIR}/deps/stdml-collective/include)
+        TARGET_LINK_LIBRARIES(kungfu_python ms-elastic)
     ENDIF()
 ENDFUNCTION()
 

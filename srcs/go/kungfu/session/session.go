@@ -1,6 +1,8 @@
 package session
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
 
 	kb "github.com/lsds/KungFu/srcs/go/kungfu/base"
@@ -65,6 +67,12 @@ func New(strategy kb.Strategy, self plan.PeerID, pl plan.PeerList, client *clien
 		strategyHash:      getStrategyHash(),
 	}
 	return sess, true
+}
+
+func (sess *Session) String() string {
+	b := &bytes.Buffer{}
+	fmt.Fprintf(b, "<Session(%d/%d)>", sess.rank, sess.Size())
+	return b.String()
 }
 
 func (sess *Session) Peers() plan.PeerList {

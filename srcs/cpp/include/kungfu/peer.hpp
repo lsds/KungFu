@@ -17,6 +17,9 @@ class Peer
   public:
     static std::unique_ptr<Peer> &GetDefault(bool reinit = false);
 
+    // FIXME: call on nullptr works
+    // https://stackoverflow.com/questions/11320822/why-does-calling-method-through-null-pointer-work-in-c
+
     Peer();
 
     Peer(int rank, int size);  // Single Machine Multi-Process

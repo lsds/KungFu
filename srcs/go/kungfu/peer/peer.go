@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -86,6 +87,13 @@ func NewFromConfig(cfg *env.Config) (*Peer, error) {
 		router:             router,
 		server:             server,
 	}, nil
+}
+
+func (p *Peer) String() string {
+	b := &bytes.Buffer{}
+	fmt.Fprintf(b, "<Peer(init_progress=%d)>", p.initProgress)
+	// TODO: print debug info
+	return b.String()
 }
 
 func (p *Peer) Start() error {
@@ -198,14 +206,8 @@ func (p *Peer) propose(cluster plan.Cluster, progress uint64) (bool, bool) {
 	}
 	{
 		var notify execution.PeerFunc = func(ctrl plan.PeerID) error {
-			ctx, cancel := context.WithTimeout(context.TODO(), config.WaitRunnerTimeout)
-			defer cancel()
-			n, err := p.router.Wait(ctx, ctrl)
-			if err != nil {
+			if err := p.waitPeer(ctrl); err != nil {
 				return err
-			}
-			if n > 0 {
-				log.Warnf("%s is up after pinged %d times", ctrl, n+1)
 			}
 			return p.router.Send(ctrl.WithName("update"), stage.Encode(), connection.ConnControl, 0)
 		}
@@ -305,4 +307,48 @@ func (p *Peer) getClusterConfig(url string) (*plan.Cluster, error) {
 		return nil, err
 	}
 	return &cluster, nil
+}
+
+// RestoreProgress loads metadata from runner via tcp
+func (p *Peer) RestoreProgress(config interface{}) error {
+	srv := p.parent // use parent as config server
+	if err := p.waitPeer(srv); err != nil {
+		return err
+	}
+	msg, err := p.router.Talk(srv.WithName("get-config"), nil, connection.ConnConfig, 0)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(msg.Data, &config)
+}
+
+// SaveProgress saves metadata to runner via tcp
+func (p *Peer) SaveProgress(config interface{}) error {
+	srv := p.parent // use parent as config server
+	if err := p.waitPeer(srv); err != nil {
+		return err
+	}
+	bs, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+	return p.router.Send(srv.WithName("put-config"), bs, connection.ConnConfig, 0)
+}
+
+// waitRunner waits a peer with given ID with default timeout
+func (p *Peer) waitPeer(id plan.PeerID) error {
+	if config.EnableStallDetection {
+		name := fmt.Sprintf("waitPeer(%s)", id.String())
+		defer utils.InstallStallDetector(name).Stop()
+	}
+	ctx, cancel := context.WithTimeout(context.TODO(), config.WaitRunnerTimeout)
+	defer cancel()
+	n, err := p.router.Wait(ctx, id)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		log.Warnf("%s is up after pinged %d times", id, n+1)
+	}
+	return nil
 }

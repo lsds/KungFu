@@ -2,4 +2,10 @@
 #include <libkungfu-comm.h>
 
 void kungfu_run_main(int shiftArgc) { GoKungfuRunMain(shiftArgc); }
+
+void kungfu_elastic_run_main(int shiftArgc)
+{
+    GoKungfuElasticRunMain(shiftArgc);
+}
+
 void kungfu_run_send_signal(int sig) { GoKungfuSignalSend(GoInt(sig)); }

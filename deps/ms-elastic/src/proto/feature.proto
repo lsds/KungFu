@@ -1,0 +1,51 @@
+syntax = "proto3";
+option cc_enable_arenas = true;
+
+package stdml.data.proto;
+
+// define Int64
+message Int64List
+{
+    repeated int64 value = 1 [ packed = true ];
+}
+
+// define Float
+message FloatList
+{
+    repeated float value = 1 [ packed = true ];
+}
+
+// define Bytes
+message BytesList
+{
+    repeated bytes value = 1;
+}
+
+// define Feature
+message Feature
+{
+    oneof kind
+    {
+        BytesList bytes_list = 1;
+        FloatList float_list = 2;
+        Int64List int64_list = 3;
+    }
+};
+
+// define Features as Feature map
+message Features
+{
+    map<string, Feature> feature = 1;
+};
+
+// define FeatureList
+message FeatureList
+{
+    repeated Feature feature = 1;
+};
+
+// define FeatureLists as FeatureList map
+message FeatureLists
+{
+    map<string, FeatureList> feature_list = 1;
+};

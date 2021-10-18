@@ -74,6 +74,13 @@ func Measure(f func() error) (time.Duration, error) {
 	return d, err
 }
 
+func Measure_(f func()) time.Duration {
+	t0 := time.Now()
+	f()
+	d := time.Since(t0)
+	return d
+}
+
 func Rate(n int64, d time.Duration) float64 {
 	return float64(n) / (float64(d) / float64(time.Second))
 }

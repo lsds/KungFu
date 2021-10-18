@@ -57,6 +57,7 @@ class CMakeBuild(build_ext):
         ] + list(
             pass_env([
                 'KUNGFU_ENABLE_TRACE',
+                'KUNGFU_ENABLE_MINDSPORE_ELASTIC',
                 'CMAKE_VERBOSE_MAKEFILE',
                 'CMAKE_EXPORT_COMPILE_COMMANDS',
             ]))

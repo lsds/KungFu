@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 extern void kungfu_run_main(int shiftArgc);
+extern void kungfu_elastic_run_main(int shiftArgc);
 extern void kungfu_run_send_signal(int sig);
 
 #ifdef __cplusplus

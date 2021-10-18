@@ -1,0 +1,12 @@
+// # -*- mode: c++ -*-
+#pragma once
+#include <stdml/bits/collective/run.hpp>
+#include <stdml/bits/data/state.hpp>
+#include <stdml/bits/data/state2.hpp>
+#include <stdml/bits/execution/par.hpp>
+#include <stdml/elastic_state.hpp>
+
+namespace stdml::collective
+{
+extern void go_propose(int n);
+}  // namespace stdml::collective

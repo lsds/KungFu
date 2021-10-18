@@ -47,3 +47,6 @@ hosts.txt
 install_manifest.txt
 kungfu.cbp
 venv
+*.tf_record
+*.list.txt
+*.idx.txt

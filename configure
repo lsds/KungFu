@@ -52,6 +52,9 @@ parse_args() {
         --enable-nccl)
             ENABLE_NCCL=1
             ;;
+        --enable-mindspore-elastic)
+            KUNGFU_ENABLE_MINDSPORE_ELASTIC=1
+            ;;
         --with-mpi=*)
             MPI_HOME="${i#*=}"
             ENABLE_MPI=1
@@ -123,9 +126,11 @@ add_cmake_flags() {
         add_cmake_flag KUNGFU_ENABLE_NCCL 1
     fi
 
-    if [ $(uname) = "Linux" ]; then 
+    if [ $(uname) = "Linux" ]; then
         add_cmake_flag KUNGFU_ENABLE_AFFINITY 1
     fi
+
+    add_cmake_flag KUNGFU_ENABLE_MINDSPORE_ELASTIC ${KUNGFU_ENABLE_MINDSPORE_ELASTIC}
 }
 
 cleanup_cmake_cache() {

@@ -1,5 +1,7 @@
 from kungfu.python import current_rank, current_cluster_size, resize, all_reduce_int_max, change_cluster, init_progress
 
+import time
+
 
 class ElasticState:
     def __init__(self, max_progress=None, full_reload=False):
@@ -35,6 +37,15 @@ class ElasticState:
             # print('calling old API')
             return resize()
 
+    def record_start_resize(self):
+        self._resize_start_ns = time.time_ns()  # require python3.7
+        return self._resize_start_ns
+
+    def get_duration_since_resize(self):
+        t1 = time.time_ns()  # require python3.7
+        d = t1 - self._resize_start_ns
+        return d
+
     def end(self, delta_progress=1):
         self._progress += delta_progress
         if self._max_progress:
@@ -43,7 +54,15 @@ class ElasticState:
                 return
 
         # print('checking resize')
+        # BEGIN
+        t0 = self.record_start_resize()  # require python3.7
         changed, detached = self._resize()
+        d = self.get_duration_since_resize()
+        cluster_size = current_cluster_size()
+        print('resize overhead of %d workers: %.3fms' %
+              (cluster_size, d / 1e6))
+
+        # END
         if changed:
             # print('changed')
             if detached:

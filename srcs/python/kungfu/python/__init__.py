@@ -17,7 +17,8 @@ __all__ = [
 def _load_and_init_python_lib():
     _load_clib('libkungfu')
     _python_lib = _load_clib('libkungfu_python')
-    if not os.getenv('KUNGFU_NO_AUTO_INIT') and not os.getenv('KUNGFU_SINGLE_MACHINE_MULTIPROCESS'):
+    if not os.getenv('KUNGFU_NO_AUTO_INIT') and not os.getenv(
+            'KUNGFU_SINGLE_MACHINE_MULTIPROCESS'):
         _call_method(_python_lib, 'kungfu_python_init')
     has_nccl = _call_method(_python_lib, 'kungfu_python_init_nccl')
     return _python_lib, has_nccl
@@ -26,6 +27,10 @@ def _load_and_init_python_lib():
 _python_lib = None
 _has_nccl = None
 _python_lib, _has_nccl = _load_and_init_python_lib()
+
+
+def _init():
+    _call_method(_python_lib, 'kungfu_python_init')
 
 
 def _init_single_machine_multiple_process(rank, size):
@@ -153,7 +158,8 @@ def change_cluster(progress):
     """Change cluster size if the configuration is updated."""
     changed = c_char()
     detached = c_char()
-    _python_lib.kungfu_change_cluster(c_int(progress), byref(changed), byref(detached))
+    _python_lib.kungfu_change_cluster(c_int(progress), byref(changed),
+                                      byref(detached))
     return bool(ord(changed.value)), bool(ord(detached.value))
 
 

@@ -1,0 +1,33 @@
+// -*- mode: c++ -*-
+#pragma once
+#include <stdml/bits/data/tf_feature.hpp>
+#include <stdml/tensor>
+
+namespace stdml::data
+{
+class imagenet
+{
+    using s_col_t = get_tf_col<std::string>;
+    using i64_col_t = get_tf_col<int64_t>;
+
+  public:
+    static const s_col_t format;
+    static const s_col_t class_;
+    static const s_col_t colorspace;
+    static const s_col_t image;
+    static const i64_col_t height;
+    static const i64_col_t width;
+    static const i64_col_t label;
+
+    struct default_parser {
+        void operator()(TensorRef, TensorRef, tf_feature_map_wrap) const;
+        void operator()(TensorRef, TensorRef, std::string) const;
+        // void operator()(TensorRef, TensorRef, std::vector<std::string>)
+        // const;
+
+        std::pair<Tensor, Tensor> operator()(tf_feature_map_wrap) const;
+        std::pair<Tensor, Tensor> operator()(std::string) const;
+        std::pair<Tensor, Tensor> operator()(std::vector<std::string>) const;
+    };
+};
+}  // namespace stdml::data
