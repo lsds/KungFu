@@ -1,0 +1,2 @@
+RuntimeError: Unexpected error. Invalid data, batch operation expect same shape for each data row, but got inconsistent shape in column 3 expected shape for this column is:<25>, got shape:<17>
+Line of code : 209

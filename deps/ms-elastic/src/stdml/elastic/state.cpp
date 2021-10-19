@@ -16,6 +16,7 @@ static int get_unix_timestamp()
 namespace stdml
 {
 ElasticState::ElasticState()
+    : job_start_(0), proc_start_(0), progress_(0), rank_(0), size_(1)
 {
     // std::string idx_file;
     // int seed = 0;
@@ -61,6 +62,11 @@ bool parse_elastic_state(ElasticState &e)
         for (std::string line; std::getline(ss, line, ',');) {
             peers.push_back(line);
         }
+    }
+    if (peers.size() == 0) {  // single mode
+        e.size_ = 1;
+        e.rank_ = 0;
+        return true;
     }
     e.size_ = peers.size();
     e.rank_ = std::find(peers.begin(), peers.end(), self) - peers.begin();

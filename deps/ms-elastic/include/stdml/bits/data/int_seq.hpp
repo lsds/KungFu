@@ -24,6 +24,18 @@ class int_seq
     {
     }
 
+    void operator+=(const int_seq &y)
+    {
+        seq_.insert(seq_.end(), y.seq_.begin(), y.seq_.end());
+    }
+
+    int_seq operator+(const int_seq &y) const
+    {
+        S x = seq_;
+        x.insert(x.end(), y.seq_.begin(), y.seq_.end());
+        return x;
+    }
+
     N len() const
     {
         return seq_.size();

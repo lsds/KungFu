@@ -1,0 +1,7 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
+PROJECT(mlfs)
+
+INCLUDE(${CMAKE_SOURCE_DIR}/mlfs.cmake)
+
+BUILD_MLFS_LIB(stdml-vfs)
+BUILD_TFRECORD_FS(tfrecord-fs stdml-vfs)

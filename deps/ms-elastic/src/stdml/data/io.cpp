@@ -3,6 +3,14 @@
 
 namespace stdml::data
 {
+void read_region(huge_region_t r, std::istream &fs, void *buf)
+{
+    fs.seekg(r.off, std::ios::beg);
+    if (!fs.read((char *)buf, r.len)) {
+        throw std::runtime_error("read_region failed");
+    }
+}
+
 std::string read_region(huge_region_t r, std::istream &fs)
 {
     fs.seekg(r.off, std::ios::beg);

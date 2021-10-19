@@ -3,6 +3,12 @@
 
 #include <stdml/bits/data/index.hpp>
 
+void usage(int argc, char *argv[])
+{
+    printf("Usage:\n");
+    printf("\t%s [<filename> ...]\n", argv[0]);
+}
+
 int main(int argc, char *argv[])
 {
     std::vector<std::string> filenames;
@@ -10,7 +16,8 @@ int main(int argc, char *argv[])
         filenames.emplace_back(argv[i]);
     }
     if (filenames.size() <= 0) {
-        fprintf(stderr, "no TFRecord file given\n");
+        fprintf(stderr, "no TFRecord file given.\n");
+        usage(argc, argv);
         return 0;
     }
 

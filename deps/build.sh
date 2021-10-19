@@ -4,6 +4,7 @@ set -e
 cd $(dirname $0)/..
 pwd
 mkdir -p .build
+echo "building ..., PWD: $PWD"
 
 cd .build
 

@@ -10,17 +10,29 @@
 namespace stdml::data
 {
 total_index::total_index(std::vector<indexed_file> files)
-    : files(std::move(files))
+    : files_(std::move(files))
 {
+    build_ridx();
+}
+
+void total_index::build_ridx()
+{
+    for (size_t i = 0; i < files_.size(); ++i) {
+        for (size_t j = 0; j < files_[i].index.size(); ++j) {
+            ridx_.emplace_back(i, j);
+        }
+    }
+    std::cerr << "total_index has " << ridx_.size() << " regions from "
+              << files_.size() << " files" << std::endl;
 }
 
 std::pair<int, int> total_index::file_index(int64_t i) const
 {
-    for (size_t fi = 0; fi < files.size(); ++fi) {
-        if (static_cast<size_t>(i) < files[fi].index.size()) {
+    for (size_t fi = 0; fi < files_.size(); ++fi) {
+        if (static_cast<size_t>(i) < files_[fi].index.size()) {
             return std::make_pair(fi, i);
         }
-        i -= files[fi].index.size();
+        i -= files_[fi].index.size();
     }
     throw std::invalid_argument("row " + std::to_string(i) +
                                 " out of file_index");
@@ -30,13 +42,29 @@ std::string total_index::operator[](int64_t i) const
 {
     auto [fi, j] = TRACE_SITE_EXPR(file_index(i));
     std::ifstream fs;
-    const auto &f = files.at(fi);
+    const auto &f = files_.at(fi);
     TRACE_SITE_STMT(fs.open(f.filename));
     if (!fs.is_open()) {
         throw std::runtime_error("failed to open: " + f.filename);
     }
     const int j1 = j;
     return TRACE_SITE_EXPR(read_region(f.index.at(j1), fs));
+}
+
+size_t total_index::region_size(int64_t idx) const
+{
+    auto [i, j] = ridx_.at(idx);
+    return files_.at(i).index.at(j).len();
+}
+
+file_region total_index::get_file_region(int64_t idx) const
+{
+    const auto &[i, j] = ridx_.at(idx);
+    const auto &f = files_.at(i);
+    return file_region{
+        .filename = f.filename,
+        .r = f.index.at(j),
+    };
 }
 
 summary total_index::stat() const
@@ -54,14 +82,14 @@ summary total_index::stat() const
                                          }));
             return s;
         },
-        files);
+        files_);
 }
 
 void total_index::save(std::ostream &os) const
 {
     std::stringstream ss;
-    ss << files.size() << std::endl;
-    for (auto f : files) {
+    ss << files_.size() << std::endl;
+    for (auto f : files_) {
         ss << f.filename << ' ' << f.index.size() << std::endl;
         for (auto r : f.index) {
             ss << r.from << ' ' << r.to << std::endl;
@@ -73,8 +101,8 @@ void total_index::save(std::ostream &os) const
 void total_index::save_with_meta(std::ostream &os) const
 {
     std::stringstream ss;
-    ss << files.size() << std::endl;
-    for (auto f : files) {
+    ss << files_.size() << std::endl;
+    for (auto f : files_) {
         ss << f.filename << ' ' << f.index.size() << std::endl;
         for (auto r : f.index) {
             ss << r.from - 12 << ' ' << r.to + 4 << std::endl;
@@ -89,8 +117,8 @@ void total_index::load(std::istream &os)
 
     int n;
     os >> n;
-    files.clear();
-    files.reserve(n);
+    files_.clear();
+    files_.reserve(n);
     for (int i = 0; i < n; ++i) {
         indexed_file f;
         int m;
@@ -101,8 +129,10 @@ void total_index::load(std::istream &os)
             os >> a >> b;
             f.index.emplace_back(a, b);
         }
-        files.emplace_back(std::move(f));
+        files_.emplace_back(std::move(f));
     }
+
+    build_ridx();
 }
 
 total_index build_total_index(std::vector<std::string> filenames)

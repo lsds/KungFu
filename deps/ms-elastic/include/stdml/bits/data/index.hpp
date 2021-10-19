@@ -6,6 +6,29 @@
 
 namespace stdml::data
 {
+struct file_region {
+    std::string filename;
+    range_t r;
+
+    void drop_front(int n)
+    {
+        const auto [a, b] = r;
+        r = range_t(a + n, b);
+    }
+
+    void drop_back(int n)
+    {
+        const auto [a, b] = r;
+        r = range_t(a, b - n);
+    }
+
+    void read(void *buf)
+    {
+        std::ifstream fs(filename);
+        read_region(r, fs, buf);
+    }
+};
+
 struct indexed_file {
     std::string filename;
     range_list_t index;
@@ -20,7 +43,12 @@ struct indexed_file {
 
 class total_index
 {
-    std::vector<indexed_file> files;
+    std::vector<indexed_file> files_;
+
+    // idx -> (file_idx, reg_idx)
+    std::vector<std::pair<int, int>> ridx_;
+
+    void build_ridx();
 
   public:
     total_index() = default;
@@ -31,9 +59,13 @@ class total_index
 
     std::string operator[](int64_t i) const;
 
+    size_t region_size(int64_t idx) const;
+
+    file_region get_file_region(int64_t idx) const;
+
     summary stat() const;
 
-    void save(std::ostream &os) const;
+    void save(std::ostream &os) const;  // deprecated
 
     // save [from, to) as [from - 12, to + 4), for meta data bytes
     void save_with_meta(std::ostream &os) const;
