@@ -17,7 +17,7 @@ const int Ki = 1 << 10;
 int kungfu_create_tf_records(const char *index_file, int seed,
                              int global_batch_size)
 {
-    int max_sample_per_file = 8 * Ki;
+    int max_sample_per_file = 32 * 8 * Ki;
     if (const char *p = std::getenv("MAX_SAMPLE_PER_FILE"); p != nullptr) {
         max_sample_per_file = std::stoi(p);
     }

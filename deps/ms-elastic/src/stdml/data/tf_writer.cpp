@@ -29,8 +29,8 @@ void save_shard_result(const std::string &filename, const shard_result &shard)
 std::string gen_filename(int64_t progress, int rank, int size, int idx)
 {
     char filename[256];
-    sprintf(filename, "from-%d-worker-%d-of-%d-%d.tf_record", (int)progress,
-            rank, size, idx);
+    sprintf(filename, "from-%08d-worker-%04d-of-%04d-%04d.tf_record",
+                        (int)progress, rank, size, idx);
     return filename;
 }
 
