@@ -16,7 +16,7 @@ template <typename N>
 int_seq<N> build_seq(N n, uint32_t seed)
 {
     int_seq<N> seq(n);
-    seq.inplace_shuffle(seed);
+    // seq.inplace_shuffle(seed); // deactivated to compare datasets
     return seq;
 }
 
