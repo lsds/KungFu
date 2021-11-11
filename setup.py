@@ -1,1 +1,1 @@
-setup_plain.py
+setup_mindspore.py
