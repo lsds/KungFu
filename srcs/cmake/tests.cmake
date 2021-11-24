@@ -23,6 +23,7 @@ IF(KUNGFU_BUILD_GTEST)
     EXTERNALPROJECT_ADD(
         libgtest-dev-repo
         GIT_REPOSITORY ${GTEST_GIT_URL}
+        GIT_TAG main
         PREFIX ${PREFIX}
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PREFIX}
                    -DCMAKE_CXX_FLAGS=-std=c++11 -Dgtest_disable_pthreads=1
