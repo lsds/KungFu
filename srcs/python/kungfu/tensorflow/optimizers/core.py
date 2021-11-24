@@ -38,7 +38,7 @@ class KungFuTFKerasOptimizer(tf.keras.optimizers.Optimizer):
                                           grads_and_vars, **kwargs)
 
     def get_config(self):
-        return self._optimizer.optimizer.get_config()
+        return self._optimizer.get_config()
 
 
 class _KungFuAlgorithm:
