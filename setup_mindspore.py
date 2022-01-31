@@ -54,10 +54,10 @@ class CMakeBuild(build_ext):
             cmake_flag('KUNGFU_BUILD_TF_OPS', 0),
             cmake_flag('CMAKE_RUNTIME_OUTPUT_DIRECTORY', executable_dir),
             cmake_flag('PYTHON', sys.executable),
+            cmake_flag('KUNGFU_ENABLE_MINDSPORE_ELASTIC', 1),
         ] + list(
             pass_env([
                 'KUNGFU_ENABLE_TRACE',
-                'KUNGFU_ENABLE_MINDSPORE_ELASTIC',
                 'CMAKE_VERBOSE_MAKEFILE',
                 'CMAKE_EXPORT_COMPILE_COMMANDS',
             ]))
