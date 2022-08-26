@@ -224,3 +224,17 @@ KungFu is designed with extensibility in mind.
 It has a low-level API and a modular architecture, making
 it suitable for implementing new distributed training algorithms.
 Check out the developer [guideline](CONTRIBUTING.md) for more information.
+
+## Citation
+
+Please cite our paper if you find KungFu useful for your work:
+
+```
+@inproceedings{mai2020kungfu,
+  title={KungFu: Making Training in Distributed Machine Learning Adaptive},
+  author={Mai, Luo and Li, Guo and Wagenl{\"a}nder, Marcel and Fertakis, Konstantinos and Brabete, Andrei-Octavian and Pietzuch, Peter},
+  booktitle={14th USENIX Symposium on Operating Systems Design and Implementation (OSDI 20)},
+  pages={937--954},
+  year={2020}
+}
+```
