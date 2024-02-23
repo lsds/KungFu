@@ -14,6 +14,7 @@ var Models = map[string][]int{
 	"vgg16-imagenet":    vgg16Imagenet,
 	"slp-mnist":         slpMNIST,
 	"bert":              bert,
+	"tiny":              genFakeModel(8, 1000),
 }
 
 var Names = func(m map[string][]int) []string {
